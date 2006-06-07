@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
+  <head>
+    <meta name="author" content="The DVC team" />
+    <meta name="description" content="Distributed Revision Control for
+                                      Emacs home page. DVC allows you to use many distributed revision control
+                                      systems from within Emacs" />
+    <meta  name="keywords" content="DVC, Xtla, Emacs, XEmacs, baz, tla, Arch, GNU Arch, git, cogito, bzr, bazaar-ng, mercurial, hg, pcl-cvs, vc, darcs" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>DVC: Distributed Version Control for Emacs</title>
+    <!--     <style type="text/css"> -->
+    <!--       @import "style.css"; -->
+    <!--     </style> -->
+  </head>
+
+  <body>
+    <h1>DVC: Distributed Version Control for Emacs</h1>
+
+    <img src="dvc.png" />
+
+    <h2>Intro</h2>
+
+    <p>Xtla seems to be appreciated by Emacs users. For modern revision
+    control systems, VC doesn't seem to be sufficient. It's intrinsequely
+    file-based, and too generic to take advantage of the specificities of
+    each RCS (vc-arch.el is a nice hack, but tla and bazaar offer much
+    more than what is available there).</p>
+
+    <p>Currently, Xtla is generic enough to support tla and bazaar, and has a
+    small "autoconf" internal mechanism to adapt itself to the various
+    versions of tla and bazaar (things like call "merge" if it's
+    available, "star-merge" otherwise, ...). However, it's not generic
+    enough to support easily other revision control tools like bzr,
+    mercurial, git, ... Since bzr will be Bazaar v2, we'd like Xtla to
+    support at least Bazaar 2, and possibly others. We'd like to implement
+    that with a code relatively well factored, and therefore, build a
+    generic infrastructure, that we currently call DVC, like "Distributed
+    Version Control". Current Status
+    </p>
+
+    <p>DVC is available here</p>
+
+    <pre>
+      stefan@xsteve.at--public-2005/dvc--dev--0
+    </pre>
+
+    <p>Located at:</p>
+    <pre>
+      http://arch.xsteve.at/2005
+    </pre>
+
+    <p>You can also find Matthieu's branch (used to be the main, but
+    is not always up-to-date at the moment) here:</p>
+
+    <pre>
+      Matthieu.Moy@imag.fr--public/dvc--main--0
+    </pre>
+
+    <p>A nightly snapshot can be found here: <a href="http://download.gna.org/xtla-el/">http://download.gna.org/xtla-el/</a></p>
+
+    <p>DVC is the place where the future hacking will be done. There have
+    been a lot of code moving and function renamings which makes the merge
+    with Xtla itself harder. There is no new feature plan in Xtla before
+    the release of Xtla 1.2.</p>
+
+    <h2>Architecture</h2>
+
+    <p>The architecture looks like this:</p>
+
+    <pre>
+      +- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -+
+      :       Optional Common UI (that autodetects the back-end)        :<----.
+      +---------------+-------------------+------------------+----------+     |
+      |Bazaar (Xtla)  |  Mercurial (xgh)  |  Bazaar 2 (bzr)  |  ...     |     v
+      |+-------------+|+-----------------+|+----------------+|          |    \O/
+      ||Xtla core    |||   xhg core      |||   bzr core     ||          |<--> |
+      |+-------------+|+-----------------+|+----------------+|          |    / \
+      +---------------+-------------------+------------------+----------+
+      |                            DVC core                             |
+      +-----------------------------------------------------------------+
+    </pre>
+
+    <p>The user can use the unification layer and the back-end specific parts directly.</p>
+
+    <h2>Draft Roadmap</h2>
+    <p>
+      The roadmap currently looks like this:
+    </p>
+
+    <pre>
+      Create (initially empty) dvc-xxx.el files
+      while (! satisfied) {
+      See what has to be done to implement feature X in RCS Y
+      See what code can be reused from Xtla to do this
+      Based upon this, create a generic API in DVC
+      Port the Xtla code to this API
+      Implement the feature X in other back-ends
+      }
+    </pre>
+
+    <p>
+      We should avoid introducing quick and dirty hacks in DVC as much as
+      possilbe. Try to get a correct foundation before implementing features
+      in the backends.
+    </p>
+
+    <p>
+      Comments and contributions are welcome.
+    </p>
+
+    <h2>DVC backends and their status</h2>
+
+    <table border="1" cellspacing="0" cellpadding="10">
+      <tr>
+        <!--
+            ***
+            *** 5 stands for the number of fundations  ***
+            ***
+          -->
+        <td colspan="2" rowspan="2">
+          <th colspan="5" align="center">Functions</th>
+          <th rowspan="2">Maintainer</th>
+          <th rowspan="2">Extra comments</th>
+        </td>
+      </tr>
+      <tr>
+        <th>status</th>
+        <th>diff</th>
+        <th>revlog</th>
+        <th>pull</th>
+        <th>commit</th>
+      </tr>
+      <tr>
+        <!--
+            ***
+            *** 6 stands for the number of backends ***
+            ***
+          -->
+        <th rowspan="6">Backend</th>
+
+        <th>tla</th>
+        <!-- FUNCTIONS BEGIN -->
+        <th>+</th>
+        <th>+</th>
+        <th>+</th>
+        <th>+</th>
+        <th>+</th>
+        <!-- FUNCTIONS END -->
+        <th>Matthieu, Stefan</th>
+        <th></th>
+      </tr>
+      <tr>
+        <th>baz</th>
+        <!-- FUNCTIONS BEGIN -->
+        <th>+</th>
+        <th>+</th>
+        <th>+</th>
+        <th>+</th>
+        <th>+</th>
+        <!-- FUNCTIONS END -->
+        <th>Matthieu, Stefan</th>
+        <th></th>
+      </tr>
+      <tr>
+        <th>bzr</th>
+        <!-- FUNCTIONS BEGIN -->
+        <th>+</th>
+        <th>+</th>
+        <th>+</th>
+        <th>-</th>
+        <th>+</th>
+        <!-- FUNCTIONS END -->
+        <th>Matthieu</th>
+        <th></th>
+      </tr>
+      <tr>
+        <th>hg</th>
+        <!-- FUNCTIONS BEGIN -->
+        <th>+</th>
+        <th>+</th>
+        <th>-</th>
+        <th>+</th>
+        <th>+</th>
+        <!-- FUNCTIONS END -->
+        <th>Stefan</th>
+        <th></th>
+      </tr>
+      <tr>
+        <th>cg</th>
+        <!-- FUNCTIONS BEGIN -->
+        <th>+</th>
+        <th>+</th>
+        <th>-</th>
+        <th>-</th>
+        <th>+</th>
+        <!-- FUNCTIONS END -->
+        <th>Stefan</th>
+        <th></th>
+      </tr>
+      <tr>
+        <th>darcs</th>
+        <!-- FUNCTIONS BEGIN -->
+        <th>+</th>
+        <th>-</th>
+        <th>-</th>
+        <th>-</th>
+        <th>-</th>
+        <!-- FUNCTIONS END -->
+        <th>Stefan</th>
+        <th></th>
+      </tr>
+    </table>
+
+    <pre>
+      TODO: make a clean array here.
+
+      * tla and baz (Xtla). Should remain ~100% functional. We may break some functionalities by accident.
+      * bzr. Basic support (diff, ediff, edit log, commit). Currently the most advanced back-end.
+      * xhg. Basic support.
+      * darcs. Just started. Not usable yet.
+    </pre>
+
+    <h2>Other implementations of emacs modes for revision control</h2>
+
+    <ul>
+      <li><a href="http://www.gelato.unsw.edu.au/archives/git/0511/13219.html">git</a></li>
+      <li><a href="http://darcs.net/DarcsWiki/CategoryEmacs">darcs</a></li>
+      <li><a href="http://viewmtn.angrygoats.net/fileinbranch.psp?branch=net.venge.monotone&amp;path=contrib/monotone.el">monotone</a></li>
+      <li><a href="http://lists.gnu.org/archive/html/quilt-dev/2006-01/msg00002.html">quilt</a></li>
+    </ul>
+  </body>
+</html>

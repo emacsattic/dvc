@@ -1,0 +1,142 @@
+@SET_MAKE@
+
+##############################################################################
+# location of required programms
+prefix = @prefix@
+RM   = @RM@
+LS   = @LS@
+XARGS = @XARGS@
+ETAGS = @ETAGS@
+ARCH = @ARCH@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_DATA = @INSTALL_DATA@
+
+datadir= @datadir@
+srcdir = @srcdir@
+subdir = lisp
+contribdir = contrib
+lispdir = @lispdir@
+
+EMACS_PROG = @EMACS_PROG@
+EMACS_FLAVOR = @EMACS_FLAVOR@
+
+FLAGS = @FLAGS@
+
+EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) $(EMACS_PROG) $(FLAGS)
+
+# Other settings
+
+OTHERDIRS = @OTHERDIRS@
+
+SYMLINKS = @SYMLINKS@
+LINKPATH = @LINKPATH@
+
+all: clean-some autoloads
+	$(EMACS_COMP) -f package-maint-compile
+
+install-el:
+	$(INSTALL) -d -m 0755 $(lispdir)/$(subdir)
+	for el in $(srcdir)/*.el; do                     \
+	    echo "Install $$el in $(lispdir)/$(subdir)"; \
+	    $(INSTALL_DATA) $$el $(lispdir)/$(subdir);   \
+        done;
+	$(INSTALL) -d -m 0755 $(lispdir)/$(subdir)/$(contribdir)
+	$(INSTALL_DATA) $(srcdir)/contrib/ewoc.el $(lispdir)/$(subdir)/$(contribdir)
+	$(INSTALL) -d -m 0755 $(lispdir)/$(subdir)
+	$(INSTALL_DATA) ../Makefile* $(lispdir)
+	$(INSTALL_DATA) ../config.status $(lispdir)
+	$(INSTALL_DATA) Makefile* $(lispdir)/$(subdir)
+
+clean:
+	-$(RM) -f *.elc ./contrib/*.elc \
+		dvc-load.el dvc-autoloads.el auto-autoloads.el custom-load.el .build-stamp
+
+clean-some:
+	$(EMACS_COMP) -f package-maint-clean-some-elc
+
+Makefile: @srcdir@/Makefile.in ../config.status
+	cd ..; ./config.status
+
+distclean:
+#	$(ARCH) inventory -B -j | $(XARGS) $(RM)
+#	$(ARCH) inventory -B -p | $(XARGS) $(RM)
+
+TAGS: $(SRCS)
+	@if test "x$(ETAGS)" = "x" ; then                 \
+           echo "Sorry, no \`etags' program available." ; \
+         else                                             \
+           $(ETAGS) */*.el                              ; \
+         fi
+
+##############################################################################
+install-pkg: uninstall-pkg all
+	@if test "x$(SYMLINKS)" = "xno" ; then             \
+	  $(INSTALL) -d -m 0755 $(lispdir);                \
+	  for file in *.elc ; do                           \
+	    echo "Installing $$file in $(lispdir)";        \
+	    $(INSTALL_DATA) $$file $(lispdir) ;            \
+	  done ;                                           \
+	  if $(LS) contrib/*.elc > /dev/null 2>&1; then    \
+	    for file in contrib/*.elc ; do                 \
+	      echo "Installing $$file in $(lispdir)";      \
+	      $(INSTALL_DATA) $$file $(lispdir) ;          \
+	    done ;                                         \
+	  fi                                               \
+	else                                               \
+	  if test "x$(LINKPATH)" = "x" ; then              \
+	    $(LN_S) `pwd` $(lispdir) ;                     \
+	  else                                             \
+	    $(LN_S) $(LINKPATH)/lisp $(lispdir) ;          \
+	  fi ;                                             \
+	fi
+	@echo DVC ELISP files successfully installed\!
+
+uninstall-pkg:
+	@for file in $(lispdir)/* ; do            \
+	  echo "Removing $$file from $(lispdir)"; \
+	  $(RM) -f $$file ;                       \
+	done
+
+##############################################################################
+autoloads:
+	$(EMACS_COMP) -f package-maint-make-cus-load $(srcdir)
+	$(EMACS_COMP) -f package-maint-make-auto-load $(srcdir)
+	$(EMACS_COMP) -f package-maint-make-load
+
+
+##############################################################################
+ARCH_DIR_EXISTS=${shell if [ -r '@top_srcdir@/{arch}' ]; then printf "%s" yes; else printf "%s" no; fi }
+
+ifeq ($(ARCH_DIR_EXISTS),yes)
+dvc-version.el: @top_srcdir@/{arch} $(SRCS:%=@srcdir@/%)
+	$(RM) -f $@
+	echo ';; do not edit -- automatically generated file' > $@
+	echo ';; do not delete -- needed for bug reports' >> $@
+	printf "%s" '(defconst dvc-version "' >> $@
+	if [ "x$(RELEASE_ID)" != "x" ]; then \
+		printf "%s (%s)" $(RELEASE_ID) \
+		`$(ARCH) logs -f -d @top_srcdir@ | tail -1` >> $@; \
+	else \
+		printf "%s" `$(ARCH) logs -f -d @top_srcdir@ | tail -1` >> $@; \
+	fi
+	echo '")' >> $@
+	echo "(provide 'dvc-version)" >> $@
+	chmod -w $@
+else
+dvc-version.el: $(SRCS:%=@srcdir@/%)
+	$(RM) -f $@
+	echo ';; do not edit -- automatically generated file' > $@
+	echo ';; do not delete -- needed for bug reports' >> $@
+	@echo "*** Warning: Unknown Xtla arch release"
+	printf "%s" '(defconst dvc-version "' >> $@
+	if [ "x$(RELEASE_ID)" != "x" ]; then \
+		printf "%s" "$(RELEASE_ID)" >> $@; \
+	else \
+		printf "%s" "Unknown version" >> $@; \
+	fi
+	echo '")' >> $@
+	echo "(provide 'dvc-version)" >> $@
+	chmod -w $@
+endif

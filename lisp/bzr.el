@@ -1,0 +1,379 @@
+;;; bzr.el --- Support for Bazaar 2 in DVC
+
+;; Copyright (C) 2005-2006 by all contributors
+
+;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
+;; Contributions from:
+;;    Stefan Reichoer, <stefan@xsteve.at>
+
+;; This file is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+
+;; This file is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
+
+;;; Commentary:
+
+;;
+
+;;; Code:
+
+(require 'bzr-core)
+(require 'dvc-diff)
+(require 'dvc-core)
+(require 'dvc-defs)
+(require 'dvc-revlist)
+(eval-and-compile (require 'dvc-lisp))
+
+(eval-when-compile (require 'cl))
+
+(defun bzr-init (&optional dir)
+  "Run bzr init."
+  (interactive
+   (list (expand-file-name (dvc-read-directory-name "Directory for bzr init: "
+                                                     (or default-directory
+                                                         (getenv "HOME"))))))
+  (dvc-run-dvc-sync 'bzr (list "init" dir)
+                     :finished (dvc-capturing-lambda
+                                   (output error status arguments)
+                                 (message "bzr init finished"))))
+
+(defun bzr-parse-diff (changes-buffer)
+  (dvc-trace "bzr-parse-diff")
+  (dvc-trace-current-line)
+  (save-excursion
+    (while (re-search-forward
+            "^=== \\([a-z]*\\) file '\\([^']*\\)'\\( => '\\([^']*\\)'\\)?$" nil t)
+      (let* ((origname (match-string-no-properties 2))
+             (newname  (or (match-string-no-properties 4) origname))
+             (renamed  (string= (match-string-no-properties 1) "renamed"))
+             (added    (string= (match-string-no-properties 1) "added")))
+        (with-current-buffer changes-buffer
+          (ewoc-enter-last dvc-diff-cookie
+                           (list 'file
+                                 newname
+                                 (cond (added   "A")
+                                       (renamed "R")
+                                       (t " "))
+                                 (cond (added " ")
+                                       (t "M"))
+                                 " "    ; dir
+                                 (when (and renamed
+                                            (not added))
+                                   origname))))))))
+
+;;;###autoload
+(defun bzr-diff (&optional against path dont-switch)
+  "Run \"bzr diff\".
+
+TODO: DONT-SWITCH and AGAINST are currently ignored."
+  (interactive (list nil nil current-prefix-arg))
+  (let* ((dir (or path default-directory))
+         (root (bzr-tree-root dir))
+         (buffer (dvc-prepare-changes-buffer
+                  `(bzr (last-revision ,root 1))
+                  `(bzr (local-tree ,root))
+                  'diff root 'bzr)))
+    (when dvc-switch-to-buffer-first
+      (dvc-switch-to-buffer buffer))
+    (dvc-save-some-buffers root)
+    (dvc-run-dvc-async
+     'bzr '("diff")
+     :finished
+     (dvc-capturing-lambda (output error status arguments)
+       (dvc-diff-no-changes (capture buffer)
+                             "No changes in %s"
+                             (capture root)))
+     :error
+     (dvc-capturing-lambda (output error status arguments)
+       (if (/= 1 status)
+           (dvc-diff-error-in-process (capture buffer)
+                                       "Error in diff process"
+                                       (capture root)
+                                       output error)
+         (dvc-show-changes-buffer output 'bzr-parse-diff
+                                  (capture buffer)))))))
+
+(defun bzr-delta (base modified dont-switch)
+  "Run bzr diff -r BASE -r MODIFIED.
+
+TODO: dont-switch is currently ignored."
+  (dvc-trace "base, modified=%S, %S" base modified)
+  (let ((base-str (bzr-revision-id-to-string base))
+        (modified-str (bzr-revision-id-to-string modified))
+        (buffer (dvc-prepare-changes-buffer
+                 base modified
+                 'diff nil 'bzr)))
+    (when dvc-switch-to-buffer-first
+      (dvc-switch-to-buffer buffer))
+    (let ((default-directory (bzr-revision-id-location modified)))
+      (dvc-run-dvc-async
+       'bzr `("diff"
+              "--revision" ,(concat base-str ".." modified-str))
+       :finished
+       (dvc-capturing-lambda (output error status arguments)
+         (dvc-diff-no-changes (capture buffer)
+                              "No changes between %s"
+                              (concat (capture base-str) " and " (capture modified-str))))
+       :error
+       (dvc-capturing-lambda (output error status arguments)
+         (if (/= 1 status)
+             (dvc-diff-error-in-process (capture buffer)
+                                        "Error in diff process"
+                                        ""
+                                        output error)
+           (dvc-show-changes-buffer output 'bzr-parse-diff
+                                    (capture buffer)))))
+      ;; We must return the buffer (even in asynchronous mode)
+      (with-current-buffer buffer (goto-char (point-min)))
+      buffer)))
+
+
+
+(defun bzr-unknowns ()
+  "Run bzr unknowns."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("unknowns")))
+
+(defun bzr-parse-status (changes-buffer)
+  (dvc-trace "bzr-parse-status (while)")
+  (while (> (point-max) (point))
+    (dvc-trace-current-line)
+    (cond ((looking-at "^\\([^ ][^\n]*:\\)")
+           (let ((msg (match-string-no-properties 1)))
+             (with-current-buffer changes-buffer
+               (ewoc-enter-last dvc-diff-cookie
+                                (list 'message msg)))))
+          ((looking-at "^ +\\([^ ][^\n]*?\\)\\([/@]\\)? => \\([^\n]*?\\)\\([/@]\\)?$")
+           (let ((oldname (match-string-no-properties 1))
+                 (dir (match-string-no-properties 2))
+                 (newname (match-string-no-properties 3)))
+             (with-current-buffer changes-buffer
+               (ewoc-enter-last dvc-diff-cookie
+                                (list 'file newname
+                                      " " " " dir
+                                      oldname)))))
+          ((looking-at " +\\([^\n]*?\\)\\([/@]\\)?$")
+           (let ((file (match-string-no-properties 1))
+                 (dir (match-string-no-properties 2)))
+             (with-current-buffer changes-buffer
+               (ewoc-enter-last dvc-diff-cookie
+                                (list 'file file
+                                      ;; TODO perhaps not only " ".
+                                      " " " " dir nil)))))
+          (t (error "unrecognized context in bzr-parse-status")))
+    (forward-line 1)))
+
+;;;###autoload
+(defun bzr-status (&optional against path)
+  "Run \"bzr status\"."
+  (interactive (list default-directory))
+  (let* ((dir (or path default-directory))
+         (root (bzr-tree-root dir))
+         (buffer (dvc-prepare-changes-buffer
+                  `(bzr (last-revision ,root 1))
+                  `(bzr (local-tree ,root))
+                  'status root 'bzr)))
+    (dvc-switch-to-buffer-maybe buffer)
+    (setq dvc-buffer-refresh-function 'bzr-status)
+    (dvc-save-some-buffers root)
+    (dvc-run-dvc-async
+     'bzr '("status")
+     :finished
+     (dvc-capturing-lambda (output error status arguments)
+       (with-current-buffer (capture buffer)
+         (if (> (point-max) (point-min))
+             (dvc-show-changes-buffer output 'bzr-parse-status
+                                      (capture buffer))
+         (dvc-diff-no-changes (capture buffer)
+                             "No changes in %s"
+                             (capture root))))
+       :error
+       (dvc-capturing-lambda (output error status arguments)
+         (dvc-diff-error-in-process (capture buffer)
+                                     "Error in diff process"
+                                     (capture root)
+                                     output error))))))
+
+;;;###autoload
+(defun bzr-add (file)
+  "Adds FILE to the repository."
+  (interactive "fAdd file or directory: ")
+  (message
+   (dvc-run-dvc-sync
+    'bzr (list "add" file)
+    :finished 'dvc-output-and-error-buffer-handler)))
+
+(defun bzr-add-files (&rest files)
+  "Run bzr add."
+  (message "bzr-add-files: %s" files)
+  (dvc-run-dvc-sync 'bzr (append '("add") files)
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr add finished"))))
+
+(defun bzr-log-edit-done ()
+  "Finish a commit for Bzr."
+  (interactive)
+  (let ((buffer (find-file-noselect (dvc-log-edit-file-name))))
+    (dvc-log-flush-commit-file-list)
+    (save-buffer buffer)
+    (let ((default-directory (dvc-uniquify-file-name default-directory)))
+      (dvc-run-dvc-async
+       'bzr
+       (append
+        (list "commit" "--verbose" "--file" (dvc-log-edit-file-name))
+        ;;  Get marked  files to  do  a selected  file commit.  Nil
+        ;; otherwise (which means commit all files).
+        (with-current-buffer dvc-partner-buffer
+          (mapcar #'dvc-uniquify-file-name
+                  (dvc-current-file-list 'nil-if-none-marked))))
+       :finished (dvc-capturing-lambda (output error status arguments)
+                   (dvc-show-error-buffer output 'commit)
+                   (let ((inhibit-read-only t))
+                     (goto-char (point-max))
+                     (insert (with-current-buffer error
+                               (buffer-string))))
+                   (dvc-log-close (capture buffer))
+                   (dvc-diff-clear-buffers
+                    'bzr
+                    (capture default-directory)
+                    "* Just committed! Please refresh buffer\n")
+                   (message "Bzr commit finished !"))))
+    (dvc-tips-popup-maybe)))
+
+;; Revisions
+
+(defun bzr-revision-id-location (rev-id)
+  "Extract the location component from REVISION-ID."
+  (case (dvc-revision-get-type rev-id)
+    ((revision previous-revision)
+     (let* ((data (car (dvc-revision-get-data rev-id)))
+            (location (nth 1 data)))
+       location))
+    (otherwise nil)))
+
+(defun bzr-revision-id-to-string (rev-id)
+  "Turn a DVC revision ID to a bzr revision spec.
+
+\(bzr (revision (local \"/path/to/archive\" 3)))
+=> \"revno:3\".
+
+TODO: This works only for local revision now, because bzr lacks a way
+to do it in the general case."
+  (case (dvc-revision-get-type rev-id)
+    (revision (let* ((data (car (dvc-revision-get-data rev-id)))
+                     (location (nth 0 data)))
+                (unless (eq location 'local)
+                  (error "TODO: Non local (%S) revisions not supported here."
+                         location))
+                (concat "revno:" (int-to-string (nth 2 data)))))
+    (previous-revision
+     (let* ((data (car (dvc-revision-get-data rev-id)))
+            (location (nth 0 data)))
+       (unless (eq location 'local)
+         (error "TODO: Non local (%S) revisions not supported here."
+                location))
+         (concat "revno:" (int-to-string (- (nth 2 data) 1)))))
+    (otherwise (error "TODO: not implemented: %S" rev-id))))
+
+
+(defun bzr-revision-get-file-revision (file revision)
+  "Insert the content of FILE in REVISION, in current buffer.
+
+REVISION looks like
+\(local \"path\" NUM)."
+  (let ((bzr-rev
+         (if (eq (car revision) 'local)
+             (int-to-string (nth 2 revision))
+           (error "TODO: revision=%S" revision)))
+        (path (if (eq (car revision) 'local)
+                  default-directory)))
+    (let ((default-directory path))
+      (insert
+       (dvc-run-dvc-sync
+        ;; TODO what if I'm not at the tree root ?
+        'bzr (list "cat" "--revision" bzr-rev file)
+        :finished 'dvc-output-buffer-handler)))))
+
+;;;###autoload
+(defun bzr-revision-get-last-revision (file last-revision)
+  "Insert the content of FILE in LAST-REVISION, in current buffer.
+
+LAST-REVISION looks like
+\(\"path\" NUM)
+"
+  (let ((bzr-rev (concat "last:" (int-to-string
+                                  (nth 1 last-revision))))
+        (default-directory (car last-revision)))
+    (insert
+     (dvc-run-dvc-sync
+      ;; TODO what if I'm not at the tree root ?
+      'bzr (list "cat" "--revision" bzr-rev file)
+      :finished 'dvc-output-buffer-handler))))
+
+(defun bzr-command-version ()
+  "Run bzr version."
+  (interactive)
+  (let ((version (dvc-run-dvc-sync 'bzr (list "version")
+                                   :finished 'dvc-output-buffer-handler)))
+    (when (interactive-p)
+      (message "Bazaar-NG Version: %s" version))
+    version))
+
+(defun bzr-whoami ()
+  "Run bzr whomai."
+  (interactive)
+  (let ((whoami (dvc-run-dvc-sync 'bzr (list "whoami")
+                                   :finished 'dvc-output-buffer-handler)))
+    (when (interactive-p)
+      (message "bzr whoami: %s" whoami))
+    whoami))
+
+(defun bzr-info ()
+  "Run bzr info."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("info")))
+
+(defun bzr-check ()
+  "Run bzr check."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("check") t))
+
+(defun bzr-ignored ()
+  "Run bzr ignored."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("ignored")))
+
+(defun bzr-conflicts ()
+  "Run bzr conflicts."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("conflicts")))
+
+(defun bzr-deleted ()
+  "Run bzr deleted."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("deleted")))
+
+(defun bzr-renames ()
+  "Run bzr renames."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("renames")))
+
+(defun bzr-ignore (pattern)
+  "Run bzr ignore PATTERN."
+  (interactive "sbzr ignore: ")
+  (dvc-run-dvc-sync 'bzr (list "ignore" pattern)))
+
+(provide 'bzr)
+;; arch-tag: Matthieu Moy, Sun Sep  4 23:27:53 2005 (bzr.el)
+;;; bzr.el ends here

@@ -1,0 +1,39 @@
+To test DVC backends quickly here I enumerate some
+interesting(completely my subjective view - Masatake) archives or repositories:
+Add archives(or repository) you are interested in.
+
+* tla/baz
+
+** dvc itself
+
+   $ tla get stefan@xsteve.at--public-2005/dvc--dev--0
+   or
+   $ baz get stefan@xsteve.at--public-2005/dvc--dev--0
+
+* bzr
+
+** bless binary editor
+
+   $ bzr branch http://download.gna.org/bless/bless.dev
+
+* cg
+
+** linux kernel
+
+   $ cg-clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
+
+* hg
+
+** Xen and linux related codes
+
+  $ hg clone http://xenbits.xensource.com/linux-2.6-xen.hg
+  $ hg clone http://xenbits.xensource.com/xen-3.0-testing.hg
+
+* darcs
+
+** Ion-3 window manager
+
+  $ darcs get --partial http://modeemi.fi/~tuomov/repos/ion-3
+
+
+# arch-tag: aebc4b24-a86b-466e-a2df-c4e0d004788c
