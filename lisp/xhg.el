@@ -210,13 +210,32 @@ If DONT-SWITCH, don't switch to the diff buffer"
        :finished
        (dvc-capturing-lambda (output error status arguments)
          (with-current-buffer (capture buffer)
-           (setq dvc-buffer-refresh-function 'xhg-status)
+           (xhg-status-extra-mode-setup)
            (if (> (point-max) (point-min))
                (dvc-show-changes-buffer output 'xhg-parse-status
                                         (capture buffer))
              (dvc-diff-no-changes (capture buffer)
                                   "No changes in %s"
                                   (capture root))))))))
+
+(easy-menu-define xhg-mode-menu dvc-diff-mode-map
+  "`xhg' menu"
+  `("hg"
+    ("mq"
+     ["mq init" xhg-qinit t]
+     ["mq new"  xhg-qnew t]
+     ["mq refresh"  xhg-qrefresh t]
+     ["mq applied"  xhg-qapplied t]
+     ["mq unapplied"  xhg-qunapplied t]
+     ["mq series"  xhg-series t]
+     )
+    ))
+
+(defun xhg-status-extra-mode-setup ()
+  "Do some additonal setup for xhg status buffers."
+  (message "xhg-status-extra-mode-setup called.")
+  (easy-menu-add xhg-mode-menu)
+  (set (make-local-variable 'dvc-buffer-refresh-function) 'xhg-status))
 
 (defun xhg-pull-finish-function (output error status arguments)
   (let ((buffer (dvc-get-buffer-create 'xhg 'pull)))
