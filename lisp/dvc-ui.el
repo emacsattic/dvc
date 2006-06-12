@@ -45,7 +45,7 @@
 ;; Conventions
 ;;
 ;; - Meta Rules:
-;; 0. If you feel a binding odd more than 3 times, report it to xtla dev mailing
+;; 0. If you feel a binding odd more than 3 times, report it to dvc dev mailing
 ;;    list. Especially about some danger functions like undo, merge; and functions
 ;;    taking longer time to be executed.
 ;;
@@ -61,7 +61,7 @@
 ;; - Generic Rules:
 ;;
 ;; 1. xtla-inventory should have similar key bindings to pcl-cvs.
-;;    If a pcl-cvs's binding is too odd, talk it in xtla dev mailing list.
+;;    If a pcl-cvs's binding is too odd, talk it in dvc dev mailing list.
 ;;
 ;; 2. Define common prefix for command groups like '>'.
 ;;    So a key binding for a grouped command has following structure:
@@ -333,17 +333,18 @@
     (define-key map (dvc-prefix-kill-ring ?r) 'tla-save-revision-to-kill-ring)
 
     map)
-  "Global keymap used by Xtla.")
+  "Global keymap used by DVC.")
 
 
 ;;;###autoload
-(defcustom dvc-prefix-key [(control x) ?T]
-  "Prefix key for the Xtla commands in the global keymap."
-  :type '(choice (const [(control x) ?T])
+(defcustom dvc-prefix-key [(control x) ?V]
+  "Prefix key for the DVC commands in the global keymap."
+  :type '(choice (const [(control x) ?V])
+                 (const [(control x) ?T])
                  (const [(control x) ?t])
-                 (const [(control x) ?v])
-                 (const [(control x) ?V])
                  (const [(control x) ?v ?t])
+                 (const [(super v)])
+                 (const [(hyper v)])
                  (const [(super t)])
                  (const [(hyper t)])
                  (sexp))
