@@ -36,6 +36,11 @@
 
 (eval-when-compile (require 'cl))
 
+(defvar bzr-default-init-repository-directory "~/"
+  "The default directory that is suggested when calling `bzr-init-repository'.
+This setting is useful, if you'd like to create a bunch of repositories in
+a common base directory.")
+
 (defun bzr-init (&optional dir)
   "Run bzr init."
   (interactive
@@ -46,6 +51,19 @@
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
                                  (message "bzr init finished"))))
+
+(defun bzr-init-repository (&optional dir)
+  "Run bzr init-repository."
+  (interactive
+   (list (expand-file-name (dvc-read-directory-name "Directory for bzr init-repository: "
+                                                     (or
+                                                      bzr-default-init-repository-directory
+                                                      default-directory
+                                                      (getenv "HOME"))))))
+  (dvc-run-dvc-sync 'bzr (list "init-repository" dir)
+                     :finished (dvc-capturing-lambda
+                                   (output error status arguments)
+                                 (message (format "bzr init-repository '%s' finished" dir)))))
 
 (defun bzr-parse-diff (changes-buffer)
   (dvc-trace "bzr-parse-diff")
