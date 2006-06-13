@@ -26,6 +26,45 @@
 
 (require 'xhg)
 
+;; The following commands are available for hg's mq:
+;; qapplied      print the patches already applied
+;; qcommit       (No help text available)
+;; qdelete       remove a patch from the series file
+;; qdiff         diff of the current patch
+;; qimport       import a patch
+;; qinit         init a new queue repository
+;; qnew          create a new patch
+;; qnext         print the name of the next patch
+;; qpop          pop the current patch off the stack
+;; qprev         print the name of the previous patch
+;; qpush         push the next patch onto the stack
+;; qrefresh      update the current patch
+;; qrestore      restore the queue state saved by a rev
+;; qsave         save current queue state
+;; qseries       print the entire series file
+;; qtop          print the name of the current patch
+;; qunapplied    print the patches not yet applied
+;; qversion      print the version number
+
+(defvar xhg-mq-submenu
+  '("mq"
+    ["mq init" xhg-qinit t]
+    ["mq new"  xhg-qnew t]
+    ["mq refresh"  xhg-qrefresh t]
+    ["mq applied"  xhg-qapplied t]
+    ["mq unapplied"  xhg-qunapplied t]
+    ["mq series"  xhg-qseries t]
+    ))
+
+(defvar xhg-mq-sub-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?A] 'xhg-qapplied)
+    (define-key map [?U] 'xhg-qunapplied)
+    (define-key map [?S] 'xhg-qseries)
+    (define-key map [?R] 'xhg-qrefresh)
+    map)
+  "Keymap used for xhg-mq commands.")
+
 ;;;###autoload
 (defun xhg-qinit (&optional dir qinit-switch)
   "Run hg qinit.
@@ -61,17 +100,23 @@ When called with a prefix argument run hg qnew -m and ask for COMMIT-DESCRIPTION
 (defun xhg-qapplied ()
   "Run hg qapplied."
   (interactive)
-  (dvc-run-dvc-display-as-info 'xhg '("qapplied")))
+  (let ((curbuf (current-buffer)))
+    (dvc-run-dvc-display-as-info 'xhg '("qapplied") nil "hg qapplied:\n")
+    (pop-to-buffer curbuf)))
 
 (defun xhg-qunapplied ()
   "Run hg qunapplied."
   (interactive)
-  (dvc-run-dvc-display-as-info 'xhg '("qunapplied")))
+  (let ((curbuf (current-buffer)))
+    (dvc-run-dvc-display-as-info 'xhg '("qunapplied") nil "hg qunapplied:\n")
+    (pop-to-buffer curbuf)))
 
 (defun xhg-qseries ()
   "Run hg qseries."
   (interactive)
-  (dvc-run-dvc-display-as-info 'xhg '("qseries")))
+  (let ((curbuf (current-buffer)))
+    (dvc-run-dvc-display-as-info 'xhg '("qseries") nil "hg qseries:\n")
+    (pop-to-buffer curbuf)))
 
 (defun xhg-qversion ()
   "Run hg qversion."

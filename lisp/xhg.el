@@ -220,21 +220,16 @@ If DONT-SWITCH, don't switch to the diff buffer"
 
 (easy-menu-define xhg-mode-menu dvc-diff-mode-map
   "`xhg' menu"
-  `("hg"
-    ("mq"
-     ["mq init" xhg-qinit t]
-     ["mq new"  xhg-qnew t]
-     ["mq refresh"  xhg-qrefresh t]
-     ["mq applied"  xhg-qapplied t]
-     ["mq unapplied"  xhg-qunapplied t]
-     ["mq series"  xhg-series t]
-     )
-    ))
+  (delete nil `("hg"
+                ,(when (boundp 'xhg-mq-submenu) xhg-mq-submenu)
+                )))
 
 (defun xhg-status-extra-mode-setup ()
   "Do some additonal setup for xhg status buffers."
   (message "xhg-status-extra-mode-setup called.")
   (easy-menu-add xhg-mode-menu)
+  (when (boundp 'xhg-mq-sub-mode-map)
+    (local-set-key [?Q] xhg-mq-sub-mode-map))
   (set (make-local-variable 'dvc-buffer-refresh-function) 'xhg-status))
 
 (defun xhg-pull-finish-function (output error status arguments)
