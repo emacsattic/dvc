@@ -65,6 +65,21 @@ a common base directory.")
                                    (output error status arguments)
                                  (message (format "bzr init-repository '%s' finished" dir)))))
 
+(defun bzr-checkout (branch-location to-location &optional lightweight revision)
+  "Run bzr checkout."
+  (interactive
+   (list (read-string "bzr checkout branch location: ")
+         (expand-file-name (dvc-read-directory-name "bzr checkout to: "
+                                                    (or default-directory
+                                                        (getenv "HOME"))))
+         nil
+         nil))
+  (dvc-run-dvc-sync 'bzr (list "checkout" branch-location to-location)
+                     :finished (dvc-capturing-lambda
+                                   (output error status arguments)
+                                 (message "bzr checkout finished")
+                                 (dired to-location))))
+
 (defun bzr-parse-diff (changes-buffer)
   (dvc-trace "bzr-parse-diff")
   (dvc-trace-current-line)
