@@ -50,10 +50,13 @@ a common base directory.")
   (dvc-run-dvc-sync 'bzr (list "init" dir)
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
-                                 (message "bzr init finished"))))
+                                 (message (format "bzr init %s finished" dir)))))
 
 (defun bzr-init-repository (&optional dir)
-  "Run bzr init-repository."
+  "Run bzr init-repository.
+When called interactively, `bzr-default-init-repository-directory' is used as
+starting point to enter the new repository directory. That directory is created
+via bzr init-repository."
   (interactive
    (list (expand-file-name (dvc-read-directory-name "Directory for bzr init-repository: "
                                                      (or
@@ -63,7 +66,8 @@ a common base directory.")
   (dvc-run-dvc-sync 'bzr (list "init-repository" dir)
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
-                                 (message (format "bzr init-repository '%s' finished" dir)))))
+                                 (message (format "bzr init-repository '%s' finished" dir))))
+  dir)
 
 (defun bzr-checkout (branch-location to-location &optional lightweight revision)
   "Run bzr checkout."
@@ -72,13 +76,39 @@ a common base directory.")
          (expand-file-name (dvc-read-directory-name "bzr checkout to: "
                                                     (or default-directory
                                                         (getenv "HOME"))))
-         nil
+         (y-or-n-p "Do a lightweight checkout? ")
          nil))
-  (dvc-run-dvc-sync 'bzr (list "checkout" branch-location to-location)
-                     :finished (dvc-capturing-lambda
-                                   (output error status arguments)
-                                 (message "bzr checkout finished")
-                                 (dired to-location))))
+  (dvc-run-dvc-sync 'bzr (list "checkout"
+                               (when lightweight "--lightweight")
+                               branch-location to-location)
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message (format "bzr checkout%s %s -> %s finished"
+                                                 (if lightweight " --lightweight" "")
+                                                 branch-location to-location))
+                                (dired to-location))))
+
+;; bzr-start-project implements the following idea:
+;;  bzr init-repo repo
+;;  bzr init repo/trunk
+;;  bzr checkout --lightweight repo/trunk trunk-checkout
+;;  cd trunk-checkout
+;;  (add files here)
+(defun bzr-start-project ()
+  "Initializes a repository with a trunk branch and finally checks out a working copy.
+The following functions are called:
+`bzr-init-repository': create a shared repository
+`bzr-init':            create the trunk branch in the repository above
+`bzr-checkout':        check out the trunk branch to the entered working directory"
+  (interactive)
+  (let ((init-repo-dir)
+        (branch-repo-dir)
+        (checkout-dir))
+    (setq init-repo-dir (call-interactively 'bzr-init-repository))
+    (setq branch-repo-dir (dvc-uniquify-file-name (concat init-repo-dir "/trunk")))
+    (bzr-init branch-repo-dir)
+    (setq checkout-dir (dvc-uniquify-file-name (dvc-read-directory-name "checkout the branch to: ")))
+    (bzr-checkout branch-repo-dir checkout-dir t)))
 
 (defun bzr-parse-diff (changes-buffer)
   (dvc-trace "bzr-parse-diff")
