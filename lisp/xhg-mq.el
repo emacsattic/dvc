@@ -48,12 +48,15 @@
 
 (defvar xhg-mq-submenu
   '("mq"
-    ["mq init" xhg-qinit t]
-    ["mq new"  xhg-qnew t]
     ["mq refresh"  xhg-qrefresh t]
+    ["mq push"  xhg-qpush t]
+    ["mq pop"  xhg-qpop t]
     ["mq applied"  xhg-qapplied t]
     ["mq unapplied"  xhg-qunapplied t]
     ["mq series"  xhg-qseries t]
+    "--"
+    ["mq init" xhg-qinit t]
+    ["mq new"  xhg-qnew t]
     ))
 
 (defvar xhg-mq-sub-mode-map
@@ -62,6 +65,11 @@
     (define-key map [?U] 'xhg-qunapplied)
     (define-key map [?S] 'xhg-qseries)
     (define-key map [?R] 'xhg-qrefresh)
+    (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
+    (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
+    (define-key map [?.] 'xhg-qtop)
+    (define-key map [?+] 'xhg-qnext)
+    (define-key map [?-] 'xhg-qprev)
     map)
   "Keymap used for xhg-mq commands.")
 
@@ -96,6 +104,26 @@ When called with a prefix argument run hg qnew -m and ask for COMMIT-DESCRIPTION
   "Run hg qrefresh."
   (interactive)
   (dvc-run-dvc-sync 'xhg (list "qrefresh")))
+
+(defun xhg-qpop (&optional all)
+  "Run hg qpop.
+When called with a prefix argument run hg qpop -a."
+  (interactive
+   (list current-prefix-arg))
+  (let ((curbuf (current-buffer)))
+    (dvc-run-dvc-sync 'xhg (list "qpop"
+                                 (when all "-a")))
+    (pop-to-buffer curbuf)))
+
+(defun xhg-qpush (&optional all)
+  "Run hg qpush.
+When called with a prefix argument run hg qpush -a."
+  (interactive
+   (list current-prefix-arg))
+  (let ((curbuf (current-buffer)))
+    (dvc-run-dvc-sync 'xhg (list "qpush"
+                                 (when all "-a")))
+    (pop-to-buffer curbuf)))
 
 (defun xhg-qapplied ()
   "Run hg qapplied."
@@ -138,6 +166,24 @@ When called with a prefix argument run hg qnew -m and ask for COMMIT-DESCRIPTION
     (when (interactive-p)
       (message "Mercurial qtop: %s" top))
     top))
+
+(defun xhg-qnext ()
+  "Run hg qnext."
+  (interactive)
+  (let ((next (dvc-run-dvc-sync 'xhg '("qnext")
+                                   :finished 'dvc-output-buffer-handler)))
+    (when (interactive-p)
+      (message "Mercurial qnext: %s" next))
+    next))
+
+(defun xhg-qprev ()
+  "Run hg qprev."
+  (interactive)
+  (let ((prev (dvc-run-dvc-sync 'xhg '("qprev")
+                                   :finished 'dvc-output-buffer-handler)))
+    (when (interactive-p)
+      (message "Mercurial qprev: %s" prev))
+    prev))
 
 
 (provide 'xhg-mq)
