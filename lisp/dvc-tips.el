@@ -50,21 +50,21 @@ M-x tla-changes     ... runs tla changes
 
 Xtla prompts for the needed parameters."
    "Most interesting commands are available through a global keyboard
-shortcut. Try \"C-x T C-h\" to get a list"
+shortcut. Try \"C-x V C-h\" to get a list"
    "Xtla provides several major modes for different buffers. Each mode
 has its own keybindings. Get help with \"C-h m\""
    "When Xtla is loaded, C-M-h in a minibuffer prompt gives you help
 about the command being run."
    "When you are prompted for an archive, category, branch, version or
 revision name, lots of keybindings are available. Get a list with \"C-h\"."
-   "Xtla allows you to manage a list of bookmarks. Try \"C-x T b\" and add
+   "Xtla allows you to manage a list of bookmarks. Try \"C-x V b\" and add
 bookmarks from the menu.  You may also add bookmarks from an archives,
 category, version or revision buffer as well as from the tla-browse
 buffer."
    "From the bookmark buffer, you can select some bookmarks and make
 them partners with M-p. Afterwards, pressing 'M m' on a bookmark will
 show you the missing patches from his partners."
-   "You can add changelog style comments to your commit log by \"C-x T a\"."
+   "You can add changelog style comments to your commit log by \"C-x V a\"."
    "You can enable ispell, flyspell or other useful mode for editing
 log files by \"M-x customize-variable RET tla-log-edit-mode-hook RET\"."
    "By default, Xtla caches any log file you retrieve with
@@ -106,7 +106,7 @@ tree of the bookmark at point for the default directory."
 after a --three-way merge. Xtla will enter this mode automatically
 when you open a file with conflicts. Type M-x tla-conflicts-finish RET
 to exit smerge mode and delete the corresponding .rej file."
-   "\"C-x T e\" in a source file will open an ediff session with the
+   "\"C-x V e\" in a source file will open an ediff session with the
 unmodified version of the file. From here, you can undo patch hunks
 one by one with the key \"b\""
    "In the *tree-lint* buffer, with your cursor on a message, most

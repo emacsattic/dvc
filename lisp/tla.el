@@ -41,8 +41,8 @@
 
 ;; Usage: put the following in your .emacs: (require 'xtla-autoloads)
 
-;; The main commands are available with the prefix key C-x T.
-;; Type C-x T C-h for a list.
+;; The main commands are available with the prefix key C-x V.
+;; Type C-x V C-h for a list.
 
 ;; M-x tla-inventory shows a tla inventory
 ;; In this inventory buffer the following commands are available:
