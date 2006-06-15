@@ -65,7 +65,7 @@
 ;;; bzr log
 
 (defun bzr-log-parse (log-buffer)
-  "TODO"
+  "Parse the output of bzr log."
   (goto-char (point-min))
   (let ((root (bzr-tree-root)))
     (while (> (point-max) (point))
@@ -81,10 +81,10 @@
         (save-restriction
           (save-excursion
             (narrow-to-region start (- (point) 1))
-            (dvc-trace "parsing %S" (buffer-string))
+            ;;(dvc-trace "parsing %S" (buffer-string))
             (goto-char (point-min))
             (while (re-search-forward "^\\([a-z][a-z ]*[a-z]\\):\\( \\|\n\\)" nil t)
-              (dvc-trace "match-string=%S" (match-string 1))
+              ;;(dvc-trace "match-string=%S" (match-string 1))
               (cond ((string= (match-string 1) "revno")
                      (setf (bzr-revision-st-revno elem)
                            (string-to-number
@@ -103,7 +103,7 @@
                            (buffer-substring-no-properties
                             (point) (line-end-position))))
                     ((string= (match-string 1) "message")
-                     (dvc-trace "found message")
+                     ;;(dvc-trace "found message")
                      (re-search-forward "^[ \t]*")
                      (setf (bzr-revision-st-message elem)
                            (buffer-substring-no-properties
@@ -125,10 +125,10 @@
 
 ;;;###autoload
 (defun bzr-log (path)
-  "Highly experimental"
+  "Run bzr log."
   (interactive (list default-directory))
   (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
-  )
+  (goto-char (point-min)))
 
 
 (provide 'bzr-revision)
