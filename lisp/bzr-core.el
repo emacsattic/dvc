@@ -56,8 +56,7 @@ Does anyone know of a better way to get this info?"
   (let ((tree-id nil))
   (dvc-run-dvc-sync
    'bzr (list "log" "-r" "1")
-   :finished (dvc-capturing-lambda
-                 (output error status arguments)
+   :finished (lambda (output error status arguments)
                (set-buffer output)
                (goto-char (point-min))
                (if (re-search-forward "^branch nick:\s-*\(.+\)$" nil t)

@@ -55,14 +55,14 @@ An alist of rules to map branch nicknames to target email
 addresses and the base name to use in the attached patch.
 
 This is used by the `tla-submit-patch' function."
-  :type '(repeat (cons :tag "Rule"
+  :type '(repeat (list :tag "Rule"
                        (string :tag "Branch nickname")
                        (list :tag "Target"
                              (string :tag "Email address")
                              (string :tag "Base name of patch"))))
   :group 'dvc-bzr-submit)
 
-(defcustom bzr-patch-sent-action 'keep-patch
+(defcustom bzr-patch-sent-action 'keep-both
   "*What shall be done, after sending a patch via mail.
 The possible values are 'keep-patch, 'keep-changes, 'keep-both, 'keep-none."
   :type '(choice (const keep-patch)
@@ -201,7 +201,8 @@ For an example, how to use this function see: `bzr-submit-patch'."
 
     (set (make-local-variable 'bzr-patch-data)
          (list patch-full-name bzr-tree-root patch-full-name))
-    (insert "[VERSION] " version-string)
+    (insert "[VERSION] " version-string "\n\n")
+    (insert bzr-command-version)
     (goto-char (point-max))
     (mml-attach-file patch-full-name "text/x-patch")
     (bzr-show-diff-from-file patch-full-name)
@@ -248,7 +249,7 @@ After the user has sent the message, `bzr-submit-patch-done' is called."
          (patch-base-file-name (or (nth 1 submit-patch-info) "bzr")))
     (bzr-prepare-patch-submission
      (dvc-uniquify-file-name (bzr-tree-root))
-     (concat patch-base-file-name "-patch-"
+     (concat ".tmp-" patch-base-file-name "-patch-"
              (format-time-string "%Y-%m-%d_%H-%M-%S" (current-time)))
      mail-address
      tree-id
@@ -262,3 +263,6 @@ After the user has sent the message, `bzr-submit-patch-done' is called."
       "<<LOG-END>>\n")
      nil
      (interactive-p))))
+
+(provide 'bzr-submit)
+;;; bzr-submit.el ends here

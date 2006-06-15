@@ -41,6 +41,9 @@
 This setting is useful, if you'd like to create a bunch of repositories in
 a common base directory.")
 
+(defvar bzr-command-version nil
+  "Version of bzr that we are using.")
+
 (defun bzr-init (&optional dir)
   "Run bzr init."
   (interactive
@@ -390,11 +393,16 @@ LAST-REVISION looks like
 (defun bzr-command-version ()
   "Run bzr version."
   (interactive)
-  (let ((version (dvc-run-dvc-sync 'bzr (list "version")
-                                   :finished 'dvc-output-buffer-handler)))
-    (when (interactive-p)
-      (message "Bazaar-NG Version: %s" version))
-    version))
+  (setq bzr-command-version
+        (dvc-run-dvc-sync
+         'bzr (list "version")
+         :finished (lambda (output error status arguments)
+                     (set-buffer output)
+                     (goto-char (point-min))
+                     (buffer-substring (point) (point-at-eol)))))
+  (when (interactive-p)
+    (message "Bazaar-NG Version: %s" bzr-command-version))
+  bzr-command-version)
 
 (defun bzr-whoami ()
   "Run bzr whomai."
