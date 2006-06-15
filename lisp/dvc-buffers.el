@@ -273,7 +273,8 @@ It will eventually be killed when the number of buffers in
   (when dvc-number-of-dead-process-buffer
     (while (> (length dvc-dead-process-buffer-queue)
               (max 2 dvc-number-of-dead-process-buffer))
-      (kill-buffer (car dvc-dead-process-buffer-queue))
+      (let ((buf (car dvc-dead-process-buffer-queue)))
+        (when (buffer-live-p buf) (kill-buffer buf)))
       (setq dvc-dead-process-buffer-queue
             (cdr dvc-dead-process-buffer-queue)))))
 

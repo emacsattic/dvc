@@ -272,17 +272,20 @@ TODO: dont-switch is currently ignored."
   "Adds FILE to the repository."
   (interactive "fAdd file or directory: ")
   (message
-   (dvc-run-dvc-sync
-    'bzr (list "add" file)
-    :finished 'dvc-output-and-error-buffer-handler)))
+   (let ((default-directory (bzr-tree-root)))
+     (dvc-run-dvc-sync
+      'bzr (list "add" (file-relative-name file))
+      :finished 'dvc-output-and-error-buffer-handler))))
 
 (defun bzr-add-files (&rest files)
   "Run bzr add."
   (message "bzr-add-files: %s" files)
-  (dvc-run-dvc-sync 'bzr (append '("add") files)
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (message "bzr add finished"))))
+  (let ((default-directory (bzr-tree-root)))
+    (dvc-run-dvc-sync 'bzr (append '("add") (mapcar #'file-relative-name
+                                                    files))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "bzr add finished")))))
 
 (defun bzr-log-edit-done ()
   "Finish a commit for Bzr."

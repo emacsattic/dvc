@@ -48,6 +48,27 @@ arch managed tree (but return nil)."
                         "%S is not a bzr-managed tree"
                         location no-error))
 
+;;;###autoload
+(defun bzr-tree-id ()
+  "Call \"bzr log -r 1\" to get the tree-id.
+Does anyone know of a better way to get this info?"
+  (interactive)
+  (let ((tree-id nil))
+  (dvc-run-dvc-sync
+   'bzr (list "log" "-r" "1")
+   :finished (dvc-capturing-lambda
+                 (output error status arguments)
+               (set-buffer output)
+               (goto-char (point-min))
+               (if (re-search-forward "^branch nick:\s-*\(.+\)$" nil t)
+                   (setq tree-id (match-string 1))
+                 (setq tree-id "<unknown>")))
+   :error (lambda (output error status arguments)
+            (setq tree-id "<unknown>")))
+  (when (interactive-p)
+    (message "tree-id for %s: %s" default-directory tree-id))
+  tree-id))
+
 (provide 'bzr-core)
 ;; arch-tag: Matthieu Moy, Sun Sep  4 22:31:52 2005 (bzr-core.el)
 ;;; bzr-core.el ends here
