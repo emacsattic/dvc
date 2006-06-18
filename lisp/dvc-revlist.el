@@ -86,6 +86,11 @@
 (dvc-make-move-fn ewoc-prev dvc-revision-prev-unmerged
                   dvc-revlist-cookie t)
 
+(defun dvc-revlist-current-patch-struct ()
+  "Get the dvc-revlist-entry-patch-struct at point."
+  (dvc-revlist-entry-patch-struct
+   (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie)))))
+
 (defun dvc-revision-mark-revision ()
   "Mark revision at point."
   (interactive)
@@ -284,6 +289,9 @@ revision list."
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
     (define-key map dvc-keyvec-help 'describe-mode)
     (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'tla-bookmarks)
+
+    (define-key map dvc-keyvec-kill-ring nil)
+    (define-key map (dvc-prefix-kill-ring ?l) 'dvc-revision-save-log-message-as-kill)
     map))
 
 (define-derived-mode dvc-revlist-mode fundamental-mode
@@ -326,6 +334,15 @@ build the revision list."
          (funcall (capture parser) (capture buffer))))
      ))
   )
+
+(defun dvc-revision-log-message-at-point ()
+  (dvc-apply "revision-st-message" (dvc-revlist-current-patch-struct)))
+
+(defun dvc-revision-save-log-message-as-kill ()
+  "Save the log message for the actual patch."
+  (interactive)
+  (kill-new (dvc-revision-log-message-at-point)))
+  ;; TODO: (message "Copied log message for %s" (tla-changelog-revision-at-point)))
 
 (provide 'dvc-revlist)
 ;; arch-tag: Matthieu Moy, Sat 12 Nov 2005 12:15:26 AM MET (dvc-revlist.el)
