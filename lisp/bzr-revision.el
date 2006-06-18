@@ -64,6 +64,7 @@
 
 ;;; bzr log
 
+(defvar bzr-log-show-only-short-message nil)
 (defun bzr-log-parse (log-buffer)
   "Parse the output of bzr log."
   (goto-char (point-min))
@@ -71,6 +72,8 @@
     (while (> (point-max) (point))
       (forward-line 1)
       (let ((start (point))
+            (message-start-pos)
+            (message-end-pos)
             (elem (make-bzr-revision-st)))
         (or (and (re-search-forward
                   "^------------------------------------------------------------$"
@@ -105,9 +108,14 @@
                     ((string= (match-string 1) "message")
                      ;;(dvc-trace "found message")
                      (re-search-forward "^[ \t]*")
+                     (setq message-start-pos (point))
+                     (setq message-end-pos
+                           (if bzr-log-show-only-short-message
+                               (line-end-position)
+                             (if (re-search-forward "^--------" nil t) (point) (point-max))))
                      (setf (bzr-revision-st-message elem)
                            (buffer-substring-no-properties
-                            (point) (line-end-position)))
+                            message-start-pos message-end-pos))
                      (goto-char (point-max)))
                     (t (dvc-trace "unmanaged field %S" (match-string 1))))
               (forward-line 1)
@@ -125,8 +133,16 @@
 
 ;;;###autoload
 (defun bzr-log (path)
-  "Run bzr log."
+  "Run bzr log and show only the first line of the log message."
   (interactive (list default-directory))
+  (setq bzr-log-show-only-short-message t)
+  (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
+  (goto-char (point-min)))
+
+(defun bzr-changelog (path)
+  "Run bzr log and show the full log message."
+  (interactive (list default-directory))
+  (setq bzr-log-show-only-short-message nil)
   (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
   (goto-char (point-min)))
 
