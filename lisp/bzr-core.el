@@ -59,7 +59,7 @@ Does anyone know of a better way to get this info?"
    :finished (lambda (output error status arguments)
                (set-buffer output)
                (goto-char (point-min))
-               (if (re-search-forward "^branch nick:\s-*\(.+\)$" nil t)
+               (if (re-search-forward "^branch nick:\\s-*\\(.+\\)$" nil t)
                    (setq tree-id (match-string 1))
                  (setq tree-id "<unknown>")))
    :error (lambda (output error status arguments)
