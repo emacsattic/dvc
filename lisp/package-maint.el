@@ -218,16 +218,19 @@ remove load-file and cus-load-file if not specified."
 			        "package-maint.el")))
     (setq package-maint-files (delete file package-maint-files))))
 
+(defun package-maint-changed-source-p (file)
+  "Check if a source file is newer than its elc if any."
+  (let ((source (expand-file-name file srcdir))
+	(elc (byte-compile-dest-file file)))
+    (or (not (file-exists-p elc))
+	      (file-newer-than-file-p source elc))))
+
 (defun package-maint-list-changed-sources (files)
   "Return the list of .el files newer than their .elc."
   (let (need-compile)
-    (dolist (file files)
-      (let ((source (expand-file-name file srcdir))
-	    (elc (byte-compile-dest-file file)))
-	(when (or (not (file-exists-p elc))
-		  (file-newer-than-file-p source elc))
-	  (push file need-compile))))
-    need-compile))
+    (dolist (file files need-compile)
+      (when (package-maint-changed-source-p file)
+	(push file need-compile)))))
 
 (defun package-maint-load-files (files)
   "Load FILES"
@@ -319,15 +322,9 @@ dependencies' .elc, return LIST of files to byte-compile."
   "Compile a file."
   (unless warn
     (setq byte-compile-warnings package-maint-compile-warnings))
-  (let ((source (expand-file-name file srcdir))
-	(elc (byte-compile-dest-file file)))
-    (when (and (file-exists-p elc)
-	       (file-newer-than-file-p source elc))
-      (delete-file elc))
-    (when (or (not (file-exists-p elc))
-	      (file-newer-than-file-p source elc))
-      (ignore-errors
-	(byte-compile-file source)))))
+  (when (package-maint-changed-source-p file)
+    (ignore-errors
+      (byte-compile-file (expand-file-name file srcdir)))))
 
 (defun package-maint-compile-verbosely ()
   "Call package-maint-compile with warnings ENABLED.  If you are compiling
