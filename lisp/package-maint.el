@@ -212,7 +212,7 @@ fixed in Emacs after 21.3."
 
 (defun package-maint-remove-files (&optional files)
   "Remove unwanted files from package-maint-files, take care to
-remove load-file and cus-load-file is not specified."
+remove load-file and cus-load-file if not specified."
   (dolist (file (append files `(,(file-name-nondirectory package-maint-load-file)
 				,(file-name-nondirectory package-maint-cus-load-file)
 			        "package-maint.el")))
@@ -268,8 +268,8 @@ List dependencies only in package-maint-files."
 	(delete file)))))
 
 (defun package-maint-clean-elc (files)
-  "Delete ELC of files and then all the reverse dependencies
-.elc, return list of files to byte-compile."
+  "Delete ELC of changed source and then all the reverse
+dependencies' .elc, return LIST of files to byte-compile."
   (let ((max-lisp-eval-depth (* 300 max-lisp-eval-depth)))
     (defun recurse-do(files &optional need-compile-files)
       (if (null files)
