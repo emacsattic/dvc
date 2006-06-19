@@ -91,6 +91,17 @@ via bzr init-repository."
                                                  branch-location to-location))
                                 (dired to-location))))
 
+(defun bzr-update ()
+  "Run bzr update."
+  (interactive)
+  (dvc-run-dvc-async 'bzr (list "update")
+                     :finished
+                     (dvc-capturing-lambda
+                         (output error status arguments)
+                       (message (format "bzr update finished => %s"
+                                        (concat (dvc-buffer-content error) (dvc-buffer-content output)))))))
+  
+
 ;; bzr-start-project implements the following idea:
 ;;  bzr init-repo repo
 ;;  bzr init repo/trunk
