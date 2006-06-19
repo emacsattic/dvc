@@ -55,6 +55,8 @@
 (defun tla-dvc-status (&optional against)
   (tla-changes t against))
 
+(defalias 'tla-dvc-submit-patch 'tla-submit-patch)
+
 (defalias 'tla-dvc-log-edit 'tla-edit-log)
 
 (defun tla-dvc-add (file)

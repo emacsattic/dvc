@@ -38,6 +38,8 @@
 ;;;###autoload
 (defalias 'bzr-dvc-status 'bzr-status)
 ;;;###autoload
+(defalias 'bzr-dvc-submit-patch 'bzr-submit-patch)
+;;;###autoload
 (defalias 'bzr-dvc-add 'bzr-add)
 
 (defalias 'bzr-dvc-add-files 'bzr-add-files)

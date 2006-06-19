@@ -41,7 +41,7 @@
 An alist of rules to map branch nicknames to target directories.
 
 This is used by the `bzr-gnus-apply-patch' function.
-Example setting: '((\"dvc-dev-bzr\" \"~/work/tla/xtla\")))"
+Example setting: '((\"dvc-dev-bzr\" \"~/work/bzr/dvc\")))"
   :type '(repeat (list :tag "Rule"
                        (string :tag "Branch nickname")
                        (string :tag "Target directory")))
@@ -54,7 +54,7 @@ Example setting: '((\"dvc-dev-bzr\" \"~/work/tla/xtla\")))"
 An alist of rules to map branch nicknames to target email
 addresses and the base name to use in the attached patch.
 
-This is used by the `tla-submit-patch' function."
+This is used by the `bzr-submit-patch' function."
   :type '(repeat (list :tag "Rule"
                        (string :tag "Branch nickname")
                        (list :tag "Target"

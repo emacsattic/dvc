@@ -294,7 +294,7 @@
   (let ((map (make-sparse-keymap)))
     (define-key map [?U]                      'tla-undo)
     (define-key map [?R]                      'tla-redo)
-    (define-key map [?p]                      'tla-submit-patch)
+    (define-key map [?p]                      'dvc-submit-patch)
     (define-key map dvc-keyvec-log-entry     'dvc-add-log-entry)
     (define-key map [?A] 'tla-archives)
     (define-key map dvc-keyvec-file-diff     'dvc-file-diff)
