@@ -44,6 +44,24 @@ a common base directory.")
 (defvar bzr-command-version nil
   "Version of bzr that we are using.")
 
+;;example:
+;;(setq bzr-mail-notification-destination
+;;      '(("dvc-dev-bzr" ("[commit][dvc] " "dvc-dev@gna.org"))))
+(defcustom bzr-mail-notification-destination nil
+"*Preset some useful values for commit emails.
+
+An alist of rules to map branch names to target
+email addresses and the prefix string for the subject line.
+
+This is used by the `bzr-send-commit-notification' function."
+  :type '(repeat (list :tag "Rule"
+                       (string :tag "Bzr branch")
+                (list :tag "Target"
+                      (string :tag "Email subject prefix")
+                      (string :tag "Email address"))))
+  :group 'dvc)
+
+
 (defun bzr-init (&optional dir)
   "Run bzr init."
   (interactive
@@ -214,6 +232,28 @@ TODO: dont-switch is currently ignored."
       (with-current-buffer buffer (goto-char (point-min)))
       buffer)))
 
+(defun bzr-send-commit-notification ()
+  "Send a commit notification email for the changelog entry at point.
+
+`bzr-mail-notification-destination' can be used to specify a prefix for
+the subject line, the rest of the subject line contains the summary line
+of the commit. Additionally the destination email address can be specified."
+  (interactive)
+  (let ((dest-specs (cadar bzr-mail-notification-destination));;(tla--name-match-from-list
+                     ;;(tla--name-split (tla-changelog-revision-at-point))
+                     ;;tla-mail-notification-destination))
+        (rev "??");;(tla-changelog-revision-at-point))
+        (summary "");;(tla-changelog-log-summary-at-point))
+        (log-message ""));;(dvc-changelog-log-message-at-point)))
+    (message "Preparing commit email for %s" rev)
+    (compose-mail (if dest-specs (cadr dest-specs) "")
+                  (if dest-specs (car dest-specs) ""))
+    (message-goto-subject)
+    (insert summary)
+    (message-goto-body)
+    (insert (concat "Committed " rev "\n\n"))
+    (insert log-message)
+    (message-goto-body)))
 
 
 (defun bzr-unknowns ()
