@@ -139,7 +139,10 @@ The following functions are called:
     (setq init-repo-dir (call-interactively 'bzr-init-repository))
     (setq branch-repo-dir (dvc-uniquify-file-name (concat init-repo-dir "/trunk")))
     (bzr-init branch-repo-dir)
-    (setq checkout-dir (dvc-uniquify-file-name (dvc-read-directory-name "checkout the branch to: ")))
+    (setq checkout-dir (dvc-uniquify-file-name
+                        (dvc-read-directory-name "checkout the branch to: " nil
+                                                 (concat default-directory
+                                                         (file-name-nondirectory init-repo-dir)))))
     (bzr-checkout branch-repo-dir checkout-dir t)))
 
 (defun bzr-parse-diff (changes-buffer)
