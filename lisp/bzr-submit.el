@@ -191,8 +191,12 @@ For an example, how to use this function see: `bzr-submit-patch'."
 
   ;; create the patch
   (let* ((default-directory bzr-tree-root)
-         (patch-full-base-name (concat bzr-tree-root patch-base-name))
+         (patch-directory (expand-file-name ".tmp-dvc/" bzr-tree-root))
+         (patch-full-base-name (expand-file-name patch-base-name
+                                                 patch-directory))
          (patch-full-name (concat patch-full-base-name ".diff")))
+    (unless (file-exists-p patch-directory)
+      (make-directory patch-directory))
     (bzr-changes-save-as-patch patch-full-base-name nil prompt-files)
 
     (require 'reporter)
