@@ -310,7 +310,7 @@
     ;; dvc: l runs changelog, M-l runs tree-lint for Arch
     (define-key map [?l] 'dvc-changelog)
     (define-key map [(meta ?l)] 'tla-tree-lint)
-    (define-key map dvc-keyvec-update        'tla-update)
+    (define-key map dvc-keyvec-update        'dvc-update)
     (define-key map [?m]                     'dvc-missing)
     (define-key map dvc-keyvec-show-bookmark 'tla-bookmarks)
     (define-key map dvc-keyvec-help          'tla-help)

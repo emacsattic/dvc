@@ -71,6 +71,10 @@ Usually that file is placed in the tree-root of the working tree.")
 
 (defalias 'bzr-dvc-changelog 'bzr-changelog)
 
+(defun bzr-dvc-update ()
+  (interactive)
+  (bzr-update nil))
+
 (defun bzr-dvc-edit-ignore-files ()
   (interactive)
   (find-file-other-window (concat (bzr-tree-root) ".bzrignore")))
