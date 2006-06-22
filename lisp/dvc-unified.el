@@ -212,6 +212,11 @@ the current active back-end."
   "Pull changes in the working copy."
   (interactive))
 
+;;;###autoload
+(dvc-create-unified-command "submit-patch" ()
+  "Submit a patch for the current project under DVC control."
+  (interactive))
+
 (provide 'dvc-unified)
 ;; arch-tag: 914f9b69-1af2-4d11-9ac0-f6db89267881
 ;;; dvc-unified.el ends here

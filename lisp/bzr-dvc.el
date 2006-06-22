@@ -38,6 +38,8 @@
 ;;;###autoload
 (defalias 'bzr-dvc-status 'bzr-status)
 ;;;###autoload
+(defalias 'bzr-dvc-submit-patch 'bzr-submit-patch)
+;;;###autoload
 (defalias 'bzr-dvc-add 'bzr-add)
 
 (defalias 'bzr-dvc-add-files 'bzr-add-files)
@@ -68,6 +70,10 @@ Usually that file is placed in the tree-root of the working tree.")
 (defalias 'bzr-dvc-log 'bzr-log)
 
 (defalias 'bzr-dvc-changelog 'bzr-changelog)
+
+(defun bzr-dvc-update ()
+  (interactive)
+  (bzr-update nil))
 
 (defun bzr-dvc-edit-ignore-files ()
   (interactive)

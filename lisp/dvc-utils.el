@@ -240,11 +240,15 @@ Strips the final newline if there is one."
                 (- (point) 1)
               (point))))))
 
+;; this is no longer needed, because ewoc-create takes now the argument nosep:
+;; (defun ewoc-create (pretty-printer &optional header footer nosep)
+;; If you need that behaviour: set dvc-ewoc-create-needs-newline to t
+(defvar dvc-ewoc-create-needs-newline nil)
 (defun dvc-ewoc-create-api-select (pretty-printer)
   "Possibly insert a trailing newline after PRETTY-PRINTER call.
 Work around `ewoc-create' interface change: oldest versions automatically
 added a trailing newline, whereas newest versions do not."
-  (if (fboundp 'ewoc-set-data)
+  (if dvc-ewoc-create-needs-newline
       ;; if `ewoc-set-data' is defined, the pretty printer should insert a
       ;; trailing newline (new `ewoc-create' interface; there is no
       ;; `ewoc-version', therefore we test on `ewoc-set-data')
