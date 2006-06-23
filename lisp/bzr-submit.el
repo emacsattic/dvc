@@ -253,7 +253,7 @@ After the user has sent the message, `bzr-submit-patch-done' is called."
          (patch-base-file-name (or (nth 1 submit-patch-info) "bzr")))
     (bzr-prepare-patch-submission
      (dvc-uniquify-file-name (bzr-tree-root))
-     (concat ".tmp-" patch-base-file-name "-patch-"
+     (concat patch-base-file-name "-patch-"
              (format-time-string "%Y-%m-%d_%H-%M-%S" (current-time)))
      mail-address
      tree-id
