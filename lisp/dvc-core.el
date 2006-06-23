@@ -48,6 +48,16 @@
 
 (defconst dvc-mark (dvc-face-add "*" 'dvc-mark) "Fontified string used for marking.")
 
+
+;; --------------------------------------------------------------------------------
+;; Internal variables
+;; --------------------------------------------------------------------------------
+
+(defvar dvc-memorized-log-header nil)
+(defvar dvc-memorized-log-message nil)
+(defvar dvc-memorized-version nil)
+(defvar dvc-memorized-patch-sender nil)
+
 ;; --------------------------------------------------------------------------------
 ;; Various helper functions
 ;; --------------------------------------------------------------------------------

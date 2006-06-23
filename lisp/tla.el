@@ -153,10 +153,6 @@
 (defvar tla-log-edit-file-name nil)
 (defvar tla-log-edit-file-buffer nil)
 (defvar tla-my-id-history nil)
-(defvar tla-memorized-log-header nil)
-(defvar tla-memorized-log-message nil)
-(defvar tla-memorized-version nil)
-(defvar tla-memorized-patch-sender nil)
 (defvar tla-last-commit-message nil)
 
 (defvar tla-buffer-archive-name nil)
@@ -7287,11 +7283,11 @@ line as Summary with `tla-merge-summary-line-for-log'."
 (defun tla-log-edit-insert-memorized-log ()
   "Insert a memorized log message."
   (interactive)
-  (when tla-memorized-log-header
+  (when dvc-memorized-log-header
     (tla-log-goto-summary)
     (delete-region (point) (line-end-position))
-    (insert tla-memorized-log-header))
-  (when tla-memorized-log-message
+    (insert dvc-memorized-log-header))
+  (when dvc-memorized-log-message
     (tla-log-goto-body)
     (when tla-memorized-patch-sender
       (if (looking-at "Patch from ")
@@ -7302,7 +7298,7 @@ line as Summary with `tla-merge-summary-line-for-log'."
     (when (looking-at "\* .+: ") ;; e.g.: "* lisp/xtla.el: "
       (end-of-line)
       (newline))
-    (insert tla-memorized-log-message)))
+    (insert dvc-memorized-log-message)))
 
 
 ;; ----------------------------------------------------------------------------

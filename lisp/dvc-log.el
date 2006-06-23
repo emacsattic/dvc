@@ -71,6 +71,7 @@ Commands:
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?l)] 'dvc-log)
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?f)] 'dvc-log-insert-commit-file-list)
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?p)] 'dvc-buffer-pop-to-partner-buffer)
+(define-key dvc-log-edit-mode-map [(control ?c) (control ?m)] 'dvc-log-edit-insert-memorized-log)
 
 (easy-menu-define dvc-log-edit-mode-menu dvc-log-edit-mode-map
   "`dvc-log-edit-mode' menu"
@@ -80,6 +81,7 @@ Commands:
     ["Show Changelog"           dvc-log              t]
     ["Pop to partner buffer"    dvc-buffer-pop-to-partner-buffer t]
     ["Insert/Flush commit file list"  dvc-log-insert-commit-file-list t]
+    ["Insert memorized log"  dvc-log-edit-insert-memorized-log t]
     "--"
     ["Abort"                    dvc-log-edit-abort   t]))
 
@@ -149,6 +151,29 @@ by calling `dvc-log-flush-commit-file-list'."
           (insert dvc-log-edit-flush-prefix)
           (insert (dvc-face-add (concat mark (cdr f)) (car f)))
           (newline))))))
+
+(defun dvc-log-edit-insert-memorized-log ()
+  "Insert a memorized log message."
+  (interactive)
+  (when dvc-memorized-log-header
+    (goto-char (point-min))
+    (delete-region (point) (line-end-position))
+    (insert dvc-memorized-log-header))
+  (when dvc-memorized-log-message
+    (goto-char (point-min))
+    (end-of-line)
+    (newline)
+    (newline)
+    (when dvc-memorized-patch-sender
+      (if (looking-at "Patch from ")
+          (forward-line 1)
+        (progn
+          (undo-boundary)
+          (insert (format "Patch from %s\n" dvc-memorized-patch-sender)))))
+    (when (looking-at "\* .+: ") ;; e.g.: "* lisp/dvc.el: "
+      (end-of-line)
+      (newline))
+    (insert dvc-memorized-log-message)))
 
 ;;;###autoload
 (defun dvc-add-log-entry ()

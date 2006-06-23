@@ -157,8 +157,8 @@ When called with no prefix arg, set N := 2."
   (tla-gnus-article-extract-log-message)
   (let ((archive-name (dvc-make-temp-name "gnus-patch-tgz"))
         (tree-dir (tla--name-match-from-list
-                   (when tla-memorized-version
-                     (tla--name-split tla-memorized-version))
+                   (when dvc-memorized-version
+                     (tla--name-split dvc-memorized-version))
                    tla-apply-patch-mapping))
         (tree))
     (mm-save-part-to-file handle archive-name)
@@ -174,8 +174,8 @@ When called with no prefix arg, set N := 2."
 
 (defun tla-gnus-article-extract-log-message ()
   "Parse the mail and extract the log information.
-Save it to `tla-memorized-log-header', `tla-memorized-patch-sender',
-`tla-memorized-log-message' and `tla-memorized-version'."
+Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
+`dvc-memorized-log-message' and `dvc-memorized-version'."
   (interactive)
   (gnus-summary-select-article-buffer)
   (save-excursion
@@ -183,23 +183,23 @@ Save it to `tla-memorized-log-header', `tla-memorized-patch-sender',
     (let* ((start-pos (or (search-forward "[PATCH] " nil t) (search-forward "Subject: ")))
            (end-pos (line-end-position))
            (log-header (buffer-substring-no-properties start-pos end-pos)))
-      (setq tla-memorized-log-header log-header))
+      (setq dvc-memorized-log-header log-header))
     (goto-char (point-min))
     (let* ((start-pos (search-forward "From: " nil t))
            (end-pos (line-end-position))
            (sender (when start-pos (buffer-substring-no-properties start-pos end-pos))))
-      (setq tla-memorized-patch-sender (and start-pos sender)))
+      (setq dvc-memorized-patch-sender (and start-pos sender)))
     (goto-char (point-min))
     (let* ((start-pos (search-forward "[VERSION] " nil t))
            (end-pos (line-end-position))
            (version (when start-pos (buffer-substring-no-properties start-pos end-pos))))
-      (setq tla-memorized-version (and start-pos version)))
+      (setq dvc-memorized-version (and start-pos version)))
     (goto-char (point-min))
     (let* ((start-pos (+ (search-forward "<<LOG-START>>") 1))
            (end-pos (- (progn (search-forward "<LOG-END>>") (line-beginning-position)) 1))
            (log-message (buffer-substring-no-properties start-pos end-pos)))
-      (setq tla-memorized-log-message log-message)
-      (message "Extracted the tla log message from '%s'" tla-memorized-log-header)))
+      (setq dvc-memorized-log-message log-message)
+      (message "Extracted the tla log message from '%s'" dvc-memorized-log-header)))
   (gnus-article-show-summary))
 
 ;; --------------------------------------------------------------------------------
