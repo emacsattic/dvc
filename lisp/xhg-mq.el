@@ -49,11 +49,13 @@
 (defvar xhg-mq-submenu
   '("mq"
     ["mq refresh"  xhg-qrefresh t]
+    ["mq diff"  xhg-qdiff t]
     ["mq push"  xhg-qpush t]
     ["mq pop"  xhg-qpop t]
     ["mq applied"  xhg-qapplied t]
     ["mq unapplied"  xhg-qunapplied t]
     ["mq series"  xhg-qseries t]
+    ["mq delete"  xhg-qdelete t]
     "--"
     ["mq init" xhg-qinit t]
     ["mq new"  xhg-qnew t]
@@ -70,6 +72,8 @@
     (define-key map [?.] 'xhg-qtop)
     (define-key map [?+] 'xhg-qnext)
     (define-key map [?-] 'xhg-qprev)
+    (define-key map [?=] 'xhg-qdiff)
+    (define-key map [?d] 'xhg-qdelete)
     map)
   "Keymap used for xhg-mq commands.")
 
@@ -142,9 +146,26 @@ When called with a prefix argument run hg qpush -a."
 (defun xhg-qseries ()
   "Run hg qseries."
   (interactive)
+  (if (interactive-p)
+      (let ((curbuf (current-buffer)))
+        (dvc-run-dvc-display-as-info 'xhg '("qseries") nil "hg qseries:\n")
+        (pop-to-buffer curbuf))
+    (dvc-run-dvc-sync 'xhg '("qseries")
+                      :finished 'dvc-output-buffer-split-handler)))
+
+(defun xhg-qdiff (&optional file)
+  "Run hg qdiff."
+  (interactive)
   (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-display-as-info 'xhg '("qseries") nil "hg qseries:\n")
+    (dvc-run-dvc-display-as-info 'xhg (list "qdiff" file) nil (format "hg qdiff %s:\n" (xhg-qtop)))
+    (with-current-buffer "*xhg-info*"
+      (diff-mode))
     (pop-to-buffer curbuf)))
+
+(defun xhg-qdelete (patch)
+  "Run hg qdelete"
+  (interactive (list (completing-read "Delete mq patch: " (xhg-qseries))))
+  (dvc-run-dvc-sync 'xhg (list "qdelete" patch)))
 
 (defun xhg-qversion ()
   "Run hg qversion."

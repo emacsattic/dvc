@@ -568,7 +568,7 @@ LAST-REVISION looks like
   ;; TODO : define-generic-mode doesn't exist in XEmacs.
   ;; http://list-archive.xemacs.org/xemacs-beta/200408/msg00016.html
   ;; world be better to use define-derived-mode below
-  (define-generic-mode hgrc-mode
+  (define-generic-mode 'hgrc-mode
     '(?\; ?#)
     nil
     '(("^\\(\\[.*\\]\\)" 1 font-lock-constant-face)

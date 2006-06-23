@@ -48,6 +48,16 @@
 
 (defconst dvc-mark (dvc-face-add "*" 'dvc-mark) "Fontified string used for marking.")
 
+
+;; --------------------------------------------------------------------------------
+;; Internal variables
+;; --------------------------------------------------------------------------------
+
+(defvar dvc-memorized-log-header nil)
+(defvar dvc-memorized-log-message nil)
+(defvar dvc-memorized-version nil)
+(defvar dvc-memorized-patch-sender nil)
+
 ;; --------------------------------------------------------------------------------
 ;; Various helper functions
 ;; --------------------------------------------------------------------------------
@@ -631,6 +641,7 @@ When INFO-STRING is given, insert it at the buffer beginning."
            (with-current-buffer (capture buffer)
              (let ((inhibit-read-only t))
                (erase-buffer)
+               (dvc-info-buffer-mode)
                (when info-string
                  (insert info-string))
                (insert-buffer-substring output)
@@ -638,6 +649,20 @@ When INFO-STRING is given, insert it at the buffer beginning."
                  (insert-buffer-substring error))
                (toggle-read-only 1)))
            (dvc-switch-to-buffer (capture buffer)))))))
+
+(defvar dvc-info-buffer-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
+    (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
+    map)
+  "Keymap used in a dvc info buffer.")
+
+(define-derived-mode dvc-info-buffer-mode fundamental-mode
+  "DVC info mode"
+  "Major mode for dvc info buffers"
+  (dvc-install-buffer-menu)
+  (toggle-read-only 1))
+
 
 (defvar dvc-log-cookie nil)
 
