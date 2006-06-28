@@ -97,8 +97,7 @@ clean:
 	  *.toc *.tp *.vr *.vrs *.html *.info dvc-version.texinfo
 
 distclean: clean
-	-$(RM) -f dvc.info*
-
+	-$(RM) -f Makefile
 
 .PHONY: pdf dvi html info clean distclean install-pkg uninstall-pkg all
 

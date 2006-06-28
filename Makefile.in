@@ -71,9 +71,11 @@ clean:
         done
 	-$(RM) -f dvc-load.el dvc-load-install.el
 
-distclean:
-#	$(TLA) inventory -B -j | $(XARGS) $(RM)
-#	$(TLA) inventory -B -p | $(XARGS) $(RM)
+distclean: clean
+	@for i in $(SUBDIRS) ; do               \
+          $(MAKE) -C $$i distclean;             \
+        done
+	-$(RM) -rf configure config.status config.log autom4te.cache/ Makefile
 
 ##############################################################################
 TARFILES = configure $(shell cd @abs_top_srcdir@ && $(ARCH) inventory -s)

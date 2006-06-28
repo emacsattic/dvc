@@ -79,7 +79,7 @@ install-elc:
 
 
 clean:
-	-$(RM) -f *.elc ./contrib/*.elc \
+	-$(RM) -f *.elc ./contrib/*.elc dvc-version.el dvc-site.el \
 		dvc-load.el dvc-autoloads.el auto-autoloads.el custom-load.el .build-stamp
 
 clean-some:
@@ -88,9 +88,8 @@ clean-some:
 Makefile: @srcdir@/Makefile.in ../config.status
 	cd ..; ./config.status
 
-distclean:
-#	$(ARCH) inventory -B -j | $(XARGS) $(RM)
-#	$(ARCH) inventory -B -p | $(XARGS) $(RM)
+distclean: clean
+	-$(RM) -f Makefile
 
 TAGS: $(SRCS)
 	@if test "x$(ETAGS)" = "x" ; then                 \
