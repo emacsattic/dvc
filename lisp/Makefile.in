@@ -14,10 +14,10 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_DATA = @INSTALL_DATA@
 
 datadir= @datadir@
+datarootdir= @datarootdir@
 srcdir = @srcdir@
-subdir = lisp
-contribdir = contrib
 lispdir = @lispdir@
+contribdir = contrib
 
 EMACS_PROG = @EMACS_PROG@
 EMACS_FLAVOR = @EMACS_FLAVOR@
@@ -36,18 +36,47 @@ LINKPATH = @LINKPATH@
 all: clean-some autoloads
 	$(EMACS_COMP) -f package-maint-compile
 
-install-el:
-	$(INSTALL) -d -m 0755 $(lispdir)/$(subdir)
-	for el in $(srcdir)/*.el; do                     \
-	    echo "Install $$el in $(lispdir)/$(subdir)"; \
-	    $(INSTALL_DATA) $$el $(lispdir)/$(subdir);   \
+install: install-el install-elc
+
+# This entry will never install .el files if there are no .elc files.
+install-el: autoloads
+	$(INSTALL) -d -m 0755 $(lispdir)/
+	if test -f "../dvc-load.el"; then                             \
+	    echo "Install dvc-load.el in $(lispdir)/dvc-load.el"      \
+	    $(INSTALL_DATA) ../dvc-load.el $(lispdir)/;               \
+	fi
+	for elc in *.elc; do                                          \
+	    el=`basename $$elc c`;                                    \
+	    if test -f "$(srcdir)/$$el"; then                         \
+	        echo "Install $$el in $(lispdir)/";                   \
+	        $(INSTALL_DATA) $$el $(lispdir)/;                     \
+	    fi;                                                       \
         done;
-	$(INSTALL) -d -m 0755 $(lispdir)/$(subdir)/$(contribdir)
-	$(INSTALL_DATA) $(srcdir)/contrib/ewoc.el $(lispdir)/$(subdir)/$(contribdir)
-	$(INSTALL) -d -m 0755 $(lispdir)/$(subdir)
-	$(INSTALL_DATA) ../Makefile* $(lispdir)
-	$(INSTALL_DATA) ../config.status $(lispdir)
-	$(INSTALL_DATA) Makefile* $(lispdir)/$(subdir)
+	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`; \
+	if test -n "$$CONTRIBELC"; then                               \
+	    for elc in $(contribdir)/*.elc; do                        \
+	        el=`basename $$elc c`;                                \
+	        if test -f "$(contribdir)/$$el"; then                 \
+	            echo "Install $(contribdir)/$$el in $(lispdir)/"; \
+	            $(INSTALL_DATA) $(contribdir)/$$el $(lispdir)/;   \
+	        fi;                                                   \
+	    done;                                                     \
+	fi;
+
+install-elc:
+	$(INSTALL) -d -m 0755 $(lispdir)/
+	for elc in *.elc; do                                 \
+	    echo "Install $$elc in $(lispdir)/";             \
+	    $(INSTALL_DATA) $$elc $(lispdir)/;               \
+        done;
+	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`; \
+	if test -n "$$CONTRIBELC"; then                      \
+	    for elc in $(contribdir)/*.elc; do               \
+	        echo "Install $$elc in $(lispdir)";          \
+	        $(INSTALL_DATA) $$elc $(lispdir);            \
+	    done;                                            \
+	fi;
+
 
 clean:
 	-$(RM) -f *.elc ./contrib/*.elc \

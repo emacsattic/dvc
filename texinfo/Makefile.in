@@ -37,9 +37,7 @@ html: dvc.html
 Makefile: @srcdir@/Makefile.in ../config.status
 	cd ..; ./config.status
 
-install: install-pkg
-
-install-pkg: uninstall-pkg info
+install: uninstall info
 	$(INSTALL) -d -m 0755 $(info_dir);                             \
 	if test "x$(SYMLINKS)" = "xno" ; then                          \
           for i in `ls dvc.info* ` ; do                                \
@@ -61,7 +59,7 @@ install-pkg: uninstall-pkg info
         fi
 	@echo DVC INFO files successfully installed\!
 
-uninstall-pkg:
+uninstall:
 	-$(RM) -f $(info_dir)/dvc.info*
 
 info: dvc.info

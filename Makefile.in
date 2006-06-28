@@ -7,6 +7,7 @@ XARGS = @XARGS@
 ARCH = @ARCH@
 prefix = @prefix@
 datadir= @datadir@
+datarootdir= @datarootdir@
 srcdir = @srcdir@
 lispdir= @lispdir@
 
@@ -53,30 +54,20 @@ dvc: generated-files
 dvc-maybe: generated-files
 	cd lisp; $(MAKE) maybe
 
-install: install-pkg
-
-uninstall: uninstall-pkg
-
-install-deb:
-	$(MAKE) -C texinfo install
-	$(MAKE) -C lisp install-el
-
-install-pkg:
-	@for i in $(SUBDIRS) ; do             \
-          ( cd $$i && $(MAKE) install-pkg ) ; \
-        done
-	sed 's|$$(prefix)|$(prefix)|' dvc-load-install.el \
-            > $(lispdir)/dvc-load.el
-
-uninstall-pkg:
+install: dvc-load.el
 	@for i in $(SUBDIRS) ; do               \
-          ( cd $$i && $(MAKE) uninstall-pkg ) ; \
+          $(MAKE) -C $$i install;               \
+        done
+
+uninstall:
+	@for i in $(SUBDIRS) ; do               \
+          $(MAKE) -C $$i uninstall;             \
         done
 	rmdir $(lispdir) || true
 
 clean:
 	@for i in $(SUBDIRS) ; do               \
-          ( cd $$i && $(MAKE) clean ) ; \
+          $(MAKE) -C $$i clean;                 \
         done
 	-$(RM) -f dvc-load.el dvc-load-install.el
 
