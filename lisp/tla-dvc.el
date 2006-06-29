@@ -57,7 +57,9 @@
 
 (defalias 'tla-dvc-submit-patch 'tla-submit-patch)
 
-(defalias 'tla-dvc-update 'tla-update)
+(defun tla-dvc-update ()
+  (interactive)
+  (tla-update default-directory))
 
 (defalias 'tla-dvc-log-edit 'tla-edit-log)
 
