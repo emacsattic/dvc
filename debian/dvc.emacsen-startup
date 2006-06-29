@@ -12,10 +12,8 @@
 ;; installed in a subdirectory of the respective site-lisp directory.
 ;; We have to add this to the load-path:
 
-(let ((list (append '((lisp . "dvc") (source . "dvc/lisp"))
-		    (unless (locate-library "ewoc")
-		      '((lisp . "dvc/contrib")
-			(source . "dvc/lisp/contrib"))))))
+(let ((list (append '((lisp . "dvc") (source . "dvc/lisp")))))
+
   (while list
     (let ((elt (car list)))
       (cond

@@ -3,10 +3,17 @@
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
 
-PREFIX      := /usr
+PREFIX       := /usr
 
-PACKAGE_DIR := $(PWD)/debian/dvc
-DPREFIX     := $(PACKAGE_DIR)$(PREFIX)
+PACKAGE_DIR  := $(PWD)/debian/dvc
+DPREFIX      := $(PACKAGE_DIR)$(PREFIX)
+
+INSTALL_DIR  := install -d -m 755
+INSTALL_FILE := install -m 644
+
+DVCDIR       := $(DPREFIX)/share/emacs/site-lisp/dvc
+ELDIR        := $(DVCDIR)/lisp
+CONTRIBDIR   := $(ELDIR)/contrib
 
 configure: configure-stamp
 configure-stamp:
@@ -34,7 +41,12 @@ install: build
 	dh_clean -k
 	dh_installdirs
 	$(MAKE) prefix=$(DPREFIX) info
-	$(MAKE) prefix=$(DPREFIX) install-deb
+	$(INSTALL_DIR) $(ELDIR)
+	$(INSTALL_DIR) $(CONTRIBDIR)
+	$(INSTALL_FILE) config.status Makefile* $(DVCDIR)/
+	$(INSTALL_FILE) lisp/Makefile* $(ELDIR)/
+	$(INSTALL_FILE) lisp/Makefile* lisp/*.el $(ELDIR)/
+	$(INSTALL_FILE) lisp/contrib/*.el $(CONTRIBDIR)/
 
 # Build architecture-independent files here.
 binary-indep: build install
