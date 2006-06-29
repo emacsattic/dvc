@@ -9,7 +9,7 @@ PACKAGE_DIR  := $(PWD)/debian/dvc
 DPREFIX      := $(PACKAGE_DIR)$(PREFIX)
 
 INSTALL_DIR  := install -d -m 755
-INSTALL_FILE :=install -m 644
+INSTALL_FILE := install -m 644
 
 DVCDIR       := $(DPREFIX)/share/emacs/site-lisp/dvc
 ELDIR        := $(DVCDIR)/lisp
