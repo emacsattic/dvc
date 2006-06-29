@@ -52,7 +52,7 @@ install-el: autoloads
 	        $(INSTALL_DATA) $$el $(lispdir)/;                     \
 	    fi;                                                       \
         done;
-	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`; \
+	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`;          \
 	if test -n "$$CONTRIBELC"; then                               \
 	    for elc in $(contribdir)/*.elc; do                        \
 	        el=`basename $$elc c`;                                \
