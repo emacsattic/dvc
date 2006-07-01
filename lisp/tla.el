@@ -8309,7 +8309,8 @@ With prefix argument ARG, use the latest version instead."
     (let ((to-tree (dvc-read-directory-name "Sync with tree: " local-tree)))
       (let* ((elem (ewoc-data (ewoc-locate
                                dvc-revlist-cookie)))
-             (full (tla--revision-revision (car (cddr elem)))))
+             (full (tla--revision-revision
+                    (dvc-revlist-entry-patch-struct (nth 1 elem)))))
         (tla-sync-tree (tla--name-construct
                         (if arg (butlast full) full))
                        to-tree)))))
