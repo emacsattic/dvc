@@ -9,9 +9,11 @@ cd `dirname $0`/..
 mkdir -p tmp
 exec > tmp/dvc-cron.log
 make tarball
-cp dvc-snapshot.tar.gz www/
+mkdir -p www/download/
+cp dvc-snapshot.tar.gz www/download/
 make -C texinfo dvc.html
-cp texinfo/dvc.html docs/dvc-snapshot.html
+mkdir -p www/docs/
+cp texinfo/dvc.html www/docs/dvc-snapshot.html
 
 # upload source and non-source at the same time
 rsync -av www/ moy@download.gna.org:/upload/dvc/

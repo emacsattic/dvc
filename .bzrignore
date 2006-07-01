@@ -12,3 +12,5 @@ texinfo/dvc-version.texinfo
 texinfo/dvc.html
 texinfo/dvc.info
 docs/dvc-snapshot.html
+www/docs
+www/download
