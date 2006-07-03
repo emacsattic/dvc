@@ -149,14 +149,11 @@ AC_DEFUN([DVC_BAZ_OR_TLA],
     if test "x${ARCH_BRANCH}" = "xnone"; then
       ARCH="/bin/true"
     fi
-    if test "x${ARCH}" = "x"; then
-      AC_MSG_ERROR([*** Neither tla nor baz found])
-    fi
     if test "y${ARCH_BRANCH}" = "ytla" -a "y${TLA}" = "y"; then
-      AC_MSG_ERROR([*** Can't use tla branch because tla isn't available])
+      AC_MSG_ERROR([*** Can't use tla because tla isn't available])
     fi
     if test "x${ARCH_BRANCH}" = "xbaz" -a "x${BAZ}" = "x"; then
-      AC_MSG_ERROR([*** Can't use baz branch because baz isn't available])
+      AC_MSG_ERROR([*** Can't use baz because baz isn't available])
     fi
     AC_MSG_RESULT(${ARCH_BRANCH})
     AC_SUBST(ARCH_BRANCH)
@@ -338,6 +335,10 @@ DVC_PATH_INFO_DIR
 
 DVC_PROG(TLA, tla, tla program to use)
 DVC_PROG(BAZ, baz, baz program to use)
+DVC_PROG(BZR, bzr, Bazaar-NG)
+if test "x$BZR" = "x" ; then
+   BZR=/bin/true
+fi
 DVC_BAZ_OR_TLA
 
 DVC_PROG(DIFF, diff, diff program to use)

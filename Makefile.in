@@ -2,6 +2,7 @@
 
 # location of required programms
 TAR = @TAR@
+BZR = @BZR@
 RM   = @RM@
 XARGS = @XARGS@
 ARCH = @ARCH@
@@ -98,20 +99,7 @@ endif
 dist: tarball
 
 tarball: $(TARFILES:%=@abs_top_srcdir@/%)
-# 	cd @abs_top_srcdir@ && $(TLA) changes || \
-# 	(echo ERROR: There are changes in the tree, please commit before creating a tarball\!;\
-# 	 echo ERROR: since otherwise lisp/dvc-version.el is not correct\!; exit 1)
-	$(RM) -f lisp/dvc-version.el texinfo/dvc-version.texinfo
-	cd lisp; make dvc-version.el
-	cd texinfo; make dvc-version.texinfo
-	-$(RM) -rf ./,,tarball
-	mkdir -p ./,,tarball/$(TARDIRNAME)
-	(cd @abs_top_srcdir@ && $(TLA) changelog) >>  ,,tarball/$(TARDIRNAME)/ChangeLog
-	(cd @abs_top_srcdir@ && $(TAR) cf - $(TARFILES)) \
-		| (cd ,,tarball/$(TARDIRNAME) ; $(TAR) xf -)
-	$(TAR) cf - lisp/dvc-version.el texinfo/dvc-version.texinfo \
-		| (cd ,,tarball/$(TARDIRNAME) ; $(TAR) xf -)
-	cd ./,,tarball; $(TAR) -cvzf ../$(TARDIRNAME).tar.gz $(TARDIRNAME)
+	scripts/make-tarball.sh $(TARDIRNAME).tar.gz
 	@echo "*** $(TARDIRNAME).tar.gz created ***"
 
 ##############################################################################

@@ -1,0 +1,16 @@
+Makefile
+configure
+*.elc
+*.tar.gz
+./tmp
+./dvc-load-install.el
+./dvc-load.el
+lisp/dvc-autoloads.el
+lisp/dvc-site.el
+lisp/dvc-version.el
+texinfo/dvc-version.texinfo
+texinfo/dvc.html
+texinfo/dvc.info
+docs/dvc-snapshot.html
+www/docs
+www/download

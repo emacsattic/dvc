@@ -13,7 +13,6 @@
 ;; We have to add this to the load-path:
 
 (let ((list (append '((lisp . "dvc") (source . "dvc/lisp")))))
-
   (while list
     (let ((elt (car list)))
       (cond

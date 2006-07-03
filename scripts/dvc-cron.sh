@@ -6,9 +6,14 @@
 # here only as an example. Copy it and modify it if you wish to use it.
 
 cd `dirname $0`/..
-exec > ++dvc-cron.log
+mkdir -p tmp
+exec > tmp/dvc-cron.log
 make tarball
-scp -i ~/.ssh/gna_org dvc-snapshot.tar.gz moy@download.gna.org:/upload/xtla-el
+mkdir -p www/download/
+cp dvc-snapshot.tar.gz www/download/
 make -C texinfo dvc.html
-scp -i ~/.ssh/gna_org texinfo/dvc.html moy@download.gna.org:/upload/xtla-el/docs/dvc-snapshot.html
+mkdir -p www/docs/
+cp texinfo/dvc.html www/docs/dvc-snapshot.html
 
+# upload source and non-source at the same time
+rsync -av www/ moy@download.gna.org:/upload/dvc/

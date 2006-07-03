@@ -18,8 +18,8 @@
   (add-to-list 'load-path "@lispdir@/contrib"))
 (add-to-list 'Info-default-directory-list "@info_dir@/info")
 
-(if (featurep 'xtla)
-    (tla-reload)
+(if (featurep 'dvc-core)
+    (dvc-reload)
   (if (featurep 'xemacs)
       (require 'auto-autoloads)
     (require 'dvc-autoloads)))

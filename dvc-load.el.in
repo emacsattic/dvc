@@ -18,8 +18,8 @@
   (add-to-list 'load-path "@abs_top_builddir@/lisp/contrib"))
 (add-to-list 'Info-default-directory-list "@abs_top_builddir@/info")
 
-(if (featurep 'tla)
-    (dvc-reload) ;; TODO move this to DVC
+(if (featurep 'dvc-core)
+    (dvc-reload)
   (if (featurep 'xemacs)
       (require 'dvc-autoloads "@abs_top_builddir@/lisp/auto-autoloads.elc")
     (require 'dvc-autoloads)))
