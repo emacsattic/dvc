@@ -34,6 +34,7 @@
 (require 'xhg-core)
 (require 'xhg-log)
 
+;;;###autoload
 (defun xhg-init (&optional dir)
   "Run hg init."
   (interactive
@@ -69,6 +70,7 @@
                                   (output error status arguments)
                                 (message "hg remove finished"))))
 
+;;;###autoload
 (defun xhg-forget (&rest files)
   "Run hg forget."
   (interactive (dvc-current-file-list))
@@ -194,6 +196,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                          (dvc-show-changes-buffer output 'xhg-parse-diff
                                                   (capture buffer))))))
 
+;;;###autoload
 (defun xhg-status ()
   "Run hg status."
   (interactive)
@@ -242,6 +245,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
     (let ((dvc-switch-to-buffer-mode 'show-in-other-window))
       (dvc-switch-to-buffer buffer))))
 
+;;;###autoload
 (defun xhg-pull (src)
   "Run hg pull."
   (interactive (list (let* ((completions (xhg-paths 'both))
@@ -251,6 +255,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      :error 'xhg-pull-finish-function
                      :finished 'xhg-pull-finish-function))
 
+;;;###autoload
 (defun xhg-clone (src &optional dest noupdate rev pull)
   "Run hg clone."
   (interactive (list (read-string "hg clone from: ")
@@ -261,6 +266,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      ))
   (dvc-run-dvc-async 'xhg (list "clone" src)))
 
+;;;###autoload
 (defun xhg-incoming (&optional src show-patch no-merges)
   "Run hg incoming."
   (interactive (list (let* ((completions (xhg-paths 'both))
@@ -313,6 +319,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                (toggle-read-only 1)))
            (dvc-switch-to-buffer (capture buffer)))))))
 
+;;;###autoload
 (defun xhg-tip ()
   "Run hg tip."
   (interactive)
@@ -433,6 +440,7 @@ otherwise: Return a list of two element sublists containing alias, path"
 
 
 ;; TODO: support the -C, -m switches also someway
+;;;###autoload
 (defun xhg-update ()
   "Run hg update."
   (interactive)
@@ -508,6 +516,7 @@ LAST-REVISION looks like
 ;; hg log -r $(hg identify)
 ;; add one to that revision number -> actual-rev+1
 ;; hg log -r actual-rev+1:tip, e.g. hg log -r 5:tip
+;;;###autoload
 (defun xhg-missing ()
   "Shows the logs of the new arrived changesets after a pull and before an update."
   (interactive)
