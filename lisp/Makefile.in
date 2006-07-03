@@ -43,26 +43,26 @@ install: install-el install-elc
 # This entry will never install .el files if there are no .elc files.
 install-el: autoloads
 	$(INSTALL) -d -m 0755 $(lispdir)/
-	if test -f "${top_srcdir}/dvc-load.el"; then                  \
-	    echo "Install dvc-load.el in $(lispdir)/dvc-load.el"      \
-	    $(INSTALL_DATA) ${top_srcdir}/dvc-load.el $(lispdir)/;    \
+	if test -f "${top_srcdir}/dvc-load.el"; then                          \
+	    echo "Install dvc-load.el in $(lispdir)/dvc-load.el"              \
+	    $(INSTALL_DATA) ${top_srcdir}/dvc-load.el $(lispdir)/;            \
 	fi
-	for elc in *.elc; do                                          \
-	    el=`basename $$elc c`;                                    \
-	    if test -f "$(srcdir)/$$el"; then                         \
-	        echo "Install $$el in $(lispdir)/";                   \
-	        $(INSTALL_DATA) ${srcdir}/$$el $(lispdir)/;           \
-	    fi;                                                       \
+	for elc in *.elc; do                                                  \
+	    el=`basename $$elc c`;                                            \
+	    if test -f "$(srcdir)/$$el"; then                                 \
+	        echo "Install $$el in $(lispdir)/";                           \
+	        $(INSTALL_DATA) ${srcdir}/$$el $(lispdir)/;                   \
+	    fi;                                                               \
         done;
-	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`;          \
-	if test -n "$$CONTRIBELC"; then                               \
-	    for elc in $(contribdir)/*.elc; do                        \
-	        el=`basename $$elc c`;                                \
-	        if test -f "${srcdir}/$(contribdir)/$$el"; then       \
-	            echo "Install $(contribdir)/$$el in $(lispdir)/"; \
+	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`;                  \
+	if test -n "$$CONTRIBELC"; then                                       \
+	    for elc in $(contribdir)/*.elc; do                                \
+	        el=`basename $$elc c`;                                        \
+	        if test -f "${srcdir}/$(contribdir)/$$el"; then               \
+	            echo "Install $(contribdir)/$$el in $(lispdir)/";         \
 	            $(INSTALL_DATA) ${srcdir}/$(contribdir)/$$el $(lispdir)/; \
-	        fi;                                                   \
-	    done;                                                     \
+	        fi;                                                           \
+	    done;                                                             \
 	fi;
 
 install-elc:
