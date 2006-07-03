@@ -215,8 +215,9 @@ with `dvc-read-directory-name'."
 
 (defun tla--ewoc-delete (cookie elem)
   "Remove element from COOKIE the element ELEM."
-  (ewoc-filter cookie
-               '(lambda (x) (not (eq x (ewoc-data elem))))))
+  (when elem
+    (ewoc-filter cookie
+                 '(lambda (x) (not (eq x (ewoc-data elem)))))))
 
 (defun tla--insert-right-justified (string count &optional face)
   "Insert a string with a right-justification.
@@ -4099,7 +4100,9 @@ parsed."
                 )))
           (if last-node
               (setq last-node
-                    (ewoc-enter-after cookie last-node elem))
+                    (condition-case nil
+                        (ewoc-enter-after cookie last-node elem)
+                      (error nil)))     ; ignore bad data
             (ewoc-enter-last cookie elem)))
         (beginning-of-line))
       (kill-buffer (current-buffer)))
