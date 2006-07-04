@@ -59,6 +59,8 @@ install: dvc-load.el
 	@for i in $(SUBDIRS) ; do               \
           $(MAKE) -C $$i install;               \
         done
+	sed 's|$$(prefix)|$(prefix)|' dvc-load-install.el \
+	> ${lispdir}/dvc-load.el
 
 uninstall:
 	@for i in $(SUBDIRS) ; do               \

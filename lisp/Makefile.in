@@ -43,10 +43,6 @@ install: install-el install-elc
 # This entry will never install .el files if there are no .elc files.
 install-el: autoloads
 	$(INSTALL) -d -m 0755 $(lispdir)/
-	if test -f "${top_srcdir}/dvc-load.el"; then                          \
-	    echo "Install dvc-load.el in $(lispdir)/dvc-load.el"              \
-	    $(INSTALL_DATA) ${top_srcdir}/dvc-load.el $(lispdir)/;            \
-	fi
 	for elc in *.elc; do                                                  \
 	    el=`basename $$elc c`;                                            \
 	    if test -f "$(srcdir)/$$el"; then                                 \
