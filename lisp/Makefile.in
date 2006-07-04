@@ -95,35 +95,6 @@ TAGS: $(SRCS)
          fi
 
 ##############################################################################
-install-pkg: uninstall-pkg all
-	@if test "x$(SYMLINKS)" = "xno" ; then             \
-	  $(INSTALL) -d -m 0755 $(lispdir);                \
-	  for file in *.elc ; do                           \
-	    echo "Installing $$file in $(lispdir)";        \
-	    $(INSTALL_DATA) $$file $(lispdir) ;            \
-	  done ;                                           \
-	  if $(LS) contrib/*.elc > /dev/null 2>&1; then    \
-	    for file in contrib/*.elc ; do                 \
-	      echo "Installing $$file in $(lispdir)";      \
-	      $(INSTALL_DATA) $$file $(lispdir) ;          \
-	    done ;                                         \
-	  fi                                               \
-	else                                               \
-	  if test "x$(LINKPATH)" = "x" ; then              \
-	    $(LN_S) `pwd` $(lispdir) ;                     \
-	  else                                             \
-	    $(LN_S) $(LINKPATH)/lisp $(lispdir) ;          \
-	  fi ;                                             \
-	fi
-	@echo DVC ELISP files successfully installed\!
-
-uninstall-pkg:
-	@for file in $(lispdir)/* ; do            \
-	  echo "Removing $$file from $(lispdir)"; \
-	  $(RM) -f $$file ;                       \
-	done
-
-##############################################################################
 autoloads:
 	$(EMACS_COMP) -f package-maint-make-cus-load $(srcdir)
 	$(EMACS_COMP) -f package-maint-make-auto-load $(srcdir)
