@@ -50,8 +50,7 @@ install-el: autoloads
 	        $(INSTALL_DATA) ${srcdir}/$$el $(lispdir)/;                   \
 	    fi;                                                               \
         done;
-	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`;                  \
-	if test -n "$$CONTRIBELC"; then                                       \
+	if $(LS) $(contrib)/*.elc > /dev/null 2>&1; then                      \
 	    for elc in $(contribdir)/*.elc; do                                \
 	        el=`basename $$elc c`;                                        \
 	        if test -f "${srcdir}/$(contribdir)/$$el"; then               \
@@ -67,8 +66,7 @@ install-elc:
 	    echo "Install $$elc in $(lispdir)/";             \
 	    $(INSTALL_DATA) $$elc $(lispdir)/;               \
         done;
-	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`; \
-	if test -n "$$CONTRIBELC"; then                      \
+	if $(LS) $(contribdir)/*.elc > /dev/null 2>&1; then  \
 	    for elc in $(contribdir)/*.elc; do               \
 	        echo "Install $$elc in $(lispdir)";          \
 	        $(INSTALL_DATA) $$elc $(lispdir);            \
