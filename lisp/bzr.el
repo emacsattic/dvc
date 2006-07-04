@@ -46,7 +46,7 @@ a common base directory.")
 
 ;;example:
 ;;(setq bzr-mail-notification-destination
-;;      '(("dvc-dev-bzr" ("[commit][dvc] " "dvc-dev@gna.org"))))
+;;      '(("dvc-dev-bzr" ("[commit][dvc] " "dvc-dev@gna.org" "http://xsteve.nit.at/dvc/"))))
 (defcustom bzr-mail-notification-destination nil
 "*Preset some useful values for commit emails.
 
@@ -55,10 +55,11 @@ email addresses and the prefix string for the subject line.
 
 This is used by the `bzr-send-commit-notification' function."
   :type '(repeat (list :tag "Rule"
-                       (string :tag "Bzr branch")
+                       (string :tag "Bzr branch nick")
                 (list :tag "Target"
                       (string :tag "Email subject prefix")
-                      (string :tag "Email address"))))
+                      (string :tag "Email address")
+                      (string :tag "Bzr branch location"))))
   :group 'dvc)
 
 
@@ -238,6 +239,13 @@ TODO: dont-switch is currently ignored."
       (with-current-buffer buffer (goto-char (point-min)))
       buffer)))
 
+;;TODO: should be integrated in dvc-revlist-get-rev-at-point
+(defun bzr-get-revision-at-point ()
+  (int-to-string
+   (nth 2 (car (dvc-revision-get-data
+                (dvc-revlist-entry-patch-rev-id
+                 (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie)))))))))
+
 (defun bzr-send-commit-notification ()
   "Send a commit notification email for the changelog entry at point.
 
@@ -245,19 +253,20 @@ TODO: dont-switch is currently ignored."
 the subject line, the rest of the subject line contains the summary line
 of the commit. Additionally the destination email address can be specified."
   (interactive)
-  (let ((dest-specs (cadar bzr-mail-notification-destination));;(tla--name-match-from-list
+  (let* ((dest-specs (cadar bzr-mail-notification-destination));;(tla--name-match-from-list
                      ;;(tla--name-split (tla-changelog-revision-at-point))
                      ;;tla-mail-notification-destination))
-        (rev "??");;(tla-changelog-revision-at-point))
-        (summary "");;(tla-changelog-log-summary-at-point))
-        (log-message ""));;(dvc-changelog-log-message-at-point)))
-    (message "Preparing commit email for %s" rev)
+         (rev (bzr-get-revision-at-point))
+         (branch-location (nth 2 dest-specs))
+         (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
+         (summary (car (split-string log-message "\n"))))
+    (message "Preparing commit email for revision %s" rev)
     (compose-mail (if dest-specs (cadr dest-specs) "")
-                  (if dest-specs (car dest-specs) ""))
-    (message-goto-subject)
-    (insert summary)
+                  (concat (if dest-specs (car dest-specs) "") "rev " rev ": " summary))
     (message-goto-body)
-    (insert (concat "Committed " rev "\n\n"))
+    (insert (concat "Committed revision " rev
+                    (if branch-location (concat " to " branch-location) "")
+                    "\n\n"))
     (insert log-message)
     (message-goto-body)))
 
