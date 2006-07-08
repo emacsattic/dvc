@@ -8,6 +8,10 @@
 cd `dirname $0`/..
 mkdir -p tmp
 exec > tmp/dvc-cron.log
+exec 2>&1
+
+echo "Executing $0 on $(date)."
+
 make tarball
 mkdir -p www/download/
 cp dvc-snapshot.tar.gz www/download/
@@ -17,3 +21,5 @@ cp texinfo/dvc.html www/docs/dvc-snapshot.html
 
 # upload source and non-source at the same time
 rsync -av www/ moy@download.gna.org:/upload/dvc/
+
+echo "Finished $0 on $(date)"
