@@ -518,7 +518,7 @@ file is visited."
 
 (defun dvc-diff-find-file-name ()
   "Same as `diff-find-file-name', but works in more cases."
-  (if (re-search-backward "^\\+\\+\\+ \\(mod/\\)?\\([^\n]*?\\)[ \t]?$" nil t)
+  (if (re-search-backward "^\\+\\+\\+ \\(mod/\\)?\\([^\n]*?\\)\\([ \t].*\\)?$" nil t)
       (match-string-no-properties 2)
     (diff-find-file-name)))
 
