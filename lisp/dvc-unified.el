@@ -217,6 +217,11 @@ the current active back-end."
   "Submit a patch for the current project under DVC control."
   (interactive))
 
+;;;###autoload
+(dvc-create-unified-command "send-commit-notification" ()
+  "Send a commit notification for the changeset at point."
+  (interactive))
+
 (provide 'dvc-unified)
 ;; arch-tag: 914f9b69-1af2-4d11-9ac0-f6db89267881
 ;;; dvc-unified.el ends here

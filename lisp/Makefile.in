@@ -13,9 +13,11 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_DATA = @INSTALL_DATA@
 
+top_srcdir = @top_srcdir@
+srcdir = @srcdir@
+
 datadir= @datadir@
 datarootdir= @datarootdir@
-srcdir = @srcdir@
 lispdir = @lispdir@
 contribdir = contrib
 
@@ -41,26 +43,21 @@ install: install-el install-elc
 # This entry will never install .el files if there are no .elc files.
 install-el: autoloads
 	$(INSTALL) -d -m 0755 $(lispdir)/
-	if test -f "../dvc-load.el"; then                             \
-	    echo "Install dvc-load.el in $(lispdir)/dvc-load.el"      \
-	    $(INSTALL_DATA) ../dvc-load.el $(lispdir)/;               \
-	fi
-	for elc in *.elc; do                                          \
-	    el=`basename $$elc c`;                                    \
-	    if test -f "$(srcdir)/$$el"; then                         \
-	        echo "Install $$el in $(lispdir)/";                   \
-	        $(INSTALL_DATA) $$el $(lispdir)/;                     \
-	    fi;                                                       \
+	for elc in *.elc; do                                                  \
+	    el=`basename $$elc c`;                                            \
+	    if test -f "$(srcdir)/$$el"; then                                 \
+	        echo "Install $$el in $(lispdir)/";                           \
+	        $(INSTALL_DATA) ${srcdir}/$$el $(lispdir)/;                   \
+	    fi;                                                               \
         done;
-	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`;          \
-	if test -n "$$CONTRIBELC"; then                               \
-	    for elc in $(contribdir)/*.elc; do                        \
-	        el=`basename $$elc c`;                                \
-	        if test -f "$(contribdir)/$$el"; then                 \
-	            echo "Install $(contribdir)/$$el in $(lispdir)/"; \
-	            $(INSTALL_DATA) $(contribdir)/$$el $(lispdir)/;   \
-	        fi;                                                   \
-	    done;                                                     \
+	if $(LS) $(contrib)/*.elc > /dev/null 2>&1; then                      \
+	    for elc in $(contribdir)/*.elc; do                                \
+	        el=`basename $$elc c`;                                        \
+	        if test -f "${srcdir}/$(contribdir)/$$el"; then               \
+	            echo "Install $(contribdir)/$$el in $(lispdir)/";         \
+	            $(INSTALL_DATA) ${srcdir}/$(contribdir)/$$el $(lispdir)/; \
+	        fi;                                                           \
+	    done;                                                             \
 	fi;
 
 install-elc:
@@ -69,8 +66,7 @@ install-elc:
 	    echo "Install $$elc in $(lispdir)/";             \
 	    $(INSTALL_DATA) $$elc $(lispdir)/;               \
         done;
-	CONTRIBELC=`ls -1 $(contribdir)/*.elc || /bin/true`; \
-	if test -n "$$CONTRIBELC"; then                      \
+	if $(LS) $(contribdir)/*.elc > /dev/null 2>&1; then  \
 	    for elc in $(contribdir)/*.elc; do               \
 	        echo "Install $$elc in $(lispdir)";          \
 	        $(INSTALL_DATA) $$elc $(lispdir);            \
@@ -97,35 +93,6 @@ TAGS: $(SRCS)
          else                                             \
            $(ETAGS) */*.el                              ; \
          fi
-
-##############################################################################
-install-pkg: uninstall-pkg all
-	@if test "x$(SYMLINKS)" = "xno" ; then             \
-	  $(INSTALL) -d -m 0755 $(lispdir);                \
-	  for file in *.elc ; do                           \
-	    echo "Installing $$file in $(lispdir)";        \
-	    $(INSTALL_DATA) $$file $(lispdir) ;            \
-	  done ;                                           \
-	  if $(LS) contrib/*.elc > /dev/null 2>&1; then    \
-	    for file in contrib/*.elc ; do                 \
-	      echo "Installing $$file in $(lispdir)";      \
-	      $(INSTALL_DATA) $$file $(lispdir) ;          \
-	    done ;                                         \
-	  fi                                               \
-	else                                               \
-	  if test "x$(LINKPATH)" = "x" ; then              \
-	    $(LN_S) `pwd` $(lispdir) ;                     \
-	  else                                             \
-	    $(LN_S) $(LINKPATH)/lisp $(lispdir) ;          \
-	  fi ;                                             \
-	fi
-	@echo DVC ELISP files successfully installed\!
-
-uninstall-pkg:
-	@for file in $(lispdir)/* ; do            \
-	  echo "Removing $$file from $(lispdir)"; \
-	  $(RM) -f $$file ;                       \
-	done
 
 ##############################################################################
 autoloads:
