@@ -14,3 +14,8 @@ texinfo/dvc.info
 docs/dvc-snapshot.html
 www/docs
 www/download
+*~
+./configure
+./autom4te.cache
+./config.log
+./config.status
