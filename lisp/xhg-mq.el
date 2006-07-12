@@ -69,11 +69,12 @@
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
     (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
-    (define-key map [?.] 'xhg-qtop)
-    (define-key map [?+] 'xhg-qnext)
-    (define-key map [?-] 'xhg-qprev)
+    (define-key map [?t] 'xhg-qtop)
+    (define-key map [?n] 'xhg-qnext)
+    (define-key map [?p] 'xhg-qprev)
     (define-key map [?=] 'xhg-qdiff)
     (define-key map [?d] 'xhg-qdelete)
+    (define-key map [?N] 'xhg-qnew)
     map)
   "Keymap used for xhg-mq commands.")
 
@@ -93,13 +94,19 @@ When called without a prefix argument run hg qinit -c, otherwise hg qinit."
                                     (output error status arguments)
                                   (message "hg qinit finished")))))
 
-(defun xhg-qnew (patch-name &optional commit-description)
+(defun xhg-qnew (patch-name &optional commit-description force)
   "Run hg qnew.
-When called with a prefix argument run hg qnew -m and ask for COMMIT-DESCRIPTION."
+Asks for the patch name and an optional commit description.
+If the commit description is not empty, run hg qnew -m \"commit description\"
+When called with a prefix argument run hg qnew -f."
   (interactive
    (list (read-from-minibuffer "qnew patch name: ")
-         (when current-prefix-arg (read-from-minibuffer "qnew commit message: "))))
+         (read-from-minibuffer "qnew commit message (empty for none): ")
+         current-prefix-arg))
+  (when (string= commit-description "")
+    (setq commit-description nil))
   (dvc-run-dvc-sync 'xhg (list "qnew"
+                               (when force "-f")
                                (when commit-description "-m")
                                (when commit-description (concat "\"" commit-description "\""))
                                patch-name)))
