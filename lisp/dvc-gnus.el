@@ -86,8 +86,13 @@ Otherwise `dvc-gnus-apply-patch' is called."
 (defun dvc-gnus-apply-patch (handle)
   "Apply the patch corresponding to HANDLE."
   (dvc-buffer-push-previous-window-config)
-  (message "dvc-gnus-apply-patch not yet implemented..."))
-
+  (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
+        (patch-buff))
+    (mm-save-part-to-file handle dvc-patch-name)
+    (find-file dvc-patch-name)
+    (setq patch-buff (current-buffer))
+    (flet ((ediff-get-default-file-name () (expand-file-name "~/work/myprg/dvc-dev-bzr/")))
+      (ediff-patch-file 2 patch-buff))))
 
 (provide 'dvc-gnus)
 ;; arch-tag: 6afaa64c-9e9f-4600-beb6-1276365400d6
