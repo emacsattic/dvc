@@ -73,7 +73,6 @@ Additionally add the `tla-submit-patch-done' function to the
 The archives/categories/branches/version/revision names are buttonized
 in the *Article* buffers."
   (interactive)
-  (dvc-gnus-initialize-keymap)
   (define-key gnus-summary-dvc-submap [?v] 'tla-gnus-article-view-patch)
   (define-key gnus-summary-dvc-submap [?l] 'tla-gnus-article-extract-log-message)
   (add-hook 'message-sent-hook 'tla-submit-patch-done)

@@ -58,6 +58,7 @@ this function.
 Additionally the following key binding is defined for the gnus summary mode map:
 K t a `dvc-gnus-article-apply-patch'"
   (interactive)
+  (dvc-gnus-initialize-keymap)
   (define-key gnus-summary-dvc-submap [?a] 'dvc-gnus-article-apply-patch)
   (mapcar (lambda (x)
             (let ((fn (dvc-function x "insinuate-gnus" t)))
