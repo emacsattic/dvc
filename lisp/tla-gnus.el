@@ -65,7 +65,6 @@
   "Integrate the tla backend of DVC into Gnus.
 The following keybindings are installed for gnus-summary:
 K t v `tla-gnus-article-view-patch'
-K t l `tla-gnus-article-extract-log-message'
 
 Additionally add the `tla-submit-patch-done' function to the
 `message-sent-hook'.
@@ -74,7 +73,6 @@ The archives/categories/branches/version/revision names are buttonized
 in the *Article* buffers."
   (interactive)
   (define-key gnus-summary-dvc-submap [?v] 'tla-gnus-article-view-patch)
-  (define-key gnus-summary-dvc-submap [?l] 'tla-gnus-article-extract-log-message)
   (add-hook 'message-sent-hook 'tla-submit-patch-done)
   (tla-gnus-setup-buttons))
 
@@ -151,7 +149,6 @@ When called with no prefix arg, set N := 2."
 (defun tla-gnus-apply-patch (handle)
   "Apply the patch corresponding to HANDLE."
   (dvc-buffer-push-previous-window-config)
-  (tla-gnus-article-extract-log-message)
   (let ((archive-name (dvc-make-temp-name "gnus-patch-tgz"))
         (tree-dir (tla--name-match-from-list
                    (when dvc-memorized-version
@@ -168,36 +165,6 @@ When called with no prefix arg, set N := 2."
     (delete-file archive-name)
     (when (eq major-mode 'tla-inventory-mode)
       (delete-other-windows))))
-
-(defun tla-gnus-article-extract-log-message ()
-  "Parse the mail and extract the log information.
-Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
-`dvc-memorized-log-message' and `dvc-memorized-version'."
-  (interactive)
-  (gnus-summary-select-article-buffer)
-  (save-excursion
-    (goto-char (point-min))
-    (let* ((start-pos (or (search-forward "[PATCH] " nil t) (search-forward "Subject: ")))
-           (end-pos (line-end-position))
-           (log-header (buffer-substring-no-properties start-pos end-pos)))
-      (setq dvc-memorized-log-header log-header))
-    (goto-char (point-min))
-    (let* ((start-pos (search-forward "From: " nil t))
-           (end-pos (line-end-position))
-           (sender (when start-pos (buffer-substring-no-properties start-pos end-pos))))
-      (setq dvc-memorized-patch-sender (and start-pos sender)))
-    (goto-char (point-min))
-    (let* ((start-pos (search-forward "[VERSION] " nil t))
-           (end-pos (line-end-position))
-           (version (when start-pos (buffer-substring-no-properties start-pos end-pos))))
-      (setq dvc-memorized-version (and start-pos version)))
-    (goto-char (point-min))
-    (let* ((start-pos (+ (search-forward "<<LOG-START>>") 1))
-           (end-pos (- (progn (search-forward "<LOG-END>>") (line-beginning-position)) 1))
-           (log-message (buffer-substring-no-properties start-pos end-pos)))
-      (setq dvc-memorized-log-message log-message)
-      (message "Extracted the tla log message from '%s'" dvc-memorized-log-header)))
-  (gnus-article-show-summary))
 
 ;; --------------------------------------------------------------------------------
 ;; xhg
