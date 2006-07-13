@@ -136,29 +136,30 @@ When called with a prefix argument run hg qpush -a."
                                  (when all "-a")))
     (pop-to-buffer curbuf)))
 
+(defun xhg-process-mq-patches (cmd-list header &optional only-show)
+  (if only-show
+      (let ((curbuf (current-buffer)))
+        (dvc-run-dvc-display-as-info 'xhg cmd-list nil (concat header "\n"))
+        (with-current-buffer "*xhg-info*"
+          (xhg-mq-mode))
+        (pop-to-buffer curbuf))
+    (dvc-run-dvc-sync 'xhg cmd-list
+                      :finished 'dvc-output-buffer-split-handler)))
+
 (defun xhg-qapplied ()
   "Run hg qapplied."
   (interactive)
-  (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-display-as-info 'xhg '("qapplied") nil "hg qapplied:\n")
-    (pop-to-buffer curbuf)))
+  (xhg-process-mq-patches '("qapplied") "hg qapplied:" (interactive-p)))
 
 (defun xhg-qunapplied ()
   "Run hg qunapplied."
   (interactive)
-  (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-display-as-info 'xhg '("qunapplied") nil "hg qunapplied:\n")
-    (pop-to-buffer curbuf)))
+  (xhg-process-mq-patches '("qunapplied") "hg qunapplied:" (interactive-p)))
 
 (defun xhg-qseries ()
   "Run hg qseries."
   (interactive)
-  (if (interactive-p)
-      (let ((curbuf (current-buffer)))
-        (dvc-run-dvc-display-as-info 'xhg '("qseries") nil "hg qseries:\n")
-        (pop-to-buffer curbuf))
-    (dvc-run-dvc-sync 'xhg '("qseries")
-                      :finished 'dvc-output-buffer-split-handler)))
+  (xhg-process-mq-patches '("qseries") "hg series:" (interactive-p)))
 
 (defun xhg-qdiff (&optional file)
   "Run hg qdiff."
@@ -212,6 +213,24 @@ When called with a prefix argument run hg qpush -a."
     (when (interactive-p)
       (message "Mercurial qprev: %s" prev))
     prev))
+
+
+;; --------------------------------------------------------------------------------
+;; the xhg mq mode
+;; --------------------------------------------------------------------------------
+
+(defvar xhg-mq-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
+    (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
+    map)
+  "Keymap used in a xhg mq buffer.")
+
+(define-derived-mode xhg-mq-mode fundamental-mode
+  "xhg mq mode"
+  "Major mode for xhg mq interaction."
+  (dvc-install-buffer-menu)
+  (toggle-read-only 1))
 
 
 (provide 'xhg-mq)
