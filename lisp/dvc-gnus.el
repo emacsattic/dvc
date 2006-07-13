@@ -3,6 +3,8 @@
 ;; Copyright (C) 2003-2006 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
+;; Contributions from:
+;;    Stefan Reichoer <stefan@xsteve.at>
 
 ;; DVC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -48,17 +50,50 @@ Prefix key is 'K t'."
 
 ;;;###autoload
 (defun dvc-insinuate-gnus ()
-  "Insinuate Gnus for each registered back-end.
+  "Insinuate Gnus for each registered DVC back-end.
 
 Runs (<backend>-insinuate-gnus) for each registered back-end having
-this function."
+this function.
+
+Additionally the following key binding is defined for the gnus summary mode map:
+K t a `dvc-gnus-article-apply-patch'"
   (interactive)
+  (dvc-gnus-initialize-keymap)
+  (define-key gnus-summary-dvc-submap [?a] 'dvc-gnus-article-apply-patch)
   (mapcar (lambda (x)
             (let ((fn (dvc-function x "insinuate-gnus" t)))
               (when (fboundp fn)
                 (dvc-trace "Insinuating Gnus for %S" x)
                 (funcall fn))))
           dvc-registered-backends))
+
+(defun dvc-gnus-article-apply-patch (n)
+  "Apply MIME part N, as patchset.
+When called with no prefix arg, set N := 2.
+First is checked, if it is a tla changeset created with DVC.
+If that is the case, `tla-gnus-apply-patch' is called.
+Otherwise `dvc-gnus-apply-patch' is called."
+  (interactive "p")
+  (unless current-prefix-arg
+    (setq n 2))
+  (save-window-excursion
+    (gnus-summary-select-article-buffer)
+    (goto-char (point-min))
+    (cond ((re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
+           (tla-gnus-article-apply-patch n))
+          (t
+           (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
+
+(defun dvc-gnus-apply-patch (handle)
+  "Apply the patch corresponding to HANDLE."
+  (dvc-buffer-push-previous-window-config)
+  (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
+        (patch-buff))
+    (mm-save-part-to-file handle dvc-patch-name)
+    (find-file dvc-patch-name)
+    (setq patch-buff (current-buffer))
+    (flet ((ediff-get-default-file-name () (expand-file-name "~/work/myprg/dvc-dev-bzr/")))
+      (ediff-patch-file 2 patch-buff))))
 
 (provide 'dvc-gnus)
 ;; arch-tag: 6afaa64c-9e9f-4600-beb6-1276365400d6

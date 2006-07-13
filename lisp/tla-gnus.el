@@ -62,10 +62,9 @@
 
 ;;;###autoload
 (defun tla-insinuate-gnus ()
-  "Integrate Xtla into Gnus.
+  "Integrate the tla backend of DVC into Gnus.
 The following keybindings are installed for gnus-summary:
 K t v `tla-gnus-article-view-patch'
-K t a `tla-gnus-article-apply-patch'
 K t l `tla-gnus-article-extract-log-message'
 
 Additionally add the `tla-submit-patch-done' function to the
@@ -74,9 +73,7 @@ Additionally add the `tla-submit-patch-done' function to the
 The archives/categories/branches/version/revision names are buttonized
 in the *Article* buffers."
   (interactive)
-  (dvc-gnus-initialize-keymap)
   (define-key gnus-summary-dvc-submap [?v] 'tla-gnus-article-view-patch)
-  (define-key gnus-summary-dvc-submap [?a] 'tla-gnus-article-apply-patch)
   (define-key gnus-summary-dvc-submap [?l] 'tla-gnus-article-extract-log-message)
   (add-hook 'message-sent-hook 'tla-submit-patch-done)
   (tla-gnus-setup-buttons))
