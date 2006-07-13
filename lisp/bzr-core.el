@@ -68,6 +68,11 @@ Does anyone know of a better way to get this info?"
     (message "tree-id for %s: %s" default-directory tree-id))
   tree-id))
 
+;;;###autoload
+(defun bzr-prepare-environment (env)
+  "Prepare the environment to run bzr."
+  (cons "BZR_PROGRESS_BAR=none" env))
+
 (provide 'bzr-core)
 ;; arch-tag: Matthieu Moy, Sun Sep  4 22:31:52 2005 (bzr-core.el)
 ;;; bzr-core.el ends here
