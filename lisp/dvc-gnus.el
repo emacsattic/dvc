@@ -3,6 +3,8 @@
 ;; Copyright (C) 2003-2006 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
+;; Contributions from:
+;;    Stefan Reichoer <stefan@xsteve.at>
 
 ;; DVC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -48,17 +50,83 @@ Prefix key is 'K t'."
 
 ;;;###autoload
 (defun dvc-insinuate-gnus ()
-  "Insinuate Gnus for each registered back-end.
+  "Insinuate Gnus for each registered DVC back-end.
 
 Runs (<backend>-insinuate-gnus) for each registered back-end having
-this function."
+this function.
+
+Additionally the following key binding is defined for the gnus summary mode map:
+K t l `dvc-gnus-article-extract-log-message'
+K t a `dvc-gnus-article-apply-patch'"
   (interactive)
+  (dvc-gnus-initialize-keymap)
+  (define-key gnus-summary-dvc-submap [?a] 'dvc-gnus-article-apply-patch)
+  (define-key gnus-summary-dvc-submap [?l] 'dvc-gnus-article-extract-log-message)
   (mapcar (lambda (x)
             (let ((fn (dvc-function x "insinuate-gnus" t)))
               (when (fboundp fn)
                 (dvc-trace "Insinuating Gnus for %S" x)
                 (funcall fn))))
           dvc-registered-backends))
+
+(defun dvc-gnus-article-extract-log-message ()
+  "Parse the mail and extract the log information.
+Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
+`dvc-memorized-log-message' and `dvc-memorized-version'."
+  (interactive)
+  (gnus-summary-select-article-buffer)
+  (save-excursion
+    (goto-char (point-min))
+    (let* ((start-pos (or (search-forward "[PATCH] " nil t) (search-forward "Subject: ")))
+           (end-pos (line-end-position))
+           (log-header (buffer-substring-no-properties start-pos end-pos)))
+      (setq dvc-memorized-log-header log-header))
+    (goto-char (point-min))
+    (let* ((start-pos (search-forward "From: " nil t))
+           (end-pos (line-end-position))
+           (sender (when start-pos (buffer-substring-no-properties start-pos end-pos))))
+      (setq dvc-memorized-patch-sender (and start-pos sender)))
+    (goto-char (point-min))
+    (let* ((start-pos (search-forward "[VERSION] " nil t))
+           (end-pos (line-end-position))
+           (version (when start-pos (buffer-substring-no-properties start-pos end-pos))))
+      (setq dvc-memorized-version (and start-pos version)))
+    (goto-char (point-min))
+    (let* ((start-pos (+ (search-forward "<<LOG-START>>") 1))
+           (end-pos (- (progn (search-forward "<LOG-END>>") (line-beginning-position)) 1))
+           (log-message (buffer-substring-no-properties start-pos end-pos)))
+      (setq dvc-memorized-log-message log-message)
+      (message "Extracted the patch log message from '%s'" dvc-memorized-log-header)))
+  (gnus-article-show-summary))
+
+(defun dvc-gnus-article-apply-patch (n)
+  "Apply MIME part N, as patchset.
+When called with no prefix arg, set N := 2.
+First is checked, if it is a tla changeset created with DVC.
+If that is the case, `tla-gnus-apply-patch' is called.
+Otherwise `dvc-gnus-apply-patch' is called."
+  (interactive "p")
+  (unless current-prefix-arg
+    (setq n 2))
+  (save-window-excursion
+    (gnus-summary-select-article-buffer)
+    (goto-char (point-min))
+    (cond ((re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
+           (tla-gnus-article-apply-patch n))
+          (t
+           (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
+
+(defun dvc-gnus-apply-patch (handle)
+  "Apply the patch corresponding to HANDLE."
+  (dvc-buffer-push-previous-window-config)
+  (dvc-gnus-article-extract-log-message)
+  (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
+        (patch-buff))
+    (mm-save-part-to-file handle dvc-patch-name)
+    (find-file dvc-patch-name)
+    (setq patch-buff (current-buffer))
+    (flet ((ediff-get-default-file-name () (expand-file-name "~/work/myprg/dvc-dev-bzr/")))
+      (ediff-patch-file 2 patch-buff))))
 
 (provide 'dvc-gnus)
 ;; arch-tag: 6afaa64c-9e9f-4600-beb6-1276365400d6

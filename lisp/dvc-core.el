@@ -449,6 +449,9 @@ Prompt for password with `read-passwd' if the output of PROC matches
       (let ((passwd (read-passwd (match-string 1 string))))
         (process-send-string proc (concat passwd "\n"))))))
 
+(defun dvc-prepare-environment (env)
+  "By default, do not touch the environment"
+  env)
 
 (defun dvc-run-dvc-async (dvc arguments &rest keys)
   "Run a process asynchronously.
@@ -512,11 +515,15 @@ Example:
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory))
-           (process (start-process
-                     (dvc-variable dvc "executable") output-buf
-                     "sh" "-c"
-                     (format "%s 2> %s"
-                             command error-file)))
+           (process
+            (let ((process-environment
+                   (funcall (dvc-function dvc "prepare-environment")
+                            process-environment)))
+              (start-process
+               (dvc-variable dvc "executable") output-buf
+               "sh" "-c"
+               (format "%s 2> %s"
+                       command error-file))))
            (process-event
             (list process
                   (dvc-log-event output-buf
@@ -580,10 +587,13 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
           (default-directory (dvc-uniquify-file-name default-directory)))
       (with-current-buffer (or related-buffer (current-buffer))
         (dvc-log-event output-buf error-buf command default-directory "started")
-        (let ((status (call-process "sh" nil output-buf nil "-c"
-                                    (format "%s 2> %s"
-                                            command
-                                            error-file))))
+        (let ((status (let ((process-environment
+                             (funcall (dvc-function dvc "prepare-environment")
+                                      process-environment)))
+                        (call-process "sh" nil output-buf nil "-c"
+                                      (format "%s 2> %s"
+                                              command
+                                              error-file)))))
           (when (file-exists-p error-file)
             (with-current-buffer error-buf
               (insert-file-contents error-file))

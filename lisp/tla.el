@@ -8471,7 +8471,9 @@ to set ARG `reversely'. If no prefix argument is given, ARG is set to `nil'."
                         (when (eq arg 'reversely) t)))
         (let* ((elem (ewoc-data (ewoc-locate
                                  dvc-revlist-cookie)))
-               (full (tla--revision-revision (car (cddr elem)))))
+               (full (tla--revision-revision (or (car (cddr elem))
+                                                 ;; single unmarked item
+                                                 (aref (cadr elem) 3)))))
           (tla-replay (tla--name-construct
                        (if (eq arg 'all) (butlast full) full))
                       to-tree
