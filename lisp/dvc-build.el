@@ -55,7 +55,7 @@
   (push "contrib/ewoc.el" package-maint-files))
 
 (when (not (locate-library "tree-widget"))
-  (push "tla-browse" no-compile-files))
+  (push "tla-browse.el" no-compile-files))
 
 
 (if (not (featurep 'xemacs))

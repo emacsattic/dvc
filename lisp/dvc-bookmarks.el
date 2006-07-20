@@ -105,7 +105,7 @@
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
         (data (list (car elem) indent elem))
-        (enter-function (if (eq (line-number-at-pos) 1) 'ewoc-enter-before 'ewoc-enter-after)))
+        (enter-function (if (eq (dvc-line-number-at-pos) 1) 'ewoc-enter-before 'ewoc-enter-after)))
     (cond ((assoc 'children elem)
            (setq node (apply enter-function (list dvc-bookmarks-cookie curr data)))
            (dolist (child (cdr (assoc 'children elem)))

@@ -27,6 +27,11 @@
 
 (require 'dvc-defs)
 
+;; Load compatibility code
+(if (featurep 'xemacs)
+    (require 'dvc-xemacs)
+  (require 'dvc-emacs))
+
 ;; Macros to generate correct code for different emacs variants
 ;; (progn ...) is here to have autoload generation actually insert the
 ;; code in the autoload file.
@@ -347,7 +352,7 @@ Does nothing otherwise.  Please use it for your debug messages."
 (defun dvc-trace-current-line ()
   "Display the line the cursor is in."
   (dvc-trace "Current-line(%s)=%s[_]%s"
-              (save-restriction (widen) (line-number-at-pos))
+              (save-restriction (widen) (dvc-line-number-at-pos))
               (buffer-substring-no-properties
                (line-beginning-position)
                (point))
