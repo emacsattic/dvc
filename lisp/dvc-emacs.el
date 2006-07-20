@@ -51,6 +51,21 @@
 (defalias 'dvc-put-text-property 'put-text-property)
 (defconst dvc-mouse-face-prop 'mouse-face)
 
+;; Provide compatibility code for Emacs 21
+;; from CVS Emacs
+(defun dvc-line-number-at-pos (&optional pos)
+  "Return (narrowed) buffer line number at position POS.
+If POS is nil, use current buffer location."
+  (if (fboundp 'line-number-at-pos)
+      (line-number-at-pos pos)
+    (let ((opoint (or pos (point))) start)
+      (save-excursion
+        (goto-char (point-min))
+        (setq start (point))
+        (goto-char opoint)
+        (forward-line 0)
+        (1+ (count-lines start (point)))))))
+
 (provide 'dvc-emacs)
 ;; Local Variables:
 ;; arch-tag: 66b92889-1ce9-4c1d-818a-8bd5ee499091
