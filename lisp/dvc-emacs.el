@@ -53,11 +53,11 @@
 
 ;; Provide compatibility code for Emacs 21
 ;; from CVS Emacs
-(defun dvc-line-number-at-pos (&optional pos)
-  "Return (narrowed) buffer line number at position POS.
+(if (fboundp 'line-number-at-pos)
+    (defalias 'dvc-line-number-at-pos 'line-number-at-pos)
+  (defun dvc-line-number-at-pos (&optional pos)
+    "Return (narrowed) buffer line number at position POS.
 If POS is nil, use current buffer location."
-  (if (fboundp 'line-number-at-pos)
-      (line-number-at-pos pos)
     (let ((opoint (or pos (point))) start)
       (save-excursion
         (goto-char (point-min))
