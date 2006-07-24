@@ -70,8 +70,8 @@
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
     (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
     (define-key map [?t] 'xhg-qtop)
-    (define-key map [?n] 'xhg-qnext)
-    (define-key map [?p] 'xhg-qprev)
+    (define-key map [?+] 'xhg-qnext)
+    (define-key map [?-] 'xhg-qprev)
     (define-key map [?=] 'xhg-qdiff)
     (define-key map [?d] 'xhg-qdelete)
     (define-key map [?N] 'xhg-qnew)
@@ -136,29 +136,31 @@ When called with a prefix argument run hg qpush -a."
                                  (when all "-a")))
     (pop-to-buffer curbuf)))
 
+(defun xhg-process-mq-patches (cmd-list header &optional only-show)
+  (if only-show
+      (let ((curbuf (current-buffer)))
+        (dvc-run-dvc-display-as-info 'xhg cmd-list nil (concat header "\n"))
+        (with-current-buffer "*xhg-info*"
+          (rename-buffer "*xhg-mq*")
+          (xhg-mq-mode))
+        (pop-to-buffer curbuf))
+    (delete "" (dvc-run-dvc-sync 'xhg cmd-list
+                                 :finished 'dvc-output-buffer-split-handler))))
+
 (defun xhg-qapplied ()
   "Run hg qapplied."
   (interactive)
-  (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-display-as-info 'xhg '("qapplied") nil "hg qapplied:\n")
-    (pop-to-buffer curbuf)))
+  (xhg-process-mq-patches '("qapplied") "hg qapplied:" (interactive-p)))
 
 (defun xhg-qunapplied ()
   "Run hg qunapplied."
   (interactive)
-  (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-display-as-info 'xhg '("qunapplied") nil "hg qunapplied:\n")
-    (pop-to-buffer curbuf)))
+  (xhg-process-mq-patches '("qunapplied") "hg qunapplied:" (interactive-p)))
 
 (defun xhg-qseries ()
   "Run hg qseries."
   (interactive)
-  (if (interactive-p)
-      (let ((curbuf (current-buffer)))
-        (dvc-run-dvc-display-as-info 'xhg '("qseries") nil "hg qseries:\n")
-        (pop-to-buffer curbuf))
-    (dvc-run-dvc-sync 'xhg '("qseries")
-                      :finished 'dvc-output-buffer-split-handler)))
+  (xhg-process-mq-patches '("qseries") "hg series:" (interactive-p)))
 
 (defun xhg-qdiff (&optional file)
   "Run hg qdiff."
@@ -171,8 +173,15 @@ When called with a prefix argument run hg qpush -a."
 
 (defun xhg-qdelete (patch)
   "Run hg qdelete"
-  (interactive (list (completing-read "Delete mq patch: " (xhg-qseries))))
-  (dvc-run-dvc-sync 'xhg (list "qdelete" patch)))
+  (interactive (list
+                (let ((unapplied (xhg-qunapplied)))
+                  (if unapplied
+                      (completing-read "Delete mq patch: " unapplied nil t
+                                       (car (member (xhg-mq-patch-name-at-point) unapplied)))
+                    (message "No unapplied patch to delete from the mq series file")
+                    nil))))
+  (when patch
+    (dvc-run-dvc-sync 'xhg (list "qdelete" patch))))
 
 (defun xhg-qversion ()
   "Run hg qversion."
@@ -212,6 +221,38 @@ When called with a prefix argument run hg qpush -a."
     (when (interactive-p)
       (message "Mercurial qprev: %s" prev))
     prev))
+
+
+;; --------------------------------------------------------------------------------
+;; the xhg mq mode
+;; --------------------------------------------------------------------------------
+
+(defvar xhg-mq-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
+    (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
+    (define-key map [?e] 'xhg-mq-edit-series-file)
+    (define-key map [?Q] xhg-mq-sub-mode-map)
+    map)
+  "Keymap used in a xhg mq buffer.")
+
+(define-derived-mode xhg-mq-mode fundamental-mode
+  "xhg mq mode"
+  "Major mode for xhg mq interaction."
+  (dvc-install-buffer-menu)
+  (toggle-read-only 1))
+
+(defun xhg-mq-patch-name-at-point ()
+  "Return the patch name at point in a xhg mq buffer."
+  (if (or (= (line-number-at-pos) 1) (eq (point) (point-max)) (not (eq major-mode 'xhg-mq-mode)))
+      nil
+    (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
+
+(defun xhg-mq-edit-series-file ()
+  "Edit the mq patch series file"
+  (interactive)
+  (find-file-other-window (concat (dvc-tree-root) "/.hg/patches/series"))
+  (message "You can carefully reorder the patches in the series file. Comments starting with '#' and empty lines are allowed."))
 
 
 (provide 'xhg-mq)

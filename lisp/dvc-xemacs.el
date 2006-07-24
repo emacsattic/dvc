@@ -357,8 +357,9 @@ The current buffer must be a minibuffer."
 ;; end from Gnus
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(unless (functionp 'line-number-at-pos)
-  (defalias 'line-number-at-pos 'line-number))
+(defalias 'dvc-line-number-at-pos (if (functionp 'line-number-at-pos)
+				      'line-number-at-pos
+				    'line-number))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (provide 'dvc-xemacs)
