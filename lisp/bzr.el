@@ -514,6 +514,53 @@ LAST-REVISION looks like
   (interactive "sbzr ignore: ")
   (dvc-run-dvc-sync 'bzr (list "ignore" pattern)))
 
+(defun bzr-config-directory ()
+  "Path of the configuration directory for bzr."
+  ;; TODO: not windows portable.
+  (expand-file-name "~/.bazaar/"))
+
+(defun bzr-config-file (file)
+  "Path of configuration file FILE for bzr.
+
+File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
+  ;; TODO: not windows portable.
+  (concat (bzr-config-directory) file))
+
+(defvar bzr-ignore-list ".tmp-bzr*\n"
+  "List of newline-terminated ignore patterns that DVC should add to
+  ~/.bazaar/ignore.")
+
+(defun bzr-ignore-setup ()
+  "Sets up a default ignore list for DVC in ~/.bazaar/ignore"
+  (interactive)
+  (let* ((file (bzr-config-file "ignore"))
+         (buf (or (when (file-exists-p file)
+                    (find-file-noselect file))
+                  ;; let bzr create the file.
+                  (progn (dvc-run-dvc-sync 'bzr (list "ignored")
+                                           :finished 'dvc-null-handler)
+                         (if (file-exists-p file)
+                             (find-file-noselect file)
+                           (message "WARNING: Could not find bzr user-wide ignore file.")))))
+         (ins t))
+    (with-current-buffer buf
+      (goto-char (point-min))
+      (if (re-search-forward "^# DVC ignore (don't edit !!)\n\\(\\(.\\|\n\\)*\n\\)# end DVC ignore$" nil 'end)
+          (progn
+            (if (string= bzr-ignore-list (match-string 1))
+                (setq ins nil)
+              (message "Overriding old DVC ignore list for bzr")
+              (delete-region (match-beginning 0) (match-end 0))))
+        (message "Setting up DVC ignore list for bzr"))
+      (when ins
+        (insert "# DVC ignore (don't edit !!)\n")
+        (insert bzr-ignore-list)
+        (insert "# end DVC ignore\n")
+        (save-buffer)))))
+
+;; Must remain toplevel, and should not be autoloaded.
+(bzr-ignore-setup)
+
 (provide 'bzr)
 ;; arch-tag: Matthieu Moy, Sun Sep  4 23:27:53 2005 (bzr.el)
 ;;; bzr.el ends here
