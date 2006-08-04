@@ -78,6 +78,8 @@
     map)
   "Keymap used for xhg-mq commands.")
 
+(defvar xhg-mq-cookie nil  "Ewoc cookie for xhg mq buffers.")
+
 ;;;###autoload
 (defun xhg-qinit (&optional dir qinit-switch)
   "Run hg qinit.
@@ -136,16 +138,29 @@ When called with a prefix argument run hg qpush -a."
                                  (when all "-a")))
     (pop-to-buffer curbuf)))
 
+(defun xhg-mq-printer (elem)
+  "Print an element ELEM of the mq patch list."
+  (insert elem))
+
 (defun xhg-process-mq-patches (cmd-list header &optional only-show)
-  (if only-show
+  (let ((patches (delete "" (dvc-run-dvc-sync 'xhg cmd-list
+                                              :finished 'dvc-output-buffer-split-handler))))
+    (when only-show
       (let ((curbuf (current-buffer)))
-        (dvc-run-dvc-display-as-info 'xhg cmd-list nil (concat header "\n"))
-        (with-current-buffer "*xhg-info*"
-          (rename-buffer "*xhg-mq*")
-          (xhg-mq-mode))
-        (pop-to-buffer curbuf))
-    (delete "" (dvc-run-dvc-sync 'xhg cmd-list
-                                 :finished 'dvc-output-buffer-split-handler))))
+        (pop-to-buffer "*xhg-mq*")
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert header)
+          (set (make-local-variable 'xhg-mq-cookie)
+               (ewoc-create (dvc-ewoc-create-api-select #'xhg-mq-printer)))
+          (put 'xhg-mq-cookie 'permanent-local t)
+          (dolist (patch patches)
+            (ewoc-enter-last xhg-mq-cookie patch)))
+        (xhg-mq-mode)
+        (goto-char (point-min))
+        (forward-line 1)
+        (pop-to-buffer curbuf)))
+    patches))
 
 (defun xhg-qapplied ()
   "Run hg qapplied."
@@ -232,6 +247,8 @@ When called with a prefix argument run hg qpush -a."
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     (define-key map [?e] 'xhg-mq-edit-series-file)
+    (define-key map [?n] 'xhg-mq-next)
+    (define-key map [?p] 'xhg-mq-previous)
     (define-key map [?Q] xhg-mq-sub-mode-map)
     map)
   "Keymap used in a xhg mq buffer.")
@@ -242,11 +259,14 @@ When called with a prefix argument run hg qpush -a."
   (dvc-install-buffer-menu)
   (toggle-read-only 1))
 
+(defun xhg-mq-ewoc-data-at-point ()
+  (if (or (= (line-number-at-pos) 1) (eq (line-beginning-position) (line-end-position)) (not (eq major-mode 'xhg-mq-mode)))
+      nil
+    (ewoc-data (ewoc-locate xhg-mq-cookie))))
+
 (defun xhg-mq-patch-name-at-point ()
   "Return the patch name at point in a xhg mq buffer."
-  (if (or (= (line-number-at-pos) 1) (eq (point) (point-max)) (not (eq major-mode 'xhg-mq-mode)))
-      nil
-    (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
+  (xhg-mq-ewoc-data-at-point))
 
 (defun xhg-mq-edit-series-file ()
   "Edit the mq patch series file"
@@ -254,6 +274,19 @@ When called with a prefix argument run hg qpush -a."
   (find-file-other-window (concat (dvc-tree-root) "/.hg/patches/series"))
   (message "You can carefully reorder the patches in the series file. Comments starting with '#' and empty lines are allowed."))
 
+(defun xhg-mq-next ()
+  (interactive)
+  (let ((pos (point)))
+    (forward-line 1)
+    (unless (xhg-mq-ewoc-data-at-point)
+      (goto-char pos))))
+
+(defun xhg-mq-previous ()
+  (interactive)
+  (let ((pos (point)))
+    (forward-line -1)
+    (unless (xhg-mq-ewoc-data-at-point)
+      (goto-char pos))))
 
 (provide 'xhg-mq)
 ;; arch-tag: 2cb36064-5e56-48af-a836-79a3f5e80c8c
