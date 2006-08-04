@@ -537,26 +537,33 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
          (buf (or (when (file-exists-p file)
                     (find-file-noselect file))
                   ;; let bzr create the file.
-                  (progn (dvc-run-dvc-sync 'bzr (list "ignored")
-                                           :finished 'dvc-null-handler)
-                         (if (file-exists-p file)
-                             (find-file-noselect file)
-                           (message "WARNING: Could not find bzr user-wide ignore file.")))))
+                  (let* ((dir (make-temp-name "dvc-bzr-ignore"))
+                         (foo (make-directory dir))
+                         (default-directory dir))
+                    (dvc-run-dvc-sync 'bzr (list "init")
+                                      :finished 'dvc-null-handler)
+                    (dvc-run-dvc-sync 'bzr (list "ignored")
+                                      :finished 'dvc-null-handler)
+                    (if (file-exists-p file)
+                        (find-file-noselect file)
+                      (message "WARNING: Could not find or create bzr user-wide ignore file.")
+                      nil))))
          (ins t))
-    (with-current-buffer buf
-      (goto-char (point-min))
-      (if (re-search-forward "^# DVC ignore (don't edit !!)\n\\(\\(.\\|\n\\)*\n\\)# end DVC ignore$" nil 'end)
-          (progn
-            (if (string= bzr-ignore-list (match-string 1))
-                (setq ins nil)
-              (message "Overriding old DVC ignore list for bzr")
-              (delete-region (match-beginning 0) (match-end 0))))
-        (message "Setting up DVC ignore list for bzr"))
-      (when ins
-        (insert "# DVC ignore (don't edit !!)\n")
-        (insert bzr-ignore-list)
-        (insert "# end DVC ignore\n")
-        (save-buffer)))))
+    (when buffer
+      (with-current-buffer buf
+        (goto-char (point-min))
+        (if (re-search-forward "^# DVC ignore (don't edit !!)\n\\(\\(.\\|\n\\)*\n\\)# end DVC ignore$" nil 'end)
+            (progn
+              (if (string= bzr-ignore-list (match-string 1))
+                  (setq ins nil)
+                (message "Overriding old DVC ignore list for bzr")
+                (delete-region (match-beginning 0) (match-end 0))))
+          (message "Setting up DVC ignore list for bzr"))
+        (when ins
+          (insert "# DVC ignore (don't edit !!)\n")
+          (insert bzr-ignore-list)
+          (insert "# end DVC ignore\n")
+          (save-buffer))))))
 
 ;; Must remain toplevel, and should not be autoloaded.
 (bzr-ignore-setup)
