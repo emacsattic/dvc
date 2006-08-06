@@ -47,7 +47,8 @@ Must be of the form
 Used to keep track of all the dvc related buffers.")
 
 (defvar dvc-buffer-type-alist
-  '((diff      "diff*"   root)
+  '((diff      "diff*"      root)
+    (revision-diff "diff(%s)*" string)
     (status    "status*"    root)
     (inventory "inventory*" path)
     (commit    "commit*"    root)
