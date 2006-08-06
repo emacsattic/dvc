@@ -81,6 +81,7 @@ one of `dvc-revision-get-file-in-buffer', but for log entries instead
 of file contents.
 
 Currently, only 'revision type is supported."
+  (dvc-trace "dd-ib=%S" default-directory)
   (dvc-trace "rev-id=%S" rev-id)
   (let ((type (dvc-revision-get-type rev-id)))
     (unless (eq type 'revision)

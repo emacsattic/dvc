@@ -46,13 +46,23 @@
 
 (defun bzr-revlog-get-revision (rev-id)
   (let ((data (car (dvc-revision-get-data rev-id))))
+    (dvc-trace "dd=%S" default-directory)
     (dvc-trace "data=%S" data)
     (cond ((eq (car data) 'local)
            (let ((default-directory (nth 1 data)))
              (dvc-run-dvc-sync 'bzr
                                `("log" "--revision"
                                  ,(int-to-string (nth 2 data)))
-                               :finished 'dvc-output-buffer-handler))))))
+                               :finished 'dvc-output-buffer-handler)))
+          ((eq (car data) 'remote)
+             (dvc-run-dvc-sync 'bzr
+                               `("log" "--revision"
+                                 ,(concat "revno:"
+                                          (int-to-string (nth 2 data))
+                                          ":"
+                                          (nth 1 data)))
+                               :finished 'dvc-output-buffer-handler))
+          (t (error (format "Revision ID %S not implemented" rev-id))))))
 
 
 (provide 'bzr-revlog)
