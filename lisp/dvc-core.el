@@ -139,6 +139,20 @@ then invoke FUNCTION."
      (mouse-set-point event)
      (,function)))
 
+;; Adapted from `dired-delete-file' in Emacs 22
+(defun dvc-delete-recursively (file)
+  "Delete FILE or directory recursively."
+  (let (files)
+    (if (not (eq t (car (file-attributes file))))
+        (delete-file file)
+      (when (setq files
+                  (directory-files
+                   file t "^\([^.]\|\.\([^.]\|\..\)\).*"))
+        (while files
+          (dvc-delete-recursively (car files))
+          (setq files (cdr files))))
+      (delete-directory file))))
+
 ;; --------------------------------------------------------------------------------
 ;; File selection helpers
 ;; --------------------------------------------------------------------------------
