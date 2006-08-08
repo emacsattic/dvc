@@ -210,7 +210,8 @@ revision list."
   "Show a changeset for the current revision."
   (interactive)
   (let ((elem (ewoc-data (ewoc-locate
-                          dvc-revlist-cookie))))
+                          dvc-revlist-cookie)))
+        (dvc-temp-current-active-dvc (dvc-current-active-dvc)))
     (case (car elem)
       (entry-patch
        ;; reuse existing buffer if possible
@@ -313,17 +314,19 @@ Commands are:
   (set (make-local-variable 'dvc-get-revision-info-at-point-function)
        'dvc-revlist-get-rev-at-point))
 
-(defun dvc-build-revision-list (back-end type path arglist parser)
+(defun dvc-build-revision-list (back-end type location arglist parser)
   "Runs the back-end BACK-END to build a revision list.
 
-A buffer of type TYPE with path PATH is created or reused.
+A buffer of type TYPE with location LOCATION is created or reused.
 
 The back-end is launched with the arguments ARGLIST, and the
 caller has to provide the function PARSER which will actually
 build the revision list."
-  (let ((buffer (dvc-get-buffer-create back-end type path)))
+  (let ((buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
-      (dvc-revlist-mode))
+      (let ((back-end dvc-buffer-current-active-dvc))
+        (dvc-revlist-mode)
+        (setq dvc-buffer-current-active-dvc back-end)))
     (if dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer)
       (set-buffer buffer))
@@ -332,7 +335,7 @@ build the revision list."
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (with-current-buffer output
-         (funcall (capture parser) (capture buffer))))
+         (funcall (capture parser) (capture buffer) (capture location))))
      ))
   )
 

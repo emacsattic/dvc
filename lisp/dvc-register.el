@@ -86,7 +86,14 @@ If NODEFAULT is nil and no variable is available for this
 backend, use dvc-<prefix> instead."
   (let ((res (dvc-intern-symbol-name dvc postfix)))
     (if (or nodefault (boundp res)) (eval res)
-      (eval (dvc-intern-symbol-name 'dvc postfix)))))
+      (let ((dvc-register-sym (intern (concat (symbol-name dvc) "-dvc"))))
+        (unless (featurep dvc-register-sym)
+          (dvc-trace "require %S" dvc-register-sym)
+          (if (featurep 'xemacs)
+              (require dvc-register-sym nil)
+            (require dvc-register-sym nil t))))
+      (let ((second-try (dvc-variable dvc postfix t)))
+        second-try))))
 
 ;;;###autoload
 (defun dvc-apply (postfix &rest args)
@@ -103,6 +110,18 @@ backend, use dvc-<prefix> instead."
   "A cache that contains directories as keys and the DVC symbol as value.
 That value is considered first in `dvc-current-active-dvc'.")
 
+(defvar dvc-buffer-current-active-dvc nil
+  "Tell DVC which back-end to use in some buffers.
+
+Overrides the search for a control directory in `dvc-current-active-dvc'.")
+(make-variable-buffer-local 'dvc-buffer-current-active-dvc)
+
+(defvar dvc-temp-current-active-dvc nil
+  "Tell DVC which back-end to use temporarily.
+
+Overrides the search for a control directory in
+`dvc-current-active-dvc'. This is meant to be set in a let statement.")
+
 (defun dvc-current-active-dvc ()
   "Get the currently active dvc for the current `default-directory'.
 
@@ -111,24 +130,26 @@ Currently supported dvc's can be found in `dvc-registered-backends'.
 backend is in use for the `default-directory'.
 The values are cached in `dvc-current-active-dvc-cache'."
   (interactive)
-  (let ((dvc (gethash (dvc-uniquify-file-name default-directory) dvc-current-active-dvc-cache)))
-  (unless dvc
-    (let ((dvc-list (append dvc-select-priority dvc-registered-backends))
-          (root "/")
-          (tree-root-func))
-      (while dvc-list
-        (setq tree-root-func (dvc-function (car dvc-list) "tree-root" t))
-        (when (fboundp tree-root-func)
-          (let ((current-root (funcall tree-root-func nil t)))
-            (when (and current-root (> (length current-root) (length root)))
-              (setq root current-root)
-              (setq dvc (car dvc-list)))))
-        (setq dvc-list (cdr dvc-list)))
-      (puthash (dvc-uniquify-file-name default-directory)
-               dvc dvc-current-active-dvc-cache))) ;cache the found dvc
-  (when (interactive-p)
-    (message "DVC: using %s for %s" dvc default-directory))
-  dvc))
+  (or dvc-buffer-current-active-dvc
+      dvc-temp-current-active-dvc
+      (let ((dvc (gethash (dvc-uniquify-file-name default-directory) dvc-current-active-dvc-cache)))
+        (unless dvc
+          (let ((dvc-list (append dvc-select-priority dvc-registered-backends))
+                (root "/")
+                (tree-root-func))
+            (while dvc-list
+              (setq tree-root-func (dvc-function (car dvc-list) "tree-root" t))
+              (when (fboundp tree-root-func)
+                (let ((current-root (funcall tree-root-func nil t)))
+                  (when (and current-root (> (length current-root) (length root)))
+                    (setq root current-root)
+                    (setq dvc (car dvc-list)))))
+              (setq dvc-list (cdr dvc-list)))
+            (puthash (dvc-uniquify-file-name default-directory)
+                     dvc dvc-current-active-dvc-cache))) ;cache the found dvc
+        (when (interactive-p)
+          (message "DVC: using %s for %s" dvc default-directory))
+        dvc)))
 
 (defun dvc-select-dvc (directory dvc)
   "Select the DVC to use for DIRECTORY.

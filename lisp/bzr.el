@@ -206,7 +206,7 @@ TODO: DONT-SWITCH and AGAINST are currently ignored."
                                   (capture buffer)))))))
 
 (defun bzr-delta (base modified dont-switch)
-  "Run bzr diff -r BASE -r MODIFIED.
+  "Run bzr diff -r BASE..MODIFIED.
 
 TODO: dont-switch is currently ignored."
   (dvc-trace "base, modified=%S, %S" base modified)
@@ -214,10 +214,19 @@ TODO: dont-switch is currently ignored."
         (modified-str (bzr-revision-id-to-string modified))
         (buffer (dvc-prepare-changes-buffer
                  base modified
-                 'diff nil 'bzr)))
+                 'revision-diff
+                 (concat (bzr-revision-id-to-string base)
+                         ".."
+                         (bzr-revision-id-to-string modified))
+                 'bzr)))
     (when dvc-switch-to-buffer-first
       (dvc-switch-to-buffer buffer))
-    (let ((default-directory (bzr-revision-id-location modified)))
+    (let ((default-directory
+            (cond ((bzr-revision-id-is-local modified)
+                   (bzr-revision-id-location modified))
+                  ((bzr-revision-id-is-local base)
+                   (bzr-revision-id-location base))
+                  (t default-directory))))
       (dvc-run-dvc-async
        'bzr `("diff"
               "--revision" ,(concat base-str ".." modified-str))
@@ -397,28 +406,37 @@ of the commit. Additionally the destination email address can be specified."
        location))
     (otherwise nil)))
 
+(defun bzr-revision-id-is-local (rev-id)
+  "Extract the location component from REVISION-ID."
+  (case (dvc-revision-get-type rev-id)
+    ((revision previous-revision)
+     (let ((data (car (dvc-revision-get-data rev-id))))
+       (eq (nth 0 data) 'local)))
+    (otherwise nil)))
+
+
 (defun bzr-revision-id-to-string (rev-id)
   "Turn a DVC revision ID to a bzr revision spec.
 
 \(bzr (revision (local \"/path/to/archive\" 3)))
 => \"revno:3\".
-
-TODO: This works only for local revision now, because bzr lacks a way
-to do it in the general case."
+"
   (case (dvc-revision-get-type rev-id)
     (revision (let* ((data (car (dvc-revision-get-data rev-id)))
                      (location (nth 0 data)))
-                (unless (eq location 'local)
-                  (error "TODO: Non local (%S) revisions not supported here."
-                         location))
-                (concat "revno:" (int-to-string (nth 2 data)))))
+                (cond ((eq location 'local)
+                       (concat "revno:" (int-to-string (nth 2 data))))
+                      ((eq location 'remote)
+                       (concat "revno:" (int-to-string (nth 2 data))
+                               ":" (nth 1 data))))))
     (previous-revision
      (let* ((data (car (dvc-revision-get-data rev-id)))
             (location (nth 0 data)))
-       (unless (eq location 'local)
-         (error "TODO: Non local (%S) revisions not supported here."
-                location))
-         (concat "revno:" (int-to-string (- (nth 2 data) 1)))))
+       (cond ((eq location 'local)
+              (concat "revno:" (int-to-string (- (nth 2 data) 1))))
+             ((eq location 'remote)
+              (concat "revno:" (int-to-string (- (nth 2 data) 1))
+                      ":" (nth 1 data))))))
     (otherwise (error "TODO: not implemented: %S" rev-id))))
 
 
@@ -534,23 +552,23 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   "Sets up a default ignore list for DVC in ~/.bazaar/ignore"
   (interactive)
   (let* ((file (bzr-config-file "ignore"))
-         (buf (or (when (file-exists-p file)
-                    (find-file-noselect file))
-                  ;; let bzr create the file.
-                  (let ((dir (dvc-make-temp-dir "dvc-bzr-ignore")))
-                    (let ((default-directory dir))
-                      (dvc-run-dvc-sync 'bzr (list "init")
-                                        :finished 'dvc-null-handler)
-                      (dvc-run-dvc-sync 'bzr (list "ignored")
-                                        :finished 'dvc-null-handler))
-                    (dvc-delete-recursively dir)
-                    (if (file-exists-p file)
-                        (find-file-noselect file)
-                      (message "Your version of bzr does not support a user-wide ignore file.")
-                      nil))))
+         (buffer (or (when (file-exists-p file)
+                       (find-file-noselect file))
+                     ;; let bzr create the file.
+                     (let* ((dir (make-temp-name "dvc-bzr-ignore"))
+                            (foo (make-directory dir))
+                            (default-directory dir))
+                       (dvc-run-dvc-sync 'bzr (list "init")
+                                         :finished 'dvc-null-handler)
+                       (dvc-run-dvc-sync 'bzr (list "ignored")
+                                         :finished 'dvc-null-handler)
+                       (if (file-exists-p file)
+                           (find-file-noselect file)
+                         (message "WARNING: Could not find or create bzr user-wide ignore file.")
+                         nil))))
          (ins t))
-    (when buf
-      (with-current-buffer buf
+    (when buffer
+      (with-current-buffer buffer
         (goto-char (point-min))
         (if (re-search-forward "^# DVC ignore (don't edit !!)\n\\(\\(.\\|\n\\)*\n\\)# end DVC ignore$" nil 'end)
             (progn

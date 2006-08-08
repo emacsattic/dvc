@@ -26,6 +26,7 @@
 
 ;;; Code:
 
+(require 'dvc-revlist)
 
 (eval-when-compile (require 'cl))
 
@@ -63,12 +64,15 @@
     ))
 
 ;;; bzr log
+(defun bzr-log-parse-remote (log-buffer location)
+  (bzr-log-parse log-buffer location t))
 
 (defvar bzr-log-show-only-short-message nil)
-(defun bzr-log-parse (log-buffer)
+(defun bzr-log-parse (log-buffer location &optional remote)
   "Parse the output of bzr log."
+  (dvc-trace "location=%S" location)
   (goto-char (point-min))
-  (let ((root (bzr-tree-root)))
+  (let ((root location))
     (while (> (point-max) (point))
       (forward-line 1)
       (let ((start (point))
@@ -128,16 +132,28 @@
              ,(make-dvc-revlist-entry-patch
                :dvc 'bzr
                :struct elem
-               :rev-id `(bzr (revision (local ,root ,(bzr-revision-st-revno
-                                                      elem))))))))))))
+               :rev-id `(bzr (revision
+                              ,(list (if remote 'remote 'local)
+                                     root (bzr-revision-st-revno
+                                           elem))))))))))))
 
 ;;;###autoload
 (defun bzr-log (path)
   "Run bzr log and show only the first line of the log message."
   (interactive (list default-directory))
+  (let ((path (or path (bzr-tree-root))))
+    (setq bzr-log-show-only-short-message t)
+    (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
+    (goto-char (point-min))))
+
+;;;###autoload
+(defun bzr-log-remote (location)
+  "Run bzr log against a remote location."
+  (interactive (list (read-string "Location of the branch: ")))
   (setq bzr-log-show-only-short-message t)
-  (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
+  (dvc-build-revision-list 'bzr 'remote-log location `("log" ,location) 'bzr-log-parse-remote)
   (goto-char (point-min)))
+
 
 (defun bzr-changelog (path)
   "Run bzr log and show the full log message."

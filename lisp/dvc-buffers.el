@@ -47,7 +47,8 @@ Must be of the form
 Used to keep track of all the dvc related buffers.")
 
 (defvar dvc-buffer-type-alist
-  '((diff      "diff*"   root)
+  '((diff      "diff*"      root)
+    (revision-diff "diff(%s)*" string)
     (status    "status*"    root)
     (inventory "inventory*" path)
     (commit    "commit*"    root)
@@ -59,6 +60,7 @@ Used to keep track of all the dvc related buffers.")
     (changelog "changelog*" root)
     (tree-lint "tree-lint*" root)
     (log       "log*"       root)
+    (remote-log "log(%s)*"  string)
     (log-edit  "log-edit*"  root)
     (errors    "error*"     multiple)
     (generic   "process*"   multiple)
@@ -142,36 +144,42 @@ Maybe reuse one if it exists, according to the value of
 
 See also `dvc-get-buffer'"
   ;; Inspired from `cvs-get-buffer-create'
-  (let* ((path (or path default-directory))
-         (elem (assoc type dvc-buffer-type-alist))
-         (mode (car (cddr elem))))
-    (or (dvc-get-buffer dvc type path mode)
-        ;; Buffer couldn't be reused. Create one
-        (let ((path (cond
-                     ((eq mode 'root)
-                      (dvc-uniquify-file-name
-                       (dvc-tree-root path)))
-                     ((or (eq mode 'string)
-                          (eq mode 'string-multiple))
-                      path)
-                     (t (dvc-uniquify-file-name path))))
-              (name (concat "*" (symbol-name dvc) "-"
-                            (cadr (assoc type dvc-buffer-type-alist)))))
-          (let ((buffer
-                 (if (or (eq mode 'string)
-                         (eq mode 'string-multiple))
-                     (generate-new-buffer (format name path))
-                   (let ((default-directory
-                           (or (file-name-directory path)
-                               default-directory)))
-                     (create-file-buffer
-                      (or name (concat "*" (symbol-name dvc)
-                                       "-buffer*")))))))
-            (with-current-buffer buffer
-              (if (featurep 'xemacs)
-                  (dvc-install-buffer-menu))
-              (dvc-buffers-tree-add dvc type path buffer)
-              buffer))))))
+  (let ((return-buffer
+         (let* ((path (or path default-directory))
+                (elem (assoc type dvc-buffer-type-alist))
+                (mode (car (cddr elem))))
+           (or (dvc-get-buffer dvc type path mode)
+               ;; Buffer couldn't be reused. Create one
+               (let ((path (cond
+                            ((eq mode 'root)
+                             (dvc-uniquify-file-name
+                              (dvc-tree-root path)))
+                            ((or (eq mode 'string)
+                                 (eq mode 'string-multiple))
+                             path)
+                            (t (dvc-uniquify-file-name path))))
+                     (name (concat "*" (symbol-name dvc) "-"
+                                   (cadr (assoc type dvc-buffer-type-alist)))))
+                 (let ((buffer
+                        (if (or (eq mode 'string)
+                                (eq mode 'string-multiple))
+                            (generate-new-buffer (format name path))
+                          (let ((default-directory
+                                  (or (file-name-directory path)
+                                      default-directory)))
+                            (create-file-buffer
+                             (or name (concat "*" (symbol-name dvc)
+                                              "-buffer*")))))))
+                   (with-current-buffer buffer
+                     (if (featurep 'xemacs)
+                         (dvc-install-buffer-menu))
+                     (dvc-buffers-tree-add dvc type path buffer)
+                     buffer)))))))
+    (with-current-buffer return-buffer
+      (setq dvc-buffer-current-active-dvc dvc)
+      (dvc-trace "create buffer %S with back-end %S"
+                 return-buffer dvc-buffer-current-active-dvc)
+      return-buffer)))
 
 
 
@@ -284,24 +292,24 @@ It will eventually be killed when the number of buffers in
 (defvar dvc-last-error-buffer nil
   "The last created process buffer.")
 
-(defun dvc-new-process-buffer (to-be-deleted)
+(defun dvc-new-process-buffer (to-be-deleted back-end)
   "Create a new process buffer.
 If TO-BE-DELETED is non-nil, make this buffer a candidate for eventually
 being deleted."
   (let ((buffer (create-file-buffer
                  (format dvc-process-buffer
-                         (dvc-current-active-dvc)))))
+                         back-end))))
     (setq dvc-last-process-buffer buffer)
     (when to-be-deleted (dvc-kill-process-buffer buffer))
     buffer))
 
-(defun dvc-new-error-buffer (to-be-deleted)
+(defun dvc-new-error-buffer (to-be-deleted back-end)
   "Create a new error buffer.
 If TO-BE-DELETED is non-nil, make this buffer a candidate for eventually
 being deleted."
   (let ((buffer (create-file-buffer
                  (format dvc-error-buffer
-                         (dvc-current-active-dvc)))))
+                         back-end))))
     (setq dvc-last-error-buffer buffer)
     (when to-be-deleted (dvc-kill-process-buffer buffer))
     buffer))
