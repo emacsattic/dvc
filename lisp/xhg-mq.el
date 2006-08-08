@@ -28,9 +28,12 @@
 
 ;; The following commands are available for hg's mq:
 ;; qapplied      print the patches already applied
-;; qcommit       (No help text available)
+;; qclone        clone main and patch repository at same time
+;; qcommit       commit changes in the queue repository
 ;; qdelete       remove a patch from the series file
 ;; qdiff         diff of the current patch
+;; qfold         fold the named patches into the current patch
+;; qheader       Print the header of the topmost or specified patch
 ;; qimport       import a patch
 ;; qinit         init a new queue repository
 ;; qnew          create a new patch
@@ -39,12 +42,13 @@
 ;; qprev         print the name of the previous patch
 ;; qpush         push the next patch onto the stack
 ;; qrefresh      update the current patch
+;; qrename       rename a patch
 ;; qrestore      restore the queue state saved by a rev
 ;; qsave         save current queue state
 ;; qseries       print the entire series file
 ;; qtop          print the name of the current patch
 ;; qunapplied    print the patches not yet applied
-;; qversion      print the version number
+;; qversion      print the version number of the mq extension
 
 (defvar xhg-mq-submenu
   '("mq"
@@ -56,6 +60,7 @@
     ["mq unapplied"  xhg-qunapplied t]
     ["mq series"  xhg-qseries t]
     ["mq delete"  xhg-qdelete t]
+    ["mq rename"  xhg-qrename t]
     "--"
     ["mq init" xhg-qinit t]
     ["mq new"  xhg-qnew t]
@@ -67,6 +72,7 @@
     (define-key map [?U] 'xhg-qunapplied)
     (define-key map [?S] 'xhg-qseries)
     (define-key map [?R] 'xhg-qrefresh)
+    (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
     (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
     (define-key map [?t] 'xhg-qtop)
@@ -198,6 +204,19 @@ When called with a prefix argument run hg qpush -a."
   (when patch
     (dvc-run-dvc-sync 'xhg (list "qdelete" patch))))
 
+(defun xhg-qrename (from to)
+  "Run hg qrename"
+  (interactive (let ((old-name (or (xhg-mq-patch-name-at-point) (xhg-qtop))))
+                 (list
+                  old-name
+                  (if old-name
+                      (read-from-minibuffer (format "Rename mq patch '%s' to: " old-name) old-name)
+                    (message "No mq patch to rename found")
+                    nil))))
+  (message "Running hg qrename %s %s" from to)
+  (when (and from to)
+    (dvc-run-dvc-sync 'xhg (list "qrename" from to))))
+
 (defun xhg-qversion ()
   "Run hg qversion."
   (interactive)
@@ -236,6 +255,17 @@ When called with a prefix argument run hg qpush -a."
     (when (interactive-p)
       (message "Mercurial qprev: %s" prev))
     prev))
+
+(defun xhg-qheader (patch)
+  "Run hg qheader."
+  (interactive
+   (list
+    (xhg-mq-patch-name-at-point)))
+  (let ((header (dvc-run-dvc-sync 'xhg (list "qheader" patch)
+                                  :finished 'dvc-output-buffer-handler)))
+    (when (interactive-p)
+      (message "Mercurial qheader: %s" header))
+    header))
 
 
 ;; --------------------------------------------------------------------------------
