@@ -66,6 +66,16 @@ If POS is nil, use current buffer location."
         (forward-line 0)
         (1+ (count-lines start (point)))))))
 
+(defun dvc-emacs-make-temp-dir (prefix)
+  "Make a temporary directory using PREFIX.
+Return the name of the directory."
+  (let ((dir (make-temp-name
+              (expand-file-name prefix temporary-file-directory))))
+    (make-directory dir)
+    dir))
+
+(defalias 'dvc-make-temp-dir 'dvc-emacs-make-temp-dir)
+
 (provide 'dvc-emacs)
 ;; Local Variables:
 ;; arch-tag: 66b92889-1ce9-4c1d-818a-8bd5ee499091

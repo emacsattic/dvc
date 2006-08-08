@@ -315,6 +315,15 @@ The current buffer must be a minibuffer."
 (unless (functionp 'diff-hunk-prev)
   (defalias 'diff-hunk-prev 'diff-prev-hunk))
 
+(defun dvc-xmas-make-temp-dir (prefix)
+  "Make a temporary directory using PREFIX.
+Return the name of the directory."
+  (let ((dir (make-temp-name (expand-file-name prefix (temp-directory)))))
+    (make-directory dir)
+    dir))
+
+(defalias 'dvc-make-temp-dir 'dvc-xmas-make-temp-dir)
+
 ;; From Gnus.
 (defun dvc-xmas-move-overlay (extent start end &optional buffer)
   (set-extent-endpoints extent start end buffer))

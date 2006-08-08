@@ -552,23 +552,23 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   "Sets up a default ignore list for DVC in ~/.bazaar/ignore"
   (interactive)
   (let* ((file (bzr-config-file "ignore"))
-         (buffer (or (when (file-exists-p file)
-                       (find-file-noselect file))
-                     ;; let bzr create the file.
-                     (let* ((dir (make-temp-name "dvc-bzr-ignore"))
-                            (foo (make-directory dir))
-                            (default-directory dir))
-                       (dvc-run-dvc-sync 'bzr (list "init")
-                                         :finished 'dvc-null-handler)
-                       (dvc-run-dvc-sync 'bzr (list "ignored")
-                                         :finished 'dvc-null-handler)
-                       (if (file-exists-p file)
-                           (find-file-noselect file)
-                         (message "WARNING: Could not find or create bzr user-wide ignore file.")
-                         nil))))
+         (buf (or (when (file-exists-p file)
+                    (find-file-noselect file))
+                  ;; let bzr create the file.
+                  (let ((dir (dvc-make-temp-dir "dvc-bzr-ignore")))
+                    (let ((default-directory dir))
+                      (dvc-run-dvc-sync 'bzr (list "init")
+                                        :finished 'dvc-null-handler)
+                      (dvc-run-dvc-sync 'bzr (list "ignored")
+                                        :finished 'dvc-null-handler))
+                    (dvc-delete-recursively dir)
+                    (if (file-exists-p file)
+                        (find-file-noselect file)
+                      (message "Your version of bzr does not support a user-wide ignore file.")
+                      nil))))
          (ins t))
-    (when buffer
-      (with-current-buffer buffer
+    (when buf
+      (with-current-buffer buf
         (goto-char (point-min))
         (if (re-search-forward "^# DVC ignore (don't edit !!)\n\\(\\(.\\|\n\\)*\n\\)# end DVC ignore$" nil 'end)
             (progn
