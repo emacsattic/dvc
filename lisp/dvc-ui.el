@@ -317,6 +317,8 @@
 
     ;; file specific functionality
     (define-key map (dvc-prefix-file ?a) 'dvc-add-files)
+    (define-key map (dvc-prefix-file ?D) 'dvc-remove-files)
+    (define-key map (dvc-prefix-file ?R) 'dvc-revert-files)
 
     (define-key map (dvc-prefix-buffer
                      dvc-key-diff)           'tla-changes-goto)
