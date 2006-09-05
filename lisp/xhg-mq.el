@@ -81,6 +81,7 @@
     (define-key map [?=] 'xhg-qdiff)
     (define-key map [?d] 'xhg-qdelete)
     (define-key map [?N] 'xhg-qnew)
+    (define-key map [?E] 'xhg-mq-export-via-mail)
     map)
   "Keymap used for xhg-mq commands.")
 
@@ -267,6 +268,52 @@ When called with a prefix argument run hg qpush -a."
       (message "Mercurial qheader: %s" header))
     header))
 
+;; --------------------------------------------------------------------------------
+;; Higher level functions
+;; --------------------------------------------------------------------------------
+
+(defun xhg-mq-export-via-mail (patch)
+  "Prepare an email that contains a mq patch.
+`xhg-submit-patch-mapping' is honored for the destination email address and the project name
+that is used in the generated email."
+  (interactive (list
+                (let ((series (xhg-qseries)))
+                  (completing-read "Send mq patch via mail: " series nil t
+                                       (car (member (xhg-mq-patch-name-at-point) series))))))
+  (let ((file-name)
+        (destination-email "")
+        (base-file-name nil)
+        (subject)
+        (description))
+    (dolist (m xhg-submit-patch-mapping)
+      (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (xhg-tree-root)))
+        ;;(message "%S" (cadr m))
+        (setq destination-email (car (cadr m)))
+        (setq base-file-name (cadr (cadr m)))))
+    ;;(message (format "xhg-mq-export-via-mail %s %s %s" patch destination-email base-file-name))
+    (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") "-" patch ".patch"))
+    (copy-file (concat (xhg-tree-root) "/.hg/patches/" patch) file-name t t)
+
+    (setq description "")
+
+    (require 'reporter)
+    (delete-other-windows)
+    (reporter-submit-bug-report
+     destination-email
+     nil
+     nil
+     nil
+     nil
+     description)
+    (setq subject (if base-file-name (concat base-file-name ": " patch) patch))
+
+    ;; delete emacs version - its not needed here
+    (delete-region (point) (point-max))
+
+    (mml-attach-file file-name "text/x-patch")
+    (goto-char (point-min))
+    (mail-position-on-field "Subject")
+    (insert (concat "[MQ-PATCH] " subject))))
 
 ;; --------------------------------------------------------------------------------
 ;; the xhg mq mode
