@@ -111,11 +111,16 @@ Otherwise `dvc-gnus-apply-patch' is called."
   (interactive "p")
   (unless current-prefix-arg
     (setq n 2))
-  (save-window-excursion
-    (gnus-summary-select-article-buffer)
-    (goto-char (point-min))
-    (cond ((re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
-           (tla-gnus-article-apply-patch n))
+  (let ((patch-type))
+    (save-window-excursion
+      (gnus-summary-select-article-buffer)
+      (goto-char (point-min))
+      (if (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
+          (setq patch-type 'tla)
+        (setq patch-type 'dvc)))
+    (cond ((eq patch-type 'tla)
+           (save-window-excursion
+             (tla-gnus-article-apply-patch n)))
           (t
            (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
 
