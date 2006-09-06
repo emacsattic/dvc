@@ -131,8 +131,9 @@ When called with a prefix argument run hg qpop -a."
   (interactive
    (list current-prefix-arg))
   (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-sync 'xhg (list "qpop"
-                                 (when all "-a")))
+    (message (format "qpop -> %s"
+                     (dvc-run-dvc-sync 'xhg (list "qpop" (when all "-a"))
+                                       :finished 'dvc-output-buffer-handler)))
     (pop-to-buffer curbuf)))
 
 (defun xhg-qpush (&optional all)
@@ -141,8 +142,9 @@ When called with a prefix argument run hg qpush -a."
   (interactive
    (list current-prefix-arg))
   (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-sync 'xhg (list "qpush"
-                                 (when all "-a")))
+    (message (format "qpush -> %s"
+                     (dvc-run-dvc-sync 'xhg (list "qpush" (when all "-a"))
+                                       :finished 'dvc-output-buffer-handler)))
     (pop-to-buffer curbuf)))
 
 (defun xhg-mq-printer (elem)

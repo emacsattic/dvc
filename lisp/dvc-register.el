@@ -76,7 +76,7 @@ POSTFIX is a string."
         (if (fboundp second-try) second-try
           (let ((fall-back (dvc-intern-symbol-name 'dvc postfix)))
             (if (not fall-back) second-try
-              (dvc-trace "dvc-function: fall back to DVC for %s %s" dvc postfix)
+              ;;(dvc-trace "dvc-function: fall back to DVC for %s %s" dvc postfix)
               (dvc-intern-symbol-name 'dvc postfix))))))))
 
 (defun dvc-variable (dvc postfix &optional nodefault)
