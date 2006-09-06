@@ -52,6 +52,7 @@
 
 (defvar xhg-mq-submenu
   '("mq"
+    ["Show mq stack"  xhg-mq-show-stack t]
     ["mq refresh"  xhg-qrefresh t]
     ["mq diff"  xhg-qdiff t]
     ["mq push"  xhg-qpush t]
@@ -71,6 +72,7 @@
     (define-key map [?A] 'xhg-qapplied)
     (define-key map [?U] 'xhg-qunapplied)
     (define-key map [?S] 'xhg-qseries)
+    (define-key map [?s] 'xhg-mq-show-stack)
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
@@ -151,7 +153,7 @@ When called with a prefix argument run hg qpush -a."
 
 (defun xhg-mq-printer (elem)
   "Print an element ELEM of the mq patch list."
-  (insert elem))
+  (insert (dvc-face-add (car elem) (cadr elem))))
 
 (defun xhg-process-mq-patches (cmd-list header &optional only-show)
   (let ((patches (delete "" (dvc-run-dvc-sync 'xhg cmd-list
@@ -166,7 +168,7 @@ When called with a prefix argument run hg qpush -a."
                (ewoc-create (dvc-ewoc-create-api-select #'xhg-mq-printer)))
           (put 'xhg-mq-cookie 'permanent-local t)
           (dolist (patch patches)
-            (ewoc-enter-last xhg-mq-cookie patch)))
+            (ewoc-enter-last xhg-mq-cookie (list patch nil))))
         (xhg-mq-mode)
         (goto-char (point-min))
         (forward-line 1)
@@ -319,6 +321,23 @@ that is used in the generated email."
     (mail-position-on-field "Subject")
     (insert (concat "[MQ-PATCH] " subject))))
 
+(defun xhg-mq-show-stack ()
+  "Show the mq stack."
+  (interactive)
+  (xhg-process-mq-patches '("qseries") "hg stack:" (interactive-p))
+  (let ((applied (xhg-qapplied))
+        (top (xhg-qtop)))
+    (with-current-buffer "*xhg-mq*"
+      (dolist (a applied)
+        (goto-char (point-min))
+        (when (re-search-forward (concat "^" a "$"))
+          (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'dvc-move)))
+      (goto-char (point-min))
+      (when (re-search-forward (concat "^" top "$"))
+        (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'bold))
+      (ewoc-refresh xhg-mq-cookie))))
+
+
 ;; --------------------------------------------------------------------------------
 ;; the xhg mq mode
 ;; --------------------------------------------------------------------------------
@@ -347,7 +366,7 @@ that is used in the generated email."
 
 (defun xhg-mq-patch-name-at-point ()
   "Return the patch name at point in a xhg mq buffer."
-  (xhg-mq-ewoc-data-at-point))
+  (car (xhg-mq-ewoc-data-at-point)))
 
 (defun xhg-mq-edit-series-file ()
   "Edit the mq patch series file"
