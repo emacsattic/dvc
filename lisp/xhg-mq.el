@@ -123,7 +123,9 @@ When called with a prefix argument run hg qnew -f."
 (defun xhg-qrefresh ()
   "Run hg qrefresh."
   (interactive)
-  (dvc-run-dvc-sync 'xhg (list "qrefresh")))
+  (let ((top (xhg-qtop)))
+    (dvc-run-dvc-sync 'xhg (list "qrefresh"))
+    (message (format "hg qrefresh for %s finished" top))))
 
 (defun xhg-qpop (&optional all)
   "Run hg qpop.
