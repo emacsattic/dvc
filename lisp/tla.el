@@ -7292,12 +7292,12 @@ line as Summary with `tla-merge-summary-line-for-log'."
     (insert dvc-memorized-log-header))
   (when dvc-memorized-log-message
     (tla-log-goto-body)
-    (when tla-memorized-patch-sender
+    (when dvc-memorized-patch-sender
       (if (looking-at "Patch from ")
           (forward-line 1)
         (progn
           (undo-boundary)
-          (insert (format "Patch from %s\n" tla-memorized-patch-sender)))))
+          (insert (format "Patch from %s\n" dvc-memorized-patch-sender)))))
     (when (looking-at "\* .+: ") ;; e.g.: "* lisp/xtla.el: "
       (end-of-line)
       (newline))
