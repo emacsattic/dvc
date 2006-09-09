@@ -5615,7 +5615,7 @@ UNUSED is left here to keep the position of FROM-REVLIB"
                                       (make-dvc-revlist-entry-patch
                                        :dvc 'tla
                                        :struct rev-struct
-                                       :rev-id `(tla (revision rev-list))))))
+                                       :rev-id `(tla (revision ,rev-list))))))
              (setq list (cdr list)))
            (ewoc-refresh dvc-revlist-cookie)
            (toggle-read-only t)))))))
