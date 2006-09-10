@@ -70,6 +70,14 @@
                                   (output error status arguments)
                                 (message "hg remove finished"))))
 
+(defun xhg-addremove ()
+  "Run hg addremove."
+  (interactive)
+  (dvc-run-dvc-sync 'xhg '("addremove")
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "hg addremove finished"))))
+
 ;;;###autoload
 (defun xhg-forget (&rest files)
   "Run hg forget."

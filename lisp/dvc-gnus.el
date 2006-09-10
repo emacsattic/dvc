@@ -111,13 +111,39 @@ Otherwise `dvc-gnus-apply-patch' is called."
   (interactive "p")
   (unless current-prefix-arg
     (setq n 2))
-  (save-window-excursion
-    (gnus-summary-select-article-buffer)
-    (goto-char (point-min))
-    (cond ((re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
-           (tla-gnus-article-apply-patch n))
+  (let ((patch-type))
+    (save-window-excursion
+      (gnus-summary-select-article-buffer)
+      (goto-char (point-min))
+      (if (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
+          (setq patch-type 'tla)
+        (setq patch-type 'dvc)))
+    (cond ((eq patch-type 'tla)
+           (save-window-excursion
+             (tla-gnus-article-apply-patch n)))
           (t
            (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
+
+(defvar dvc-apply-patch-mapping nil)
+;;e.g.: (add-to-list 'dvc-apply-patch-mapping '("psvn" "~/work/myprg/psvn"))
+
+(defun dvc-gnus-suggest-apply-patch-directory ()
+  "Use `dvc-apply-patch-mapping' to suggest a directory where
+the patch sould be applied."
+  (gnus-summary-select-article-buffer)
+  (let ((patch-directory "~/")
+        (m dvc-apply-patch-mapping))
+    (save-excursion
+      (goto-char (point-min))
+      (when (search-forward "text/x-patch; " nil t)
+        (while m
+          (if (looking-at (caar m))
+              (progn
+                (setq patch-directory (cadar m))
+                (setq m nil))
+            (setq m (cdr m))))))
+    (gnus-article-show-summary)
+    (expand-file-name patch-directory)))
 
 (defun dvc-gnus-apply-patch (handle)
   "Apply the patch corresponding to HANDLE."
@@ -128,7 +154,7 @@ Otherwise `dvc-gnus-apply-patch' is called."
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
     (setq patch-buff (current-buffer))
-    (flet ((ediff-get-default-file-name () (expand-file-name "~/work/myprg/dvc-dev-bzr/")))
+    (flet ((ediff-get-default-file-name () (dvc-gnus-suggest-apply-patch-directory)))
       (ediff-patch-file 2 patch-buff))))
 
 (provide 'dvc-gnus)

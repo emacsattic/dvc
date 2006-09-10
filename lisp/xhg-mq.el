@@ -52,6 +52,7 @@
 
 (defvar xhg-mq-submenu
   '("mq"
+    ["Show mq stack"  xhg-mq-show-stack t]
     ["mq refresh"  xhg-qrefresh t]
     ["mq diff"  xhg-qdiff t]
     ["mq push"  xhg-qpush t]
@@ -71,6 +72,7 @@
     (define-key map [?A] 'xhg-qapplied)
     (define-key map [?U] 'xhg-qunapplied)
     (define-key map [?S] 'xhg-qseries)
+    (define-key map [?s] 'xhg-mq-show-stack)
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
@@ -81,6 +83,7 @@
     (define-key map [?=] 'xhg-qdiff)
     (define-key map [?d] 'xhg-qdelete)
     (define-key map [?N] 'xhg-qnew)
+    (define-key map [?E] 'xhg-mq-export-via-mail)
     map)
   "Keymap used for xhg-mq commands.")
 
@@ -122,7 +125,9 @@ When called with a prefix argument run hg qnew -f."
 (defun xhg-qrefresh ()
   "Run hg qrefresh."
   (interactive)
-  (dvc-run-dvc-sync 'xhg (list "qrefresh")))
+  (let ((top (xhg-qtop)))
+    (dvc-run-dvc-sync 'xhg (list "qrefresh"))
+    (message (format "hg qrefresh for %s finished" top))))
 
 (defun xhg-qpop (&optional all)
   "Run hg qpop.
@@ -130,8 +135,9 @@ When called with a prefix argument run hg qpop -a."
   (interactive
    (list current-prefix-arg))
   (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-sync 'xhg (list "qpop"
-                                 (when all "-a")))
+    (message (format "qpop -> %s"
+                     (dvc-run-dvc-sync 'xhg (list "qpop" (when all "-a"))
+                                       :finished 'dvc-output-buffer-handler)))
     (pop-to-buffer curbuf)))
 
 (defun xhg-qpush (&optional all)
@@ -140,13 +146,14 @@ When called with a prefix argument run hg qpush -a."
   (interactive
    (list current-prefix-arg))
   (let ((curbuf (current-buffer)))
-    (dvc-run-dvc-sync 'xhg (list "qpush"
-                                 (when all "-a")))
+    (message (format "qpush -> %s"
+                     (dvc-run-dvc-sync 'xhg (list "qpush" (when all "-a"))
+                                       :finished 'dvc-output-buffer-handler)))
     (pop-to-buffer curbuf)))
 
 (defun xhg-mq-printer (elem)
   "Print an element ELEM of the mq patch list."
-  (insert elem))
+  (insert (dvc-face-add (car elem) (cadr elem))))
 
 (defun xhg-process-mq-patches (cmd-list header &optional only-show)
   (let ((patches (delete "" (dvc-run-dvc-sync 'xhg cmd-list
@@ -161,7 +168,7 @@ When called with a prefix argument run hg qpush -a."
                (ewoc-create (dvc-ewoc-create-api-select #'xhg-mq-printer)))
           (put 'xhg-mq-cookie 'permanent-local t)
           (dolist (patch patches)
-            (ewoc-enter-last xhg-mq-cookie patch)))
+            (ewoc-enter-last xhg-mq-cookie (list patch nil))))
         (xhg-mq-mode)
         (goto-char (point-min))
         (forward-line 1)
@@ -267,6 +274,69 @@ When called with a prefix argument run hg qpush -a."
       (message "Mercurial qheader: %s" header))
     header))
 
+;; --------------------------------------------------------------------------------
+;; Higher level functions
+;; --------------------------------------------------------------------------------
+
+(defun xhg-mq-export-via-mail (patch)
+  "Prepare an email that contains a mq patch.
+`xhg-submit-patch-mapping' is honored for the destination email address and the project name
+that is used in the generated email."
+  (interactive (list
+                (let ((series (xhg-qseries)))
+                  (completing-read "Send mq patch via mail: " series nil t
+                                       (car (member (xhg-mq-patch-name-at-point) series))))))
+  (let ((file-name)
+        (destination-email "")
+        (base-file-name nil)
+        (subject)
+        (description))
+    (dolist (m xhg-submit-patch-mapping)
+      (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (xhg-tree-root)))
+        ;;(message "%S" (cadr m))
+        (setq destination-email (car (cadr m)))
+        (setq base-file-name (cadr (cadr m)))))
+    ;;(message (format "xhg-mq-export-via-mail %s %s %s" patch destination-email base-file-name))
+    (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") "-" patch ".patch"))
+    (copy-file (concat (xhg-tree-root) "/.hg/patches/" patch) file-name t t)
+
+    (setq description "")
+
+    (require 'reporter)
+    (delete-other-windows)
+    (reporter-submit-bug-report
+     destination-email
+     nil
+     nil
+     nil
+     nil
+     description)
+    (setq subject (if base-file-name (concat base-file-name ": " patch) patch))
+
+    ;; delete emacs version - its not needed here
+    (delete-region (point) (point-max))
+
+    (mml-attach-file file-name "text/x-patch")
+    (goto-char (point-min))
+    (mail-position-on-field "Subject")
+    (insert (concat "[MQ-PATCH] " subject))))
+
+(defun xhg-mq-show-stack ()
+  "Show the mq stack."
+  (interactive)
+  (xhg-process-mq-patches '("qseries") "hg stack:" (interactive-p))
+  (let ((applied (xhg-qapplied))
+        (top (xhg-qtop)))
+    (with-current-buffer "*xhg-mq*"
+      (dolist (a applied)
+        (goto-char (point-min))
+        (when (re-search-forward (concat "^" a "$"))
+          (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'dvc-move)))
+      (goto-char (point-min))
+      (when (re-search-forward (concat "^" top "$"))
+        (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'bold))
+      (ewoc-refresh xhg-mq-cookie))))
+
 
 ;; --------------------------------------------------------------------------------
 ;; the xhg mq mode
@@ -296,7 +366,7 @@ When called with a prefix argument run hg qpush -a."
 
 (defun xhg-mq-patch-name-at-point ()
   "Return the patch name at point in a xhg mq buffer."
-  (xhg-mq-ewoc-data-at-point))
+  (car (xhg-mq-ewoc-data-at-point)))
 
 (defun xhg-mq-edit-series-file ()
   "Edit the mq patch series file"
