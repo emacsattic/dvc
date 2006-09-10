@@ -45,7 +45,10 @@
 (eval-and-compile
   (require 'overlay)
   (require 'wid-edit)
-  (require 'dvc-core))
+; The following require causes a infinite recursion as the (provide ...) is at
+; the file end.  Thus we live with the warnings about unknown variables etc.
+;  (require 'dvc-core)
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; fixes warnings about undefined variables
@@ -81,10 +84,12 @@
           buffer-file)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(unless (functionp 'replace-regexp-in-string)
+; the unless check seems to fail 
+;(unless (functionp 'replace-regexp-in-string)
   (defun replace-regexp-in-string (regexp rep string
                                           &optional fixedcase literal)
-    (replace-in-string string regexp rep literal)))
+    (replace-in-string string regexp rep literal))
+;)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unless (functionp 'line-end-position)
@@ -168,6 +173,30 @@ after it has been set up properly in other respects."
         (run-hooks 'clone-buffer-hook))
       (if display-flag (pop-to-buffer new))
       new)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(unless (functionp 'make-temp-file)
+  (defun make-temp-file (prefix &optional dir-flag)
+    "Create a temporary file.
+The returned file name (created by `make-temp-name', is guaranteed to point to
+a newly created empty file.  
+You can then use `write-region' to write new data into the file.
+
+If DIR-FLAG is non-nil, create a new empty directory instead of a file."
+    (let (file)
+      (while (condition-case ()
+                 (progn
+                   (setq file
+                         (make-temp-name
+                          (expand-file-name prefix)))
+                   (if dir-flag
+                       (make-directory file)
+                     (write-region "" nil file nil 'silent nil 'excl))
+                   nil)
+               (file-already-exists t))
+        ;; the file was somehow created by someone else between
+        ;; `make-temp-name' and `write-region', let's try again.
+        nil)
+      file)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; AFAIK easy-menu cannot be used for dynamic menus
@@ -369,6 +398,9 @@ Return the name of the directory."
 (defalias 'dvc-line-number-at-pos (if (functionp 'line-number-at-pos)
 				      'line-number-at-pos
 				    'line-number))
+
+
+(defvar allow-remote-paths nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (provide 'dvc-xemacs)

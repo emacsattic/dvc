@@ -612,7 +612,7 @@ LAST-REVISION looks like
   (interactive)
   (split-window)
   (other-window 1)
-  (woman "hgrc")
+  (apply (if (featurep 'xemacs) 'manual-entry 'woman) "hgrc")
   (other-window -1))
 
 

@@ -870,7 +870,7 @@ LOG-AS-STRING. FIELD is just the name of the field, without trailing
 
 Return the log as a string."
   (with-current-buffer (or buffer (current-buffer))
-    (set-buffer-multibyte nil)
+    (dvc-funcall-if-exists set-buffer-multibyte nil)
     (let ((chars (string-to-number
                   (buffer-substring-no-properties
                    (point)
@@ -888,7 +888,7 @@ Return the log as a string."
 Same as `tla--read-complete-log-string', but don't return anything and
 is faster."
   (with-current-buffer (or buffer (current-buffer))
-    (set-buffer-multibyte nil)
+    (dvc-funcall-if-exists set-buffer-multibyte nil)
     (let ((chars (string-to-number
                   (buffer-substring-no-properties
                    (point)

@@ -192,7 +192,7 @@ The following sources are tried (in that order) and used if they are non nil:
         (dvc-current-file-list ;; only used in dvc-status: todo: change dvc-status to use dvc-buffer-marked-file-list
          dvc-current-file-list)
         ((eq major-mode 'dired-mode)
-         (dired-map-over-marks (dired-get-filename) nil))
+         (dired-get-marked-files))
         ((eq selection-mode 'nil-if-none-marked)
          nil)
         ((eq selection-mode 'all-if-none-marked)
@@ -258,7 +258,7 @@ The filename is obtained with `dvc-get-file-info-at-point'."
   (interactive)
   (let ((file-full-path (expand-file-name (or (dvc-get-file-info-at-point) ""))))
     (let ((default-directory (file-name-directory file-full-path)))
-      (dired-jump))
+      (dvc-funcall-if-exists dired-jump))
     (dired-goto-file file-full-path)))
 
 ;; partner buffer stuff

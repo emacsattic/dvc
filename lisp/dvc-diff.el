@@ -626,10 +626,10 @@ recursive command."
                                               (format msg dir)
                                               ".\n\n")))
       (when master-buffer
-        (with-current-buffer (capture master-buffer)
+        (with-current-buffer master-buffer
           (ewoc-map (lambda (x)
                       (when (and (eq (car x) 'subtree)
-                                 (eq (cadr x) (capture buffer)))
+                                 (eq (cadr x) buffer))
                         (setcar (cdr (cddr x)) 'no-changes))
                       )
                     ;; (ewoc-refresh dvc-diff-cookie)))

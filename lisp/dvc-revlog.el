@@ -44,7 +44,6 @@ it to something more specific.
 
 Commands are:
 \\{dvc-revlog-mode-map}"
-  (interactive)
   (dvc-install-buffer-menu)
   (toggle-read-only 1))
 

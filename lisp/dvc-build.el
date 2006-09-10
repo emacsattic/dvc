@@ -34,6 +34,8 @@
 (push srcdir load-path)
 (push loaddir load-path)
 
+;(setq debug-on-error t)
+
 ;; The name of our package
 (setq package-maint-pkg "dvc")
 
@@ -80,6 +82,8 @@
     (defalias 'dvc-cmenu-mouse-avoidance-point-position
       'mouse-avoidance-point-position)
     ;; External things
+    (autoload 'debug                    "debug")
+    (autoload 'tree-widget-action       "tree-widget")
     (autoload 'ad-add-advice            "advice")
     (autoload 'customize-group          "cus-edit" nil t)
     (autoload 'dired                    "dired" nil t)
