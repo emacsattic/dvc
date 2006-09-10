@@ -5,6 +5,8 @@
 # This file is currently used only by Matthieu MOY, and is provided
 # here only as an example. Copy it and modify it if you wish to use it.
 
+export PATH=${HOME}/bin/local/verimag:${PATH}
+
 cd `dirname $0`/..
 mkdir -p tmp
 exec > tmp/dvc-cron.log

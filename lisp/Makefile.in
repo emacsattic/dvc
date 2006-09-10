@@ -35,7 +35,7 @@ OTHERDIRS = @OTHERDIRS@
 SYMLINKS = @SYMLINKS@
 LINKPATH = @LINKPATH@
 
-all: clean-some autoloads
+all: dvc-version.el clean-some autoloads
 	$(EMACS_COMP) -f package-maint-compile
 
 install: install-el install-elc

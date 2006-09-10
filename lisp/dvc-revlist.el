@@ -302,7 +302,6 @@ revision list."
 
 Commands are:
 \\{dvc-revlist-mode-map}"
-  (interactive)
   (dvc-install-buffer-menu)
   (let ((inhibit-read-only t))
     (erase-buffer))
