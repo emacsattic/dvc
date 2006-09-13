@@ -147,7 +147,7 @@ then invoke FUNCTION."
         (delete-file file)
       (when (setq files
                   (directory-files
-                   file t "^\([^.]\|\.\([^.]\|\..\)\).*"))
+                   file t "^\\([^.]\\|\\.\\([^.]\\|\\..\\)\\).*"))
         (while files
           (dvc-delete-recursively (car files))
           (setq files (cdr files))))
