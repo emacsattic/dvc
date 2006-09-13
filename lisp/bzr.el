@@ -359,7 +359,7 @@ of the commit. Additionally the destination email address can be specified."
   "Run bzr add."
   (message "bzr-add-files: %s" files)
   (let ((default-directory (bzr-tree-root)))
-    (dvc-run-dvc-sync 'bzr (append '("add") (mapcar #'file-relative-name
+    (dvc-run-dvc-sync 'bzr (append '("add" "--no-recurse") (mapcar #'file-relative-name
                                                     files))
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
