@@ -86,7 +86,7 @@ Example
 =======
 
 (bzr (revision (local "/path/to/archive" 3)))
-(baz (last-revision "/path/to/project" 0))
+(baz (last-revision "/path/to/project" 1))
 (baz (revision ("archive" "category" "branch" "version" "revision")))
 
 Functions
