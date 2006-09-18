@@ -585,10 +585,12 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
           (insert "# DVC ignore (don't edit !!)\n")
           (insert bzr-ignore-list)
           (insert "# end DVC ignore\n")
-          (save-buffer))))))
+          (save-buffer)))
+      (kill-buffer buffer))))
 
 ;; Must remain toplevel, and should not be autoloaded.
-(bzr-ignore-setup)
+(when (executable-find bzr-executable)
+  (bzr-ignore-setup))
 
 (provide 'bzr)
 ;; arch-tag: Matthieu Moy, Sun Sep  4 23:27:53 2005 (bzr.el)
