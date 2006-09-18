@@ -173,23 +173,60 @@ The following functions are called:
                                             (not added))
                                    origname))))))))
 
+(defun bzr-revisionspec-to-rev (string-revspec path)
+  "Converts a bzr revision specifier (string) into a DVC revision.
+
+TODO: just revision number and last:N are implemented.
+"
+  `(bzr ,(cond ((string-match "^\\(revno:\\)?\\([0-9]+\\)$"
+                              string-revspec)
+                `(revision (local ,path
+                                  ,(string-to-number
+                                    (match-string 2 string-revspec)))))
+               ((string-match "^\\(last:\\|-\\)\\([0-9]+\\)$"
+                              string-revspec)
+                `(last-revision ,path
+                                ,(string-to-number
+                                  (match-string 2 string-revspec))))
+               (t (error "Not yet implemented, sorry!")))))
+
+;;;###autoload
+(defun bzr-diff-against (against &optional path dont-switch)
+  "Run \"bzr diff\" against a particular revision.
+
+Same as `bzr-diff', but the interactive prompt is different."
+  (interactive
+   (let ((root (bzr-tree-root path)))
+     (list (bzr-revisionspec-to-rev
+            (read-string "Diff against revisionspec: ")
+            root)
+           root
+           current-prefix-arg)))
+  (bzr-diff against path dont-switch))
+
 ;;;###autoload
 (defun bzr-diff (&optional against path dont-switch)
   "Run \"bzr diff\".
 
-TODO: DONT-SWITCH and AGAINST are currently ignored."
+AGAINST must be a revision specifier (number, last:N,
+revid:foobar, ...).
+
+TODO: DONT-SWITCH is currently ignored."
   (interactive (list nil nil current-prefix-arg))
   (let* ((dir (or path default-directory))
          (root (bzr-tree-root dir))
+         (against (or against `(bzr (last-revision ,root 1))))
          (buffer (dvc-prepare-changes-buffer
-                  `(bzr (last-revision ,root 1))
+                  against
                   `(bzr (local-tree ,root))
                   'diff root 'bzr)))
     (when dvc-switch-to-buffer-first
       (dvc-switch-to-buffer buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-async
-     'bzr '("diff")
+     'bzr `("diff" ,@(when against
+                       (list "-r" (bzr-revision-id-to-string
+                                   against))))
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (dvc-diff-no-changes (capture buffer)
@@ -437,6 +474,10 @@ of the commit. Additionally the destination email address can be specified."
              ((eq location 'remote)
               (concat "revno:" (int-to-string (- (nth 2 data) 1))
                       ":" (nth 1 data))))))
+    (last-revision
+     (let* ((data (dvc-revision-get-data rev-id))
+            (num (nth 1 data)))
+       (concat "last:" (int-to-string num))))
     (otherwise (error "TODO: not implemented: %S" rev-id))))
 
 
