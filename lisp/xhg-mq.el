@@ -137,7 +137,11 @@ When called with a prefix argument run hg qpop -a."
   (let ((curbuf (current-buffer)))
     (message (format "qpop -> %s"
                      (dvc-run-dvc-sync 'xhg (list "qpop" (when all "-a"))
-                                       :finished 'dvc-output-buffer-handler)))
+                                       :finished 'dvc-output-buffer-handler
+                                       :error (lambda (output error status arguments)
+                                                (if (eq status 1)
+                                                    (message "no patches applied")
+                                                  (message "error status: %d" status))))))
     (pop-to-buffer curbuf)))
 
 (defun xhg-qpush (&optional all)
@@ -148,7 +152,11 @@ When called with a prefix argument run hg qpush -a."
   (let ((curbuf (current-buffer)))
     (message (format "qpush -> %s"
                      (dvc-run-dvc-sync 'xhg (list "qpush" (when all "-a"))
-                                       :finished 'dvc-output-buffer-handler)))
+                                       :finished 'dvc-output-buffer-handler
+                                       :error (lambda (output error status arguments)
+                                                (if (eq status 1)
+                                                    (message "patch series fully applied")
+                                                  (message "error status: %d" status))))))
     (pop-to-buffer curbuf)))
 
 (defun xhg-mq-printer (elem)
@@ -241,9 +249,13 @@ When called with a prefix argument run hg qpush -a."
   "Run hg qtop."
   (interactive)
   (let ((top (dvc-run-dvc-sync 'xhg '("qtop")
-                                   :finished 'dvc-output-buffer-handler)))
+                                   :finished 'dvc-output-buffer-handler
+                                   :error (lambda (output error status arguments)
+                                            nil))))
     (when (interactive-p)
-      (message "Mercurial qtop: %s" top))
+      (if top
+          (message "Mercurial qtop: %s" top)
+        (message "Mercurial qtop: no patches applied")))
     top))
 
 (defun xhg-qnext ()
@@ -333,9 +345,10 @@ that is used in the generated email."
         (goto-char (point-min))
         (when (re-search-forward (concat "^" a "$") nil t)
           (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'dvc-move)))
-      (goto-char (point-min))
-      (when (re-search-forward (concat "^" top "$") nil t)
-        (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'bold))
+      (when top
+        (goto-char (point-min))
+        (when (re-search-forward (concat "^" top "$") nil t)
+          (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'bold)))
       (ewoc-refresh xhg-mq-cookie))))
 
 
