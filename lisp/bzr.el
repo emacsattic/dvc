@@ -402,9 +402,26 @@ of the commit. Additionally the destination email address can be specified."
                                     (output error status arguments)
                                   (message "bzr add finished")))))
 
-(defun bzr-log-edit-done ()
-  "Finish a commit for Bzr."
+(defun bzr-is-bound (&optional path)
+  "True if branch containing PATH is bound"
+  (file-exists-p (concat (file-name-as-directory
+                          (bzr-tree-root
+                           (or path default-directory)))
+                         ".bzr/branch/bound")))
+
+(defun bzr-log-edit-commit-local ()
+  "Local commit"
   (interactive)
+  (bzr-log-edit-done t))
+
+(defun bzr-log-edit-commit (&optional local)
+  "Commit without --local by default.
+
+If LOCAL (prefix argument) is non-nil, commit with --local.
+\(don't update bound branch).
+
+LOCAL is ignored on non-bound branches."
+  (interactive "P")
   (let ((buffer (find-file-noselect (dvc-log-edit-file-name))))
     (dvc-log-flush-commit-file-list)
     (save-buffer buffer)
@@ -412,8 +429,10 @@ of the commit. Additionally the destination email address can be specified."
       (dvc-run-dvc-async
        'bzr
        (append
-        (list "commit" "--verbose" "--file" (dvc-log-edit-file-name))
-        ;;  Get marked  files to  do  a selected  file commit.  Nil
+        (list "commit" "--verbose" "--file" (dvc-log-edit-file-name)
+              (when (and local (bzr-is-bound))
+                "--local"))
+        ;; Get marked  files to  do  a selected  file commit.  Nil
         ;; otherwise (which means commit all files).
         (with-current-buffer dvc-partner-buffer
           (mapcar #'dvc-uniquify-file-name
@@ -431,6 +450,15 @@ of the commit. Additionally the destination email address can be specified."
                     "* Just committed! Please refresh buffer\n")
                    (message "Bzr commit finished !"))))
     (dvc-tips-popup-maybe)))
+
+(defun bzr-log-edit-done ()
+  "Commit. Interactive prompt to know whether this should be local.
+
+See `bzr-log-edit-commit' and `bzr-log-edit-commit-local' for
+non-interactive versions."
+  (interactive)
+  (bzr-log-edit-commit (and (bzr-is-bound)
+                            (y-or-n-p "Commit locally? "))))
 
 ;; Revisions
 
