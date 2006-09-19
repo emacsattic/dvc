@@ -418,7 +418,9 @@ of the commit. Additionally the destination email address can be specified."
   "Commit without --local by default.
 
 If LOCAL (prefix argument) is non-nil, commit with --local.
-\(don't update bound branch)."
+\(don't update bound branch).
+
+LOCAL is ignored on non-bound branches."
   (interactive "P")
   (let ((buffer (find-file-noselect (dvc-log-edit-file-name))))
     (dvc-log-flush-commit-file-list)
@@ -428,7 +430,8 @@ If LOCAL (prefix argument) is non-nil, commit with --local.
        'bzr
        (append
         (list "commit" "--verbose" "--file" (dvc-log-edit-file-name)
-              (when local "--local"))
+              (when (and local (bzr-is-bound))
+                "--local"))
         ;; Get marked  files to  do  a selected  file commit.  Nil
         ;; otherwise (which means commit all files).
         (with-current-buffer dvc-partner-buffer
