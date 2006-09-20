@@ -396,7 +396,7 @@ of the commit. Additionally the destination email address can be specified."
   "Run bzr add."
   (message "bzr-add-files: %s" files)
   (let ((default-directory (bzr-tree-root)))
-    (dvc-run-dvc-sync 'bzr (append '("add") (mapcar #'file-relative-name
+    (dvc-run-dvc-sync 'bzr (append '("add" "--no-recurse") (mapcar #'file-relative-name
                                                     files))
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
@@ -654,10 +654,12 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
           (insert "# DVC ignore (don't edit !!)\n")
           (insert bzr-ignore-list)
           (insert "# end DVC ignore\n")
-          (save-buffer))))))
+          (save-buffer)))
+      (kill-buffer buffer))))
 
 ;; Must remain toplevel, and should not be autoloaded.
-(bzr-ignore-setup)
+(when (executable-find bzr-executable)
+  (bzr-ignore-setup))
 
 (provide 'bzr)
 ;; arch-tag: Matthieu Moy, Sun Sep  4 23:27:53 2005 (bzr.el)

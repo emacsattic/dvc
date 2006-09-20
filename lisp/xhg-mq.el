@@ -137,7 +137,11 @@ When called with a prefix argument run hg qpop -a."
   (let ((curbuf (current-buffer)))
     (message (format "qpop -> %s"
                      (dvc-run-dvc-sync 'xhg (list "qpop" (when all "-a"))
-                                       :finished 'dvc-output-buffer-handler)))
+                                       :finished 'dvc-output-buffer-handler
+                                       :error (lambda (output error status arguments)
+                                                (if (eq status 1)
+                                                    (message "no patches applied")
+                                                  (message "error status: %d" status))))))
     (pop-to-buffer curbuf)))
 
 (defun xhg-qpush (&optional all)
@@ -148,19 +152,23 @@ When called with a prefix argument run hg qpush -a."
   (let ((curbuf (current-buffer)))
     (message (format "qpush -> %s"
                      (dvc-run-dvc-sync 'xhg (list "qpush" (when all "-a"))
-                                       :finished 'dvc-output-buffer-handler)))
+                                       :finished 'dvc-output-buffer-handler
+                                       :error (lambda (output error status arguments)
+                                                (if (eq status 1)
+                                                    (message "patch series fully applied")
+                                                  (message "error status: %d" status))))))
     (pop-to-buffer curbuf)))
 
 (defun xhg-mq-printer (elem)
   "Print an element ELEM of the mq patch list."
   (insert (dvc-face-add (car elem) (cadr elem))))
 
-(defun xhg-process-mq-patches (cmd-list header &optional only-show)
+(defun xhg-process-mq-patches (cmd-list header refresh-function &optional only-show)
   (let ((patches (delete "" (dvc-run-dvc-sync 'xhg cmd-list
                                               :finished 'dvc-output-buffer-split-handler))))
     (when only-show
       (let ((curbuf (current-buffer)))
-        (pop-to-buffer "*xhg-mq*")
+        (pop-to-buffer (dvc-get-buffer-create 'xhg 'patch-queue))
         (let ((inhibit-read-only t))
           (erase-buffer)
           (insert header)
@@ -170,6 +178,7 @@ When called with a prefix argument run hg qpush -a."
           (dolist (patch patches)
             (ewoc-enter-last xhg-mq-cookie (list patch nil))))
         (xhg-mq-mode)
+        (set (make-local-variable 'dvc-buffer-refresh-function) refresh-function)
         (goto-char (point-min))
         (forward-line 1)
         (pop-to-buffer curbuf)))
@@ -178,17 +187,17 @@ When called with a prefix argument run hg qpush -a."
 (defun xhg-qapplied ()
   "Run hg qapplied."
   (interactive)
-  (xhg-process-mq-patches '("qapplied") "hg qapplied:" (interactive-p)))
+  (xhg-process-mq-patches '("qapplied") "hg qapplied:" 'xhg-qapplied (interactive-p)))
 
 (defun xhg-qunapplied ()
   "Run hg qunapplied."
   (interactive)
-  (xhg-process-mq-patches '("qunapplied") "hg qunapplied:" (interactive-p)))
+  (xhg-process-mq-patches '("qunapplied") "hg qunapplied:" 'xhg-qunapplied (interactive-p)))
 
 (defun xhg-qseries ()
   "Run hg qseries."
   (interactive)
-  (xhg-process-mq-patches '("qseries") "hg series:" (interactive-p)))
+  (xhg-process-mq-patches '("qseries") "hg series:" 'xhg-qseries (interactive-p)))
 
 (defun xhg-qdiff (&optional file)
   "Run hg qdiff."
@@ -240,9 +249,13 @@ When called with a prefix argument run hg qpush -a."
   "Run hg qtop."
   (interactive)
   (let ((top (dvc-run-dvc-sync 'xhg '("qtop")
-                                   :finished 'dvc-output-buffer-handler)))
+                                   :finished 'dvc-output-buffer-handler
+                                   :error (lambda (output error status arguments)
+                                            nil))))
     (when (interactive-p)
-      (message "Mercurial qtop: %s" top))
+      (if top
+          (message "Mercurial qtop: %s" top)
+        (message "Mercurial qtop: no patches applied")))
     top))
 
 (defun xhg-qnext ()
@@ -324,17 +337,18 @@ that is used in the generated email."
 (defun xhg-mq-show-stack ()
   "Show the mq stack."
   (interactive)
-  (xhg-process-mq-patches '("qseries") "hg stack:" (interactive-p))
+  (xhg-process-mq-patches '("qseries") "hg stack:" 'xhg-mq-show-stack (interactive-p))
   (let ((applied (xhg-qapplied))
         (top (xhg-qtop)))
-    (with-current-buffer "*xhg-mq*"
+    (with-current-buffer (dvc-get-buffer 'xhg 'patch-queue)
       (dolist (a applied)
         (goto-char (point-min))
-        (when (re-search-forward (concat "^" a "$"))
+        (when (re-search-forward (concat "^" a "$") nil t)
           (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'dvc-move)))
-      (goto-char (point-min))
-      (when (re-search-forward (concat "^" top "$"))
-        (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'bold))
+      (when top
+        (goto-char (point-min))
+        (when (re-search-forward (concat "^" top "$") nil t)
+          (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'bold)))
       (ewoc-refresh xhg-mq-cookie))))
 
 
@@ -346,6 +360,7 @@ that is used in the generated email."
   (let ((map (make-sparse-keymap)))
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
+    (define-key map [?g] 'dvc-generic-refresh)
     (define-key map [?e] 'xhg-mq-edit-series-file)
     (define-key map [?n] 'xhg-mq-next)
     (define-key map [?p] 'xhg-mq-previous)

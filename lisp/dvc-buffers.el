@@ -76,6 +76,7 @@ Used to keep track of all the dvc related buffers.")
     (unknowns  "unknowns*"  root)
     (info      "info*"  root)
     (pull      "pull*"  root)
+    (patch-queue "patch-queue*"  root)
     )
   "List of (type name mode) used to generate a name for a buffer.
 
