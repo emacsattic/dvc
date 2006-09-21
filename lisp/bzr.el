@@ -515,11 +515,12 @@ non-interactive versions."
 REVISION looks like
 \(local \"path\" NUM)."
   (let ((bzr-rev
-         (if (eq (car revision) 'local)
-             (int-to-string (nth 2 revision))
+         (if (eq (car (car revision)) 'local)
+             (int-to-string (nth 2 (car revision)))
            (error "TODO: revision=%S" revision)))
-        (path (if (eq (car revision) 'local)
-                  default-directory)))
+        (path (if (eq (car (car revision)) 'local)
+                  (nth 1 (car revision))
+                default-directory)))
     (let ((default-directory path))
       (insert
        (dvc-run-dvc-sync
