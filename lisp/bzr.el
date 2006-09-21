@@ -196,7 +196,7 @@ TODO: just revision number and last:N are implemented.
 
 Same as `bzr-diff', but the interactive prompt is different."
   (interactive
-   (let ((root (bzr-tree-root path)))
+   (let ((root (bzr-tree-root)))
      (list (bzr-revisionspec-to-rev
             (read-string "Diff against revisionspec: ")
             root)
