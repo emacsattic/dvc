@@ -196,7 +196,7 @@ TODO: just revision number and last:N are implemented.
 
 Same as `bzr-diff', but the interactive prompt is different."
   (interactive
-   (let ((root (bzr-tree-root path)))
+   (let ((root (bzr-tree-root)))
      (list (bzr-revisionspec-to-rev
             (read-string "Diff against revisionspec: ")
             root)
@@ -402,9 +402,35 @@ of the commit. Additionally the destination email address can be specified."
                                     (output error status arguments)
                                   (message "bzr add finished")))))
 
-(defun bzr-log-edit-done ()
-  "Finish a commit for Bzr."
+(defun bzr-revert-files (&rest files)
+  "Run bzr revert."
+  (message "bzr-revert-files: %s" files)
+  (let ((default-directory (bzr-tree-root)))
+    (dvc-run-dvc-sync 'bzr (append '("revert") (mapcar #'file-relative-name files))
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr revert finished")))))
+
+(defun bzr-is-bound (&optional path)
+  "True if branch containing PATH is bound"
+  (file-exists-p (concat (file-name-as-directory
+                          (bzr-tree-root
+                           (or path default-directory)))
+                         ".bzr/branch/bound")))
+
+(defun bzr-log-edit-commit-local ()
+  "Local commit"
   (interactive)
+  (bzr-log-edit-done t))
+
+(defun bzr-log-edit-commit (&optional local)
+  "Commit without --local by default.
+
+If LOCAL (prefix argument) is non-nil, commit with --local.
+\(don't update bound branch).
+
+LOCAL is ignored on non-bound branches."
+  (interactive "P")
   (let ((buffer (find-file-noselect (dvc-log-edit-file-name))))
     (dvc-log-flush-commit-file-list)
     (save-buffer buffer)
@@ -412,8 +438,10 @@ of the commit. Additionally the destination email address can be specified."
       (dvc-run-dvc-async
        'bzr
        (append
-        (list "commit" "--verbose" "--file" (dvc-log-edit-file-name))
-        ;;  Get marked  files to  do  a selected  file commit.  Nil
+        (list "commit" "--verbose" "--file" (dvc-log-edit-file-name)
+              (when (and local (bzr-is-bound))
+                "--local"))
+        ;; Get marked  files to  do  a selected  file commit.  Nil
         ;; otherwise (which means commit all files).
         (with-current-buffer dvc-partner-buffer
           (mapcar #'dvc-uniquify-file-name
@@ -431,6 +459,15 @@ of the commit. Additionally the destination email address can be specified."
                     "* Just committed! Please refresh buffer\n")
                    (message "Bzr commit finished !"))))
     (dvc-tips-popup-maybe)))
+
+(defun bzr-log-edit-done ()
+  "Commit. Interactive prompt to know whether this should be local.
+
+See `bzr-log-edit-commit' and `bzr-log-edit-commit-local' for
+non-interactive versions."
+  (interactive)
+  (bzr-log-edit-commit (and (bzr-is-bound)
+                            (y-or-n-p "Commit locally? "))))
 
 ;; Revisions
 
@@ -487,11 +524,12 @@ of the commit. Additionally the destination email address can be specified."
 REVISION looks like
 \(local \"path\" NUM)."
   (let ((bzr-rev
-         (if (eq (car revision) 'local)
-             (int-to-string (nth 2 revision))
+         (if (eq (car (car revision)) 'local)
+             (int-to-string (nth 2 (car revision)))
            (error "TODO: revision=%S" revision)))
-        (path (if (eq (car revision) 'local)
-                  default-directory)))
+        (path (if (eq (car (car revision)) 'local)
+                  (nth 1 (car revision))
+                default-directory)))
     (let ((default-directory path))
       (insert
        (dvc-run-dvc-sync
