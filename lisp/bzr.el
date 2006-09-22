@@ -451,6 +451,104 @@ LOCAL is ignored on non-bound branches."
                    (message "Bzr commit finished !"))))
     (dvc-tips-popup-maybe)))
 
+(defcustom bzr-work-offline 'prompt
+"*Whether bzr commit should use --local for bound branches by default.
+
+Possible values are:
+t: work offline  (use --local systematialy)
+nil: work online (don't use --local)
+'prompt: prompt when needed."
+  :type '(choice (const t)
+                 (const nil)
+                 (const prompt))
+  :group 'dvc)
+
+(defun bzr-inform-offline-status ()
+  "Informs the user about the offline status of bzr."
+  (interactive)
+  (message "DVC-bzr will now %s.
+Use M-x bzr-change-offline-status RET to change."
+           (cond ((eq bzr-work-offline t)
+                  "work offline (use commit --local)")
+                 ((eq bzr-work-offline nil)
+                  "work online (don't provide --local to commit)")
+                 ((eq bzr-work-offline 'prompt)
+                  "prompt to use --local or not"))))
+
+(defun bzr-change-offline-status ()
+  "Change the offline status of DVC-bzr.
+
+Prompt the user and change `bzr-work-offline' accordingly."
+  (interactive)
+  (discard-input)
+  (save-window-excursion
+    (let (answer commit-locally)
+      (while (null answer)
+        (message "Change offline status to ([C]onnected, [D]isconnected, [P]rompt)): ")
+        (let ((tem (downcase (let ((cursor-in-echo-area t))
+                               (read-char-exclusive)))))
+          (setq answer
+                (if (= tem help-char)
+                    'help
+                  (cdr (assoc tem '((?c . connect)
+                                    (?d . t)
+                                    (?p . prompt))))))
+          (cond ((null answer)
+                 (beep)
+                 (message "Please type c, p or d")
+                 (sit-for 3))
+                ((eq answer 'connect)
+                 (setq bzr-work-offline nil))
+                (t
+                 (setq bzr-work-offline answer)))
+          (bzr-inform-offline-status))))))
+
+
+(defun bzr-ask-user-about-offline ()
+  "Return non-nil if bzr should work offline."
+  (cond ((eq bzr-work-offline t)
+         t)
+        ((eq bzr-work-offline nil)
+         nil)
+        (t
+         (discard-input)
+         (save-window-excursion
+           (let (answer commit-locally)
+             (while (null answer)
+               (message "Commit locally only? (y, n, c, d) ")
+               (let ((tem (downcase (let ((cursor-in-echo-area t))
+                                      (read-char-exclusive)))))
+                 (setq answer
+                       (if (= tem help-char)
+                           'help
+                         (cdr (assoc tem '((?y . yes)
+                                           (?n . no)
+                                           (?c . connect)
+                                           (?d . disconnect)
+                                           (?? . help))))))
+                 (cond ((null answer)
+                        (beep)
+                        (message "Please type y, n or r; or ? for help")
+                        (sit-for 3))
+                       ((eq answer 'help)
+                        (message "Yes (commit locally), No (commit remotely too),
+Connect (commit remotely from now), Disconnect (commit locally from now)")
+                        (sit-for 5)
+                        (setq answer nil))
+                       ((eq answer 'yes)
+                        (setq commit-locally t))
+                       ((eq answer 'no)
+                        (setq commit-locally nil))
+                       ((eq answer 'connect)
+                        (setq bzr-work-offline nil
+                              commit-locally nil)
+                        (bzr-inform-offline-status))
+                       ((eq answer 'disconnect)
+                        (setq bzr-work-offline t
+                              commit-locally t)
+                        (bzr-inform-offline-status)))))
+             commit-locally)))))
+
 (defun bzr-log-edit-done ()
   "Commit. Interactive prompt to know whether this should be local.
 
@@ -458,7 +556,7 @@ See `bzr-log-edit-commit' and `bzr-log-edit-commit-local' for
 non-interactive versions."
   (interactive)
   (bzr-log-edit-commit (and (bzr-is-bound)
-                            (y-or-n-p "Commit locally? "))))
+                            (bzr-ask-user-about-offline))))
 
 ;; Revisions
 
