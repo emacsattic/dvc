@@ -590,16 +590,23 @@ TODO: should share some code with tla-resolved."
                  (not (y-or-n-p (concat "Buffer still has diff3 markers. "
                                         "Mark as resolved anyway? "))))
             (error "Not marking file as resolved"))
-          (dvc-funcall-if-exists smerge-mode -1))
-      (when (not (y-or-n-p (concat "Buffer "
-                                   (buffer-name)
-                                   " is not in in smerge-mode. "
-                                   "Mark as resolved anyway? ")))
-        (error "Not making file as resolved")))
-    (dvc-run-dvc-async 'bzr
-                       `("resolved"
-                         ,file)
-                       :finished 'dvc-null-handler)))
+          (dvc-funcall-if-exists smerge-mode -1)))
+    (dolist (ext '("BASE" "OTHER" "THIS"))
+      (let ((buf (find-buffer-visiting (concat file ext))))
+        (when buf (kill-buffer buf))))
+    (dvc-run-dvc-sync 'bzr
+                      `("resolved"
+                        ,file)
+                      :finished 'dvc-null-handler)))
+
+(defun bzr-file-has-conflict-p (file-name)
+  "Return non-nil if FILE-NAME has conflicts.
+
+In practice, check for the existance of \"FILE.BASE\"."
+  (let ((rej-file-name (concat default-directory
+                               (file-name-nondirectory file-name)
+                               ".BASE")))
+    (file-exists-p rej-file-name)))
 
 
 ;; Revisions
