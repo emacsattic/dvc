@@ -6,9 +6,7 @@ Add archives(or repository) you are interested in.
 
 ** dvc itself
 
-   $ tla get stefan@xsteve.at--public-2005/dvc--dev--0
-   or
-   $ baz get stefan@xsteve.at--public-2005/dvc--dev--0
+   $ bzr get http://bzr.xsteve.at/dvc/
 
 * bzr
 
