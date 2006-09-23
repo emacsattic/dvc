@@ -404,5 +404,4 @@ This variable is buffer-local.")
 ;; end tips mode
 
 (provide 'dvc-defs)
-;; arch-tag: 194ba9e2-f492-4194-bd6c-94fd7a07b914
 ;;; dvc-defs.el ends here

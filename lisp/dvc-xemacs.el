@@ -407,6 +407,5 @@ Return the name of the directory."
 
 ;; Local Variables:
 ;; End:
-;; arch-tag: 8fb45acb-2711-4d20-ad36-1175f2634578
 
 ;;; dvc-xemacs.el ends here

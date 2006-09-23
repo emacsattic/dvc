@@ -163,5 +163,4 @@ ARG is passed as prefix argument"
   (call-interactively 'xhg-pull))
 
 (provide 'xhg-dvc)
-;; arch-tag: 9fe35856-27e1-4079-8dd3-e19ebc606b76
 ;;; xhg-dvc.el ends here

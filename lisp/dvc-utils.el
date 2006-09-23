@@ -515,5 +515,4 @@ merged by another revision in the same list."
        (when next (goto-char (ewoc-location next))))))
 
 (provide 'dvc-utils)
-;; arch-tag: 4326f0c7-b877-4c70-a393-d34381b5b6c7
 ;;; dvc-utils.el ends here

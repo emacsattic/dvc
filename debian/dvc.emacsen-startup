@@ -34,4 +34,3 @@
     (require 'auto-autoloads)
   (require 'dvc-autoloads))
 
-;; arch-tag: b830ba37-94bb-4e8b-9086-aefb7128c3e3

@@ -442,4 +442,3 @@ cleaning old .elc and reverse dependencies if needed."
 
 (provide 'package-maint)
 
-; arch-tag: b4df8066-7734-438e-b58e-f9e83c2c28fd

@@ -24,4 +24,3 @@
       (require 'auto-autoloads)
     (require 'dvc-autoloads)))
 
-; arch-tag: Matthieu Moy, Thu Mar 10 23:23:46 2005 (xtla-load-install.el.in)

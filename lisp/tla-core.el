@@ -1884,5 +1884,4 @@ Return STRING if \"tla escape\" is not available."
 ;; (setq tla--archive-tree nil)
 ;; (setq tla--revlib-tree nil)
 (provide 'tla-core)
-;; arch-tag: c9e35f5a-6aea-409d-a157-c0d73d92f9b0
 ;;; tla-core.el ends here

@@ -120,5 +120,4 @@
 
 
 (provide 'cg-revision)
-;; arch-tag: 2bb552ed-7127-49b0-9175-97cc252de6f1
 ;;; cg-revision.el ends here

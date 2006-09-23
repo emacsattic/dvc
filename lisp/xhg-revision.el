@@ -107,5 +107,4 @@
 
 
 (provide 'xhg-revision)
-;; arch-tag: 492d74cc-9bfc-49e2-a191-aca0fa670da3
 ;;; xhg-revision.el ends here

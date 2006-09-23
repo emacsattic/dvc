@@ -133,5 +133,4 @@ Commands:
 
 
 (provide 'xhg-log)
-;; arch-tag: 070bdb43-eb61-46d8-8643-b4981be5761a
 ;;; xhg-log.el ends here

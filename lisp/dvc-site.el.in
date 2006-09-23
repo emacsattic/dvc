@@ -37,4 +37,3 @@
 
 (provide 'dvc-site)
 ;;; dvc-site.el ends here
-; arch-tag: Matthieu Moy, Tue 03 May 2005 01:15:09 AM CEST (xtla-site.el)

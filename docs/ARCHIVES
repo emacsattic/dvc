@@ -6,9 +6,7 @@ Add archives(or repository) you are interested in.
 
 ** dvc itself
 
-   $ tla get stefan@xsteve.at--public-2005/dvc--dev--0
-   or
-   $ baz get stefan@xsteve.at--public-2005/dvc--dev--0
+   $ bzr get http://bzr.xsteve.at/dvc/
 
 * bzr
 
@@ -36,4 +34,3 @@ Add archives(or repository) you are interested in.
   $ darcs get --partial http://modeemi.fi/~tuomov/repos/ion-3
 
 
-# arch-tag: aebc4b24-a86b-466e-a2df-c4e0d004788c

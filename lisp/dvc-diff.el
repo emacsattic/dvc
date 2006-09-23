@@ -767,5 +767,4 @@ Calls `ediff-buffers' on BUFFERA and BUFFERB."
                    '(dvc-ediff-startup-hook) 'dvc-ediff)))
 
 (provide 'dvc-diff)
-;; arch-tag: 24ce98a6-0792-467a-8b69-6dd025dedcd0
 ;;; dvc-diff.el ends here

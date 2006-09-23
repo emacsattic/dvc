@@ -116,7 +116,6 @@ PREFIX is passed to `popup-menu'."
 (provide 'dvc-cmenu)
 
 ;; Local Variables:
-;; arch-tag: 04d6e4d2-ed04-48a1-99ce-7e766c762be8
 ;; End:
 
 ;;; dvc-cmenu.el ends here

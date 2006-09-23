@@ -364,7 +364,4 @@ DVC_ARG_SUBST([LINKPATH], [linkpath], [PATH],
 
 AC_OUTPUT
 
-m4_if(dnl	Do not change this comment
-    arch-tag: d40dfd6e-72ce-48c6-a5a1-fa6f1e6a2391
-)dnl
 # configure.ac ends here

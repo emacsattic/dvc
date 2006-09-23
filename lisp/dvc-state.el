@@ -88,7 +88,6 @@ The file will contain a setq setting the vars during loading by
 (provide 'dvc-state)
 
 ;; Local Variables:
-;; arch-tag: 5407ba00-f119-4a15-946c-a663ca3fc66d
 ;; End:
 
 ;;; dvc-state.el ends here

@@ -54,5 +54,4 @@
                                   (message "hg binit finished")))))
 
 (provide 'xhg-be)
-;; arch-tag: 0cd4bac7-5ea5-4b07-91b4-2b52a91116f8
 ;;; xhg-be.el ends here

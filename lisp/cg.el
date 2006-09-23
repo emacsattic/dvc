@@ -223,5 +223,4 @@ LAST-REVISION looks like
              :finished 'dvc-output-buffer-handler))))
 
 (provide 'cg)
-;; arch-tag: e2bf03e1-20c3-4c57-b5a0-82f24491e6f6
 ;;; cg.el ends here

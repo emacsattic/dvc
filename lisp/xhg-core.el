@@ -62,5 +62,4 @@ mercurial managed tree (but return nil)."
   (read-string prompt (xhg-log-revision-at-point)))
 
 (provide 'xhg-core)
-;; arch-tag: e98b5e0d-6702-47db-8d50-b0c7b605fc67
 ;;; xhg-core.el ends here

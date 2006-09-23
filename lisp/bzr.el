@@ -672,5 +672,4 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   (bzr-ignore-setup))
 
 (provide 'bzr)
-;; arch-tag: Matthieu Moy, Sun Sep  4 23:27:53 2005 (bzr.el)
 ;;; bzr.el ends here

@@ -9717,7 +9717,6 @@ of the commit. Additionally the destination email address can be specified."
 ;; Local Variables:
 ;; End:
 
-;; arch-tag: f2eee8c5-0f20-4fc7-b1c1-6cef4dff8a5a
 (provide 'tla)
 
 ;;; tla.el ends here

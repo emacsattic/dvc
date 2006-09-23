@@ -67,5 +67,4 @@
 ;; The UI for listing/changing bugs will be in this file
 
 (provide 'dvc-be)
-;; arch-tag: 7e225ee9-f765-4e40-9086-801a9a91994f
 ;;; dvc-be.el ends here
