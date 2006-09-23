@@ -49,7 +49,6 @@ does exist."
 (provide 'dvc-config)
 
 ;; Local Variables:
-;; arch-tag: 9a181d70-cdc5-4fc4-a253-8b1467a9b8a6
 ;; End:
 
 ;;; dvc-config.el ends here

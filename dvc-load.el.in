@@ -24,4 +24,3 @@
       (require 'dvc-autoloads "@abs_top_builddir@/lisp/auto-autoloads.elc")
     (require 'dvc-autoloads)))
 
-; arch-tag: 635c71bf-f5ea-4fcb-8873-dc2834a18a48

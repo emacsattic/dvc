@@ -159,7 +159,6 @@ Helper function for `dvc-about'."
 
 (provide 'dvc-about)
 ;; Local Variables:
-;; arch-tag: 6443d03b-2a05-415d-8743-bf9b152c377e
 ;; End:
 
 ;;; dvc-about.el ends here

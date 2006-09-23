@@ -74,5 +74,4 @@ Does anyone know of a better way to get this info?"
   (cons "BZR_PROGRESS_BAR=none" env))
 
 (provide 'bzr-core)
-;; arch-tag: Matthieu Moy, Sun Sep  4 22:31:52 2005 (bzr-core.el)
 ;;; bzr-core.el ends here

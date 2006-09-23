@@ -158,5 +158,4 @@ the patch sould be applied."
       (ediff-patch-file 2 patch-buff))))
 
 (provide 'dvc-gnus)
-;; arch-tag: 6afaa64c-9e9f-4600-beb6-1276365400d6
 ;;; dvc-gnus.el ends here

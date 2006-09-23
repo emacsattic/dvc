@@ -462,5 +462,4 @@ turn off visualization."
 
 
 (provide 'dvc-ui)
-;; arch-tag: Matthieu Moy, Tue Oct 25 22:27:07 2005 (dvc-ui.el)
 ;;; dvc-ui.el ends here

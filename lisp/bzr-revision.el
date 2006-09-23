@@ -164,5 +164,4 @@
 
 
 (provide 'bzr-revision)
-;; arch-tag: 7d1b4394-a149-4b1b-99e8-2174da2422d5
 ;;; bzr-revision.el ends here

@@ -121,4 +121,3 @@ dvc-custom.el if GNU Emacs"
 (package-maint-remove-files no-compile-files)
 
 ;;; dvc-build.el ends here
-;; arch-tag: dfc914ba-8da6-470b-995b-03b09cd66592

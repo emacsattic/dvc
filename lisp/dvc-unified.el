@@ -223,5 +223,4 @@ the current active back-end."
   (interactive))
 
 (provide 'dvc-unified)
-;; arch-tag: 914f9b69-1af2-4d11-9ac0-f6db89267881
 ;;; dvc-unified.el ends here

@@ -1016,5 +1016,4 @@ implement `command-version' function."
   nil)
 
 (provide 'dvc-core)
-;; arch-tag: 6650f429-f77f-40a9-a058-647161b59f68
 ;;; dvc-core.el ends here

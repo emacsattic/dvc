@@ -1498,6 +1498,5 @@ Don't use this function.  Instead call `tla-browse'."
 (provide 'tla-browse)
 
 ;; Local Variables:
-;; arch-tag: 5e947e90-82df-4f49-9325-719a3f27732e
 ;; End:
 ;;; tla-browse.el ends here

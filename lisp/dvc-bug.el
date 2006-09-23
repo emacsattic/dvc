@@ -82,7 +82,6 @@
 (provide 'dvc-bug)
 
 ;; Local Variables:
-;; arch-tag: 164fbbf1-9786-49a8-80dc-12ae95dbd8dc
 ;; End:
 
 ;;; dvc-bug.el ends here
