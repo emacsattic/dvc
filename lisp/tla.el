@@ -9646,6 +9646,7 @@ For an example, how to use this function see: `tla-submit-patch'."
     (mail-position-on-field "Subject")
     (insert (or subject "[PATCH] "))))
 
+;;;###autoload
 (defun tla-submit-patch-done ()
   "Clean up after sending a patch via mail.
 That function is usually called via `message-sent-hook'. Its purpose is to revert
