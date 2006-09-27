@@ -708,7 +708,7 @@ LAST-REVISION looks like
   bzr-command-version)
 
 (defun bzr-whoami ()
-  "Run bzr whomai."
+  "Run bzr whoami."
   (interactive)
   (let ((whoami (dvc-run-dvc-sync 'bzr (list "whoami")
                                    :finished 'dvc-output-buffer-handler)))
