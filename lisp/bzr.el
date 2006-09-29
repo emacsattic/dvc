@@ -94,12 +94,15 @@ via bzr init-repository."
 (defun bzr-checkout (branch-location to-location &optional lightweight revision)
   "Run bzr checkout."
   (interactive
-   (list (read-string "bzr checkout branch location: ")
-         (expand-file-name (dvc-read-directory-name "bzr checkout to: "
-                                                    (or default-directory
-                                                        (getenv "HOME"))))
-         (y-or-n-p "Do a lightweight checkout? ")
-         nil))
+   (let* ((branch-loc (read-string "bzr checkout branch location: " nil nil bzr-default-init-repository-directory))
+          (co-dir (or default-directory (getenv "HOME")))
+          (to-loc (expand-file-name
+                   (dvc-read-directory-name "bzr checkout to: "
+                                            co-dir
+                                            (concat co-dir (file-name-nondirectory (replace-regexp-in-string "/trunk/?$" "" branch-loc))))))
+          (lw (y-or-n-p "Do a lightweight checkout? "))
+          (rev nil))
+     (list branch-loc to-loc lw rev)))
   (dvc-run-dvc-sync 'bzr (list "checkout"
                                (when lightweight "--lightweight")
                                branch-location to-location)
