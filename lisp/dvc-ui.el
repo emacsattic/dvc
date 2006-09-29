@@ -445,6 +445,9 @@ turn off visualization."
   (when dvc-show-active-dvc
     (dvc-actualize-modeline)))
 
+(defun dvc-dvc-file-has-conflict-p (filename)
+  nil)
+
 (defun dvc-find-file-hook ()
   "Set dvc-show-active-dvc-string, after loading a file."
   (when (dvc-current-active-dvc)

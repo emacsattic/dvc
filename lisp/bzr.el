@@ -717,7 +717,7 @@ LAST-REVISION looks like
   bzr-command-version)
 
 (defun bzr-whoami ()
-  "Run bzr whomai."
+  "Run bzr whoami."
   (interactive)
   (let ((whoami (dvc-run-dvc-sync 'bzr (list "whoami")
                                    :finished 'dvc-output-buffer-handler)))
@@ -762,14 +762,15 @@ LAST-REVISION looks like
 
 (defun bzr-config-directory ()
   "Path of the configuration directory for bzr."
-  ;; TODO: not windows portable.
-  (expand-file-name "~/.bazaar/"))
+  (file-name-as-directory
+   (if (eq system-type 'windows-nt)
+       (expand-file-name  "bazaar/2.0" (getenv "APPDATA"))
+     (expand-file-name "~/.bazaar"))))
 
 (defun bzr-config-file (file)
   "Path of configuration file FILE for bzr.
 
 File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
-  ;; TODO: not windows portable.
   (concat (bzr-config-directory) file))
 
 (defvar bzr-ignore-list ".tmp-bzr*\n"
