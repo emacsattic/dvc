@@ -34,6 +34,14 @@ When no function is provided, dvc-dvc-<postfix> is used instead.
    (defun #DVC#-dvc-command-version ()
      "Returns and/or shows the version identity string of backend command."
 
+- #DVC#-dvc-file-has-conflict-p
+   (defun #DVC#-dvc-file-has-conflict-p (filename)
+     "Return non-nil if FILENAME is marked as having conflicts")
+
+- #DVC#-dvc-resolved
+   (defun #DVC#-dvc-resolved (filename)
+     "Mark FILENAME as not having conflict anymore")
+
 
 -----------------------------------------------------------------------------
 * Revision API
