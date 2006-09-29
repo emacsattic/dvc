@@ -567,6 +567,50 @@ non-interactive versions."
   (bzr-log-edit-commit (and (bzr-is-bound)
                             (bzr-ask-user-about-offline))))
 
+
+(eval-when-compile
+  (defvar smerge-mode))
+
+;;;###autoload
+(defun bzr-resolved (file)
+  "Command to delete .rej file after conflicts resolution.
+Asks confirmation if the file still has diff3 markers.
+Then, run \"bzr revolve\".
+
+TODO: should share some code with tla-resolved."
+  (interactive
+   (list (let ((file (buffer-file-name)))
+           (if (string-match "^\\(.*\\)\\.\\(BASE\\|OTHER\\|THIS\\)$" file)
+               (let ((norej (match-string 1 file)))
+                 (if (and (file-exists-p norej)
+                          (y-or-n-p (format "Use file %s instead of %s? "
+                                            (file-name-nondirectory norej)
+                                            (file-name-nondirectory file))))
+                     norej
+                   file))
+             file))))
+  (with-current-buffer (find-file-noselect file)
+    (if (and (boundp 'smerge-mode) smerge-mode)
+        (progn
+          (when (and
+                 (save-excursion
+                   (goto-char (point-min))
+                   (dvc-funcall-if-exists smerge-find-conflict))
+                 (not (y-or-n-p (concat "Buffer still has diff3 markers. "
+                                        "Mark as resolved anyway? "))))
+            (error "Not marking file as resolved"))
+          (dvc-funcall-if-exists smerge-mode -1))
+      (when (not (y-or-n-p (concat "Buffer "
+                                   (buffer-name)
+                                   " is not in in smerge-mode. "
+                                   "Mark as resolved anyway? ")))
+        (error "Not making file as resolved")))
+    (dvc-run-dvc-async 'bzr
+                       `("resolved"
+                         ,file)
+                       :finished 'dvc-null-handler)))
+
+
 ;; Revisions
 
 (defun bzr-revision-id-location (rev-id)
