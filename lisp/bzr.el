@@ -385,6 +385,48 @@ of the commit. Additionally the destination email address can be specified."
                                      (capture root)
                                      output error))))))
 
+(defun bzr-parse-inventory (changes-buffer)
+  ;;(dvc-trace "bzr-parse-inventory (while)")
+  (while (> (point-max) (point))
+    ;;(dvc-trace-current-line)
+    (cond ((looking-at "\\([^\n]*?\\)\\([/@]\\)?$")
+           (let ((file (match-string-no-properties 1))
+                 (dir (match-string-no-properties 2)))
+             (with-current-buffer changes-buffer
+               (ewoc-enter-last dvc-diff-cookie
+                                (list 'file file
+                                      ;; TODO perhaps not only " ".
+                                      " " " " dir nil)))))
+          (t (error "unrecognized context in bzr-parse-inventory")))
+    (forward-line 1)))
+
+;;;###autoload
+(defun bzr-inventory ()
+  "Run \"bzr inventory\"."
+  (interactive)
+  (let* ((dir default-directory)
+         (root (bzr-tree-root dir))
+         (buffer (dvc-prepare-changes-buffer
+                  `(bzr (last-revision ,root 1))
+                  `(bzr (local-tree ,root))
+                  'inventory root 'bzr)))
+    (dvc-switch-to-buffer-maybe buffer)
+    (setq dvc-buffer-refresh-function 'bzr-inventory)
+    (dvc-save-some-buffers root)
+    (dvc-run-dvc-async
+     'bzr '("inventory")
+     :finished
+     (dvc-capturing-lambda (output error status arguments)
+       (with-current-buffer (capture buffer)
+         (dvc-show-changes-buffer output 'bzr-parse-inventory
+                                  (capture buffer)))
+       :error
+       (dvc-capturing-lambda (output error status arguments)
+         (dvc-diff-error-in-process (capture buffer)
+                                     "Error in inventory process"
+                                     (capture root)
+                                     output error))))))
+
 ;;;###autoload
 (defun bzr-add (file)
   "Adds FILE to the repository."
