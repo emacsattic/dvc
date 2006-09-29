@@ -447,12 +447,13 @@ turn off visualization."
 
 (defun dvc-find-file-hook ()
   "Set dvc-show-active-dvc-string, after loading a file."
-  (dvc-actualize-modeline)
-  (when (dvc-apply "dvc-file-has-conflict-p" (buffer-file-name))
+  (when (dvc-current-active-dvc)
+    (dvc-actualize-modeline)
+    (when (dvc-apply "dvc-file-has-conflict-p" (buffer-file-name))
       (dvc-funcall-if-exists smerge-mode 1)
       (message
        "Conflicts in file%s. Use M-x dvc-resolved RET when done."
-       (if (boundp 'smerge-mode) ", entering SMerge mode" ""))))
+       (if (boundp 'smerge-mode) ", entering SMerge mode" "")))))
 
 (defun dvc-dired-hook ()
   "Set dvc-show-active-dvc-string for dired buffers."

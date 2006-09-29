@@ -684,7 +684,7 @@ REVISION looks like
        (dvc-run-dvc-sync
         ;; TODO what if I'm not at the tree root ?
         'bzr (list "cat" "--revision" bzr-rev file)
-        :finished 'dvc-output-buffer-handler)))))
+        :finished 'dvc-output-buffer-handler-withnewline)))))
 
 ;;;###autoload
 (defun bzr-revision-get-last-revision (file last-revision)
@@ -700,7 +700,7 @@ LAST-REVISION looks like
      (dvc-run-dvc-sync
       ;; TODO what if I'm not at the tree root ?
       'bzr (list "cat" "--revision" bzr-rev file)
-      :finished 'dvc-output-buffer-handler))))
+      :finished 'dvc-output-buffer-handler-withnewline))))
 
 (defun bzr-command-version ()
   "Run bzr version."
