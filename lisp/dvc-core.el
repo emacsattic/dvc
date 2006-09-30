@@ -374,10 +374,6 @@ STATUS indicates the return status of the program.
 ARGUMENTS is a list of the arguments that the process was called with."
   (dvc-buffer-content output))
 
-(defun dvc-output-buffer-handler-withnewline (output error status arguments)
-  "Same as dvc-output-buffer-handler, but keep potential final newline."
-  (with-current-buffer output (buffer-string)))
-
 (defun dvc-output-and-error-buffer-handler (output error status arguments)
   "Return the output of a finished process, stripping any trailing newline.
 OUTPUT is the buffer containing process standard output.
@@ -1020,5 +1016,4 @@ implement `command-version' function."
   nil)
 
 (provide 'dvc-core)
-;; arch-tag: 6650f429-f77f-40a9-a058-647161b59f68
 ;;; dvc-core.el ends here

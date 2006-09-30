@@ -128,10 +128,6 @@ If DONT-SWITCH is nil, switch to the newly created buffer.")
 (dvc-create-unified-command "revision-nth-ancestor" (revision n)
   "Computes the direct ancestor of a revision.")
 
-(dvc-create-unified-command "resolved" (file)
-  "Mark FILE as resolved"
-  (interactive (list (buffer-file-name))))
-
 (defvar dvc-command-version nil)
 ;;;###autoload
 (defun dvc-command-version ()
@@ -227,5 +223,4 @@ the current active back-end."
   (interactive))
 
 (provide 'dvc-unified)
-;; arch-tag: 914f9b69-1af2-4d11-9ac0-f6db89267881
 ;;; dvc-unified.el ends here

@@ -620,5 +620,4 @@ LAST-REVISION looks like
 
 
 (provide 'xhg)
-;; arch-tag: ed83a493-41c9-45bd-ae3a-7589170fd3f7
 ;;; xhg.el ends here

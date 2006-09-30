@@ -58,5 +58,4 @@ git managed tree (but return nil)."
 
 
 (provide 'xdarcs-core)
-;; arch-tag: e42e9e80-942b-4145-84d2-026705998dbc
 ;;; xdarcs-core.el ends here

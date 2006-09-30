@@ -533,5 +533,4 @@ a difference."
 
 
 (provide 'tla-tests)
-;; arch-tag: 4fce7821-79bb-449e-aeba-221f8ac65cc3
 ;;; tla-tests.el ends here

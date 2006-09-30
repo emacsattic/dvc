@@ -47,5 +47,4 @@ K t s `xhg-gnus-article-view-status-for-import-patch'"
   )
 
 (provide 'xhg-gnus)
-;; arch-tag: 97cb4911-0bd5-44df-964c-472b5a8de066
 ;;; xhg-gnus.el ends here

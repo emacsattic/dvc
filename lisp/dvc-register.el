@@ -165,5 +165,4 @@ The given value is stored in `dvc-current-active-dvc-cache'."
   (puthash directory dvc dvc-current-active-dvc-cache))
 
 (provide 'dvc-register)
-;; arch-tag: 6a92007b-0542-4196-a7ca-4771b29bd1c9
 ;;; dvc-register.el ends here

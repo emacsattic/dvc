@@ -266,4 +266,3 @@ instead."
 
 (provide 'dvc-tips)
 ;;; dvc-tips.el ends here
-;; arch-tag: 782d1e21-d7b5-4d1a-ac64-1fc41f1c13fe

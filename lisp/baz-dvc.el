@@ -53,5 +53,4 @@
 (defalias 'baz-dvc-command-version 'baz-command-version)
 
 (provide 'baz-dvc)
-;; arch-tag: e04ae270-f6ac-4ab0-ad7a-69baf688a382
 ;;; baz-dvc.el ends here

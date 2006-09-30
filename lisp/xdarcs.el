@@ -214,5 +214,4 @@ LAST-REVISION looks like
         ))))
 
 (provide 'xdarcs)
-;; arch-tag: 2fbe8900-26b2-49bb-bc40-c5f2da78ff59
 ;;; xdarcs.el ends here

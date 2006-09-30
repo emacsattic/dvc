@@ -242,5 +242,4 @@ via `xhg-apply-patch-mapping'."
 
 
 (provide 'tla-gnus)
-;; arch-tag: a858ca04-352e-42a9-88c5-6324c3743711
 ;;; tla-gnus.el ends here

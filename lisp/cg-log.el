@@ -89,5 +89,4 @@ Commands:
     (match-string-no-properties 1)))
 
 (provide 'cg-log)
-;; arch-tag: 3643532f-48ee-4a09-b7cb-d9029b3ccb8d
 ;;; cg-log.el ends here

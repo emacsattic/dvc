@@ -1,5 +1,4 @@
 #! /bin/bash
-# arch-tag: 66ab59c1-6281-4c11-9b5f-bf95fff9c8bb
 
 # Generates the tarball and html documentation, upload it to gna.org
 # This file is currently used only by Matthieu MOY, and is provided

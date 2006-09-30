@@ -2039,5 +2039,4 @@ defining it."
 
 (provide 'tla-defs)
 
-;; arch-tag: fb2c4733-b5da-4d02-8a27-5e3eaa090442
 ;;; tla-defs.el ends here

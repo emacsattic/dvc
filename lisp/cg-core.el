@@ -63,5 +63,4 @@ It will be nil before the initial commit."
   (file-readable-p (concat (cg-tree-root) "/.git/HEAD")))
 
 (provide 'cg-core)
-;; arch-tag: e63a2bb8-0703-4d7d-ab9c-8034ce1c9961
 ;;; cg-core.el ends here

@@ -300,5 +300,4 @@ Inserts the entry in the arch log file instead of the ChangeLog."
         (insert ": ")))))
 
 (provide 'dvc-log)
-;; arch-tag: Matthieu Moy, Wed Oct 26 20:38:45 2005 (dvc-log.el)
 ;;; dvc-log.el ends here

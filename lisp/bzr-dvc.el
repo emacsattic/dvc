@@ -106,10 +106,5 @@ Usually that file is placed in the tree-root of the working tree.")
 
 (defalias 'bzr-dvc-prepare-environment 'bzr-prepare-environment)
 
-(defalias 'bzr-dvc-file-has-conflict-p 'bzr-file-has-conflict-p)
-
-(defalias 'bzr-dvc-resolved 'bzr-resolved)
-
 (provide 'bzr-dvc)
-;; arch-tag: 39d450b3-ffb1-4911-bb27-4d483a6abb8f
 ;;; bzr-dvc.el ends here

@@ -210,5 +210,4 @@
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-data)))
 
 (provide 'dvc-bookmarks)
-;; arch-tag: 012ea56b-649b-443b-9fc3-8b0c4b0fdc51
 ;;; dvc-bookmarks.el ends here

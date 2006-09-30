@@ -8824,6 +8824,11 @@ that visits the link."
 Follow symlinked files/directories to the actual location of a file.
 Enter smerge mode if the file has conflicts (detected by the presence
 of a .rej file)."
+  (when (tla-file-has-conflict-p (buffer-file-name))
+    (dvc-funcall-if-exists smerge-mode 1)
+    (message
+     "Conflicts in file%s. Use M-x {tla|baz}-conflicts-finish RET when done."
+     (if (boundp 'smerge-mode) ", entering SMerge mode" "")))
   (let (link file result)
     (when (and (if (boundp 'vc-ignore-vc-files)
                    (not vc-ignore-vc-files)
@@ -9712,7 +9717,6 @@ of the commit. Additionally the destination email address can be specified."
 ;; Local Variables:
 ;; End:
 
-;; arch-tag: f2eee8c5-0f20-4fc7-b1c1-6cef4dff8a5a
 (provide 'tla)
 
 ;;; tla.el ends here

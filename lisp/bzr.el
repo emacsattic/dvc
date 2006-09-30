@@ -460,104 +460,6 @@ LOCAL is ignored on non-bound branches."
                    (message "Bzr commit finished !"))))
     (dvc-tips-popup-maybe)))
 
-(defcustom bzr-work-offline 'prompt
-"*Whether bzr commit should use --local for bound branches by default.
-
-Possible values are:
-t: work offline  (use --local systematialy)
-nil: work online (don't use --local)
-'prompt: prompt when needed."
-  :type '(choice (const t)
-                 (const nil)
-                 (const prompt))
-  :group 'dvc)
-
-(defun bzr-inform-offline-status ()
-  "Informs the user about the offline status of bzr."
-  (interactive)
-  (message "DVC-bzr will now %s.
-Use M-x bzr-change-offline-status RET to change."
-           (cond ((eq bzr-work-offline t)
-                  "work offline (use commit --local)")
-                 ((eq bzr-work-offline nil)
-                  "work online (don't provide --local to commit)")
-                 ((eq bzr-work-offline 'prompt)
-                  "prompt to use --local or not"))))
-
-(defun bzr-change-offline-status ()
-  "Change the offline status of DVC-bzr.
-
-Prompt the user and change `bzr-work-offline' accordingly."
-  (interactive)
-  (discard-input)
-  (save-window-excursion
-    (let (answer commit-locally)
-      (while (null answer)
-        (message "Change offline status to ([C]onnected, [D]isconnected, [P]rompt)): ")
-        (let ((tem (downcase (let ((cursor-in-echo-area t))
-                               (read-char-exclusive)))))
-          (setq answer
-                (if (= tem help-char)
-                    'help
-                  (cdr (assoc tem '((?c . connect)
-                                    (?d . t)
-                                    (?p . prompt))))))
-          (cond ((null answer)
-                 (beep)
-                 (message "Please type c, p or d")
-                 (sit-for 3))
-                ((eq answer 'connect)
-                 (setq bzr-work-offline nil))
-                (t
-                 (setq bzr-work-offline answer)))
-          (bzr-inform-offline-status))))))
-
-
-(defun bzr-ask-user-about-offline ()
-  "Return non-nil if bzr should work offline."
-  (cond ((eq bzr-work-offline t)
-         t)
-        ((eq bzr-work-offline nil)
-         nil)
-        (t
-         (discard-input)
-         (save-window-excursion
-           (let (answer commit-locally)
-             (while (null answer)
-               (message "Commit locally only? (y, n, c, d) ")
-               (let ((tem (downcase (let ((cursor-in-echo-area t))
-                                      (read-char-exclusive)))))
-                 (setq answer
-                       (if (= tem help-char)
-                           'help
-                         (cdr (assoc tem '((?y . yes)
-                                           (?n . no)
-                                           (?c . connect)
-                                           (?d . disconnect)
-                                           (?? . help))))))
-                 (cond ((null answer)
-                        (beep)
-                        (message "Please type y, n or r; or ? for help")
-                        (sit-for 3))
-                       ((eq answer 'help)
-                        (message "Yes (commit locally), No (commit remotely too),
-Connect (commit remotely from now), Disconnect (commit locally from now)")
-                        (sit-for 5)
-                        (setq answer nil))
-                       ((eq answer 'yes)
-                        (setq commit-locally t))
-                       ((eq answer 'no)
-                        (setq commit-locally nil))
-                       ((eq answer 'connect)
-                        (setq bzr-work-offline nil
-                              commit-locally nil)
-                        (bzr-inform-offline-status))
-                       ((eq answer 'disconnect)
-                        (setq bzr-work-offline t
-                              commit-locally t)
-                        (bzr-inform-offline-status)))))
-             commit-locally)))))
-
 (defun bzr-log-edit-done ()
   "Commit. Interactive prompt to know whether this should be local.
 
@@ -565,58 +467,7 @@ See `bzr-log-edit-commit' and `bzr-log-edit-commit-local' for
 non-interactive versions."
   (interactive)
   (bzr-log-edit-commit (and (bzr-is-bound)
-                            (bzr-ask-user-about-offline))))
-
-
-(eval-when-compile
-  (defvar smerge-mode))
-
-;;;###autoload
-(defun bzr-resolved (file)
-  "Command to delete .rej file after conflicts resolution.
-Asks confirmation if the file still has diff3 markers.
-Then, run \"bzr revolve\".
-
-TODO: should share some code with tla-resolved."
-  (interactive
-   (list (let ((file (buffer-file-name)))
-           (if (string-match "^\\(.*\\)\\.\\(BASE\\|OTHER\\|THIS\\)$" file)
-               (let ((norej (match-string 1 file)))
-                 (if (and (file-exists-p norej)
-                          (y-or-n-p (format "Use file %s instead of %s? "
-                                            (file-name-nondirectory norej)
-                                            (file-name-nondirectory file))))
-                     norej
-                   file))
-             file))))
-  (with-current-buffer (find-file-noselect file)
-    (if (and (boundp 'smerge-mode) smerge-mode)
-        (progn
-          (when (and
-                 (save-excursion
-                   (goto-char (point-min))
-                   (dvc-funcall-if-exists smerge-find-conflict))
-                 (not (y-or-n-p (concat "Buffer still has diff3 markers. "
-                                        "Mark as resolved anyway? "))))
-            (error "Not marking file as resolved"))
-          (dvc-funcall-if-exists smerge-mode -1)))
-    (dolist (ext '("BASE" "OTHER" "THIS"))
-      (let ((buf (find-buffer-visiting (concat file ext))))
-        (when buf (kill-buffer buf))))
-    (dvc-run-dvc-sync 'bzr
-                      `("resolved"
-                        ,file)
-                      :finished 'dvc-null-handler)))
-
-(defun bzr-file-has-conflict-p (file-name)
-  "Return non-nil if FILE-NAME has conflicts.
-
-In practice, check for the existance of \"FILE.BASE\"."
-  (let ((rej-file-name (concat default-directory
-                               (file-name-nondirectory file-name)
-                               ".BASE")))
-    (file-exists-p rej-file-name)))
-
+                            (y-or-n-p "Commit locally? "))))
 
 ;; Revisions
 
@@ -684,7 +535,7 @@ REVISION looks like
        (dvc-run-dvc-sync
         ;; TODO what if I'm not at the tree root ?
         'bzr (list "cat" "--revision" bzr-rev file)
-        :finished 'dvc-output-buffer-handler-withnewline)))))
+        :finished 'dvc-output-buffer-handler)))))
 
 ;;;###autoload
 (defun bzr-revision-get-last-revision (file last-revision)
@@ -700,7 +551,7 @@ LAST-REVISION looks like
      (dvc-run-dvc-sync
       ;; TODO what if I'm not at the tree root ?
       'bzr (list "cat" "--revision" bzr-rev file)
-      :finished 'dvc-output-buffer-handler-withnewline))))
+      :finished 'dvc-output-buffer-handler))))
 
 (defun bzr-command-version ()
   "Run bzr version."
@@ -822,5 +673,4 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   (bzr-ignore-setup))
 
 (provide 'bzr)
-;; arch-tag: Matthieu Moy, Sun Sep  4 23:27:53 2005 (bzr.el)
 ;;; bzr.el ends here

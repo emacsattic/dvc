@@ -380,5 +380,4 @@ the corresponding source buffer."
 
 (provide 'baz)
 
-;; arch-tag: c5c0bc9f-8d12-4072-92a7-9623bcfcdb3c
 ;;; baz.el ends here

@@ -78,7 +78,6 @@ Return the name of the directory."
 
 (provide 'dvc-emacs)
 ;; Local Variables:
-;; arch-tag: 66b92889-1ce9-4c1d-818a-8bd5ee499091
 ;; End:
 
 ;;; dvc-emacs.el ends here
