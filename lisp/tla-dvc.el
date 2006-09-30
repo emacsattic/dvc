@@ -87,6 +87,10 @@
 (defun tla-dvc-log-edit-file-name-func ()
   (tla-make-log))
 
+(defun tla-dvc-inventory ()
+  (interactive)
+  (tla-inventory))
+
 (defun tla-dvc-missing ()
   (interactive)
   ;; eventually move the user input logic from tla-missing to this function...

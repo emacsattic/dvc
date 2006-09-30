@@ -66,7 +66,7 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
     (set (make-local-variable 'dvc-diff-modified) modified)
     (set (make-local-variable 'dvc-buffer-search-file)
          (dvc-function dvc "dvc-search-file-in-diff"))
-    (dvc-trace "dvc=%S function=%S" dvc dvc-buffer-search-file)
+    ;;(dvc-trace "dvc=%S function=%S" dvc dvc-buffer-search-file)
     (current-buffer)))
 
 (defun dvc-diff-chose-face (status modif)

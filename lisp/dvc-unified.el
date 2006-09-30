@@ -201,6 +201,11 @@ the current active back-end."
   "Show the missing changesets for this working copy."
   (interactive))
 
+;;;###autoload
+(dvc-create-unified-command "inventory" ()
+  "Show the inventory for this working copy."
+  (interactive))
+
 ;;###autoload
 (dvc-create-unified-command "save-diff" (file)
   "Store the diff from the working copy against the repository in a file."
