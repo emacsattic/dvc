@@ -113,6 +113,9 @@
   "See `tla-inventory-revert-file'"
   (mapcar 'tla-inventory-revert-file files))
 
+(defalias 'tla-dvc-file-has-conflict-p 'tla-file-has-conflict-p)
+
+(defalias 'tla-dvc-resolved 'tla-resolved)
 
 (provide 'tla-dvc)
 ;;; tla-dvc.el ends here
