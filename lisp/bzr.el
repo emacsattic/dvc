@@ -402,6 +402,15 @@ of the commit. Additionally the destination email address can be specified."
                                     (output error status arguments)
                                   (message "bzr add finished")))))
 
+(defun bzr-revert-files (&rest files)
+  "Run bzr revert."
+  (message "bzr-revert-files: %s" files)
+  (let ((default-directory (bzr-tree-root)))
+    (dvc-run-dvc-sync 'bzr (append '("revert") (mapcar #'file-relative-name files))
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr revert finished")))))
+
 (defun bzr-is-bound (&optional path)
   "True if branch containing PATH is bound"
   (file-exists-p (concat (file-name-as-directory
