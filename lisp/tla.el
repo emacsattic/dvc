@@ -2334,7 +2334,7 @@ temporary and should be deleted."
                               (tla-revision-direct-ancestor
                                (cadr revision)))))
     ((last-revision revision)
-     (error "this has moved to DVC"))))
+     (error "tla-file-get-revision-in-file has moved to DVC, use dvc-revision-get-file-in-buffer instead"))))
 
 (defun tla-file-revert (file &optional revision)
   "Revert the file FILE to the last committed version.
@@ -2361,11 +2361,11 @@ and this revision will be used as a reference."
   ;; set aside a backup copy
   (copy-file file (car (find-backup-file-name file)) t)
 
-  (let* ((file-unmo-temp (tla-file-get-revision-in-file
+  (let* ((file-unmo-temp (dvc-revision-get-file-in-buffer
                           file (if revision
                                    (list 'revision revision)
-                                 (list 'last-revision (tla-tree-root)))))
-         (original (car file-unmo-temp)))
+                                 `(baz (last-revision ,(tla-tree-root) 1)))))
+         (original file-unmo-temp))
 
     ;; display diff
     (tla--run-tla-sync (list "file-diffs" file revision)
@@ -2396,9 +2396,10 @@ and this revision will be used as a reference."
       (bury-buffer)
       (error "Not reverting file %s!" file))
     (bury-buffer)
-    (copy-file original file t)
     (let ((buf (get-file-buffer file)))
-      (when buf (with-current-buffer buf (revert-buffer))))))
+      (erase-buffer)
+      (insert-buffer-substring original)
+      (save-buffer))))
 
 (defun tla-undo (tree &optional
                       archive category branch version revision)
