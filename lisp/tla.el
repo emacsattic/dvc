@@ -7091,9 +7091,8 @@ Commands:
   "Return the maintainer name for a given VERSION.
 This function looks in the bookmarks file for the nickname field and
 returns it.
-If the nickname field is not present, just return the archive name for
-VERSION."
-  (tla-bookmarks-get-field version 'nickname (tla--name-archive version)))
+If the nickname field is not present, just return VERSION as string."
+  (tla-bookmarks-get-field version 'nickname (tla--name-mask version t t t t t)))
 
 (defun tla-archive-maintainer-id (archive &optional shorter)
   "Return my-id substring from ARCHIVE.
