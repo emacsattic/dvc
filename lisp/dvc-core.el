@@ -925,10 +925,10 @@ Strips the final newline if there is one."
   (car revision-id))
 
 (defun dvc-revision-get-type (revision-id)
-  (car (cadr revision-id)))
+  (car (nth 1 revision-id)))
 
 (defun dvc-revision-get-data (revision-id)
-  (cdr (cadr revision-id)))
+  (cdr (nth 1 revision-id)))
 
 (defun dvc-revision-to-string (revision-id)
   "Return a string representation for REVISION-ID."
@@ -966,6 +966,7 @@ REVISION-ID may have the values described in docs/DVC-API."
   "Return a buffer with the content of FILE at REVISION-ID.
 
 REVISION-ID is as specified in docs/DVC-API."
+  (dvc-trace "dvc-revision-get-file-in-buffer. revision-id=%S" revision-id)
   (let ((type (dvc-revision-get-type revision-id))
         (inhibit-read-only t))
     (if (eq type 'previous-revision)
@@ -995,11 +996,13 @@ REVISION-ID is as specified in docs/DVC-API."
   "Default function to get the previous revision of a FILE.
 
 REVISION looks like
-\((baz (...)) 42)."
+\((baz (...)) 42).
+\(REV-ID N)."
+  (dvc-trace "get-prev-rev. revision=%S" revision)
   (dvc-revision-get-file-in-buffer
    file
    (dvc-revision-nth-ancestor (nth 0 revision)
-                              (nth 1 revision))))
+                              (or (nth 1 revision) 1))))
 
 (defun dvc-dvc-revision-nth-ancestor (revision n)
   "Default function to get the n-th ancestor of REVISION."

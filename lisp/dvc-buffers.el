@@ -178,8 +178,9 @@ See also `dvc-get-buffer'"
                      buffer)))))))
     (with-current-buffer return-buffer
       (setq dvc-buffer-current-active-dvc dvc)
-      (dvc-trace "create buffer %S with back-end %S"
-                 return-buffer dvc-buffer-current-active-dvc)
+      (dvc-trace "create buffer %S with back-end %S in %S"
+                 return-buffer dvc-buffer-current-active-dvc
+                 default-directory)
       return-buffer)))
 
 

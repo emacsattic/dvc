@@ -67,6 +67,8 @@ Usually that file is placed in the tree-root of the working tree.")
 ;;;###autoload
 (defalias 'bzr-dvc-command-version 'bzr-command-version)
 
+(defalias 'bzr-dvc-revision-nth-ancestor 'bzr-revision-nth-ancestor)
+
 (defalias 'bzr-dvc-log 'bzr-log)
 
 (defalias 'bzr-dvc-changelog 'bzr-changelog)
