@@ -87,6 +87,10 @@
 (defun tla-dvc-log-edit-file-name-func ()
   (tla-make-log))
 
+(defun tla-dvc-inventory ()
+  (interactive)
+  (tla-inventory))
+
 (defun tla-dvc-missing ()
   (interactive)
   ;; eventually move the user input logic from tla-missing to this function...
@@ -118,5 +122,4 @@
 (defalias 'tla-dvc-resolved 'tla-resolved)
 
 (provide 'tla-dvc)
-;; arch-tag: d1a68f69-b92c-4b3b-9205-91dba96cd275
 ;;; tla-dvc.el ends here

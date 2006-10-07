@@ -150,7 +150,6 @@
 (provide 'tla-bconfig)
 
 ;; Local Variables:
-;; arch-tag: d2abd122-ada8-45d7-aa6a-f88ee493f78c
 ;; End:
 ;; tla-bconfig.el ends here
 

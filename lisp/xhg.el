@@ -34,6 +34,8 @@
 (require 'xhg-core)
 (require 'xhg-log)
 
+(defvar xhg-export-git-style-patches t "Run hg export --git.")
+
 ;;;###autoload
 (defun xhg-init (&optional dir)
   "Run hg init."
@@ -414,10 +416,11 @@ otherwise: Return a list of two element sublists containing alias, path"
   (dvc-run-dvc-async 'xhg '("view")))
 
 (defun xhg-export (rev fname)
-  "Run hg export."
+  "Run hg export.
+`xhg-export-git-style-patches' determines, if git style patches are created."
   (interactive (list (xhg-read-revision "Export revision: ")
                      (read-file-name "Export hg revision to: ")))
-  (dvc-run-dvc-sync 'xhg (list "export" "-o" (expand-file-name fname) rev)
+  (dvc-run-dvc-sync 'xhg (list "export" (when xhg-export-git-style-patches "--git") "-o" (expand-file-name fname) rev)
    :finished
    (lambda (output error status arguments)
      (message "Exported revision %s to %s." rev fname))))
@@ -617,5 +620,4 @@ LAST-REVISION looks like
 
 
 (provide 'xhg)
-;; arch-tag: ed83a493-41c9-45bd-ae3a-7589170fd3f7
 ;;; xhg.el ends here

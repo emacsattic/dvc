@@ -404,5 +404,4 @@ that is used in the generated email."
       (goto-char pos))))
 
 (provide 'xhg-mq)
-;; arch-tag: 2cb36064-5e56-48af-a836-79a3f5e80c8c
 ;;; xhg-mq.el ends here

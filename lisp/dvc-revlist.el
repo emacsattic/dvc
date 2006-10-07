@@ -349,5 +349,4 @@ build the revision list."
   ;; TODO: (message "Copied log message for %s" (tla-changelog-revision-at-point)))
 
 (provide 'dvc-revlist)
-;; arch-tag: Matthieu Moy, Sat 12 Nov 2005 12:15:26 AM MET (dvc-revlist.el)
 ;;; dvc-revlist.el ends here

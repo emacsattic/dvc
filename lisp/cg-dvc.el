@@ -97,5 +97,4 @@ ARG is passed as prefix argument"
   (call-interactively 'cg-log))
 
 (provide 'cg-dvc)
-;; arch-tag: 4c8cbaec-f959-4597-8edc-f841c155f2c1
 ;;; cg-dvc.el ends here

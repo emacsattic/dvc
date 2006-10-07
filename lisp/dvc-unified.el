@@ -201,6 +201,11 @@ the current active back-end."
   "Show the missing changesets for this working copy."
   (interactive))
 
+;;;###autoload
+(dvc-create-unified-command "inventory" ()
+  "Show the inventory for this working copy."
+  (interactive))
+
 ;;###autoload
 (dvc-create-unified-command "save-diff" (file)
   "Store the diff from the working copy against the repository in a file."
@@ -227,5 +232,4 @@ the current active back-end."
   (interactive))
 
 (provide 'dvc-unified)
-;; arch-tag: 914f9b69-1af2-4d11-9ac0-f6db89267881
 ;;; dvc-unified.el ends here

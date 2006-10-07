@@ -9641,6 +9641,7 @@ For an example, how to use this function see: `tla-submit-patch'."
     (mail-position-on-field "Subject")
     (insert (or subject "[PATCH] "))))
 
+;;;###autoload
 (defun tla-submit-patch-done ()
   "Clean up after sending a patch via mail.
 That function is usually called via `message-sent-hook'. Its purpose is to revert
@@ -9712,7 +9713,6 @@ of the commit. Additionally the destination email address can be specified."
 ;; Local Variables:
 ;; End:
 
-;; arch-tag: f2eee8c5-0f20-4fc7-b1c1-6cef4dff8a5a
 (provide 'tla)
 
 ;;; tla.el ends here

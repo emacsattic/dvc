@@ -221,5 +221,4 @@ Reset all variable whose name start with \"tla--autoconf-\" to nil."
 
 (provide 'tla-autoconf)
 
-; arch-tag: Matthieu Moy, Sat May 28 20:07:03 2005 (xtla-autoconf.el)
 ;;; tla-autoconf.el ends here

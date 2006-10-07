@@ -50,5 +50,4 @@
 (defalias 'xdarcs-dvc-diff 'xdarcs-diff)
 
 (provide 'xdarcs-dvc)
-;; arch-tag: 795f1ef5-5d30-4989-abdd-edf9f0398215
 ;;; xdarcs-dvc.el ends here

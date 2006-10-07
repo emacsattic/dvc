@@ -38,11 +38,14 @@
 ;;;###autoload
 (defalias 'bzr-dvc-status 'bzr-status)
 ;;;###autoload
+(defalias 'bzr-dvc-inventory 'bzr-inventory)
+;;;###autoload
 (defalias 'bzr-dvc-submit-patch 'bzr-submit-patch)
 ;;;###autoload
 (defalias 'bzr-dvc-add 'bzr-add)
 
 (defalias 'bzr-dvc-add-files 'bzr-add-files)
+(defalias 'bzr-dvc-revert-files 'bzr-revert-files)
 
 ;;;###autoload
 (defalias 'bzr-dvc-log-edit-done 'bzr-log-edit-done)
@@ -112,5 +115,4 @@ Usually that file is placed in the tree-root of the working tree.")
 (defalias 'bzr-dvc-resolved 'bzr-resolved)
 
 (provide 'bzr-dvc)
-;; arch-tag: 39d450b3-ffb1-4911-bb27-4d483a6abb8f
 ;;; bzr-dvc.el ends here

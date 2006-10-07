@@ -656,5 +656,4 @@ if DOWN is non-nil, scroll down, otherwise, scroll up."
   (dvc-switch-to-buffer buffer)))
 
 (provide 'dvc-buffers)
-;; arch-tag: ee80fde6-b666-49f8-ab3f-787b22488991
 ;;; dvc-buffers.el ends here

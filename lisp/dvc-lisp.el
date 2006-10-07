@@ -149,4 +149,3 @@ environment.
 
 (put 'dvc-capturing-lambda 'lisp-indent-function 1)
 (provide 'dvc-lisp)
-; arch-tag: b5dfa36f-31c8-4729-9b44-aec71e59bc80

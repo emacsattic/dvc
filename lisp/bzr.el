@@ -94,12 +94,15 @@ via bzr init-repository."
 (defun bzr-checkout (branch-location to-location &optional lightweight revision)
   "Run bzr checkout."
   (interactive
-   (list (read-string "bzr checkout branch location: ")
-         (expand-file-name (dvc-read-directory-name "bzr checkout to: "
-                                                    (or default-directory
-                                                        (getenv "HOME"))))
-         (y-or-n-p "Do a lightweight checkout? ")
-         nil))
+   (let* ((branch-loc (read-string "bzr checkout branch location: " nil nil bzr-default-init-repository-directory))
+          (co-dir (or default-directory (getenv "HOME")))
+          (to-loc (expand-file-name
+                   (dvc-read-directory-name "bzr checkout to: "
+                                            co-dir
+                                            (concat co-dir (file-name-nondirectory (replace-regexp-in-string "/trunk/?$" "" branch-loc))))))
+          (lw (y-or-n-p "Do a lightweight checkout? "))
+          (rev nil))
+     (list branch-loc to-loc lw rev)))
   (dvc-run-dvc-sync 'bzr (list "checkout"
                                (when lightweight "--lightweight")
                                branch-location to-location)
@@ -382,6 +385,48 @@ of the commit. Additionally the destination email address can be specified."
                                      (capture root)
                                      output error))))))
 
+(defun bzr-parse-inventory (changes-buffer)
+  ;;(dvc-trace "bzr-parse-inventory (while)")
+  (while (> (point-max) (point))
+    ;;(dvc-trace-current-line)
+    (cond ((looking-at "\\([^\n]*?\\)\\([/@]\\)?$")
+           (let ((file (match-string-no-properties 1))
+                 (dir (match-string-no-properties 2)))
+             (with-current-buffer changes-buffer
+               (ewoc-enter-last dvc-diff-cookie
+                                (list 'file file
+                                      ;; TODO perhaps not only " ".
+                                      " " " " dir nil)))))
+          (t (error "unrecognized context in bzr-parse-inventory")))
+    (forward-line 1)))
+
+;;;###autoload
+(defun bzr-inventory ()
+  "Run \"bzr inventory\"."
+  (interactive)
+  (let* ((dir default-directory)
+         (root (bzr-tree-root dir))
+         (buffer (dvc-prepare-changes-buffer
+                  `(bzr (last-revision ,root 1))
+                  `(bzr (local-tree ,root))
+                  'inventory root 'bzr)))
+    (dvc-switch-to-buffer-maybe buffer)
+    (setq dvc-buffer-refresh-function 'bzr-inventory)
+    (dvc-save-some-buffers root)
+    (dvc-run-dvc-async
+     'bzr '("inventory")
+     :finished
+     (dvc-capturing-lambda (output error status arguments)
+       (with-current-buffer (capture buffer)
+         (dvc-show-changes-buffer output 'bzr-parse-inventory
+                                  (capture buffer)))
+       :error
+       (dvc-capturing-lambda (output error status arguments)
+         (dvc-diff-error-in-process (capture buffer)
+                                     "Error in inventory process"
+                                     (capture root)
+                                     output error))))))
+
 ;;;###autoload
 (defun bzr-add (file)
   "Adds FILE to the repository."
@@ -401,6 +446,15 @@ of the commit. Additionally the destination email address can be specified."
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
                                   (message "bzr add finished")))))
+
+(defun bzr-revert-files (&rest files)
+  "Run bzr revert."
+  (message "bzr-revert-files: %s" files)
+  (let ((default-directory (bzr-tree-root)))
+    (dvc-run-dvc-sync 'bzr (append '("revert") (mapcar #'file-relative-name files))
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr revert finished")))))
 
 (defun bzr-is-bound (&optional path)
   "True if branch containing PATH is bound"
@@ -820,5 +874,4 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   (bzr-ignore-setup))
 
 (provide 'bzr)
-;; arch-tag: Matthieu Moy, Sun Sep  4 23:27:53 2005 (bzr.el)
 ;;; bzr.el ends here
