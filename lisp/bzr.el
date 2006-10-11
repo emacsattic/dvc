@@ -249,7 +249,7 @@ TODO: DONT-SWITCH is currently ignored."
   "Run bzr diff -r BASE..MODIFIED.
 
 TODO: dont-switch is currently ignored."
-  (dvc-trace "base, modified=%S, %S" base modified)
+  (dvc-trace "base, modified=%S, %S; dir=%S" base modified default-directory)
   (let ((base-str (bzr-revision-id-to-string base))
         (modified-str (bzr-revision-id-to-string modified))
         (buffer (dvc-prepare-changes-buffer
@@ -622,7 +622,7 @@ non-interactive versions."
 Asks confirmation if the file still has diff3 markers.
 Then, run \"bzr revolve\".
 
-TODO: should share some code with tla-resolved."
+TODO: should share some code with `tla-resolved'."
   (interactive
    (list (let ((file (buffer-file-name)))
            (if (string-match "^\\(.*\\)\\.\\(BASE\\|OTHER\\|THIS\\)$" file)
@@ -666,7 +666,7 @@ In practice, check for the existance of \"FILE.BASE\"."
 ;; Revisions
 
 (defun bzr-revision-id-location (rev-id)
-  "Extract the location component from REVISION-ID."
+  "Extract the location component from REV-ID."
   (case (dvc-revision-get-type rev-id)
     ((revision previous-revision)
      (let* ((data (car (dvc-revision-get-data rev-id)))
@@ -675,13 +675,22 @@ In practice, check for the existance of \"FILE.BASE\"."
     (otherwise nil)))
 
 (defun bzr-revision-id-is-local (rev-id)
-  "Extract the location component from REVISION-ID."
+  "Extract the location component from REV-ID."
   (case (dvc-revision-get-type rev-id)
     ((revision previous-revision)
      (let ((data (car (dvc-revision-get-data rev-id))))
        (eq (nth 0 data) 'local)))
     (otherwise nil)))
 
+(defun bzr-revision-nth-ancestor (rev-id n)
+  "Get the N-th ancestor of REV-ID."
+  (case (dvc-revision-get-type rev-id)
+    ((revision previous-revision)
+     (let ((data (car (dvc-revision-get-data rev-id))))
+       `(bzr (revision (,(nth 0 data)
+                        ,(nth 1 data)
+                        ,(- (nth 2 data) n))))))
+    (otherwise (error "TODO: not implemented. REV-ID=%S" rev_id))))
 
 (defun bzr-revision-id-to-string (rev-id)
   "Turn a DVC revision ID to a bzr revision spec.
@@ -698,13 +707,11 @@ In practice, check for the existance of \"FILE.BASE\"."
                        (concat "revno:" (int-to-string (nth 2 data))
                                ":" (nth 1 data))))))
     (previous-revision
-     (let* ((data (car (dvc-revision-get-data rev-id)))
-            (location (nth 0 data)))
-       (cond ((eq location 'local)
-              (concat "revno:" (int-to-string (- (nth 2 data) 1))))
-             ((eq location 'remote)
-              (concat "revno:" (int-to-string (- (nth 2 data) 1))
-                      ":" (nth 1 data))))))
+     (bzr-revision-id-to-string
+      (let* ((previous-list (nth 1 rev-id))
+             (rev (nth 1 previous-list))
+             (n-prev (nth 2 previous-list)))
+      (bzr-revision-nth-ancestor rev n-prev))))
     (last-revision
      (let* ((data (dvc-revision-get-data rev-id))
             (num (nth 1 data)))

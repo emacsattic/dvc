@@ -253,7 +253,8 @@ revision list."
                      (rev-data (dvc-revision-get-data rev-id)))
                 (unless (eq rev-type 'revision)
                   (error "Only 'revision type is supported here. Got %S" rev-type))
-                (let* ((prev-rev-id `(,(car rev-id) (previous-revision ,(car rev-data)))))
+                (let* ((prev-rev-id `(,(car rev-id) (previous-revision
+                                                     ,rev-id 1))))
                   (dvc-trace "prev-rev-id=%S" prev-rev-id)
                   (dvc-trace "rev-id=%S" rev-id)
                   (dvc-delta prev-rev-id rev-id)))))

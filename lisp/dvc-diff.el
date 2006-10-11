@@ -526,7 +526,7 @@ file is visited."
          (diff-find-file-name))))
 
 (defun dvc-diff-get-file-at-point ()
-  "Find file at point in *{tla|baz}-changes*.
+  "Find file at point in *<backend>-changes*.
 Throw an error when not on a file."
   (save-excursion
     (let ((elem (ewoc-locate dvc-diff-cookie (point))))
@@ -560,7 +560,7 @@ Defaults to `dvc-parse-other'.
 If non-nil, header-end-regexp is a regexp matching the first line
 which is not part of the diff header."
   (let* ((root (with-current-buffer buffer
-                 (tla-tree-root default-directory t)))
+                 (dvc-tree-root default-directory t)))
          (changes-buffer (or output-buffer (dvc-get-buffer-create tla-arch-branch
                                             'diff root)))
          (dvc-header "")
