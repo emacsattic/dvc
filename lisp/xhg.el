@@ -72,6 +72,7 @@
                                   (output error status arguments)
                                 (message "hg remove finished"))))
 
+;;;###autoload
 (defun xhg-addremove ()
   "Run hg addremove."
   (interactive)
@@ -79,6 +80,19 @@
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
                                 (message "hg addremove finished"))))
+
+;;;###autoload
+(defun xhg-rename (from to &optional after force)
+  "Run hg rename."
+  (interactive
+   (let* ((from-name (dvc-confirm-read-file-name "xhg rename: "))
+          (to-name (dvc-confirm-read-file-name (concat "xhg rename '" from-name "' to: ") nil "" from-name)))
+     (list from-name to-name nil nil)))
+  (dvc-run-dvc-sync 'xhg (list "rename" (dvc-uniquify-file-name from) (dvc-uniquify-file-name to)
+                               (when after "--after") (when force "--force"))
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "hg rename finished"))))
 
 ;;;###autoload
 (defun xhg-forget (&rest files)
@@ -335,16 +349,19 @@ If DONT-SWITCH, don't switch to the diff buffer"
   (interactive)
   (dvc-run-dvc-display-as-info 'xhg '("tip")))
 
+;;;###autoload
 (defun xhg-heads ()
   "Run hg heads."
   (interactive)
   (dvc-run-dvc-display-as-info 'xhg '("heads")))
 
+;;;###autoload
 (defun xhg-parents ()
   "Run hg parents."
   (interactive)
   (dvc-run-dvc-display-as-info 'xhg '("parents")))
 
+;;;###autoload
 (defun xhg-identify ()
   "Run hg identify."
   (interactive)
@@ -365,11 +382,13 @@ If DONT-SWITCH, don't switch to the diff buffer"
       (message "hg identity for %s: %s" default-directory id))
     id))
 
+;;;###autoload
 (defun xhg-verify ()
   "Run hg verify."
   (interactive)
   (dvc-run-dvc-display-as-info 'xhg '("verify")))
 
+;;;###autoload
 (defun xhg-paths (&optional type)
   "Run hg paths.
 When called interactive, display them in an *xhg-info* buffer.
@@ -394,6 +413,7 @@ otherwise: Return a list of two element sublists containing alias, path"
             (t
              (setq result-list lisp-path-list))))))
 
+;;;###autoload
 (defun xhg-tags ()
   "Run hg tags."
   (interactive)
@@ -405,16 +425,19 @@ otherwise: Return a list of two element sublists containing alias, path"
 ;; -u --user       show user
 ;; -n --number     show revision number
 ;; -c --changeset  show changeset
+;;;###autoload
 (defun xhg-annotate ()
   "Run hg annotate."
   (interactive)
   (dvc-run-dvc-display-as-info 'xhg (append '("annotate") (dvc-current-file-list))))
 
+;;;###autoload
 (defun xhg-view ()
   "Run hg view."
   (interactive)
   (dvc-run-dvc-async 'xhg '("view")))
 
+;;;###autoload
 (defun xhg-export (rev fname)
   "Run hg export.
 `xhg-export-git-style-patches' determines, if git style patches are created."
@@ -425,6 +448,7 @@ otherwise: Return a list of two element sublists containing alias, path"
    (lambda (output error status arguments)
      (message "Exported revision %s to %s." rev fname))))
 
+;;;###autoload
 (defun xhg-import (patch-file-name &optional force)
   "Run hg import."
   (interactive (list (read-file-name "Import hg patch: " nil nil t)))
@@ -433,6 +457,7 @@ otherwise: Return a list of two element sublists containing alias, path"
                     (lambda (output error status arguments)
                       (message "Imported hg patch from %s." patch-file-name))))
 
+;;;###autoload
 (defun xhg-undo ()
   "Run hg undo."
   (interactive)

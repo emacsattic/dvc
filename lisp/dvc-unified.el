@@ -132,6 +132,10 @@ If DONT-SWITCH is nil, switch to the newly created buffer.")
   "Mark FILE as resolved"
   (interactive (list (buffer-file-name))))
 
+(dvc-create-unified-command "rename" ()
+  "Rename.file from-file-name to to-file-name."
+  (interactive))
+
 (defvar dvc-command-version nil)
 ;;;###autoload
 (defun dvc-command-version ()
