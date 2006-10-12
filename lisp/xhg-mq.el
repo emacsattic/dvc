@@ -73,6 +73,7 @@
     (define-key map [?U] 'xhg-qunapplied)
     (define-key map [?S] 'xhg-qseries)
     (define-key map [?s] 'xhg-mq-show-stack)
+    (define-key map [?e] 'xhg-mq-edit-series-file)
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
@@ -376,11 +377,19 @@ that is used in the generated email."
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     (define-key map [?g] 'dvc-generic-refresh)
     (define-key map [?e] 'xhg-mq-edit-series-file)
-    (define-key map [?n] 'xhg-mq-next)
-    (define-key map [?p] 'xhg-mq-previous)
+    (define-key map [down] 'xhg-mq-next)
+    (define-key map [up] 'xhg-mq-previous)
+    (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
+    (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
+    (define-key map [?E] 'xhg-mq-export-via-mail)
+    (define-key map [?M] 'xhg-qrename)
     (define-key map [?Q] xhg-mq-sub-mode-map)
     map)
   "Keymap used in a xhg mq buffer.")
+
+(easy-menu-define xhg-mq-mode-menu xhg-mq-mode-map
+  "`xhg-mq-mode' menu"
+  xhg-mq-submenu)
 
 (define-derived-mode xhg-mq-mode fundamental-mode
   "xhg mq mode"
