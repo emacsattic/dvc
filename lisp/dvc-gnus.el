@@ -130,20 +130,21 @@ Otherwise `dvc-gnus-apply-patch' is called."
 (defun dvc-gnus-suggest-apply-patch-directory ()
   "Use `dvc-apply-patch-mapping' to suggest a directory where
 the patch sould be applied."
-  (gnus-summary-select-article-buffer)
-  (let ((patch-directory "~/")
-        (m dvc-apply-patch-mapping))
-    (save-excursion
-      (goto-char (point-min))
-      (when (search-forward "text/x-patch; " nil t)
-        (while m
-          (if (looking-at (caar m))
-              (progn
-                (setq patch-directory (cadar m))
-                (setq m nil))
-            (setq m (cdr m))))))
-    (gnus-article-show-summary)
-    (expand-file-name patch-directory)))
+  (save-window-excursion
+    (gnus-summary-select-article-buffer)
+    (let ((patch-directory "~/")
+          (m dvc-apply-patch-mapping))
+      (save-excursion
+        (goto-char (point-min))
+        (when (search-forward "text/x-patch; " nil t)
+          (while m
+            (if (looking-at (caar m))
+                (progn
+                  (setq patch-directory (cadar m))
+                  (setq m nil))
+              (setq m (cdr m))))))
+      (gnus-article-show-summary)
+      (expand-file-name patch-directory))))
 
 (defun dvc-gnus-apply-patch (handle)
   "Apply the patch corresponding to HANDLE."
@@ -154,8 +155,10 @@ the patch sould be applied."
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
     (setq patch-buff (current-buffer))
-    (flet ((ediff-get-default-file-name () (dvc-gnus-suggest-apply-patch-directory)))
-      (ediff-patch-file 2 patch-buff))))
+    (delete-other-windows)
+    (let ((default-directory (dvc-gnus-suggest-apply-patch-directory)))
+      (flet ((ediff-get-default-file-name () default-directory))
+        (ediff-patch-file 2 patch-buff)))))
 
 (provide 'dvc-gnus)
 ;;; dvc-gnus.el ends here
