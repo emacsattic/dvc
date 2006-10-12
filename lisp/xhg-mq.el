@@ -310,8 +310,7 @@ that is used in the generated email."
   (let ((file-name)
         (destination-email "")
         (base-file-name nil)
-        (subject)
-        (description))
+        (subject))
     (dolist (m xhg-submit-patch-mapping)
       (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (xhg-tree-root)))
         ;;(message "%S" (cadr m))
@@ -321,8 +320,6 @@ that is used in the generated email."
     (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") "-" patch ".patch"))
     (copy-file (concat (xhg-tree-root) "/.hg/patches/" patch) file-name t t)
 
-    (setq description "")
-
     (require 'reporter)
     (delete-other-windows)
     (reporter-submit-bug-report
@@ -331,7 +328,7 @@ that is used in the generated email."
      nil
      nil
      nil
-     description)
+     dvc-patch-email-message-body-template)
     (setq subject (if base-file-name (concat base-file-name ": " patch) patch))
 
     ;; delete emacs version - its not needed here
@@ -340,7 +337,11 @@ that is used in the generated email."
     (mml-attach-file file-name "text/x-patch")
     (goto-char (point-min))
     (mail-position-on-field "Subject")
-    (insert (concat "[MQ-PATCH] " subject))))
+    (insert (concat "[MQ-PATCH] " subject))
+    (when (search-forward "<<LOG-START>>" nil t)
+      (forward-line 1))
+    (find-file-other-window file-name)
+    (other-window -1)))
 
 (defun xhg-mq-show-stack ()
   "Show the mq stack."

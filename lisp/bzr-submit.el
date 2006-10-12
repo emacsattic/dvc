@@ -257,14 +257,7 @@ After the user has sent the message, `bzr-submit-patch-done' is called."
              (format-time-string "%Y-%m-%d_%H-%M-%S" (current-time)))
      mail-address
      tree-id
-     (concat
-      "Please change the Subject header to a concise description of your"
-      " patch.\n"
-      "Please describe your patch between the LOG-START and LOG-END"
-      " markers:\n"
-      "<<LOG-START>>\n"
-      "\n"
-      "<<LOG-END>>\n")
+     dvc-patch-email-message-body-template
      nil
      (interactive-p))))
 
