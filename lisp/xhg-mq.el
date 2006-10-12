@@ -142,6 +142,7 @@ When called with a prefix argument run hg qpop -a."
                                                 (if (eq status 1)
                                                     (message "no patches applied")
                                                   (message "error status: %d" status))))))
+    (xhg-mq-maybe-refresh-patch-buffer)
     (pop-to-buffer curbuf)))
 
 (defun xhg-qpush (&optional all)
@@ -157,7 +158,14 @@ When called with a prefix argument run hg qpush -a."
                                                 (if (eq status 1)
                                                     (message "patch series fully applied")
                                                   (message "error status: %d" status))))))
+    (xhg-mq-maybe-refresh-patch-buffer)
     (pop-to-buffer curbuf)))
+
+(defun xhg-mq-maybe-refresh-patch-buffer ()
+  (let ((patch-buffer (dvc-get-buffer 'xhg 'patch-queue)))
+    (when patch-buffer
+      (with-current-buffer patch-buffer
+        (dvc-generic-refresh)))))
 
 (defun xhg-mq-printer (elem)
   "Print an element ELEM of the mq patch list."
@@ -339,8 +347,13 @@ that is used in the generated email."
   (interactive)
   (xhg-process-mq-patches '("qseries") "hg stack:" 'xhg-mq-show-stack (interactive-p))
   (let ((applied (xhg-qapplied))
+        (unapplied (xhg-qunapplied))
         (top (xhg-qtop)))
     (with-current-buffer (dvc-get-buffer 'xhg 'patch-queue)
+      (dolist (u unapplied)
+        (goto-char (point-min))
+        (when (re-search-forward (concat "^" u "$") nil t)
+          (setcar (cdr (xhg-mq-ewoc-data-at-point)) nil)))
       (dolist (a applied)
         (goto-char (point-min))
         (when (re-search-forward (concat "^" a "$") nil t)
