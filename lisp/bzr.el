@@ -80,11 +80,12 @@ When called interactively, `bzr-default-init-repository-directory' is used as
 starting point to enter the new repository directory. That directory is created
 via bzr init-repository."
   (interactive
-   (list (expand-file-name (dvc-read-directory-name "Directory for bzr init-repository: "
-                                                     (or
-                                                      bzr-default-init-repository-directory
-                                                      default-directory
-                                                      (getenv "HOME"))))))
+   (list (expand-file-name (dvc-read-directory-name
+                            "Directory for bzr init-repository: "
+                            (or
+                             bzr-default-init-repository-directory
+                             default-directory
+                             (getenv "HOME"))))))
   (dvc-run-dvc-sync 'bzr (list "init-repository" dir)
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
@@ -97,9 +98,12 @@ via bzr init-repository."
    (let* ((branch-loc (read-string "bzr checkout branch location: " nil nil bzr-default-init-repository-directory))
           (co-dir (or default-directory (getenv "HOME")))
           (to-loc (expand-file-name
-                   (dvc-read-directory-name "bzr checkout to: "
-                                            co-dir
-                                            (concat co-dir (file-name-nondirectory (replace-regexp-in-string "/trunk/?$" "" branch-loc))))))
+                   (dvc-read-directory-name
+                    "bzr checkout to: "
+                    co-dir
+                    (concat co-dir (file-name-nondirectory
+                                    (replace-regexp-in-string
+                                     "/trunk/?$" "" branch-loc))))))
           (lw (y-or-n-p "Do a lightweight checkout? "))
           (rev nil))
      (list branch-loc to-loc lw rev)))

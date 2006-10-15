@@ -5,7 +5,7 @@ export DH_VERBOSE=1
 
 PREFIX       := /usr
 
-PACKAGE_DIR  := $(PWD)/debian/dvc
+PACKAGE_DIR  := $(CURDIR)/debian/dvc
 DPREFIX      := $(PACKAGE_DIR)$(PREFIX)
 
 INSTALL_DIR  := install -d -m 755
