@@ -2334,7 +2334,7 @@ temporary and should be deleted."
                               (tla-revision-direct-ancestor
                                (cadr revision)))))
     ((last-revision revision)
-     (error "this has moved to DVC"))))
+     (error "tla-file-get-revision-in-file has moved to DVC, use dvc-revision-get-file-in-buffer instead"))))
 
 (defun tla-file-revert (file &optional revision)
   "Revert the file FILE to the last committed version.
@@ -2361,11 +2361,11 @@ and this revision will be used as a reference."
   ;; set aside a backup copy
   (copy-file file (car (find-backup-file-name file)) t)
 
-  (let* ((file-unmo-temp (tla-file-get-revision-in-file
+  (let* ((file-unmo-temp (dvc-revision-get-file-in-buffer
                           file (if revision
                                    (list 'revision revision)
-                                 (list 'last-revision (tla-tree-root)))))
-         (original (car file-unmo-temp)))
+                                 `(baz (last-revision ,(tla-tree-root) 1)))))
+         (original file-unmo-temp))
 
     ;; display diff
     (tla--run-tla-sync (list "file-diffs" file revision)
@@ -2396,9 +2396,10 @@ and this revision will be used as a reference."
       (bury-buffer)
       (error "Not reverting file %s!" file))
     (bury-buffer)
-    (copy-file original file t)
     (let ((buf (get-file-buffer file)))
-      (when buf (with-current-buffer buf (revert-buffer))))))
+      (erase-buffer)
+      (insert-buffer-substring original)
+      (save-buffer))))
 
 (defun tla-undo (tree &optional
                       archive category branch version revision)
@@ -7090,9 +7091,8 @@ Commands:
   "Return the maintainer name for a given VERSION.
 This function looks in the bookmarks file for the nickname field and
 returns it.
-If the nickname field is not present, just return the archive name for
-VERSION."
-  (tla-bookmarks-get-field version 'nickname (tla--name-archive version)))
+If the nickname field is not present, just return VERSION as string."
+  (tla-bookmarks-get-field version 'nickname (tla--name-mask version t t t t t)))
 
 (defun tla-archive-maintainer-id (archive &optional shorter)
   "Return my-id substring from ARCHIVE.
@@ -9678,14 +9678,8 @@ After the user has sent the message, `tla-submit-patch-done' is called."
                                           (format-time-string "%Y-%m-%d_%H-%M-%S" (current-time)))
                                   mail-address
                                   (tla-tree-id)
-                                  (concat
-                                   "Please change the Subject header to a concise description of your patch.\n"
-                                   "Please describe your patch between the LOG-START and LOG-END markers:\n"
-                                   "<<LOG-START>>\n"
-                                   "\n"
-                                   "<<LOG-END>>\n"
-                                   "\n"
-                                   ))))
+                                  dvc-patch-email-message-body-template
+                                  )))
 
 (defun tla-send-commit-notification ()
   "Send a commit notification email for the changelog entry at point.

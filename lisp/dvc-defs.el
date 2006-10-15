@@ -366,6 +366,18 @@ This variable is buffer-local.")
 
 This variable is buffer-local.")
 
+(defvar dvc-patch-email-message-body-template
+  (concat
+   "Please change the Subject header to a concise description of your patch.\n"
+   "Please describe your patch between the LOG-START and LOG-END markers:\n"
+   "<<LOG-START>>\n"
+   "\n"
+   "<<LOG-END>>\n"
+   "\n")
+  "A template that is used for functions to send patches via email.
+It should contain a <<LOG-START>> and a <<LOG-END>> marker to allow
+automatic log message extraction.")
+
 ;;
 ;; Executable location
 ;;

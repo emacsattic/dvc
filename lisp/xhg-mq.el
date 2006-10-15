@@ -73,6 +73,7 @@
     (define-key map [?U] 'xhg-qunapplied)
     (define-key map [?S] 'xhg-qseries)
     (define-key map [?s] 'xhg-mq-show-stack)
+    (define-key map [?e] 'xhg-mq-edit-series-file)
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
@@ -142,6 +143,7 @@ When called with a prefix argument run hg qpop -a."
                                                 (if (eq status 1)
                                                     (message "no patches applied")
                                                   (message "error status: %d" status))))))
+    (xhg-mq-maybe-refresh-patch-buffer)
     (pop-to-buffer curbuf)))
 
 (defun xhg-qpush (&optional all)
@@ -157,7 +159,14 @@ When called with a prefix argument run hg qpush -a."
                                                 (if (eq status 1)
                                                     (message "patch series fully applied")
                                                   (message "error status: %d" status))))))
+    (xhg-mq-maybe-refresh-patch-buffer)
     (pop-to-buffer curbuf)))
+
+(defun xhg-mq-maybe-refresh-patch-buffer ()
+  (let ((patch-buffer (dvc-get-buffer 'xhg 'patch-queue)))
+    (when patch-buffer
+      (with-current-buffer patch-buffer
+        (dvc-generic-refresh)))))
 
 (defun xhg-mq-printer (elem)
   "Print an element ELEM of the mq patch list."
@@ -302,8 +311,7 @@ that is used in the generated email."
   (let ((file-name)
         (destination-email "")
         (base-file-name nil)
-        (subject)
-        (description))
+        (subject))
     (dolist (m xhg-submit-patch-mapping)
       (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (xhg-tree-root)))
         ;;(message "%S" (cadr m))
@@ -313,8 +321,6 @@ that is used in the generated email."
     (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") "-" patch ".patch"))
     (copy-file (concat (xhg-tree-root) "/.hg/patches/" patch) file-name t t)
 
-    (setq description "")
-
     (require 'reporter)
     (delete-other-windows)
     (reporter-submit-bug-report
@@ -323,7 +329,7 @@ that is used in the generated email."
      nil
      nil
      nil
-     description)
+     dvc-patch-email-message-body-template)
     (setq subject (if base-file-name (concat base-file-name ": " patch) patch))
 
     ;; delete emacs version - its not needed here
@@ -332,15 +338,24 @@ that is used in the generated email."
     (mml-attach-file file-name "text/x-patch")
     (goto-char (point-min))
     (mail-position-on-field "Subject")
-    (insert (concat "[MQ-PATCH] " subject))))
+    (insert (concat "[MQ-PATCH] " subject))
+    (when (search-forward "<<LOG-START>>" nil t)
+      (forward-line 1))
+    (find-file-other-window file-name)
+    (other-window -1)))
 
 (defun xhg-mq-show-stack ()
   "Show the mq stack."
   (interactive)
   (xhg-process-mq-patches '("qseries") "hg stack:" 'xhg-mq-show-stack (interactive-p))
   (let ((applied (xhg-qapplied))
+        (unapplied (xhg-qunapplied))
         (top (xhg-qtop)))
     (with-current-buffer (dvc-get-buffer 'xhg 'patch-queue)
+      (dolist (u unapplied)
+        (goto-char (point-min))
+        (when (re-search-forward (concat "^" u "$") nil t)
+          (setcar (cdr (xhg-mq-ewoc-data-at-point)) nil)))
       (dolist (a applied)
         (goto-char (point-min))
         (when (re-search-forward (concat "^" a "$") nil t)
@@ -362,11 +377,19 @@ that is used in the generated email."
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     (define-key map [?g] 'dvc-generic-refresh)
     (define-key map [?e] 'xhg-mq-edit-series-file)
-    (define-key map [?n] 'xhg-mq-next)
-    (define-key map [?p] 'xhg-mq-previous)
+    (define-key map [down] 'xhg-mq-next)
+    (define-key map [up] 'xhg-mq-previous)
+    (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
+    (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
+    (define-key map [?E] 'xhg-mq-export-via-mail)
+    (define-key map [?M] 'xhg-qrename)
     (define-key map [?Q] xhg-mq-sub-mode-map)
     map)
   "Keymap used in a xhg mq buffer.")
+
+(easy-menu-define xhg-mq-mode-menu xhg-mq-mode-map
+  "`xhg-mq-mode' menu"
+  xhg-mq-submenu)
 
 (define-derived-mode xhg-mq-mode fundamental-mode
   "xhg mq mode"

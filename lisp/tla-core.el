@@ -396,6 +396,8 @@ Examples:
  ELISP> (tla--name-mask '(\"a\" \"c\" \"b\" \"v\" \"r\") t nil nil nil t t)
  \"v--r\"
  ELISP>"
+  (when (stringp original)
+    (setq original (tla--name-split original)))
   (when (consp original)
     (let ((masked (list
                    (if archive-mask

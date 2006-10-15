@@ -97,6 +97,10 @@ ARG is passed as prefix argument"
 (defalias 'xhg-dvc-revert-files 'xhg-revert-files)
 (defalias 'xhg-dvc-remove-files 'xhg-remove-files)
 
+(defun xhg-dvc-rename ()
+  (interactive)
+  (call-interactively 'xhg-rename))
+
 ;; deactivated at them moment, use dvc-dvc-files-to-commit to allow selecting files to commit
 ;; (defun xhg-dvc-files-to-commit ()
 ;;   ;; -mar: modified+added+removed

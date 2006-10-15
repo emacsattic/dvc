@@ -209,9 +209,11 @@ outstanding uncommitted changes."
         (xhg-import patch-file-name xhg-gnus-import-patch-force)))
     (delete-file patch-file-name)
     (kill-buffer (current-buffer)) ;; the patch file
+    (set-window-configuration window-conf)
     (when (and import-dir (y-or-n-p "Run hg log in patched directory? "))
       (let ((default-directory import-dir))
-        (xhg-log "tip:-10")))))
+        (xhg-log "tip:-10")
+        (delete-other-windows)))))
 
 (defun xhg-gnus-article-view-status-for-import-patch (n)
   "View the status for the repository, where MIME part N would be applied as hg patch.

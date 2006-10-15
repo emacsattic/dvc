@@ -199,12 +199,15 @@ The following sources are tried (in that order) and used if they are non nil:
          nil)         ;; TODO: get a list off all available files of that buffer:
         (t (list (dvc-get-file-info-at-point)))))
 
-(defun dvc-confirm-read-file-name (prompt &optional mustmatch file)
-  (unless file
-    (setq file (dvc-get-file-info-at-point)))
+(defun dvc-confirm-read-file-name (prompt &optional mustmatch file-name default-filename)
+  "A wrapper around `read-file-name' that provides some useful defaults."
+  (unless file-name
+    (setq file-name (dvc-get-file-info-at-point)))
   (read-file-name prompt
-                  (file-name-directory (or file "")) nil mustmatch
-                  (file-name-nondirectory (or file ""))))
+                  (file-name-directory (or file-name ""))
+                  default-filename
+                  mustmatch
+                  (file-name-nondirectory (or file-name ""))))
 
 (defun dvc-confirm-read-file-name-list (prompt &optional files single-prompt mustmatch)
   (let ((num-files (length files)))
