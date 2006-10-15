@@ -103,10 +103,12 @@
   (interactive (error "TODO: interactive not implemented"))
   (if (and (eq (dvc-revision-get-type base) 'previous-revision)
            (eq (dvc-revision-get-type modified) 'revision)
-           (equal (car (dvc-revision-get-data base))
+           (equal (car (dvc-revision-get-data
+                       (car (dvc-revision-get-data base))))
                   (car (dvc-revision-get-data modified))))
       ;; base is the ancestor of modified. Optimization possible
-      (tla-get-changeset (car (dvc-revision-get-data base))
+      (tla-get-changeset (car (dvc-revision-get-data
+                              (car (dvc-revision-get-data base))))
                          t)
     (tla-delta (tla--name-construct (tla-revision-id-to-list base))
                (tla--name-construct (tla-revision-id-to-list modified))

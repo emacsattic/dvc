@@ -317,7 +317,8 @@ archive/category--version."
          (type (dvc-revision-get-type rev-id)))
     (case type
       (revision (car data))
-      (previous-revision (tla-revision-direct-ancestor (car data) (nth 1 data)))
+      (previous-revision (tla-revision-direct-ancestor
+                          (car (dvc-revision-get-data (car data))) (nth 1 data)))
       (otherwise (error "TODO: type of revision not implemented: %S" type)))))
 
 ;;
