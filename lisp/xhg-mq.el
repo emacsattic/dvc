@@ -320,7 +320,7 @@ that is used in the generated email."
         ;;(message "%S" (cadr m))
         (setq destination-email (car (cadr m)))
         (setq base-file-name (cadr (cadr m)))))
-    ;;(message (format "xhg-mq-export-via-mail %s %s %s" patch destination-email base-file-name))
+    (message (format "Preparing an email for the mq patch '%s' for '%s'" patch destination-email))
     (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") "-" patch ".patch"))
     (copy-file (xhg-mq-patch-file-name patch) file-name t t)
 
