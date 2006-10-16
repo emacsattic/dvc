@@ -353,7 +353,8 @@ that is used in the generated email."
   (xhg-process-mq-patches '("qseries") "hg stack:" 'xhg-mq-show-stack (interactive-p))
   (let ((applied (xhg-qapplied))
         (unapplied (xhg-qunapplied))
-        (top (xhg-qtop)))
+        (top (xhg-qtop))
+        (top-pos))
     (with-current-buffer (dvc-get-buffer 'xhg 'patch-queue)
       (dolist (u unapplied)
         (goto-char (point-min))
@@ -366,8 +367,11 @@ that is used in the generated email."
       (when top
         (goto-char (point-min))
         (when (re-search-forward (concat "^" top "$") nil t)
+          (setq top-pos (line-beginning-position))
           (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'bold)))
-      (ewoc-refresh xhg-mq-cookie))))
+      (ewoc-refresh xhg-mq-cookie)
+      (when top-pos
+        (goto-char top-pos)))))
 
 (defun xhg-qdiff-at-point (&optional patch)
   "Show the diff for a given patch."
@@ -378,7 +382,7 @@ that is used in the generated email."
       (toggle-read-only 1)
       (diff-mode)
       (pop-to-buffer cur-buf)))
-  
+
 ;; --------------------------------------------------------------------------------
 ;; the xhg mq mode
 ;; --------------------------------------------------------------------------------
