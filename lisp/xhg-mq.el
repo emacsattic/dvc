@@ -296,6 +296,9 @@ When called with a prefix argument run hg qpush -a."
       (message "Mercurial qheader: %s" header))
     header))
 
+(defun xhg-mq-patch-file-name (patch)
+  (concat (xhg-tree-root) "/.hg/patches/" patch))
+
 ;; --------------------------------------------------------------------------------
 ;; Higher level functions
 ;; --------------------------------------------------------------------------------
@@ -319,7 +322,7 @@ that is used in the generated email."
         (setq base-file-name (cadr (cadr m)))))
     ;;(message (format "xhg-mq-export-via-mail %s %s %s" patch destination-email base-file-name))
     (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") "-" patch ".patch"))
-    (copy-file (concat (xhg-tree-root) "/.hg/patches/" patch) file-name t t)
+    (copy-file (xhg-mq-patch-file-name patch) file-name t t)
 
     (require 'reporter)
     (delete-other-windows)
@@ -366,7 +369,16 @@ that is used in the generated email."
           (setcar (cdr (xhg-mq-ewoc-data-at-point)) 'bold)))
       (ewoc-refresh xhg-mq-cookie))))
 
-
+(defun xhg-qdiff-at-point (&optional patch)
+  "Show the diff for a given patch."
+  (interactive)
+  (let ((patch-name (or patch (xhg-mq-patch-name-at-point)))
+        (cur-buf (current-buffer)))
+      (find-file-other-window (xhg-mq-patch-file-name patch-name))
+      (toggle-read-only 1)
+      (diff-mode)
+      (pop-to-buffer cur-buf)))
+  
 ;; --------------------------------------------------------------------------------
 ;; the xhg mq mode
 ;; --------------------------------------------------------------------------------
@@ -381,6 +393,7 @@ that is used in the generated email."
     (define-key map [up] 'xhg-mq-previous)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
     (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
+    (define-key map [?=] 'xhg-qdiff-at-point)
     (define-key map [?E] 'xhg-mq-export-via-mail)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?Q] xhg-mq-sub-mode-map)
