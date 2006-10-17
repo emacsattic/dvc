@@ -873,9 +873,12 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
           (save-buffer)))
       (kill-buffer buffer))))
 
+;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
+;; loads a file and this triggers the loading of bzr.
+(provide 'bzr)
+
 ;; Must remain toplevel, and should not be autoloaded.
 (when (executable-find bzr-executable)
   (bzr-ignore-setup))
 
-(provide 'bzr)
 ;;; bzr.el ends here
