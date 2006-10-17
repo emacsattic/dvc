@@ -873,9 +873,10 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
           (save-buffer)))
       (kill-buffer buffer))))
 
-;; Must remain toplevel, and should not be autoloaded.
+(provide 'bzr)
+
+;; Must remain toplevel, after (provide 'bzr) and should not be autoloaded.
 (when (executable-find bzr-executable)
   (bzr-ignore-setup))
 
-(provide 'bzr)
 ;;; bzr.el ends here
