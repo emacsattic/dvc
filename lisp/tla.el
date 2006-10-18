@@ -3454,6 +3454,51 @@ If REVERSE is non-nil, reverse the requested revision."
                         :error (lambda (output error status arguments)
                                  (dvc-show-changes-buffer output)))))
 
+;;;###autoload
+(defun tla-switch (tree version &optional handle)
+  "Run tla switch to VERSION in TREE.
+
+After running update, execute HANDLE (function taking no argument)."
+  (interactive (list (expand-file-name
+                      (dvc-read-directory-name "Switch in tree: " nil
+                                                nil nil ""))
+                     (tla-name-read "Switch to version: "
+                                    'prompt 'prompt 'prompt 'maybe 'maybe)))
+  (unless (tla-has-switch-command)
+    (error "switch not available with this arch branch"))
+  (or (dvc-save-some-buffers tree)
+      (y-or-n-p
+       "Update may delete unsaved changes.  Continue anyway? ")
+      (error "Not updating"))
+  (let* ((default-directory (or tree default-directory))
+         (buffer (dvc-prepare-changes-buffer
+                  (list 'last-revision default-directory)
+                  (list 'local-tree default-directory)
+                  'status default-directory 'tla)))
+    (when dvc-switch-to-buffer-first
+      (dvc-switch-to-buffer buffer))
+    (tla--run-tla-async `("switch"
+                          ,(when (and
+                                  (tla-switch-has-show-ancestor-option)
+                                  tla-show-ancestor)
+                             "--show-ancestor")
+                          ,(tla--name-construct version))
+                        :finished (lexical-let ((buffer-lex buffer) (tree-lex tree) (handle-lex handle))
+                                    (lambda (output error status arguments)
+                                      ;; (tla--show-last--process-buffer)
+                                      (dvc-show-changes-buffer
+                                       output 'dvc-parse-other buffer-lex)
+                                      (message "`%s switch' finished" (tla--executable))
+                                      (dvc-revert-some-buffers tree-lex)
+                                      (when handle-lex (funcall handle-lex))))
+                        :error
+                        (lambda (output error status arguments)
+                          (dvc-show-error-buffer error)
+                          (dvc-show-last-process-buffer)
+                          ))
+    (dvc-revert-some-buffers tree)))
+
+
 (defun tla--tag-does-cacherev ()
   (cond ((eq tla-tag-does-cacherev 'yes) t)
         ((eq tla-tag-does-cacherev 'no) nil)
