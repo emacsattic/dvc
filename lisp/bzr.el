@@ -786,6 +786,16 @@ LAST-REVISION looks like
   (interactive)
   (dvc-run-dvc-display-as-info 'bzr '("info")))
 
+(defun bzr-testament ()
+  "Run bzr testament."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("testament")))
+
+(defun bzr-plugins ()
+  "Run bzr plugins."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("plugins")))
+
 (defun bzr-check ()
   "Run bzr check."
   (interactive)
@@ -811,6 +821,14 @@ LAST-REVISION looks like
   (interactive)
   (dvc-run-dvc-display-as-info 'bzr '("renames")))
 
+(defun bzr-version-info ()
+  "Run bzr verision-info."
+  (interactive)
+  (if (interactive-p)
+      (dvc-run-dvc-display-as-info 'bzr '("version-info"))
+  (dvc-run-dvc-sync 'bzr (list "version-info")
+                    :finished 'dvc-output-buffer-handler)))
+  
 (defun bzr-ignore (pattern)
   "Run bzr ignore PATTERN."
   (interactive "sbzr ignore: ")
