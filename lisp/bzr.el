@@ -786,6 +786,16 @@ LAST-REVISION looks like
   (interactive)
   (dvc-run-dvc-display-as-info 'bzr '("info")))
 
+(defun bzr-testament ()
+  "Run bzr testament."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("testament")))
+
+(defun bzr-plugins ()
+  "Run bzr plugins."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'bzr '("plugins")))
+
 (defun bzr-check ()
   "Run bzr check."
   (interactive)
@@ -811,6 +821,14 @@ LAST-REVISION looks like
   (interactive)
   (dvc-run-dvc-display-as-info 'bzr '("renames")))
 
+(defun bzr-version-info ()
+  "Run bzr verision-info."
+  (interactive)
+  (if (interactive-p)
+      (dvc-run-dvc-display-as-info 'bzr '("version-info"))
+  (dvc-run-dvc-sync 'bzr (list "version-info")
+                    :finished 'dvc-output-buffer-handler)))
+  
 (defun bzr-ignore (pattern)
   "Run bzr ignore PATTERN."
   (interactive "sbzr ignore: ")
@@ -873,9 +891,12 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
           (save-buffer)))
       (kill-buffer buffer))))
 
+;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
+;; loads a file and this triggers the loading of bzr.
+(provide 'bzr)
+
 ;; Must remain toplevel, and should not be autoloaded.
 (when (executable-find bzr-executable)
   (bzr-ignore-setup))
 
-(provide 'bzr)
 ;;; bzr.el ends here
