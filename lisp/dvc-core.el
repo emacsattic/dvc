@@ -474,6 +474,10 @@ Prompt for password with `read-passwd' if the output of PROC matches
   "By default, do not touch the environment"
   env)
 
+(defun dvc-default-global-argument ()
+  "By default, no global argument."
+  nil)
+
 (defun dvc-run-dvc-async (dvc arguments &rest keys)
   "Run a process asynchronously.
 ARGUMENTS is a list of arguments.  nil values in this list are removed.
@@ -532,7 +536,9 @@ Example:
            (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
                            (dvc-new-error-buffer nil dvc)))
            (error-file (dvc-make-temp-name "dvc-errors"))
-           (command (dvc-build-dvc-command dvc arguments))
+           (global-arg (funcall (dvc-function dvc "default-global-argument")))
+           (command (dvc-build-dvc-command
+                     dvc (append global-arg arguments)))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory))
@@ -601,7 +607,9 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
                           (dvc-new-process-buffer t dvc)))
           (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
                           (dvc-new-error-buffer t dvc)))
-          (command (dvc-build-dvc-command dvc arguments))
+          (global-arg (funcall (dvc-function dvc "default-global-argument")))
+          (command (dvc-build-dvc-command
+                    dvc (append global-arg arguments)))
           (error-file (dvc-make-temp-name "arch-errors"))
           ;; Make the `default-directory' unique. The trailing slash
           ;; may be necessary in some cases.

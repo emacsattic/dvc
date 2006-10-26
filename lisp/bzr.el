@@ -232,8 +232,9 @@ TODO: DONT-SWITCH is currently ignored."
     (dvc-save-some-buffers root)
     (dvc-run-dvc-async
      'bzr `("diff" ,@(when against
-                       (list "-r" (bzr-revision-id-to-string
-                                   against))))
+                       (list "--revision"
+                             (bzr-revision-id-to-string
+                              against))))
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (dvc-diff-no-changes (capture buffer)
