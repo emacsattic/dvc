@@ -1523,14 +1523,21 @@ If EXACT is non-nil, match exactly LEVEL."
      "\\( \\|\n\\)")))
 
 (defun tla-get-name-at-point ()
-  "Return the name at point."
+  "Provides a default value for tla-name-read.
+It first looks, if a name is found near point.
+If this does not succeed, use the revision at point, when in tla-changelog-mode."
   (interactive)
-  (save-excursion
-    (if (re-search-backward "[ \t\n]" (point-min) t)
-        (goto-char (1+ (point)))
-      (beginning-of-line))
-    (if (looking-at (tla-make-name-regexp 4 nil nil))
-        (match-string 1))))
+  (let ((name))
+    (save-excursion
+      (if (re-search-backward "[ \t\n]" (point-min) t)
+          (goto-char (1+ (point)))
+        (beginning-of-line))
+      (when (looking-at (tla-make-name-regexp 4 nil nil))
+        (setq name (match-string 1))))
+    (unless name
+      (when (eq major-mode 'tla-changelog-mode)
+        (setq name (tla-changelog-revision-at-point))))
+    name))
 
 ;; Test cases
 ;; (tla-name-read "enter category: " "Matthieu.Moy@imag.fr--public" 'prompt)
