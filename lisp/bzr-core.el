@@ -73,5 +73,10 @@ Does anyone know of a better way to get this info?"
   "Prepare the environment to run bzr."
   (cons "BZR_PROGRESS_BAR=none" env))
 
+;;;###autoload
+(defun bzr-default-global-argument ()
+  "Disable aliases."
+  '("--no-aliases"))
+
 (provide 'bzr-core)
 ;;; bzr-core.el ends here
