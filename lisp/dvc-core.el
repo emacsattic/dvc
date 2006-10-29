@@ -603,17 +603,17 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys
-    (let ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
-                          (dvc-new-process-buffer t dvc)))
-          (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
-                          (dvc-new-error-buffer t dvc)))
-          (global-arg (funcall (dvc-function dvc "default-global-argument")))
-          (command (dvc-build-dvc-command
-                    dvc (append global-arg arguments)))
-          (error-file (dvc-make-temp-name "arch-errors"))
-          ;; Make the `default-directory' unique. The trailing slash
-          ;; may be necessary in some cases.
-          (default-directory (dvc-uniquify-file-name default-directory)))
+    (let* ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
+                           (dvc-new-process-buffer t dvc)))
+           (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
+                           (dvc-new-error-buffer t dvc)))
+           (global-arg (funcall (dvc-function dvc "default-global-argument")))
+           (command (dvc-build-dvc-command
+                     dvc (append global-arg arguments)))
+           (error-file (dvc-make-temp-name "arch-errors"))
+           ;; Make the `default-directory' unique. The trailing slash
+           ;; may be necessary in some cases.
+           (default-directory (dvc-uniquify-file-name default-directory)))
       (with-current-buffer (or related-buffer (current-buffer))
         (dvc-log-event output-buf error-buf command default-directory "started")
         (let ((status (let ((process-environment
