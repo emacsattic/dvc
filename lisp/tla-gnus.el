@@ -63,16 +63,12 @@
 ;;;###autoload
 (defun tla-insinuate-gnus ()
   "Integrate the tla backend of DVC into Gnus.
-The following keybindings are installed for gnus-summary:
-K t v `tla-gnus-article-view-patch'
-
-Additionally add the `tla-submit-patch-done' function to the
+Add the `tla-submit-patch-done' function to the
 `message-sent-hook'.
 
 The archives/categories/branches/version/revision names are buttonized
 in the *Article* buffers."
   (interactive)
-  (define-key gnus-summary-dvc-submap [?v] 'tla-gnus-article-view-patch)
   (add-hook 'message-sent-hook 'tla-submit-patch-done)
   (tla-gnus-setup-buttons))
 

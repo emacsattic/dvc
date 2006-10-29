@@ -57,11 +57,13 @@ this function.
 
 Additionally the following key binding is defined for the gnus summary mode map:
 K t l `dvc-gnus-article-extract-log-message'
+K t v `tla-gnus-article-view-patch'
 K t a `dvc-gnus-article-apply-patch'"
   (interactive)
   (dvc-gnus-initialize-keymap)
   (define-key gnus-summary-dvc-submap [?a] 'dvc-gnus-article-apply-patch)
   (define-key gnus-summary-dvc-submap [?l] 'dvc-gnus-article-extract-log-message)
+  (define-key gnus-summary-dvc-submap [?v] 'dvc-gnus-article-view-patch)
   (mapcar (lambda (x)
             (let ((fn (dvc-function x "insinuate-gnus" t)))
               (when (fboundp fn)
@@ -124,6 +126,28 @@ Otherwise `dvc-gnus-apply-patch' is called."
           (t
            (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
 
+(defun dvc-gnus-article-view-patch (n)
+  "View MIME part N, as patchset.
+When called with no prefix arg, set N := 2.
+First is checked, if it is a tla changeset created with DVC.
+If that is the case, `tla-gnus-article-view-patch' is called.
+Otherwise `dvc-gnus-view-patch' is called."
+  (interactive "p")
+  (unless current-prefix-arg
+    (setq n 2))
+  (let ((patch-type))
+    (save-window-excursion
+      (gnus-summary-select-article-buffer)
+      (goto-char (point-min))
+      (if (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
+          (setq patch-type 'tla)
+        (setq patch-type 'dvc)))
+    (cond ((eq patch-type 'tla)
+           (save-window-excursion
+             (tla-gnus-article-view-patch n)))
+          (t
+           (gnus-article-part-wrapper n 'dvc-gnus-view-patch)))))
+
 (defvar dvc-apply-patch-mapping nil)
 ;;e.g.: (add-to-list 'dvc-apply-patch-mapping '("psvn" "~/work/myprg/psvn"))
 
@@ -159,6 +183,20 @@ the patch sould be applied."
     (let ((default-directory (dvc-gnus-suggest-apply-patch-directory)))
       (flet ((ediff-get-default-file-name () default-directory))
         (ediff-patch-file 2 patch-buff)))))
+
+(defun dvc-gnus-view-patch (handle)
+  "View the patch corresponding to HANDLE."
+  (dvc-buffer-push-previous-window-config)
+  (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
+        (cur-buf (current-buffer))
+        (patch-buff))
+    (mm-save-part-to-file handle dvc-patch-name)
+    (gnus-summary-select-article-buffer)
+    (split-window-vertically)
+    (find-file-other-window dvc-patch-name)
+    (toggle-read-only 1)
+    (other-window -1)
+    (gnus-article-show-summary)))
 
 (provide 'dvc-gnus)
 ;;; dvc-gnus.el ends here
