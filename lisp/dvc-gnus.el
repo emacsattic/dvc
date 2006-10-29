@@ -82,7 +82,7 @@ Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
            (log-header (buffer-substring-no-properties start-pos end-pos)))
       (setq dvc-memorized-log-header log-header))
     (goto-char (point-min))
-    (let* ((start-pos (search-forward "From: " nil t))
+    (let* ((start-pos (re-search-forward "From: +" nil t))
            (end-pos (line-end-position))
            (sender (when start-pos (buffer-substring-no-properties start-pos end-pos))))
       (setq dvc-memorized-patch-sender (and start-pos sender)))
