@@ -264,6 +264,16 @@ The filename is obtained with `dvc-get-file-info-at-point'."
       (dvc-funcall-if-exists dired-jump))
     (dired-goto-file file-full-path)))
 
+(defun dvc-purge-files (&rest files)
+  "Delete FILES from the harddisk. No backup is created for these FILES.
+These function bypasses the used revision control system."
+  (interactive (dvc-current-file-list))
+  (let ((multiprompt (format "Are you sure to purge %%d files? "))
+        (singleprompt (format "Purge file: ")))
+    (when (dvc-confirm-read-file-name-list multiprompt files singleprompt nil)
+      (mapcar #'delete-file files)
+      (message "Purged %S" files))))
+
 ;; partner buffer stuff
 (defvar dvc-partner-buffer nil
   "DVC Partner buffer. Must be local to each buffer.")
