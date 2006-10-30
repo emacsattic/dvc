@@ -46,6 +46,7 @@
 
 (defalias 'bzr-dvc-add-files 'bzr-add-files)
 (defalias 'bzr-dvc-revert-files 'bzr-revert-files)
+(defalias 'bzr-dvc-remove-files 'bzr-remove-files)
 
 ;;;###autoload
 (defalias 'bzr-dvc-log-edit-done 'bzr-log-edit-done)

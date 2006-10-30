@@ -461,6 +461,14 @@ of the commit. Additionally the destination email address can be specified."
                                   (output error status arguments)
                                 (message "bzr revert finished")))))
 
+(defun bzr-remove-files (&rest files)
+  "Run bzr remove."
+  (message "bzr-remove-files: %s" files)
+  (dvc-run-dvc-sync 'bzr (append '("remove") files)
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr remove finished"))))
+
 (defun bzr-is-bound (&optional path)
   "True if branch containing PATH is bound"
   (file-exists-p (concat (file-name-as-directory
