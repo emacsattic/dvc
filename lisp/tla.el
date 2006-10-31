@@ -3498,6 +3498,18 @@ After running update, execute HANDLE (function taking no argument)."
                           ))
     (dvc-revert-some-buffers tree)))
 
+(defvar tla-default-export-directory nil "Default directory that is suggested for `tla-export'")
+;;;###autoload
+(defun tla-export (revision dir)
+  "Run tla export to export REVISION to DIR."
+  (interactive (list (tla-name-read "Export version: "
+                                    'prompt 'prompt 'prompt 'maybe 'maybe)
+                     (dvc-read-directory-name "Export to directory: " nil tla-default-export-directory nil)))
+  (setq dir (dvc-uniquify-file-name dir))
+  (tla--run-tla-async `("export" ,(tla--name-construct revision) ,dir)
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (message "Finished tla export %s to %s" (capture revision) (capture dir)))))
 
 (defun tla--tag-does-cacherev ()
   (cond ((eq tla-tag-does-cacherev 'yes) t)
