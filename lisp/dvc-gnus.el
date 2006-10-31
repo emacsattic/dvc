@@ -109,6 +109,8 @@ Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
 When called with no prefix arg, set N := 2.
 First is checked, if it is a tla changeset created with DVC.
 If that is the case, `tla-gnus-apply-patch' is called.
+The next check is whether it is a patch suitable for xhg. In that case
+`xhg-gnus-article-import-patch' is called.
 Otherwise `dvc-gnus-apply-patch' is called."
   (interactive "p")
   (unless current-prefix-arg
@@ -119,10 +121,15 @@ Otherwise `dvc-gnus-apply-patch' is called."
       (goto-char (point-min))
       (if (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
           (setq patch-type 'tla)
-        (setq patch-type 'dvc)))
+        (goto-char (point-min))
+        (if (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$")
+            (setq patch-type 'xhg)
+          (setq patch-type 'dvc))))
     (cond ((eq patch-type 'tla)
            (save-window-excursion
              (tla-gnus-article-apply-patch n)))
+          ((eq patch-type 'xhg)
+           (xhg-gnus-article-import-patch n))
           (t
            (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
 
