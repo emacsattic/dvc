@@ -255,10 +255,15 @@ revision list."
                   (error "Only 'revision type is supported here. Got %S" rev-type))
                 (let* ((prev-rev-id `(,(car rev-id) (previous-revision
                                                      ,rev-id 1))))
-                  (dvc-trace "prev-rev-id=%S" prev-rev-id)
-                  (dvc-trace "rev-id=%S" rev-id)
-                  (dvc-delta prev-rev-id rev-id)))))
-      (pop-to-buffer log-buf))))
+                  ;;(dvc-trace "prev-rev-id=%S" prev-rev-id)
+                  ;;(dvc-trace "rev-id=%S" rev-id)
+                  (dvc-delta prev-rev-id rev-id))))
+        (setq buffer (dvc-revlist-entry-patch-diff-buffer (nth 1 elem))))
+      ;; setup the dvc-partner-buffer stuff
+      (with-current-buffer buffer
+        (set (make-local-variable 'dvc-partner-buffer) log-buf))
+      (pop-to-buffer log-buf)
+      (set (make-local-variable 'dvc-partner-buffer) buffer))))
 
 (defun dvc-revlist-diff-scroll-down ()
   (interactive)

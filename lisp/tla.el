@@ -8247,10 +8247,12 @@ Otherwise, return nil."
   (interactive)
   (tla-revision-scroll-or-show-changeset 'scroll-down))
 
+;;TODO: remove tla-revision-changeset if it is really no longer needed...
 (defun tla-revision-changeset (&optional arg)
   "Gets and display the changeset at point in a revision list buffer.
 If used with a prefix arg ARG, don't include the diffs from the output."
   (interactive "P")
+  (error "tla-revision-changeset should be handled by DVC now...")
   (let* ((window-conf (current-window-configuration))
          (cur-buf (current-buffer))
          (cookie dvc-revlist-cookie)
