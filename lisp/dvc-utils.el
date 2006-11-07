@@ -190,6 +190,19 @@ the value of `default-directory'."
             (if initial (concat dir initial) dir)))
     (read-file-name prompt dir default-dirname mustmatch initial)))
 
+(defun dvc-create-tarball-from-intermediate-directory (dir tgz-file-name)
+  "Create a tarball with the content of DIR.
+If DIR does not yet exist, wait until it does exist.
+Then create the tarball TGZ-FILE-NAME and remove the contents of DIR."
+    ;;create the archive: tar cfz ,,cset.tar.gz ,,cset
+  (while (not (file-exists-p dir)) ;;somewhat dirty, but seems to work...
+    (sit-for 0.01))
+  ;;(message "Calling tar cfz %s -C %s %s" tgz-file-name (file-name-directory dir) (file-name-nondirectory dir))
+  (call-process "tar" nil nil nil "cfz" tgz-file-name "-C" (file-name-directory dir) (file-name-nondirectory dir))
+  (call-process "rm" nil nil nil "-rf" dir)
+  (message "Created tarball %s" tgz-file-name))
+
+
 (defvar dvc-digits (string-to-list "0123456789"))
 
 (defun dvc-digit-char-p (character)

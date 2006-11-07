@@ -135,7 +135,9 @@
                :rev-id `(bzr (revision
                               ,(list (if remote 'remote 'local)
                                      root (bzr-revision-st-revno
-                                           elem))))))))))))
+                                           elem)))))))
+          (goto-char (point-min))
+          (dvc-revision-prev))))))
 
 ;;;###autoload
 (defun bzr-log (path)
@@ -159,9 +161,7 @@
   "Run bzr log and show the full log message."
   (interactive (list default-directory))
   (setq bzr-log-show-only-short-message nil)
-  (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
-  (goto-char (point-min)))
-
+  (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse))
 
 (provide 'bzr-revision)
 ;;; bzr-revision.el ends here

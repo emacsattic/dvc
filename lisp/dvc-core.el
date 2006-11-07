@@ -264,6 +264,16 @@ The filename is obtained with `dvc-get-file-info-at-point'."
       (dvc-funcall-if-exists dired-jump))
     (dired-goto-file file-full-path)))
 
+(defun dvc-purge-files (&rest files)
+  "Delete FILES from the harddisk. No backup is created for these FILES.
+These function bypasses the used revision control system."
+  (interactive (dvc-current-file-list))
+  (let ((multiprompt (format "Are you sure to purge %%d files? "))
+        (singleprompt (format "Purge file: ")))
+    (when (dvc-confirm-read-file-name-list multiprompt files singleprompt nil)
+      (mapcar #'delete-file files)
+      (message "Purged %S" files))))
+
 ;; partner buffer stuff
 (defvar dvc-partner-buffer nil
   "DVC Partner buffer. Must be local to each buffer.")
@@ -474,6 +484,10 @@ Prompt for password with `read-passwd' if the output of PROC matches
   "By default, do not touch the environment"
   env)
 
+(defun dvc-default-global-argument ()
+  "By default, no global argument."
+  nil)
+
 (defun dvc-run-dvc-async (dvc arguments &rest keys)
   "Run a process asynchronously.
 ARGUMENTS is a list of arguments.  nil values in this list are removed.
@@ -532,7 +546,9 @@ Example:
            (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
                            (dvc-new-error-buffer nil dvc)))
            (error-file (dvc-make-temp-name "dvc-errors"))
-           (command (dvc-build-dvc-command dvc arguments))
+           (global-arg (funcall (dvc-function dvc "default-global-argument")))
+           (command (dvc-build-dvc-command
+                     dvc (append global-arg arguments)))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory))
@@ -597,15 +613,17 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys
-    (let ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
-                          (dvc-new-process-buffer t dvc)))
-          (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
-                          (dvc-new-error-buffer t dvc)))
-          (command (dvc-build-dvc-command dvc arguments))
-          (error-file (dvc-make-temp-name "arch-errors"))
-          ;; Make the `default-directory' unique. The trailing slash
-          ;; may be necessary in some cases.
-          (default-directory (dvc-uniquify-file-name default-directory)))
+    (let* ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
+                           (dvc-new-process-buffer t dvc)))
+           (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
+                           (dvc-new-error-buffer t dvc)))
+           (global-arg (funcall (dvc-function dvc "default-global-argument")))
+           (command (dvc-build-dvc-command
+                     dvc (append global-arg arguments)))
+           (error-file (dvc-make-temp-name "arch-errors"))
+           ;; Make the `default-directory' unique. The trailing slash
+           ;; may be necessary in some cases.
+           (default-directory (dvc-uniquify-file-name default-directory)))
       (with-current-buffer (or related-buffer (current-buffer))
         (dvc-log-event output-buf error-buf command default-directory "started")
         (let ((status (let ((process-environment

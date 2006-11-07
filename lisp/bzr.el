@@ -232,8 +232,9 @@ TODO: DONT-SWITCH is currently ignored."
     (dvc-save-some-buffers root)
     (dvc-run-dvc-async
      'bzr `("diff" ,@(when against
-                       (list "-r" (bzr-revision-id-to-string
-                                   against))))
+                       (list "--revision"
+                             (bzr-revision-id-to-string
+                              against))))
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (dvc-diff-no-changes (capture buffer)
@@ -459,6 +460,14 @@ of the commit. Additionally the destination email address can be specified."
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
                                 (message "bzr revert finished")))))
+
+(defun bzr-remove-files (&rest files)
+  "Run bzr remove."
+  (message "bzr-remove-files: %s" files)
+  (dvc-run-dvc-sync 'bzr (append '("remove") files)
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr remove finished"))))
 
 (defun bzr-is-bound (&optional path)
   "True if branch containing PATH is bound"
@@ -828,7 +837,7 @@ LAST-REVISION looks like
       (dvc-run-dvc-display-as-info 'bzr '("version-info"))
   (dvc-run-dvc-sync 'bzr (list "version-info")
                     :finished 'dvc-output-buffer-handler)))
-  
+
 (defun bzr-ignore (pattern)
   "Run bzr ignore PATTERN."
   (interactive "sbzr ignore: ")

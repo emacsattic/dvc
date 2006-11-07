@@ -38,13 +38,84 @@
 (defun xhg-insinuate-gnus ()
   "Integrate Xhg into Gnus.
 The following keybindings are installed for gnus-summary:
-K t i `xhg-gnus-article-import-patch'
 K t s `xhg-gnus-article-view-status-for-import-patch'"
   (interactive)
   (dvc-gnus-initialize-keymap)
-  (define-key gnus-summary-dvc-submap [?i] 'xhg-gnus-article-import-patch)
   (define-key gnus-summary-dvc-submap [?s] 'xhg-gnus-article-view-status-for-import-patch)
   )
+
+(defvar xhg-apply-patch-mapping nil)
+;;(add-to-list 'xhg-apply-patch-mapping '("my-wiki" "~/work/wiki/"))
+
+(defvar xhg-gnus-import-patch-force nil)
+(defun xhg-gnus-article-import-patch (n)
+  "Import MIME part N, as hg patch.
+When N is negative, force applying the patch, even if there are
+outstanding uncommitted changes."
+  (interactive "p")
+  (if (and (numberp n) (< n 0))
+      (progn
+          (setq xhg-gnus-import-patch-force t)
+          (setq n (- n)))
+    (setq xhg-gnus-import-patch-force nil))
+  (gnus-article-part-wrapper n 'xhg-gnus-import-patch))
+
+(defun xhg-gnus-import-patch (handle)
+  "Import a hg patch via gnus.  HANDLE should be the handle of the part."
+  (let ((patch-file-name (concat (dvc-make-temp-name "gnus-xhg-import-") ".patch"))
+        (window-conf (current-window-configuration))
+        (import-dir))
+    (gnus-summary-select-article-buffer)
+    (save-excursion
+      (goto-char (point-min))
+      ;; handle does not seem to exist for text/x-patch ...
+      (search-forward "text/x-patch; ")
+      (mm-save-part-to-file (get-text-property (point) 'gnus-data) patch-file-name)
+      (dolist (m xhg-apply-patch-mapping)
+        (when (looking-at (car m))
+          (setq import-dir (dvc-uniquify-file-name (cadr m))))))
+    (delete-other-windows)
+    (dvc-buffer-push-previous-window-config)
+    (find-file patch-file-name)
+    (setq import-dir (dvc-read-directory-name "Import hg patch to: " nil nil t import-dir))
+    (when import-dir
+      (let ((default-directory import-dir))
+        (xhg-import patch-file-name xhg-gnus-import-patch-force)))
+    (delete-file patch-file-name)
+    (kill-buffer (current-buffer)) ;; the patch file
+    (set-window-configuration window-conf)
+    (when (and import-dir (y-or-n-p "Run hg log in patched directory? "))
+      (let ((default-directory import-dir))
+        (xhg-log "tip:-10")
+        (delete-other-windows)))))
+
+(defun xhg-gnus-article-view-status-for-import-patch (n)
+  "View the status for the repository, where MIME part N would be applied as hg patch.
+
+Use the same logic as in `xhg-gnus-article-import-patch' to guess the repository path
+via `xhg-apply-patch-mapping'."
+  (interactive "p")
+  (gnus-article-part-wrapper n 'xhg-gnus-view-status-for-import-patch))
+
+(defun xhg-gnus-view-status-for-import-patch (handle)
+  "View the status for a repository before applying a hg patch via gnus.
+HANDLE should be the handle of the part."
+  (let ((window-conf (current-window-configuration))
+        (import-dir))
+    (gnus-summary-select-article-buffer)
+    (save-excursion
+      (goto-char (point-min))
+      ;; handle does not seem to exist for text/x-patch ...
+      (search-forward "text/x-patch; ")
+      (dolist (m xhg-apply-patch-mapping)
+        (when (looking-at (car m))
+          (setq import-dir (dvc-uniquify-file-name (cadr m))))))
+    (unless import-dir ;; when we find the directory in xhg-apply-patch-mapping don't ask for confirmation
+      (setq import-dir (dvc-read-directory-name "View hg repository status for: " nil nil t import-dir)))
+    (let ((default-directory import-dir))
+      (xhg-status)
+      (delete-other-windows)
+      (dvc-buffer-push-previous-window-config window-conf))))
 
 (provide 'xhg-gnus)
 ;;; xhg-gnus.el ends here
