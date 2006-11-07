@@ -30,9 +30,16 @@
 
 ;; FIXME: defined here because package-maint.el is part of DVC for now.
 (setq srcdir (or (getenv "srcdir") "."))
+(setq otherdirs (or (getenv "otherdirs") nil))
+
 (setq loaddir (and load-file-name (file-name-directory load-file-name)))
 (push srcdir load-path)
 (push loaddir load-path)
+
+;; Add otherdirs to load-path
+(mapcar '(lambda (dir) 
+	   (add-to-list 'load-path dir))
+	(split-string otherdirs " "))
 
 ;(setq debug-on-error t)
 
