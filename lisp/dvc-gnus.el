@@ -182,12 +182,14 @@ the patch sould be applied."
 
 (defun dvc-gnus-apply-patch (handle)
   "Apply the patch corresponding to HANDLE."
-  (dvc-buffer-push-previous-window-config)
   (dvc-gnus-article-extract-log-message)
   (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
+	(window-conf (current-window-configuration))
         (patch-buff))
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
+    (dvc-diff-mode)
+    (dvc-buffer-push-previous-window-config window-conf)
     (toggle-read-only 1)
     (setq patch-buff (current-buffer))
     (delete-other-windows)
@@ -197,14 +199,16 @@ the patch sould be applied."
 
 (defun dvc-gnus-view-patch (handle)
   "View the patch corresponding to HANDLE."
-  (dvc-buffer-push-previous-window-config)
   (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
         (cur-buf (current-buffer))
+	(window-conf (current-window-configuration))
         (patch-buff))
     (mm-save-part-to-file handle dvc-patch-name)
     (gnus-summary-select-article-buffer)
     (split-window-vertically)
     (find-file-other-window dvc-patch-name)
+    (dvc-diff-mode)
+    (dvc-buffer-push-previous-window-config window-conf)
     (toggle-read-only 1)
     (other-window -1)
     (gnus-article-show-summary)))
