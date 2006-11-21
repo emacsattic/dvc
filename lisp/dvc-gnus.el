@@ -147,14 +147,16 @@ Otherwise `dvc-gnus-view-patch' is called."
     (save-window-excursion
       (gnus-summary-select-article-buffer)
       (goto-char (point-min))
-      (if (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
-          (setq patch-type 'tla)
-        (setq patch-type 'dvc)))
+      (if (or (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
+	      (progn (goto-char (point-min))
+		     (and (search-forward "Revision: " nil t)
+			  (search-forward "Archive: " nil t))))
+	  (setq patch-type 'tla)
+	(setq patch-type 'dvc)))
     (cond ((eq patch-type 'tla)
-           (save-window-excursion
-             (tla-gnus-article-view-patch n)))
-          (t
-           (gnus-article-part-wrapper n 'dvc-gnus-view-patch)))))
+	   (tla-gnus-article-view-patch n))
+	  (t
+	   (gnus-article-part-wrapper n 'dvc-gnus-view-patch)))))
 
 (defvar dvc-apply-patch-mapping nil)
 ;;e.g.: (add-to-list 'dvc-apply-patch-mapping '("psvn" "~/work/myprg/psvn"))

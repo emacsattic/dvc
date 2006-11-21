@@ -72,13 +72,13 @@ in the *Article* buffers."
   (add-hook 'message-sent-hook 'tla-submit-patch-done)
   (tla-gnus-setup-buttons))
 
-(defun tla-gnus-article-view-patch ()
-"View a patch via gnus.
-The patch can be embedded or external."
+(defun tla-gnus-article-view-patch (n)
+  "View MIME part N in a gnus article, as a tla changeset.
+The patch can be embedded or external.  If external, the
+parameter N is ignored."
   (interactive)
-  (if (save-excursion
-        (gnus-summary-select-article-buffer)
-        (> (gnus-article-mime-total-parts) 1))
+  (gnus-summary-select-article-buffer)
+  (if (> (gnus-article-mime-total-parts) 1)
       (tla-gnus-article-view-attached-patch 2)
     (tla-gnus-article-view-external-patch)))
 
