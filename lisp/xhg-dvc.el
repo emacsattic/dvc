@@ -45,6 +45,14 @@
 (defun xhg-dvc-log-edit ()
   (dvc-dvc-log-edit))
 
+(defvar xhg-dvc-commit-extra-parameters nil "A list of extra parameters for the next hg commit.")
+
+(defun xhg-select-committer-for-next-commit (committer)
+  "Select the committer for the next hg commit.
+This is done via setting `xhg-dvc-commit-extra-parameters'."
+  (interactive "sCommitter for next hg commit: ")
+  (setq xhg-dvc-commit-extra-parameters `("--user" ,committer)))
+
 ;; Base functions that are required for every supported dvc system
 (defun xhg-dvc-log-edit-done ()
   "Finish a commit for Mercurial."
@@ -54,7 +62,8 @@
     (save-buffer buffer)
     (message "committing %S in %s" (or files-to-commit "all files") (dvc-tree-root))
     (dvc-run-dvc-sync
-     'xhg (append (list "commit" "-l" (dvc-log-edit-file-name)) files-to-commit)
+     'xhg (append (list "commit" "-l" (dvc-log-edit-file-name))
+                  xhg-dvc-commit-extra-parameters files-to-commit)
      :finished (dvc-capturing-lambda
                    (output error status arguments)
                  (dvc-show-error-buffer output 'commit)
@@ -66,6 +75,7 @@
                  ;; doesn't work at the moment (Stefan, 10.02.2006)
                  ;; (dvc-diff-clear-buffers 'xhg (capture default-directory)
                  ;;  "* Just committed! Please refresh buffer\n")
+                 (setq xhg-dvc-commit-extra-parameters nil)
                  (message "Mercurial commit finished")))
     (dvc-tips-popup-maybe)))
 
