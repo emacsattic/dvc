@@ -127,8 +127,7 @@ Otherwise `dvc-gnus-apply-patch' is called."
             (setq patch-type 'xhg)
           (setq patch-type 'dvc))))
     (cond ((eq patch-type 'tla)
-           (save-window-excursion
-             (tla-gnus-article-apply-patch n)))
+	   (tla-gnus-article-apply-patch n))
           ((eq patch-type 'xhg)
            (xhg-gnus-article-import-patch n))
           (t

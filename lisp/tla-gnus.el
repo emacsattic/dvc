@@ -144,17 +144,19 @@ When called with no prefix arg, set N := 2."
 
 (defun tla-gnus-apply-patch (handle)
   "Apply the patch corresponding to HANDLE."
-  (dvc-buffer-push-previous-window-config)
+  (dvc-gnus-article-extract-log-message)
   (let ((archive-name (dvc-make-temp-name "gnus-patch-tgz"))
         (tree-dir (tla--name-match-from-list
                    (when dvc-memorized-version
                      (tla--name-split dvc-memorized-version))
                    tla-apply-patch-mapping))
-        (tree))
+        (tree)
+	(window-conf (current-window-configuration)))
     (mm-save-part-to-file handle archive-name)
     (gnus-summary-select-article-buffer)
     (split-window-vertically)
     (tla-show-changeset-from-tgz archive-name)
+    (dvc-buffer-push-previous-window-config window-conf)
     (setq tree (dvc-read-directory-name "Apply to tree: "
                                          tree-dir tree-dir))
     (tla-apply-changeset-from-tgz archive-name tree nil)
