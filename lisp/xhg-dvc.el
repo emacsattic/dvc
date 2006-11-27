@@ -39,9 +39,6 @@
 ;;;###autoload
 (defalias 'xhg-dvc-tree-root 'xhg-tree-root)
 
-(defun xhg-dvc-log-edit-file-name-func ()
-  xhg-log-edit-file-name)
-
 (defun xhg-dvc-log-edit ()
   (dvc-dvc-log-edit))
 
