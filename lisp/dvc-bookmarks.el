@@ -56,16 +56,17 @@
 ;; saved under ~/.dvc/bookmarks.el
 
 ;; a data structure for testing purposes
-(setq dvc-bookmark-alist
-      '(("hg"
-         (local-tree "~/work/hg/hg"))
-        ("work-stuff"
-         (children
-          ("home-dir"
-           (local-tree "~/"))
-          ("another-dir"
-           (local-tree "~/work"))))))
-;;(pp dvc-bookmark-alist)
+(defvar dvc-bookmark-alist
+  '(("hg"
+     (local-tree "~/work/hg/hg"))
+    ("work-stuff"
+     (children
+      ("home-dir"
+       (local-tree "~/"))
+      ("another-dir"
+       (local-tree "~/work")))))
+  "The bookmarks used for dvc")
+;;(pp-to-string dvc-bookmark-alist)
 
 (defvar dvc-bookmarks-cookie nil "The ewoc cookie for the *dvc-bookmarks* buffer.")
 
@@ -113,7 +114,8 @@
           (t
            (if curr
                (apply enter-function (list dvc-bookmarks-cookie curr data))
-             (ewoc-enter-last dvc-bookmarks-cookie data))))))
+             (ewoc-enter-last dvc-bookmarks-cookie data))))
+    (forward-line 1)))
 
 ;;;###autoload
 (defun dvc-bookmarks ()
@@ -207,7 +209,9 @@
 (defvar dvc-bookmarks-tmp-yank-item '("hg" (local-tree "~/work/hg/hg")))
 (defun dvc-bookmarks-kill ()
   (interactive)
-  (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-data)))
+  (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-data))
+  (let ((buffer-read-only nil))
+    (ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
 
 (provide 'dvc-bookmarks)
 ;;; dvc-bookmarks.el ends here
