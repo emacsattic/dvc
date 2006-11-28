@@ -68,6 +68,8 @@
   "The bookmarks used for dvc")
 ;;(pp-to-string dvc-bookmark-alist)
 
+(defvar dvc-bookmarks-file-name "dvc-bookmarks.el" "The file that holds the dvc bookmarks")
+
 (defvar dvc-bookmarks-cookie nil "The ewoc cookie for the *dvc-bookmarks* buffer.")
 
 (defvar dvc-bookmarks-mode-map
@@ -84,7 +86,8 @@
     (define-key map "l"      'dvc-bookmarks-changelog)
     (define-key map "L"      'dvc-bookmarks-log)
     (define-key map "m"      'dvc-bookmarks-missing)
-    (define-key map "."   'dvc-bookmarks-show-info-at-point)
+    (define-key map "."      'dvc-bookmarks-show-info-at-point)
+    (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
     map)
   "Keymap used in `dvc-bookmarks-mode'.")
 
@@ -212,6 +215,13 @@
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-data))
   (let ((buffer-read-only nil))
     (ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
+
+(defun dvc-bookmarks-save ()
+  "Save `dvc-bookmark-alist' to the file `dvc-bookmarks-file-name'."
+  (interactive)
+  (dvc-save-state '(dvc-bookmark-alist)
+                  (dvc-config-file-full-path dvc-bookmarks-file-name t)
+                  t))
 
 (provide 'dvc-bookmarks)
 ;;; dvc-bookmarks.el ends here

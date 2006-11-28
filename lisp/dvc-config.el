@@ -25,7 +25,7 @@
 (require 'dvc-utils)
 (require 'dvc-defs)
 
-(defcustom dvc-config-directory "~/.xtla/"
+(defcustom dvc-config-directory "~/.dvc/"
   "*Directory in which the DVC config files will be stored."
   :type 'directory
   :group 'dvc)
