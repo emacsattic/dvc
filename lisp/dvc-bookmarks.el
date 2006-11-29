@@ -70,6 +70,7 @@
 
 (defvar dvc-bookmarks-file-name "dvc-bookmarks.el" "The file that holds the dvc bookmarks")
 
+(defvar dvc-bookmarks-loaded nil "Whether `dvc-bookmark-alist' has been loaded from `dvc-bookmarks-file-name'.")
 (defvar dvc-bookmarks-cookie nil "The ewoc cookie for the *dvc-bookmarks* buffer.")
 
 (defvar dvc-bookmarks-mode-map
@@ -125,9 +126,11 @@
     (forward-line 1)))
 
 ;;;###autoload
-(defun dvc-bookmarks ()
-  "Display the *dvc-bookmarks* buffer."
-  (interactive)
+(defun dvc-bookmarks (&optional arg)
+  "Display the *dvc-bookmarks* buffer.
+With prefix argument ARG, reload the bookmarks file from disk."
+  (interactive "P")
+  (dvc-bookmarks-load-from-file arg)
   (switch-to-buffer (get-buffer-create "*dvc-bookmarks*"))
   (toggle-read-only 0)
   (erase-buffer)
@@ -238,6 +241,15 @@
   (dvc-save-state '(dvc-bookmark-alist)
                   (dvc-config-file-full-path dvc-bookmarks-file-name t)
                   t))
+
+(defun dvc-bookmarks-load-from-file (&optional force)
+  "Load bookmarks from the file `dvc-bookmarks-file-name'.
+
+If FORCE is non-nil, reload the file even if it was loaded before."
+  (when (or force (not dvc-bookmarks-loaded))
+    (dvc-load-state (dvc-config-file-full-path
+                     dvc-bookmarks-file-name t))
+    (setq dvc-bookmarks-loaded t)))
 
 (provide 'dvc-bookmarks)
 ;;; dvc-bookmarks.el ends here
