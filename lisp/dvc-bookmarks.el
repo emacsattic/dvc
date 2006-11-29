@@ -80,6 +80,7 @@
     (define-key map "\C-m"   'dvc-bookmarks-goto)
     (define-key map "n"      'dvc-bookmarks-next)
     (define-key map "p"      'dvc-bookmarks-previous)
+    (define-key map "a"      'dvc-bookmarks-add)
     (define-key map "\C-y"   'dvc-bookmarks-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "s"      'dvc-bookmarks-status)
@@ -99,7 +100,10 @@
     ["DVC missing" dvc-bookmarks-missing t]
     ["DVC changelog" dvc-bookmarks-changelog t]
     ["DVC log" dvc-bookmarks-log t]
-    ))
+   "--"
+    ["Add new bookmark" dvc-bookmarks-add t]
+    ["Save bookmarks" dvc-bookmarks-save t]
+     ))
 
 (defun dvc-bookmarks-printer (elem)
   (let ((entry (car elem))
@@ -154,6 +158,18 @@
 
 (defun dvc-bookmarks-current-value (key)
   (cadr (assoc key (cdr (dvc-bookmarks-current-data)))))
+
+(defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
+  "Add a DVC bookmark"
+  (interactive
+   (let* ((bmk-name (read-string "DVC bookmark name: "))
+          (bmk-loc (dvc-read-directory-name (format "Set DVC bookmark %s in directory: " bmk-name))))
+     (list bmk-name bmk-loc)))
+  (let* ((elem (list bookmark-name (list 'local-tree bookmark-local-dir)))
+         (data (list (car elem) 0 elem)))
+    (dvc-bookmarks)
+    (add-to-list 'dvc-bookmark-alist elem t)
+    (ewoc-enter-last dvc-bookmarks-cookie data)))
 
 (defun dvc-bookmarks-next ()
   (interactive)
