@@ -1,6 +1,6 @@
 ;;; dvc-xemacs.el --- Compatibility stuff for XEmacs
 
-;; Copyright (C) 2004 by all contributors
+;; Copyright (C) 2004-2006 by all contributors
 
 ;; Author: Robert Widhopf-Fenk <hack@robf.de>
 
@@ -84,7 +84,7 @@
           buffer-file)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; the unless check seems to fail 
+; the unless check seems to fail
 ;(unless (functionp 'replace-regexp-in-string)
   (defun replace-regexp-in-string (regexp rep string
                                           &optional fixedcase literal)
@@ -178,7 +178,7 @@ after it has been set up properly in other respects."
   (defun make-temp-file (prefix &optional dir-flag)
     "Create a temporary file.
 The returned file name (created by `make-temp-name', is guaranteed to point to
-a newly created empty file.  
+a newly created empty file.
 You can then use `write-region' to write new data into the file.
 
 If DIR-FLAG is non-nil, create a new empty directory instead of a file."
@@ -190,7 +190,7 @@ If DIR-FLAG is non-nil, create a new empty directory instead of a file."
                           (expand-file-name prefix)))
                    (if dir-flag
                        (make-directory file)
-                     (write-region "" nil file nil 'silent nil 'excl))
+                     (write-region "" nil file nil 'silent nil))
                    nil)
                (file-already-exists t))
         ;; the file was somehow created by someone else between
@@ -268,14 +268,14 @@ adding an submenu \"DVC\" containing all dvc buffers."
               (or (not buf2)
                   (not (dvc-xemacs-dvc-mode-p buf2))))
          "DVC")
-	((string-match "\\`*" (buffer-name buf1))
-	 (and (null buf2) "*Misc*"))
+        ((string-match "\\`*" (buffer-name buf1))
+         (and (null buf2) "*Misc*"))
         ((or (null buf2)
-	     (string-match "\\`*" (buffer-name buf2))
-	     (not (eq (symbol-value-in-buffer 'major-mode buf1)
-		      (symbol-value-in-buffer 'major-mode buf2))))
-	 (symbol-value-in-buffer 'mode-name buf1))
-	(t nil)))
+             (string-match "\\`*" (buffer-name buf2))
+             (not (eq (symbol-value-in-buffer 'major-mode buf1)
+                      (symbol-value-in-buffer 'major-mode buf2))))
+         (symbol-value-in-buffer 'mode-name buf1))
+        (t nil)))
 
 (defun dvc-sort-buffers-menu-by-mode-then-alphabetically (buf1 buf2)
   "For use as a value of `buffers-menu-sort-function'.
@@ -289,28 +289,28 @@ and will return t if the first is \"less\" than the second.
 This is a modified version of `sort-buffers-menu-by-mode-then-alphabetically',
 causing all *dvc-* buffers to be treated as having the same major mode."
   (let* ((nam1 (buffer-name buf1))
-	 (nam2 (buffer-name buf2))
-	 (inv1p (not (null (string-match "\\` " nam1))))
-	 (inv2p (not (null (string-match "\\` " nam2))))
-	 (star1p (not (null (string-match "\\`*" nam1))))
-	 (star2p (not (null (string-match "\\`*" nam2))))
-	 (mode1 (symbol-value-in-buffer 'major-mode buf1))
-	 (mode2 (symbol-value-in-buffer 'major-mode buf2)))
+         (nam2 (buffer-name buf2))
+         (inv1p (not (null (string-match "\\` " nam1))))
+         (inv2p (not (null (string-match "\\` " nam2))))
+         (star1p (not (null (string-match "\\`*" nam1))))
+         (star2p (not (null (string-match "\\`*" nam2))))
+         (mode1 (symbol-value-in-buffer 'major-mode buf1))
+         (mode2 (symbol-value-in-buffer 'major-mode buf2)))
     (if (dvc-xemacs-dvc-mode-p mode1)
         (setq mode1 "dvc"))
     (if (dvc-xemacs-dvc-mode-p mode1)
         (setq mode2 "dvc"))
     (cond ((not (eq inv1p inv2p))
-	   (not inv1p))
-	  ((not (eq star1p star2p))
-	   (not star1p))
-	  ((and star1p star2p (string-lessp nam1 nam2)))
-	  ((string-lessp mode1 mode2)
-	   t)
-	  ((string-lessp mode2 mode1)
-	   nil)
-	  (t
-	   (string-lessp nam1 nam2)))))
+           (not inv1p))
+          ((not (eq star1p star2p))
+           (not star1p))
+          ((and star1p star2p (string-lessp nam1 nam2)))
+          ((string-lessp mode1 mode2)
+           t)
+          ((string-lessp mode2 mode1)
+           nil)
+          (t
+           (string-lessp nam1 nam2)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -360,8 +360,8 @@ Return the name of the directory."
 (defun dvc-xmas-kill-all-overlays ()
   "Delete all extents in the current buffer."
   (map-extents (lambda (extent ignore)
-		 (delete-extent extent)
-		 nil)))
+                 (delete-extent extent)
+                 nil)))
 
 (defun dvc-xmas-add-text-properties (start end props &optional object)
   (add-text-properties start end props object)
@@ -396,8 +396,8 @@ Return the name of the directory."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defalias 'dvc-line-number-at-pos (if (functionp 'line-number-at-pos)
-				      'line-number-at-pos
-				    'line-number))
+                                      'line-number-at-pos
+                                    'line-number))
 
 
 (defvar allow-remote-paths nil)
