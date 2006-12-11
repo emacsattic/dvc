@@ -40,6 +40,8 @@
 ;;;###autoload
 (defalias 'bzr-dvc-inventory 'bzr-inventory)
 ;;;###autoload
+(defalias 'bzr-dvc-missing 'bzr-missing)
+;;;###autoload
 (defalias 'bzr-dvc-submit-patch 'bzr-submit-patch)
 ;;;###autoload
 (defalias 'bzr-dvc-add 'bzr-add)

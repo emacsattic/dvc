@@ -128,6 +128,13 @@ via bzr init-repository."
                        (message (format "bzr pull finished => %s"
                                         (concat (dvc-buffer-content error) (dvc-buffer-content output)))))))
 
+(defun bzr-missing (&optional other)
+  "Run bzr missing."
+  (interactive "sBzr missing for branch: ")
+  (when (string= other "")
+    (setq other nil))
+  (dvc-run-dvc-display-as-info 'bzr `("missing" ,other) nil "Running bzr missing\n" t))
+
 ;;;###autoload
 (defun bzr-update (&optional path)
   "Run bzr update."
