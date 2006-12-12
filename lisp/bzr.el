@@ -118,9 +118,11 @@ via bzr init-repository."
                                 (dired to-location))))
 
 ;;;###autoload
-(defun bzr-pull (repo-path)
+(defun bzr-pull (&optional repo-path)
   "Run bzr pull."
   (interactive "sPull from bzr repository: ")
+  (when (string= repo-path "")
+    (setq repo-path nil))
   (dvc-run-dvc-async 'bzr (list "pull" repo-path)
                      :finished
                      (dvc-capturing-lambda

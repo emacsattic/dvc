@@ -42,6 +42,8 @@
 ;;;###autoload
 (defalias 'bzr-dvc-missing 'bzr-missing)
 ;;;###autoload
+(defalias 'bzr-dvc-pull 'bzr-pull)
+;;;###autoload
 (defalias 'bzr-dvc-submit-patch 'bzr-submit-patch)
 ;;;###autoload
 (defalias 'bzr-dvc-add 'bzr-add)

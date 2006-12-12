@@ -29,6 +29,7 @@
 
 ;;; Code:
 (require 'dvc-core)
+(require 'dvc-state)
 
 ;; this were the settings used for tla
 ;; ;; Generated file. Do not edit!!!
@@ -88,6 +89,7 @@
     (define-key map "l"      'dvc-bookmarks-changelog)
     (define-key map "L"      'dvc-bookmarks-log)
     (define-key map "m"      'dvc-bookmarks-missing)
+    (define-key map "f"      'dvc-bookmarks-pull)
     (define-key map "."      'dvc-bookmarks-show-info-at-point)
     (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
     map)
@@ -98,9 +100,10 @@
   `("dvc-bookmarks"
     ["Go to working copy" dvc-bookmarks-goto t]
     ["DVC status" dvc-bookmarks-status t]
-    ["DVC missing" dvc-bookmarks-missing t]
     ["DVC changelog" dvc-bookmarks-changelog t]
     ["DVC log" dvc-bookmarks-log t]
+    ["DVC missing" dvc-bookmarks-missing t]
+    ["DVC pull" dvc-bookmarks-pull t]
    "--"
     ["Add new bookmark" dvc-bookmarks-add t]
     ["Save bookmarks" dvc-bookmarks-save t]
@@ -219,6 +222,14 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (if local-tree
         (let ((default-directory local-tree))
           (dvc-missing))
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-pull ()
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (let ((default-directory local-tree))
+          (dvc-pull))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-yank ()
