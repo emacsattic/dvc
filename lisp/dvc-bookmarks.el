@@ -80,6 +80,7 @@
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     (define-key map [return] 'dvc-bookmarks-goto)
     (define-key map "\C-m"   'dvc-bookmarks-goto)
+    (define-key map "j"      'dvc-bookmarks-jump)
     (define-key map "n"      'dvc-bookmarks-next)
     (define-key map "p"      'dvc-bookmarks-previous)
     (define-key map "a"      'dvc-bookmarks-add)
@@ -266,6 +267,39 @@ If FORCE is non-nil, reload the file even if it was loaded before."
     (dvc-load-state (dvc-config-file-full-path
                      dvc-bookmarks-file-name t))
     (setq dvc-bookmarks-loaded t)))
+
+
+(defun dvc-bookmark-name-1 (entry &optional parent-name)
+  (cond ((assoc 'children entry)
+         (let ((names))
+           (dolist (child (cdr (assoc 'children entry)))
+             (add-to-list 'names (car (dvc-bookmark-name-1 child (car entry)))))
+           names))
+        (t
+         (list (concat (if parent-name (concat  parent-name "/") "") (car entry))))))
+
+(defun dvc-bookmark-names ()
+  "Return a list with all dvc bookmark names."
+  (let ((names))
+    (dolist (entry dvc-bookmark-alist)
+      (setq names (append names (dvc-bookmark-name-1 entry))))
+    names))
+
+(defun dvc-bookmark-goto-name (name)
+  (let ((cur-pos (point))
+        (name-list (split-string name "/"))
+        (prefix ""))
+    (goto-char (point-min))
+    (dolist (name name-list)
+      (setq name (concat prefix name))
+      (setq prefix (concat "  " prefix))
+      (search-forward name))
+    (beginning-of-line-text)))
+
+(defun dvc-bookmarks-jump ()
+  (interactive)
+  (dvc-bookmark-goto-name (ido-completing-read "Jump to dvc bookmark: " (dvc-bookmark-names))))
+
 
 (provide 'dvc-bookmarks)
 ;;; dvc-bookmarks.el ends here
