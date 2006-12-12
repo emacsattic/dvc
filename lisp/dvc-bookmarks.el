@@ -119,8 +119,13 @@
         (data (list (car elem) indent elem))
         (enter-function (if (eq (dvc-line-number-at-pos) 1) 'ewoc-enter-before 'ewoc-enter-after)))
     (cond ((assoc 'children elem)
-           (setq node (apply enter-function (list dvc-bookmarks-cookie curr data)))
-           (dolist (child (cdr (assoc 'children elem)))
+           (setq node
+                 (if curr
+                     (apply enter-function (list dvc-bookmarks-cookie curr data))
+                   (let ((n (ewoc-enter-last dvc-bookmarks-cookie data)))
+                     (forward-line 1)
+                     n)))
+           (dolist (child (reverse (cdr (assoc 'children elem))))
              (dvc-bookmarks-add-to-cookie child (+ indent 2) node)))
           (t
            (if curr
