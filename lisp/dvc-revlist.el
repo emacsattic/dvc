@@ -341,6 +341,11 @@ build the revision list."
      (dvc-capturing-lambda (output error status arguments)
        (with-current-buffer output
          (funcall (capture parser) (capture buffer) (capture location))))
+     :error
+     ;; TODO handle error messages, only treat the bzr missing command like this (errorcode=1)
+     (dvc-capturing-lambda (output error status arguments)
+       (with-current-buffer output
+         (funcall (capture parser) (capture buffer) (capture location))))
      ))
   )
 

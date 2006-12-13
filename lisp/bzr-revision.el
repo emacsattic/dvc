@@ -49,7 +49,7 @@
               (concat " " dvc-mark " ") "   "))
   (let ((struct (dvc-revlist-entry-patch-struct elem)))
     (insert (dvc-face-add "revno: " 'dvc-header)
-            (dvc-face-add (int-to-string (bzr-revision-st-revno struct))
+            (dvc-face-add (int-to-string (or (bzr-revision-st-revno struct) -99))
                           'dvc-revision-name)
             "\n")
     (when dvc-revisions-shows-creator
@@ -69,12 +69,23 @@
 (defun bzr-log-parse-remote (log-buffer location)
   (bzr-log-parse log-buffer location t))
 
+(defun bzr-missing-parse (log-buffer location)
+  "Parse the output of bzr missing."
+  (bzr-log-parse log-buffer location nil t))
+
 (defvar bzr-log-show-only-short-message nil)
-(defun bzr-log-parse (log-buffer location &optional remote)
+(defun bzr-log-parse (log-buffer location &optional remote missing)
   "Parse the output of bzr log."
-  (dvc-trace "location=%S" location)
+  ;;(dvc-trace "location=%S" location)
   (goto-char (point-min))
-  (let ((root location))
+  (let ((root location)
+        (intro-string))
+    (when missing ;; skip the first status output
+      (re-search-forward "^------------------------------------------------------------$")
+      (setq intro-string (buffer-substring-no-properties (point-min) (point)))
+      (with-current-buffer log-buffer
+        (let ((buffer-read-only nil))
+          (insert intro-string))))
     (while (> (point-max) (point))
       (forward-line 1)
       (let ((start (point))
@@ -166,6 +177,16 @@
     (setq bzr-log-show-only-short-message nil)
     (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
     (goto-char (point-min))))
+
+;;;###autoload
+(defun bzr-missing (&optional other)
+  "Run bzr missing."
+  (interactive "sBzr missing for branch: ")
+  (when (string= other "")
+    (setq other nil))
+  (setq bzr-log-show-only-short-message nil)
+  (dvc-build-revision-list 'bzr 'missing (bzr-tree-root) `("missing" ,other) 'bzr-missing-parse)
+  (goto-char (point-min)))
 
 (provide 'bzr-revision)
 ;;; bzr-revision.el ends here
