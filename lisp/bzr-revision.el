@@ -3,6 +3,8 @@
 ;; Copyright (C) 2006  by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
+;; Contributions from:
+;;    Stefan Reichoer, <stefan@xsteve.at>
 ;; Keywords:
 
 ;; DVC is free software; you can redistribute it and/or modify
@@ -156,12 +158,14 @@
   (dvc-build-revision-list 'bzr 'remote-log location `("log" ,location) 'bzr-log-parse-remote)
   (goto-char (point-min)))
 
-
+;;;###autoload
 (defun bzr-changelog (path)
   "Run bzr log and show the full log message."
   (interactive (list default-directory))
-  (setq bzr-log-show-only-short-message nil)
-  (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse))
+  (let ((path (or path (bzr-tree-root))))
+    (setq bzr-log-show-only-short-message nil)
+    (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
+    (goto-char (point-min))))
 
 (provide 'bzr-revision)
 ;;; bzr-revision.el ends here
