@@ -26,11 +26,11 @@ EMACS_FLAVOR = @EMACS_FLAVOR@
 
 FLAGS = @FLAGS@
 
-EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" $(EMACS_PROG) $(FLAGS)
-
 # Other settings
 
 OTHERDIRS = @OTHERDIRS@
+
+EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" $(EMACS_PROG) $(FLAGS)
 
 SYMLINKS = @SYMLINKS@
 LINKPATH = @LINKPATH@
