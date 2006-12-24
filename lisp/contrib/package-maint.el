@@ -57,6 +57,8 @@
 (defvar package-maint-pkg "pkg" "*Name of the package*")
 
 (defvar srcdir (or (getenv "srcdir") "."))
+(defvar contribdir (or (getenv "contribdir") "contrib"))
+(defvar otherdirs (or (getenv "otherdirs") nil))
 (defvar loaddir (and load-file-name (file-name-directory load-file-name)))
 
 (defvar package-maint-compile-warnings '(free-vars unresolved callargs redefine)
@@ -76,11 +78,18 @@ reverse dependencies*")
     (if (equal val "no") nil val)))
 
 (if (my-getenv "lispdir")
-    (push (my-getenv "lispdir") load-path))
+    (add-to-list 'load-path (my-getenv "lispdir")))
 
-(push srcdir load-path)
-(push loaddir load-path)
+(add-to-list 'load-path srcdir)
+(when (file-exists-p contribdir)
+  (add-to-list 'load-path contribdir))
+(add-to-list 'load-path loaddir)
 
+;; Add otherdirs to load-path
+(mapcar '(lambda (dir) 
+	   (when (file-exists-p dir)
+	     (add-to-list 'load-path dir)))
+	(split-string otherdirs " "))
 
 (defvar package-maint-load-file
   (if (featurep 'xemacs)

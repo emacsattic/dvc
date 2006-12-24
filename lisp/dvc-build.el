@@ -34,13 +34,16 @@
 (setq otherdirs (or (getenv "otherdirs") nil))
 
 (setq loaddir (and load-file-name (file-name-directory load-file-name)))
+
 (add-to-list 'load-path srcdir)
-(add-to-list 'load-path contribdir)
+(when (file-exists-p contribdir)
+  (add-to-list 'load-path contribdir))
 (add-to-list 'load-path loaddir)
 
 ;; Add otherdirs to load-path
 (mapcar '(lambda (dir) 
-	   (add-to-list 'load-path dir))
+	   (when (file-exists-p dir)
+	     (add-to-list 'load-path dir)))
 	(split-string otherdirs " "))
 
 ;(setq debug-on-error t)
