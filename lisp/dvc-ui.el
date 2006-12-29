@@ -320,6 +320,7 @@
     (define-key map (dvc-prefix-file ?D) 'dvc-remove-files)
     (define-key map (dvc-prefix-file ?R) 'dvc-revert-files)
     (define-key map (dvc-prefix-file ?M) 'dvc-rename)
+    (define-key map (dvc-prefix-file ?X) 'dvc-purge-files)
 
     (define-key map (dvc-prefix-buffer
                      dvc-key-diff)           'tla-changes-goto)

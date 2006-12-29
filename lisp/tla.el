@@ -1845,16 +1845,6 @@ The changeset is stored in DIRECTORY."
                                  (otherwise (dvc-default-error-function
                                              output error status arguments))))))
 
-(defun tla--create-changeset-tarball (changeset-dir tgz-file-name)
-    ;;create the archive: tar cfz ,,cset.tar.gz ,,cset
-  (while (not (file-exists-p changeset-dir)) ;;somewhat dirty, but seems to work...
-    (sit-for 0.01))
-  ;;(message "Calling tar cfz %s -C %s %s" tgz-file-name (file-name-directory changeset-dir) (file-name-nondirectory changeset-dir))
-  (call-process "tar" nil nil nil "cfz" tgz-file-name "-C" (file-name-directory changeset-dir) (file-name-nondirectory changeset-dir))
-  (call-process "rm" nil nil nil "-rf" changeset-dir)
-  (message "Created changeset tarball %s" tgz-file-name))
-
-
 (defun tla-changes-save-as-tgz (file-name)
   "Run \"tla changes -o\" to create .tar.gz file.
 The changeset is stored in the tarball 'FILE-NAME.tar.gz'."
@@ -1866,7 +1856,7 @@ The changeset is stored in the tarball 'FILE-NAME.tar.gz'."
     (when (file-exists-p tgz-file-name)
       (error "The changeset tarball %s does already exist" tgz-file-name))
     (tla-changes-save changeset-dir)
-    (tla--create-changeset-tarball changeset-dir tgz-file-name)))
+    (dvc-create-tarball-from-intermediate-directory changeset-dir tgz-file-name)))
 
 (defun tla-changeset-save-as-tgz (revision file-name)
   "Create a changeset tarball for a given REVISION.
@@ -1880,7 +1870,7 @@ FILE-NAME specifies the base name. A '.tar.gz' extension is appended."
   (let ((changeset-dir (dvc-make-temp-name "tla-changeset"))
         (tgz-file-name (concat (expand-file-name file-name)  ".tar.gz")))
     (tla-get-changeset revision nil changeset-dir)
-    (tla--create-changeset-tarball changeset-dir tgz-file-name)))
+    (dvc-create-tarball-from-intermediate-directory changeset-dir tgz-file-name)))
 
 ;;;###autoload
 (defun tla-delta (base modified &optional directory dont-switch)
@@ -3498,6 +3488,32 @@ After running update, execute HANDLE (function taking no argument)."
                           ))
     (dvc-revert-some-buffers tree)))
 
+(defvar tla-default-export-directory nil "Default directory that is suggested for `tla-export'")
+;;;###autoload
+(defun tla-export (revision dir)
+  "Run tla export to export REVISION to DIR."
+  (interactive (list (tla-name-read "Export version: "
+                                    'prompt 'prompt 'prompt 'maybe 'maybe)
+                     (dvc-read-directory-name "Export to directory: " nil tla-default-export-directory nil)))
+  (setq dir (dvc-uniquify-file-name dir))
+  (tla--run-tla-async `("export" ,(tla--name-construct revision) ,dir)
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (message "Finished tla export %s to %s" (capture revision) (capture dir)))))
+
+(defun tla-export-as-tgz (version export-directory)
+  "Run tla export to export REVISION and create a tarball afterwards."
+  (interactive (list (tla-name-read "Export version: "
+                                    'prompt 'prompt 'prompt 'maybe 'maybe)
+                     (dvc-read-directory-name "Export to directory: " nil tla-default-export-directory nil)))
+  (let* ((export-dir (dvc-make-temp-name "tla-export"))
+         (export-base-name (tla--name-construct-semi-qualified (cdr version)))
+         (export-full-path (concat export-dir "/" export-base-name))
+         (tgz-file-name (dvc-uniquify-file-name (concat export-directory "/" export-base-name ".tar.gz"))))
+    (message "export as tgz to %s using %s" tgz-file-name export-full-path)
+    (make-directory export-dir)
+    (tla-export version export-full-path)
+    (dvc-create-tarball-from-intermediate-directory export-full-path tgz-file-name)))
 
 (defun tla--tag-does-cacherev ()
   (cond ((eq tla-tag-does-cacherev 'yes) t)
@@ -8231,10 +8247,12 @@ Otherwise, return nil."
   (interactive)
   (tla-revision-scroll-or-show-changeset 'scroll-down))
 
+;;TODO: remove tla-revision-changeset if it is really no longer needed...
 (defun tla-revision-changeset (&optional arg)
   "Gets and display the changeset at point in a revision list buffer.
 If used with a prefix arg ARG, don't include the diffs from the output."
   (interactive "P")
+  (error "tla-revision-changeset should be handled by DVC now...")
   (let* ((window-conf (current-window-configuration))
          (cur-buf (current-buffer))
          (cookie dvc-revlist-cookie)

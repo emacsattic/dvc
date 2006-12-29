@@ -40,12 +40,17 @@
 ;;;###autoload
 (defalias 'bzr-dvc-inventory 'bzr-inventory)
 ;;;###autoload
+(defalias 'bzr-dvc-missing 'bzr-missing)
+;;;###autoload
+(defalias 'bzr-dvc-pull 'bzr-pull)
+;;;###autoload
 (defalias 'bzr-dvc-submit-patch 'bzr-submit-patch)
 ;;;###autoload
 (defalias 'bzr-dvc-add 'bzr-add)
 
 (defalias 'bzr-dvc-add-files 'bzr-add-files)
 (defalias 'bzr-dvc-revert-files 'bzr-revert-files)
+(defalias 'bzr-dvc-remove-files 'bzr-remove-files)
 
 ;;;###autoload
 (defalias 'bzr-dvc-log-edit-done 'bzr-log-edit-done)

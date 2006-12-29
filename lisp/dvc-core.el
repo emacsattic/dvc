@@ -264,6 +264,16 @@ The filename is obtained with `dvc-get-file-info-at-point'."
       (dvc-funcall-if-exists dired-jump))
     (dired-goto-file file-full-path)))
 
+(defun dvc-purge-files (&rest files)
+  "Delete FILES from the harddisk. No backup is created for these FILES.
+These function bypasses the used revision control system."
+  (interactive (dvc-current-file-list))
+  (let ((multiprompt (format "Are you sure to purge %%d files? "))
+        (singleprompt (format "Purge file: ")))
+    (when (dvc-confirm-read-file-name-list multiprompt files singleprompt nil)
+      (mapcar #'delete-file files)
+      (message "Purged %S" files))))
+
 ;; partner buffer stuff
 (defvar dvc-partner-buffer nil
   "DVC Partner buffer. Must be local to each buffer.")
@@ -603,17 +613,17 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys
-    (let ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
-                          (dvc-new-process-buffer t dvc)))
-          (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
-                          (dvc-new-error-buffer t dvc)))
-          (global-arg (funcall (dvc-function dvc "default-global-argument")))
-          (command (dvc-build-dvc-command
-                    dvc (append global-arg arguments)))
-          (error-file (dvc-make-temp-name "arch-errors"))
-          ;; Make the `default-directory' unique. The trailing slash
-          ;; may be necessary in some cases.
-          (default-directory (dvc-uniquify-file-name default-directory)))
+    (let* ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
+                           (dvc-new-process-buffer t dvc)))
+           (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
+                           (dvc-new-error-buffer t dvc)))
+           (global-arg (funcall (dvc-function dvc "default-global-argument")))
+           (command (dvc-build-dvc-command
+                     dvc (append global-arg arguments)))
+           (error-file (dvc-make-temp-name "arch-errors"))
+           ;; Make the `default-directory' unique. The trailing slash
+           ;; may be necessary in some cases.
+           (default-directory (dvc-uniquify-file-name default-directory)))
       (with-current-buffer (or related-buffer (current-buffer))
         (dvc-log-event output-buf error-buf command default-directory "started")
         (let ((status (let ((process-environment
@@ -669,11 +679,11 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-buffers-tree-remove (current-buffer))
   (dvc-kill-process-maybe (current-buffer)))
 
-(defun dvc-run-dvc-display-as-info (dvc arg-list &optional show-error-buffer info-string)
-  "Call dvc-run-dvc-sync and display the result in an info buffer.
+(defun dvc-run-dvc-display-as-info (dvc arg-list &optional show-error-buffer info-string asynchron)
+  "Call either `dvc-run-dvc-sync' or `dvc-run-dvc-sync' and display the result in an info buffer.
 When INFO-STRING is given, insert it at the buffer beginning."
   (let ((buffer (dvc-get-buffer-create dvc 'info)))
-    (dvc-run-dvc-sync dvc arg-list
+    (funcall (if asynchron 'dvc-run-dvc-async 'dvc-run-dvc-sync) dvc arg-list
        :finished
        (dvc-capturing-lambda (output error status arguments)
          (progn
@@ -681,10 +691,10 @@ When INFO-STRING is given, insert it at the buffer beginning."
              (let ((inhibit-read-only t))
                (erase-buffer)
                (dvc-info-buffer-mode)
-               (when info-string
-                 (insert info-string))
+               (when (capture info-string)
+                 (insert (capture info-string)))
                (insert-buffer-substring output)
-               (when show-error-buffer
+               (when (capture show-error-buffer)
                  (insert-buffer-substring error))
                (toggle-read-only 1)))
            (dvc-switch-to-buffer (capture buffer)))))))
