@@ -389,6 +389,12 @@ If DONT-SWITCH, don't switch to the diff buffer"
   (dvc-run-dvc-display-as-info 'xhg '("verify")))
 
 ;;;###autoload
+(defun xhg-showconfig ()
+  "Run hg showconfig."
+  (interactive)
+  (dvc-run-dvc-display-as-info 'xhg '("showconfig")))
+
+;;;###autoload
 (defun xhg-paths (&optional type)
   "Run hg paths.
 When called interactive, display them in an *xhg-info* buffer.

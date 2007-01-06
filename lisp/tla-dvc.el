@@ -119,6 +119,7 @@
   "See `tla-inventory-revert-file'"
   (mapcar 'tla-inventory-revert-file files))
 
+;;;###autoload
 (defalias 'tla-dvc-file-has-conflict-p 'tla-file-has-conflict-p)
 
 (defalias 'tla-dvc-resolved 'tla-resolved)

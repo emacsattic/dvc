@@ -679,11 +679,11 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-buffers-tree-remove (current-buffer))
   (dvc-kill-process-maybe (current-buffer)))
 
-(defun dvc-run-dvc-display-as-info (dvc arg-list &optional show-error-buffer info-string)
-  "Call dvc-run-dvc-sync and display the result in an info buffer.
+(defun dvc-run-dvc-display-as-info (dvc arg-list &optional show-error-buffer info-string asynchron)
+  "Call either `dvc-run-dvc-sync' or `dvc-run-dvc-sync' and display the result in an info buffer.
 When INFO-STRING is given, insert it at the buffer beginning."
   (let ((buffer (dvc-get-buffer-create dvc 'info)))
-    (dvc-run-dvc-sync dvc arg-list
+    (funcall (if asynchron 'dvc-run-dvc-async 'dvc-run-dvc-sync) dvc arg-list
        :finished
        (dvc-capturing-lambda (output error status arguments)
          (progn
@@ -691,10 +691,10 @@ When INFO-STRING is given, insert it at the buffer beginning."
              (let ((inhibit-read-only t))
                (erase-buffer)
                (dvc-info-buffer-mode)
-               (when info-string
-                 (insert info-string))
+               (when (capture info-string)
+                 (insert (capture info-string)))
                (insert-buffer-substring output)
-               (when show-error-buffer
+               (when (capture show-error-buffer)
                  (insert-buffer-substring error))
                (toggle-read-only 1)))
            (dvc-switch-to-buffer (capture buffer)))))))
