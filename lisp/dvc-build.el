@@ -1,6 +1,6 @@
 ;;; dvc-build.el --- compile-time helper.
 
-;; Copyright (C) 2004-2005 by all contributors
+;; Copyright (C) 2004-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Inspired from the work of Steve Youngs <steve@youngs.au.com>
@@ -25,12 +25,12 @@
 ;;; Commentary:
 
 ;; This file is the package maintener part for build system.
-;; It use package-maint.el (an adaptation of dgnushack.el)
+;; It uses package-maint.el (an adaptation of dgnushack.el)
 ;; For the moment package-maint.el is only part of DVC.
 
 ;; FIXME: defined here because package-maint.el is part of DVC for now.
 (setq srcdir (or (getenv "srcdir") "."))
-(setq contribdir (or (getenv "contribdir") "contrib"))
+(setq contribdir (or (getenv "contribdir") (concat srcdir "/contrib")))
 (setq otherdirs (or (getenv "otherdirs") nil))
 
 (setq loaddir (and load-file-name (file-name-directory load-file-name)))
@@ -41,7 +41,7 @@
 (add-to-list 'load-path loaddir)
 
 ;; Add otherdirs to load-path
-(mapcar '(lambda (dir) 
+(mapcar '(lambda (dir)
 	   (when (file-exists-p dir)
 	     (add-to-list 'load-path dir)))
 	(split-string otherdirs " "))
