@@ -5918,7 +5918,7 @@ When called interactively with a prefix argument, ask additionally for the ID."
 (defun tla-add-files (&rest files)
   "Run tla add."
   (message "tla-add-files: %s" files)
-  (dvc-run-dvc-sync 'tla (append (list (if (tla-has-add-id-command) "add-id" "add")) files)
+  (dvc-run-dvc-sync tla-arch-branch (append (list (if (tla-has-add-id-command) "add-id" "add")) files)
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
                                 (message "tla add finished"))))
