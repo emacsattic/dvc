@@ -6326,6 +6326,7 @@ This function restores the saved changes from `tla-inventory-undo'."
   (interactive)
   (tla-redo (tla-inventory-maybe-undo-directory)))
 
+;;;###autoload
 (defun tla-file-has-conflict-p (file-name)
   "Return non-nil if FILE-NAME has conflicts."
   (let ((rej-file-name (concat default-directory
