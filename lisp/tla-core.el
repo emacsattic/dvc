@@ -1520,7 +1520,7 @@ If EXACT is non-nil, match exactly LEVEL."
      "\\)" ;; end of group
      (when (and slash-mandatory (< level 1))
        "/")
-     "\\( \\|\n\\)")))
+     "\\( \\|\n\\|:\\)")))
 
 (defun tla-get-name-at-point ()
   "Provides a default value for tla-name-read.

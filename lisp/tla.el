@@ -6722,6 +6722,25 @@ Commands:
   (tla-add-buttons)
   (run-hooks 'tla-revlog-mode-hook))
 
+(defun tla-annotate-mode ()
+  "Major Mode to show a specific annotate message.
+
+Mostly similar to `tla-annotate-mode'.
+Commands:
+\\{tla-revlog-mode-map}"
+  (interactive)
+  (kill-all-local-variables)
+  (use-local-map tla-revlog-mode-map)
+  (set (make-local-variable 'font-lock-defaults)
+       '(tla-revlog-font-lock-keywords t))
+  (set (make-local-variable 'tla-button-marker-list)
+       nil)
+  (setq major-mode 'tla-revlog-mode)
+  (setq mode-name "tla-revlog")
+  (toggle-read-only 1)
+  (tla-add-buttons)
+  (run-hooks 'tla-revlog-mode-hook))
+
 (defun tla-dvc-revlog-get-revision (rev-id)
   (let* ((buf (tla--revlog-any (car (dvc-revision-get-data rev-id))))
          (str (with-current-buffer buf (buffer-string))))
