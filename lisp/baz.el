@@ -265,31 +265,33 @@ annotated file's buffer. This allows you to run `baz-trace-line' and
                                       (or (buffer-file-name) "")))))
   (let ((file (expand-file-name file))
         (buffer (get-file-buffer file)))
-    (when (or (not (buffer-modified-p))
-              (y-or-n-p (concat "Save buffer "
-                                (buffer-name buffer)
-                                "? ")))
-      (save-buffer buffer))
-    (find-file-noselect file)
-    (let* ((default-directory (tla-tree-root file))
-           (buffer (dvc-get-buffer-create tla-arch-branch 'annotate)))
-      (when dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer))
-      (tla--run-tla-async
-       `("annotate"
-         ,(tla-file-name-relative-to-root file))
-       :finished (lexical-let ((buffer-lex buffer) (file-lex file))
-                   (lambda (output error status arguments)
-                     (with-current-buffer buffer-lex
-                       (erase-buffer)
-                       (insert-buffer-substring output))
-                     (baz-parse-annotate
-                      output
-                      (find-buffer-visiting file-lex))))
-       :error
-       (lambda (output error status arguments)
-         (dvc-show-error-buffer error)
-         (dvc-show-last-process-buffer))))))
+    (with-current-buffer buffer
+      (when (or (not (buffer-modified-p))
+                (y-or-n-p (concat "Save buffer "
+                                  (buffer-name buffer)
+                                  "? ")))
+        (save-buffer buffer))
+      (find-file-noselect file)
+      (let* ((default-directory (tla-tree-root file))
+             (buffer (dvc-get-buffer-create tla-arch-branch 'annotate)))
+        (when dvc-switch-to-buffer-first
+          (dvc-switch-to-buffer buffer))
+        (tla--run-tla-async
+         `("annotate"
+           ,(tla-file-name-relative-to-root file))
+         :finished (lexical-let ((buffer-lex buffer) (file-lex file))
+                     (lambda (output error status arguments)
+                       (with-current-buffer buffer-lex
+                         (erase-buffer)
+                         (insert-buffer-substring output))
+                       (tla-annotate-mode)
+                       (baz-parse-annotate
+                        output
+                        (find-buffer-visiting file-lex))))
+         :error
+         (lambda (output error status arguments)
+           (dvc-show-error-buffer error)
+           (dvc-show-last-process-buffer)))))))
 
 (defvar tla-annotation-table nil
   "table line-number -> revision built by `baz-parse-annotate'.")

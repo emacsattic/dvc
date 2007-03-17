@@ -6326,6 +6326,7 @@ This function restores the saved changes from `tla-inventory-undo'."
   (interactive)
   (tla-redo (tla-inventory-maybe-undo-directory)))
 
+;;;###autoload
 (defun tla-file-has-conflict-p (file-name)
   "Return non-nil if FILE-NAME has conflicts."
   (let ((rej-file-name (concat default-directory
@@ -6715,6 +6716,25 @@ Commands:
 	    (re-search-forward "^Revision: ")
 	    (buffer-substring-no-properties (point)
 					    (line-end-position))))))
+  (setq major-mode 'tla-revlog-mode)
+  (setq mode-name "tla-revlog")
+  (toggle-read-only 1)
+  (tla-add-buttons)
+  (run-hooks 'tla-revlog-mode-hook))
+
+(defun tla-annotate-mode ()
+  "Major Mode to show a specific annotate message.
+
+Mostly similar to `tla-annotate-mode'.
+Commands:
+\\{tla-revlog-mode-map}"
+  (interactive)
+  (kill-all-local-variables)
+  (use-local-map tla-revlog-mode-map)
+  (set (make-local-variable 'font-lock-defaults)
+       '(tla-revlog-font-lock-keywords t))
+  (set (make-local-variable 'tla-button-marker-list)
+       nil)
   (setq major-mode 'tla-revlog-mode)
   (setq mode-name "tla-revlog")
   (toggle-read-only 1)
