@@ -48,6 +48,10 @@
 
 (defvar dvc-log-edit-flush-prefix "## ")
 
+(defvar dvc-log-edit-init-functions (make-hash-table :test 'equal)
+  "A hash table that holds the mapping from work directory roots to
+functions that provide the initial content for a commit.")
+
 ;; --------------------------------------------------------------------------------
 ;; Menus
 ;; --------------------------------------------------------------------------------
@@ -64,6 +68,9 @@ Commands:
   (set (make-local-variable 'font-lock-defaults)
        '(dvc-log-edit-font-lock-keywords t))
   (setq fill-column 73)
+  (let ((initial-content-function (gethash (dvc-tree-root) dvc-log-edit-init-functions)))
+    (when (and initial-content-function (eq (point-min) (point-max)))
+      (insert (funcall initial-content-function))))
   (run-hooks 'dvc-log-edit-mode-hook))
 
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?c)] 'dvc-log-edit-done)
@@ -298,6 +305,11 @@ Inserts the entry in the arch log file instead of the ChangeLog."
                 (beginning-of-line 1)
                 (looking-at "\\s *\\(\\*\\s *\\)?$"))
         (insert ": ")))))
+
+(defun dvc-log-edit-register-initial-content-function (working-copy-root the-function)
+  "Register a mapping from a work directory root to a function that provide the initial content for a commit."
+  (puthash (expand-file-name working-copy-root) the-function dvc-log-edit-init-functions))
+
 
 (provide 'dvc-log)
 ;;; dvc-log.el ends here
