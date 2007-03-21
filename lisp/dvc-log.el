@@ -1,6 +1,6 @@
 ;;; dvc-log.el --- Manipulation of the log before commiting
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -68,9 +68,8 @@ Commands:
   (set (make-local-variable 'font-lock-defaults)
        '(dvc-log-edit-font-lock-keywords t))
   (setq fill-column 73)
-  (let ((initial-content-function (gethash (dvc-tree-root) dvc-log-edit-init-functions)))
-    (when (and initial-content-function (eq (point-min) (point-max)))
-      (insert (funcall initial-content-function))))
+  (when (eq (point-min) (point-max))
+    (dvc-log-edit-insert-initial-commit-message))
   (run-hooks 'dvc-log-edit-mode-hook))
 
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?c)] 'dvc-log-edit-done)
@@ -79,6 +78,7 @@ Commands:
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?f)] 'dvc-log-insert-commit-file-list)
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?p)] 'dvc-buffer-pop-to-partner-buffer)
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?m)] 'dvc-log-edit-insert-memorized-log)
+(define-key dvc-log-edit-mode-map [(control ?c) (control ?i)] 'dvc-log-edit-insert-initial-commit-message)
 
 (easy-menu-define dvc-log-edit-mode-menu dvc-log-edit-mode-map
   "`dvc-log-edit-mode' menu"
@@ -308,7 +308,15 @@ Inserts the entry in the arch log file instead of the ChangeLog."
 
 (defun dvc-log-edit-register-initial-content-function (working-copy-root the-function)
   "Register a mapping from a work directory root to a function that provide the initial content for a commit."
-  (puthash (expand-file-name working-copy-root) the-function dvc-log-edit-init-functions))
+  (puthash (dvc-uniquify-file-name working-copy-root) the-function dvc-log-edit-init-functions))
+
+(defun dvc-log-edit-insert-initial-commit-message ()
+  "Insert the initial commit message at point.
+See `dvc-log-edit-register-initial-content-function' to register functions that provide the message text."
+  (interactive)
+  (let ((initial-content-function (gethash (dvc-tree-root) dvc-log-edit-init-functions)))
+    (when initial-content-function
+      (insert (funcall initial-content-function)))))
 
 
 (provide 'dvc-log)
