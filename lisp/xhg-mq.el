@@ -1,6 +1,6 @@
 ;;; xhg-mq.el --- dvc integration for hg's mq
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -227,7 +227,8 @@ When called with a prefix argument run hg qpush -a."
                     (message "No unapplied patch to delete from the mq series file")
                     nil))))
   (when patch
-    (dvc-run-dvc-sync 'xhg (list "qdelete" patch))))
+    (dvc-run-dvc-sync 'xhg (list "qdelete" patch))
+    (xhg-mq-maybe-refresh-patch-buffer)))
 
 (defun xhg-qrename (from to)
   "Run hg qrename"
