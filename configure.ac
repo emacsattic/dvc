@@ -1,8 +1,7 @@
 # configure.ac --- configuration setup for DVC
 
-# Author:        Robert Widhopf-Fenk <hack@robf.de>
-
-# Copyright (C) 2004
+# Copyright (C) 2004-2007 by all contributors
+# Author: Robert Widhopf-Fenk <hack@robf.de>
 
 # DVC is free software; you can redistribute it and/or modify
 # it under the terms of the GNU Library General Public License as published
@@ -105,8 +104,8 @@ AC_DEFUN([DVC_PROG_ETAGS],
       AC_MSG_WARN([*** Tags file will not be built.])
     fi ])
 
-# Find a diff program. A failure is not fatal.
-AC_DEFUN([DVC_PROG],
+# Find a program. A failure is not fatal, just issue a warning
+AC_DEFUN([DVC_PROG_WARN],
   [ AC_SUBST([$1])
     AC_ARG_WITH([$2],
       AC_HELP_STRING([--with-][$2]=PROG, [$3]),
@@ -116,6 +115,17 @@ AC_DEFUN([DVC_PROG],
         if test "x${$1}" = "x" ; then
           AC_MSG_WARN([*** No $2 program found.])
         fi
+      ])
+  ])
+
+# Find a program. A failure is not fatal.
+AC_DEFUN([DVC_PROG],
+  [ AC_SUBST([$1])
+    AC_ARG_WITH([$2],
+      AC_HELP_STRING([--with-][$2]=PROG, [$3]),
+      [ [$1]=${withval} ],
+      [
+        AC_CHECK_PROG($1, $2, $2)
       ])
   ])
 
@@ -132,7 +142,7 @@ AC_DEFUN([DVC_BAZ_OR_TLA],
   [ AC_MSG_CHECKING([arch branch to use])
     AC_ARG_WITH(arch,
       AC_HELP_STRING([--with-arch={baz|tla|none}]
-        [Whether to use tla or baz by default]),
+        [Whether to use tla or baz (or none of them) by default]),
       [ ARCH_BRANCH=${withval} ]
       [ ])
     if test "x${BAZ}" != "x"; then
@@ -148,6 +158,11 @@ AC_DEFUN([DVC_BAZ_OR_TLA],
     fi
     if test "x${ARCH_BRANCH}" = "xnone"; then
       ARCH="/bin/true"
+    fi
+
+    if test "y${ARCH_BRANCH}" = "ytla" -a "y${TLA}" = "y"; then
+      ARCH="/bin/true"
+      ARCH_BRANCH=none
     fi
     if test "y${ARCH_BRANCH}" = "ytla" -a "y${TLA}" = "y"; then
       AC_MSG_ERROR([*** Can't use tla because tla isn't available])
@@ -307,7 +322,7 @@ dnl dnl           AC_SUBST(RELEASE_ID))
 
 ##############################################################################
 DVC_PRE_INIT
-AC_INIT([DVC], [DVC_VERSION], [xtla-el-dev@gna.org])
+AC_INIT([DVC], [DVC_VERSION], [dvc-dev@gna.org])
 
 # It seems that the latest GNU Emacs sets --always-color to GREP_OPTIONS (for M-x grep?).
 # So configure will confuse if it is run from emacs's *shell*.
@@ -341,8 +356,8 @@ if test "x$BZR" = "x" ; then
 fi
 DVC_BAZ_OR_TLA
 
-DVC_PROG(DIFF, diff, diff program to use)
-DVC_PROG(PATCH, patch, patch program to use)
+DVC_PROG_WARN(DIFF, diff, diff program to use)
+DVC_PROG_WARN(PATCH, patch, patch program to use)
 DVC_PROG_ETAGS
 DVC_PROG_XARGS
 DVC_PROG_GNU_TAR
