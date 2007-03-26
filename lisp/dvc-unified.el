@@ -46,7 +46,8 @@
   (let* ((dvc (dvc-current-active-dvc))
          (multiprompt (format "Add %%d files to %s? " dvc))
          (singleprompt (format "Add file to %s: " dvc)))
-    (when (dvc-confirm-read-file-name-list multiprompt files singleprompt t)
+    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
+                                                       singleprompt t))
       (apply 'dvc-apply "dvc-add-files" files))))
 
 ;;;###autoload
@@ -56,7 +57,8 @@
   (let* ((dvc (dvc-current-active-dvc))
          (multiprompt (format "Revert %%d files to their stored version in %s? " dvc))
          (singleprompt (format "Revert file to its state in %s: " dvc)))
-    (when (dvc-confirm-read-file-name-list multiprompt files singleprompt nil)
+    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
+                                                       singleprompt nil))
       (apply 'dvc-apply "dvc-revert-files" files))))
 
 ;;;###autoload
@@ -66,7 +68,8 @@
   (let* ((dvc (dvc-current-active-dvc))
          (multiprompt (format "Remove %%d files from %s control? " dvc))
          (singleprompt (format "Remove file from %s: " dvc)))
-    (when (dvc-confirm-read-file-name-list multiprompt files singleprompt nil)
+    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
+                                                       singleprompt nil))
       (apply 'dvc-apply "dvc-remove-files" files))))
 
 ;;;###autoload
@@ -158,7 +161,7 @@ the current active back-end."
         (root "/")
         (dvc)
         (tree-root-func)
-        (path (dvc-uniquify-file-name (or path default-directory))))
+        (path (or path default-directory)))
     (while dvc-list
       (setq tree-root-func (dvc-function (car dvc-list) "tree-root" t))
       (when (fboundp tree-root-func)

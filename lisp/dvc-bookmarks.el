@@ -153,7 +153,9 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (dvc-bookmarks-mode))
 
 (defun dvc-bookmarks-mode ()
-  "Mode to display DVC bookmarks."
+  "Mode to display DVC bookmarks.
+
+\\{dvc-bookmarks-mode-map}"
   (interactive)
   (kill-all-local-variables)
   (use-local-map dvc-bookmarks-mode-map)

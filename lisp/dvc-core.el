@@ -212,8 +212,13 @@ The following sources are tried (in that order) and used if they are non nil:
 (defun dvc-confirm-read-file-name-list (prompt &optional files single-prompt mustmatch)
   (let ((num-files (length files)))
     (if (= num-files 1)
-        (dvc-confirm-read-file-name single-prompt mustmatch (car files))
-      (y-or-n-p (format prompt num-files)))))
+        (let ((confirmed-file-name
+               (dvc-confirm-read-file-name single-prompt mustmatch (car files))))
+          ;; I don't think `dvc-confirm-read-file-name' can return nil.
+          (assert confirmed-file-name)
+          (list confirmed-file-name))
+      (and (y-or-n-p (format prompt num-files))
+           files))))
 
 ;(dvc-confirm-read-file-name "Add file ")
 ;(dvc-confirm-read-file-name-list "Add %d files? " (dvc-current-file-list) "Add file " t)
@@ -464,8 +469,7 @@ DVC can be one of 'baz, 'xhg, ..."
 
 (defcustom dvc-password-prompt-regexp
   "[Pp]ass\\(word\\|phrase\\).*:\\s *\\'"
-  "*Regexp matching prompts for passwords in the inferior process.
-This is used by `eshell-watch-for-password-prompt'."
+  "*Regexp matching prompts for passwords in the inferior process."
   :type 'regexp
   :group 'dvc)
 
@@ -1030,7 +1034,7 @@ REVISION looks like
   (let ((count n)
         (res revision))
     (while (> count 0)
-      (setq res (dvc-revision-direct-ancestor revision)
+      (setq res (dvc-revision-direct-ancestor res)
             count (- count 1)))
     res))
 

@@ -31,7 +31,7 @@
 ;; FIXME: defined here because package-maint.el is part of DVC for now.
 (setq srcdir (or (getenv "srcdir") "."))
 (setq contribdir (or (getenv "contribdir") (concat srcdir "/contrib")))
-(setq otherdirs (or (getenv "otherdirs") nil))
+(setq otherdirs (or (getenv "otherdirs") ""))
 
 (setq loaddir (and load-file-name (file-name-directory load-file-name)))
 

@@ -564,7 +564,8 @@ which is not part of the diff header."
          (changes-buffer (or output-buffer (dvc-get-buffer-create tla-arch-branch
                                             'diff root)))
          (dvc-header "")
-         (parser (or parser 'dvc-parse-other)))
+         (parser (or parser (progn (require 'tla) ;cyclic module dependency!
+                                   'dvc-parse-other))))
     (if (or no-switch dvc-switch-to-buffer-first)
         (set-buffer changes-buffer)
       (dvc-switch-to-buffer changes-buffer))
