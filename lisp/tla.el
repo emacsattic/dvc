@@ -1,6 +1,6 @@
 ;;; tla.el --- Arch interface for emacs
 
-;; Copyright (C) 2003-2006 by all contributors
+;; Copyright (C) 2003-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -2349,7 +2349,8 @@ and this revision will be used as a reference."
                               (save-buffer))
                             (buffer-file-name))))
   ;; set aside a backup copy
-  (copy-file file (car (find-backup-file-name file)) t)
+  (when (file-exists-p file)
+    (copy-file file (car (find-backup-file-name file)) t))
 
   (let* ((file-unmo-temp (dvc-revision-get-file-in-buffer
                           file (if revision
