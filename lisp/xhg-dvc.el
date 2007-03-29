@@ -1,6 +1,6 @@
 ;;; xhg-dvc.el --- The dvc layer for xhg
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -47,7 +47,7 @@
 (defun xhg-select-committer-for-next-commit (committer)
   "Select the committer for the next hg commit.
 This is done via setting `xhg-dvc-commit-extra-parameters'."
-  (interactive "sCommitter for next hg commit: ")
+  (interactive (list (read-string "Committer for next hg commit: " xhg-gnus-patch-from-user)))
   (setq xhg-dvc-commit-extra-parameters `("--user" ,committer)))
 
 ;; Base functions that are required for every supported dvc system
