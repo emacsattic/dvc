@@ -57,6 +57,16 @@
 
 ;; (pprint (macroexpand '(xmtn-match x ([t $y ($y . t)] y))))
 
+(deftype xmtn-match--bool-vector ()
+  (if (fboundp 'bool-vector-p)
+      ;; For Emacs.
+      `bool-vector
+    ;; For XEmacs.
+    `nil))
+
+(deftype xmtn-match--atom ()
+  `(not cons))
+
 ;; They say it's bad style if function definitions are too big to fit
 ;; on a screen.  A small font is recommended for this one.
 (defun xmtn-match--generate-branch (var-name-prefix-char
@@ -96,7 +106,7 @@
                                            `(,part-reader ,subobject)))))
                         ;; I think this will also allow char-tables.
                         ;; Not sure how useful that is.
-                        ((and array (not string) (not bool-vector))
+                        ((and array (not string) (not xmtn-match--bool-vector))
                          `((unless (and (typep ,subobject ',(type-of subpattern))
                                         (eql (length ,subobject)
                                              ,(length subpattern)))
@@ -105,7 +115,7 @@
                                    append (walk-part
                                            (aref subpattern index)
                                            `(aref ,subobject ,index)))))
-                        (t ;; Should be atom, but that errors.
+                        (xmtn-match--atom
                          (if (and (symbolp subpattern)
                                   (eql (aref (symbol-name subpattern) 0)
                                        var-name-prefix-char))

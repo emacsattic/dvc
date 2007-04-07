@@ -41,7 +41,9 @@
   (require 'xmtn-ids)
   (require 'xmtn-match)
   (require 'dvc-log)
-  (require 'dvc-diff))
+  (require 'dvc-diff)
+  (require 'dvc-core)
+  (require 'ewoc))
 
 ;; For debugging.
 (defun xmtn--load ()
@@ -832,7 +834,7 @@ the file before saving."
   (xmtn--run-command-sync
    root `("rename"
           ,@(xmtn--version-case
-              ((or mainline (> 0 33))
+              ((>= 0 34)
                (if do-not-execute `("--bookkeep-only") `()))
               (t
                (if do-not-execute `() `("--execute"))))
@@ -1082,15 +1084,43 @@ finished."
             ;; should be computed against an empty file.  So just
             ;; leave the buffer empty.
             (progn)
-          ;; Note: This could be simplified slightly with the new
-          ;; automate get_file_of operation.  Not worth any effort
-          ;; right now, though.  And it would break compatibility with
-          ;; 0.30 for no good reason.
-          (let ((contents-hash
-                 (xmtn--revision-file-contents-hash root backend-id
-                                                    corresponding-file)))
-            (xmtn--insert-file-contents root contents-hash
-                                        (current-buffer))))))))
+          (let (temp-dir)
+            (unwind-protect
+                (progn
+                  (setq temp-dir (xmtn--make-temp-file
+                                  "xmtn--revision-get-file-" t))
+                  ;; Using `insert-file-contents' in conjunction with
+                  ;; as much of the original file name as possible
+                  ;; seems to be the best way to make sure that Emacs'
+                  ;; entire file coding system detection logic is
+                  ;; applied.  Functions like
+                  ;; `find-operation-coding-system' and
+                  ;; `find-file-name-handler' are not a complete
+                  ;; replacement since they don't look at the contents
+                  ;; at all.
+                  (let ((temp-file (concat temp-dir "/" corresponding-file)))
+                    (make-directory (file-name-directory temp-file) t)
+                    (with-temp-buffer
+                      (set-buffer-multibyte nil)
+                      (setq buffer-file-coding-system 'binary)
+                      ;; This could be simplified slightly with the
+                      ;; new automate get_file_of operation.  Not
+                      ;; worth any effort right now, though.  And it
+                      ;; would break compatibility with 0.30 for no
+                      ;; good reason.
+                      (let ((contents-hash
+                             (xmtn--revision-file-contents-hash
+                              root backend-id corresponding-file)))
+                        (xmtn--insert-file-contents root contents-hash
+                                                    (current-buffer)))
+                      (write-file temp-file))
+                    (let ((output-buffer (current-buffer)))
+                      (with-temp-buffer
+                        (insert-file-contents temp-file)
+                        (let ((input-buffer (current-buffer)))
+                          (with-current-buffer output-buffer
+                            (insert-buffer-substring input-buffer)))))))
+              (dvc-delete-recursively temp-dir))))))))
 
 
 (defun xmtn--get-corresponding-path (root normalized-file-name

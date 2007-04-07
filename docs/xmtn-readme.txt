@@ -10,6 +10,9 @@ xmtn's facilities for interacting with monotone are meant to be
 reusable by code that is unrelated to DVC, even though they currently
 depend on the subprocess handling utilities that DVC provides.
 
+xmtn should work on GNU Emacs 21 or newer.  Work on supporting XEmacs
+has started but is unfinished; patches welcome.  On XEmacs, xmtn
+requires MULE.
 
 
 * Download and installation
@@ -83,8 +86,10 @@ dvc-ignore-file-extensions can be used to add entries to .mt-ignore.
 These commands can also be used from dired buffers.
 
 C-x V s shows the status buffer.  This currently shows modified,
-renamed and unknown files.  I don't use it much, C-x V = seems
-preferable.
+renamed and unknown files.  It's supposed to allow operations like
+diff, commit, revert etc. (like pcl-cvs), but that's not implemented
+yet.  C-x V = is preferable at the moment, although it doesn't show
+unknown files.
 
 C-x V a can be used to add a ChangeLog entry to _MTN/log.
 
@@ -112,9 +117,8 @@ on the file .mtn-ignore.  This may fail to have the intended effect if
 the user has customized monotone's ignore_file hook in a way that
 changes the meaning of this file.
 
-It would be nice to be able to perform operations such as diff and
-commit from the status buffer.  For now, use the tree diff buffer for
-this.
+The ability to perform operations such as diff and commit from the
+status buffer is missing.  For now, use the tree diff buffer for this.
 
 xmtn doesn't define any key bindings for monotone-specific commands.
 Only the backend-independent key bindings defined by DVC are available.

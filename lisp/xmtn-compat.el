@@ -33,6 +33,11 @@
 (eval-and-compile
   (require 'cl))
 
+(defun xmtn--temp-directory ()
+  (if (fboundp 'temp-directory)
+      (temp-directory)
+    temporary-file-directory))
+
 (defun xmtn--make-temp-file (prefix &optional dirp suffix)
   ;; Do this in a temp buffer to ensure we use the default file output
   ;; encoding.  Emacs 21's `make-temp-file' uses the current buffer's
@@ -40,6 +45,9 @@
   ;; with a string as its first argument, but coding conversion errors
   ;; when `write-region' is called in this way.
   (with-temp-buffer
+    ;; XEmacs' `make-temp-file' doesn't automatically use temp
+    ;; directory.
+    (setq prefix (expand-file-name prefix (xmtn--temp-directory)))
     ;; FIXME: Ignoring suffix for now since Emacs 21 doesn't support it.
     (make-temp-file prefix dirp)))
 
@@ -83,6 +91,11 @@
       `(with-no-warnings ,@body)
     `(progn ,@body)))
 
+(defmacro* xmtn--with-temp-message (message &body body)
+  (if (fboundp 'with-temp-message)
+      `(with-temp-message ,message ,@body)
+    `(progn ,@body)))
+
 (defmacro* xmtn--dotimes-with-progress-reporter ((i n-form &optional res-form)
                                                  message-form
                                                  &body body)
@@ -92,10 +105,14 @@
     (let ((message (gensym)))
       `(let ((,message ,message-form))
          (prog1
-             (with-temp-message ,message
+             (xmtn--with-temp-message ,message
                (dotimes (,i ,n-form ,res-form)
                  ,@body))
            (message "%sdone" ,message))))))
+
+(defun xmtn--set-buffer-multibyte (flag)
+  (when (fboundp 'set-buffer-multibyte)
+    (set-buffer-multibyte flag)))
 
 (provide 'xmtn-compat)
 

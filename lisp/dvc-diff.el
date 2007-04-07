@@ -725,9 +725,13 @@ Usefull to clear diff buffers after a commit."
            (modified-file (make-temp-file "DVC-file-diff-mod")))
       (with-temp-buffer
         (insert (with-current-buffer base-buffer (buffer-string)))
+        (setq buffer-file-coding-system (with-current-buffer base-buffer
+                                          buffer-file-coding-system))
         (write-file base-file))
       (with-temp-buffer
         (insert (with-current-buffer modified-buffer (buffer-string)))
+        (setq buffer-file-coding-system (with-current-buffer modified-buffer
+                                          buffer-file-coding-system))
         (write-file modified-file))
       (dvc-switch-to-buffer buffer)
       (let ((inhibit-read-only t)
