@@ -8,8 +8,6 @@ export PATH=${HOME}/bin/local/verimag:${PATH}
 
 cd `dirname $0`/..
 mkdir -p tmp
-exec > tmp/dvc-cron.log
-exec 2>&1
 
 echo "Executing $0 on $(date)."
 

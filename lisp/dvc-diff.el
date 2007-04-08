@@ -1,6 +1,6 @@
 ;;; dvc-diff.el --- A generic diff mode for DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -95,11 +95,25 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
 (defvar dvc-diff-cookie nil
   "Ewoc cookie for the changes buffer.
 
-Element should look like
+Element should look like one of:
 
  (file \"filename\" \"[CRADP?]\" \"M\" \"/\" \"origname\")
+
+To mean that FILENAME has modifications (the two first fields are
+letters, inspired by baz \"status\" output, the third one is \"/\" in
+the case of a directory, and the fourth one is the original name in
+the case of a renamed file.
+
+
  (subtree \"name\" related-buffer changes?)
- (message \"doing such or such thing\")")
+
+To make a reference to a subtree (in which another dvc-diff is
+probably running).
+
+
+ (message \"doing such or such thing\")
+
+For informative messages.")
 
 (defun dvc-diff-printer (elem)
   "Ewoc pretty-printer for `dvc-diff-cookie'.
@@ -166,7 +180,7 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-previous  'dvc-diff-prev)
     (define-key map dvc-keyvec-revert    'dvc-revert-files)
     (define-key map dvc-keyvec-quit      'dvc-buffer-quit)
-    (define-key map [?d] 'dvc-diff-rm)
+    (define-key map [?d] 'dvc-remove-files)
     (define-key map dvc-keyvec-mark   'dvc-diff-mark-file)
     (define-key map dvc-keyvec-unmark 'dvc-diff-unmark-file)
     (define-key map [?v] 'dvc-diff-view-source)
@@ -206,7 +220,7 @@ Pretty-print ELEM."
     ["View Diff in Separate Buffer"   dvc-diff-diff           t]
     ["View Diff with Ediff"           dvc-diff-ediff          t]
     "--"
-    ["Delete File"                    dvc-diff-rm             t]
+    ["Delete File"                    dvc-remove-files        t]
     ["Revert File"                    dvc-revert-files        t]
     )
   "Used both in the global and the context menu of `dvc-diff-mode'.")
@@ -372,14 +386,6 @@ files."
           ((eq (car data) 'subtree)
            (dvc-switch-to-buffer (cadr data)))
           (t (error "Not on a recognized location")))))
-
-(defun dvc-diff-rm ()
-  "Remove the file under point."
-  (interactive)
-  (let ((file (dvc-get-file-info-at-point)))
-    (unless file
-      (error "No file at point"))
-    (tla-rm file)))
 
 (defun dvc-diff-mark-file ()
   "Mark the file under point."
