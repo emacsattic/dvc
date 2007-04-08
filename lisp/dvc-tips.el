@@ -1,6 +1,6 @@
 ;;; dvc-tips.el --- "Tip of the day" feature for DVC.
 
-;; Copyright (C) 2004  Free Software Foundation, Inc.
+;; Copyright (C) 2004-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Keywords: convenience
@@ -236,18 +236,20 @@ Try
 Don't use this function from Xtla. Use `dvc-tips-popup-maybe'
 instead."
   (interactive)
-  (if dvc-tips-function
-      (progn
-        (switch-to-buffer (dvc-get-buffer-create 'dvc 'tips))
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (funcall dvc-tips-function))
-        (dvc-tips-mode))
-    (dvc-load-state)
-    (dvc-tips-popup-number dvc-tips-number noswitch)
-    (setq dvc-tips-number
-          (mod (+ dvc-tips-number (or direction 1)) (length dvc-tips-array)))
-    (dvc-save-state)))
+  (let ((work-dir default-directory))
+    (if dvc-tips-function
+        (progn
+          (switch-to-buffer (dvc-get-buffer-create 'dvc 'tips))
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (funcall dvc-tips-function))
+          (dvc-tips-mode))
+      (dvc-load-state)
+      (dvc-tips-popup-number dvc-tips-number noswitch)
+      (setq dvc-tips-number
+            (mod (+ dvc-tips-number (or direction 1)) (length dvc-tips-array)))
+      (dvc-save-state))
+    (setq default-directory work-dir))) ;; set the default-directory in the tips buffer to the current working dir
 
 (defun dvc-tips-next-tip ()
   "Show next tip."

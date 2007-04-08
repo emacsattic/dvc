@@ -33,7 +33,9 @@
 
 (eval-and-compile
   (require 'cl)
-  (require 'dvc-unified))
+  (require 'dvc-unified)
+  (when (featurep 'xemacs)
+    (require 'un-define)))
 
 (define-coding-system-alias 'xmtn--monotone-normal-form 'utf-8-unix)
 
@@ -136,7 +138,9 @@
                          (setq got-output-p t)))
                      nil))))))))
       (lambda ()
-        (while (accept-process-output process))
+        (assert (member (process-status process) '(run exit signal)) t)
+        (while (and (eql (process-status process) 'run)
+                    (accept-process-output process)))
         (assert (member (process-status process) '(exit signal)) t)
         ;; This (including discarding input) is needed to allow the
         ;; sentinel to run, at least on GNU Emacs 21.4.2 and on GNU
@@ -297,12 +301,12 @@ This command resets xmtn's command version cache."
      ;; while they generally have syntax and semantics that match the
      ;; upcoming release; i.e., their syntax and semantics don't match
      ;; the version number they report.)
-     `(let ((.latest. (xmtn--latest-mtn-release)))
-        (or (> (car ,version-var) (car .latest.))
-            (and (= (car ,version-var) (car .latest.))
-                 (or (> (cadr ,version-var) (cadr .latest.))
-                     (and (= (cadr ,version-var) (cadr .latest.))
-                          (not (equal (caddr .latest.)
+     `(let ((-latest- (xmtn--latest-mtn-release)))
+        (or (> (car ,version-var) (car -latest-))
+            (and (= (car ,version-var) (car -latest-))
+                 (or (> (cadr ,version-var) (cadr -latest-))
+                     (and (= (cadr ,version-var) (cadr -latest-))
+                          (not (equal (caddr -latest-)
                                       (caddr ,version-var)))))))))
     (t
      (let ((operator (car condition))
@@ -356,9 +360,9 @@ This command resets xmtn's command version cache."
                          collect condition)))))))
 
 (defun xmtn--latest-mtn-release ()
-  ;; Version and revision id of the latest mtn release at the time of
-  ;; this xmtn release,
-  '(0 33 "f93b47fe55221c5ce51cc01e522ec0b92df49a2b"))
+  ;; Version number and revision id of the latest mtn release at the
+  ;; time of this xmtn release.
+  '(0 34 "6ae6de16b31495a773ac3002505ad51f2e4a8616"))
 
 (provide 'xmtn-run)
 

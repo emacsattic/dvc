@@ -533,7 +533,8 @@ Signal an error if output contains zero lines or more than one line."
                 (signal t)))
       (setq process (xmtn-automate--start-process session))
       (setf (xmtn-automate--session-process session) process))
-    (xmtn--assert-optional (buffer-name (xmtn-automate--session-buffer session)))
+    (xmtn--assert-optional (buffer-live-p (xmtn-automate--session-buffer
+                                           session)))
     process))
 
 (defun xmtn-automate--new-buffer (session)
@@ -542,7 +543,7 @@ Signal an error if output contains zero lines or more than one line."
          (buffer (generate-new-buffer buffer-base-name)))
     (with-current-buffer buffer
       (buffer-disable-undo)
-      (set-buffer-multibyte nil)
+      (xmtn--set-buffer-multibyte nil)
       (setq buffer-read-only t))
     (setf (xmtn-automate--session-buffer session) buffer)
     buffer))
@@ -594,7 +595,7 @@ Signal an error if output contains zero lines or more than one line."
           (setq buffer (get-buffer-create buffer-name))
           (with-current-buffer buffer
             (buffer-disable-undo)
-            (set-buffer-multibyte t)
+            (xmtn--set-buffer-multibyte t)
             (setq buffer-read-only t)
             (let ((inhibit-read-only t))
               (when option-plist
@@ -642,7 +643,7 @@ Signal an error if output contains zero lines or more than one line."
                                           mtn-number session-number))
     (with-current-buffer buffer
       (buffer-disable-undo)
-      (set-buffer-multibyte nil)
+      (xmtn--set-buffer-multibyte nil)
       (setq buffer-read-only t)
       (xmtn--assert-optional (and (eql (point) (point-min))
                                   (eql (point) (point-max))))
@@ -689,7 +690,7 @@ Signal an error if output contains zero lines or more than one line."
          ((= chars-to-read 0)
           nil)
          ((> chars-to-read 0)
-          (if (null (buffer-name command-output-buffer))
+          (if (not (buffer-live-p command-output-buffer))
               ;; Buffer has already been killed, just discard input.
               (progn)
             (with-current-buffer command-output-buffer
@@ -809,6 +810,20 @@ Signal an error if output contains zero lines or more than one line."
                        ;;                                 t)
                        (set-marker read-marker (match-end 0)))
                      (setq tag 'again))
+                    ;; This is just a simple heuristic, there are many
+                    ;; kinds of invalid input that it doesn't detect.
+                    ;; FIXME: This can errorneously be triggered by
+                    ;; warnings that mtn prints on stderr; but Emacs
+                    ;; interleaves stdout and stderr (see (elisp)
+                    ;; Output from Processes) with no way to
+                    ;; distinguish between them.  We'll probably have
+                    ;; to spawn mtn inside a shell that redirects
+                    ;; stderr to a file.  But I don't think that's
+                    ;; possible in a portable way...
+                    ((looking-at "[^0-9]")
+                     (error "Invalid output from mtn: %s"
+                            (buffer-substring-no-properties (point)
+                                                            (point-max))))
                     (t
                      (xmtn--assert-optional command)
                      (setq tag 'exit-loop)))))
@@ -823,11 +838,15 @@ Signal an error if output contains zero lines or more than one line."
   (let ((status (process-status process))
         (session (xmtn-automate--process-session process)))
     (let ((buffer (xmtn-automate--session-buffer session)))
-      (when (buffer-name buffer)
+      (when (buffer-live-p buffer)
         (with-current-buffer buffer
           (let ((inhibit-read-only t)
                 deactivate-mark)
             (save-excursion
+              ;; This seems to fail in XEmacs when running the test
+              ;; `file-diff'.  I don't know why.
+              (xmtn--assert-optional (marker-position (process-mark process))
+                                     t)
               (goto-char (process-mark process))
               (insert (format "\n(process exited: %S)\n"
                               (if (eql (aref event-string
@@ -865,7 +884,7 @@ Signal an error if output contains zero lines or more than one line."
   (let ((session (xmtn-automate--process-session process)))
     (let ((buffer (xmtn-automate--session-buffer session)))
       (xmtn--assert-optional (eql (process-buffer process) buffer))
-      (xmtn--assert-optional (buffer-name buffer))
+      (xmtn--assert-optional (buffer-live-p buffer))
       (with-current-buffer buffer
         (let* ((mark (process-mark process))
                (move-point-p (= (point) mark)))

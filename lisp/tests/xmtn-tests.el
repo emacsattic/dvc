@@ -34,7 +34,8 @@
 (eval-and-compile
   (require 'elunit)
   (require 'cl)
-  (require 'xmtn-match))
+  (require 'xmtn-match)
+  (require 'xmtn-dvc))
 
 (defun xmtn-tests--keypair-string ()
   "[keypair xmtn-test]
@@ -281,6 +282,48 @@ YPFoLxe1V5oOyoe3ap0H
                ((($email ok $cert-name-here $cert-value-here t))
                 (assert (equal cert-name-here cert-name) t)
                 (assert (equal cert-value-here cert-value) t)))))))))
+  (dvc-file-diff-with-non-ascii-contents
+   (save-window-excursion
+     (let ((umlaut (string (make-char 'latin-iso8859-1 #xe4)))) ; umlaut a
+       (xmtn-tests--with-test-environment (&key root)
+         (let ((file-name "foo")
+               (contents (concat umlaut
+                                 "\n" ; avoid "buffer does not end in newline"
+                                 ))
+               (coding-system 'utf-8-unix))
+           (with-temp-buffer
+             (setq buffer-file-coding-system coding-system)
+             (insert contents)
+             (write-file file-name))
+           (xmtn--add-files root (list file-name))
+           (xmtn--run-command-sync root (list "commit" "--message=commit foo"))
+           (with-temp-buffer
+             (let ((coding-system-for-read coding-system))
+               (insert-file-contents file-name t))
+             (dvc-file-diff file-name)
+             (assert (eql (point-min) (point-max)))))))))
+  (buffer-file-coding-system-in-dvc-dvc-file-diff
+   (save-window-excursion
+     (let ((umlaut (string (make-char 'latin-iso8859-1 #xe4)))) ; umlaut a
+       (xmtn-tests--with-test-environment (&key root)
+         (let ((file-name "foo")
+               (contents (concat umlaut
+                                 "\n" ; avoid "buffer does not end in newline"
+                                 ))
+               (coding-system-1 'utf-8-unix)
+               (coding-system-2 'iso-8859-1-unix))
+           (with-temp-buffer
+             (setq buffer-file-coding-system coding-system-1)
+             (insert contents)
+             (write-file file-name))
+           (xmtn--add-files root (list file-name))
+           (xmtn--run-command-sync root (list "commit" "--message=commit foo"))
+           (with-temp-buffer
+             (insert-file-contents file-name t)
+             (setq buffer-file-coding-system coding-system-2)
+             (let ((coding-system-for-read coding-system-1))
+               (dvc-file-diff file-name))
+             (assert (not (eql (point-min) (point-max))))))))))
   (file-diff-after-rename
    (xmtn-tests--with-test-history (&key root ((:file-name file-name-1))
                                         revision-2
@@ -288,7 +331,7 @@ YPFoLxe1V5oOyoe3ap0H
      (let ((file-name-2 "bar"))
        (xmtn--run-command-sync root
                                (xmtn--version-case
-                                 ((or mainline (> 0 33))
+                                 ((>= 0 34)
                                   `("mv" "--" ,file-name-1 ,file-name-2))
                                  (t
                                   `("mv" "-e" "--" ,file-name-1 ,file-name-2))))

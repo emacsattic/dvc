@@ -1,6 +1,6 @@
 ;;; xhg-gnus.el --- dvc integration to gnus
 
-;; Copyright (C) 2003-2006 by all contributors
+;; Copyright (C) 2003-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -47,6 +47,8 @@ K t s `xhg-gnus-article-view-status-for-import-patch'"
 (defvar xhg-apply-patch-mapping nil)
 ;;(add-to-list 'xhg-apply-patch-mapping '("my-wiki" "~/work/wiki/"))
 
+(defvar xhg-gnus-patch-from-user nil)
+
 (defvar xhg-gnus-import-patch-force nil)
 (defun xhg-gnus-article-import-patch (n)
   "Import MIME part N, as hg patch.
@@ -66,6 +68,11 @@ outstanding uncommitted changes."
         (window-conf (current-window-configuration))
         (import-dir))
     (gnus-summary-select-article-buffer)
+    (save-excursion
+      (goto-char (point-min))
+      ;; handle does not seem to exist for text/x-patch ...
+      (when (re-search-forward "^user: +\\(.+\\)$" nil t)
+        (setq xhg-gnus-patch-from-user (match-string-no-properties 1))))
     (save-excursion
       (goto-char (point-min))
       ;; handle does not seem to exist for text/x-patch ...
