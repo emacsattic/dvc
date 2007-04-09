@@ -729,7 +729,7 @@ In practice, check for the existance of \"FILE.BASE\"."
        `(bzr (revision (,(nth 0 data)
                         ,(nth 1 data)
                         ,(- (nth 2 data) n))))))
-    (otherwise (error "TODO: not implemented. REV-ID=%S" rev_id))))
+    (otherwise (error "TODO: not implemented. REV-ID=%S" rev-id))))
 
 (defun bzr-revision-id-to-string (rev-id)
   "Turn a DVC revision ID to a bzr revision spec.
@@ -750,7 +750,7 @@ In practice, check for the existance of \"FILE.BASE\"."
       (let* ((previous-list (nth 1 rev-id))
              (rev (nth 1 previous-list))
              (n-prev (nth 2 previous-list)))
-      (bzr-revision-nth-ancestor rev n-prev))))
+      (bzr-revision-nth-ancestor (list 'bzr rev) n-prev))))
     (last-revision
      (let* ((data (dvc-revision-get-data rev-id))
             (num (nth 1 data)))
@@ -761,7 +761,7 @@ In practice, check for the existance of \"FILE.BASE\"."
 (defun bzr-revision-get-file-revision (file revision)
   "Insert the content of FILE in REVISION, in current buffer.
 
-REVISION looks like
+REVISION is a back-end-revision, not a dvc revision-id. It looks like
 \(local \"path\" NUM)."
   (let ((bzr-rev
          (if (eq (car (car revision)) 'local)
