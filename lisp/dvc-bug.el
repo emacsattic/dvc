@@ -1,6 +1,6 @@
 ;;; dvc-bug.el --- Reporting bugs to Xtla-el-dev list
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2007 by all contributors
 
 ;; This file is part of DVC.
 ;;
@@ -27,14 +27,14 @@
 
 ;;;###autoload
 (defun dvc-submit-bug-report ()
-  "Submit a bug report, with pertinent information to the xtla-el-dev list."
+  "Submit a bug report, with pertinent information to the dvc-dev list."
   (interactive)
   (require 'reporter)
   (delete-other-windows)
   ;; (dvc-version)
   (dvc-command-version)
   (reporter-submit-bug-report
-   "xtla-el-dev@gna.org"
+   "dvc-dev@gna.org"
    (concat "Dvc " dvc-version)
    (append
     ;; non user variables
