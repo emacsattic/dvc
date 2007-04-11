@@ -1,6 +1,6 @@
 ;;; package-maint.el --- Utilities for package mainteners
 ;; Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2003,
-;; 2004, 2005
+;; 2004, 2005, 2007
 ;;        Free Software Foundation, Inc.
 
 ;; This file is base on dgnushack.el in GNU Emacs
@@ -86,7 +86,7 @@ reverse dependencies*")
 (add-to-list 'load-path loaddir)
 
 ;; Add otherdirs to load-path
-(mapcar '(lambda (dir) 
+(mapcar '(lambda (dir)
 	   (when (file-exists-p dir)
 	     (add-to-list 'load-path dir)))
 	(split-string otherdirs " "))
@@ -96,7 +96,7 @@ reverse dependencies*")
       (expand-file-name "auto-autoloads.el")
     (expand-file-name (concat package-maint-pkg "-autoloads.el"))))
 
-(defvar package-maint-cus-load-file 
+(defvar package-maint-cus-load-file
   (if (featurep 'xemacs)
       (expand-file-name "custom-load.el")
     (expand-file-name "cus-load.el")))
@@ -244,7 +244,11 @@ remove load-file and cus-load-file if not specified."
 (defun package-maint-load-files (files)
   "Load FILES"
   (dolist (file files)
-    (load (expand-file-name file srcdir) nil t t)))
+	(condition-case nil
+		(load (expand-file-name file srcdir) t t t)
+	  (error
+	   (message (format "error loading %s" (expand-file-name file srcdir)))
+       (backtrace)))))
 
 (defun package-maint-get-file-dep (file)
   "Return a list with CAR the FILE and CDR the list of FILES required.

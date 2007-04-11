@@ -1027,7 +1027,7 @@ REVISION is documented in docs/DVC-API."
   (dvc-trace "get-prev-rev. revision=%S" revision)
   (dvc-revision-get-file-in-buffer
    file
-   (dvc-revision-nth-ancestor revision 1))))
+   (dvc-revision-nth-ancestor revision 1)))
 
 (defun dvc-dvc-revision-nth-ancestor (revision n)
   "Default function to get the n-th ancestor of REVISION."
