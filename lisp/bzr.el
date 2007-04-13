@@ -143,6 +143,32 @@ via bzr init-repository."
                        (message (format "bzr merge finished => %s"
                                         (concat (dvc-buffer-content error) (dvc-buffer-content output)))))))
 
+(defvar bzr-merge-or-pull-from-url-rules nil
+  "An alist that maps repository urls to working copies. This rule is used by
+`bzr-merge-from-url'.
+
+An example setting is:
+ (setq bzr-merge-from-url-rules '((\"http://www-verimag.imag.fr/~moy/bzr/dvc/moy/\" . (merge \"/home/stefan/work/myprg/dvc-dev-bzr/\"))))
+")
+(defun bzr-merge-or-pull-from-url (url)
+  "Merge or pull from a given url, autodetect the working directory via
+`bzr-merge-or-pull-from-url-rules'."
+  (interactive "sMerge from url: ")
+  (let* ((dest (cdr (assoc url bzr-merge-or-pull-from-url-rules)))
+         (merge-or-pull (car dest))
+         (path (cadr dest)))
+    (unless merge-or-pull
+      (setq merge-or-pull (cdr (assoc (completing-read (format "Merge or pull from %s: " "url") '("Merge" "Pull")) '(("Merge" . merge) ("Pull" . pull))))))
+    (unless path
+      (setq path (dvc-read-directory-name (format "%s from %s to: " (if (eq merge-or-pull 'merge) "Merge" "Pull") url))))
+    (if (eq merge-or-pull 'merge)
+        (let ((default-directory path))
+          (message "merging from %s to %s" url path)
+          (bzr-merge url))
+      (message "pulling from  %s to %s" url path)
+      ;;todo: implement pulling
+      )))
+
 ;;;###autoload
 (defun bzr-update (&optional path)
   "Run bzr update."

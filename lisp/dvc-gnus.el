@@ -116,7 +116,8 @@ Otherwise `dvc-gnus-apply-patch' is called."
   (interactive "p")
   (unless current-prefix-arg
     (setq n 2))
-  (let ((patch-type))
+  (let ((patch-type)
+        (bzr-merge-or-pull-url))
     (save-window-excursion
       (gnus-summary-select-article-buffer)
       (goto-char (point-min))
@@ -125,11 +126,17 @@ Otherwise `dvc-gnus-apply-patch' is called."
         (goto-char (point-min))
         (if (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t)
             (setq patch-type 'xhg)
-          (setq patch-type 'dvc))))
+          (goto-char (point-min))
+          (if (re-search-forward "^New revision in \\(.+\\)$" nil t)
+              (setq patch-type 'bzr-merge-or-pull
+                    bzr-merge-or-pull-url (match-string-no-properties 1))
+            (setq patch-type 'dvc)))))
     (cond ((eq patch-type 'tla)
-	   (tla-gnus-article-apply-patch n))
+           (tla-gnus-article-apply-patch n))
           ((eq patch-type 'xhg)
            (xhg-gnus-article-import-patch n))
+          ((eq patch-type 'bzr-merge-or-pull)
+           (bzr-merge-or-pull-from-url bzr-merge-or-pull-url))
           (t
            (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
 
