@@ -1906,17 +1906,29 @@ If DIRECTORY is nil or an empty string, just show the delta using --diffs."
          (if directory
              (list "delta" base modified directory)
            (list "delta" "--diffs" base modified)))
-        (run-dired-p (when directory 'ask)))
+        (run-dired-p (when directory 'ask))
+        (buffer (dvc-prepare-changes-buffer
+                 `(,tla-arch-branch
+                   (revision ,(tla--name-split base)))
+                 `(,tla-arch-branch
+                   (revision ,(tla--name-split modified)))
+                 'changeset
+                 modified
+                 tla-arch-branch)))
+    (if dvc-switch-to-buffer-first
+        (dvc-switch-to-buffer buffer))
     (tla--run-tla-async args
                         :finished
                         (dvc-capturing-lambda (output error status arguments)
                            (if (capture directory)
                                (tla--delta-show-directory (capture directory) (capture run-dired-p))
                              (tla--delta-show-diff-on-buffer
+                              (capture buffer)
                               output (capture base) (capture modified)
-                              (capture dont-switch)))))))
+                              (capture dont-switch)))))
+    buffer))
 
-(defun tla--delta-show-diff-on-buffer (output base modified &optional dont-switch)
+(defun tla--delta-show-diff-on-buffer (buffer output base modified &optional dont-switch)
   "Show the result of \"delta -diffs\".
 
 OUTPUT is the output buffer of the tla process.
@@ -1931,20 +1943,11 @@ MODIFIED)."
              (goto-char (point-max))
              (previous-line 1)
              (beginning-of-line)
-             (looking-at "^* changeset report")))
-          buffer)
+             (looking-at "^* changeset report"))))
       (if no-changes
           (message
            (concat "tla delta finished: "
                    "No changes in this arch working copy"))
-        (setq buffer (dvc-prepare-changes-buffer
-                      `(,tla-arch-branch
-                        (revision ,(tla--name-split base)))
-                      `(,tla-arch-branch
-                        (revision ,(tla--name-split modified)))
-                      'delta
-                      default-directory
-                      tla-arch-branch))
         (dvc-show-changes-buffer output 'dvc-parse-other buffer)
         (unless dont-switch
           (dvc-switch-to-buffer buffer))

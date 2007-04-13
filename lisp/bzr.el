@@ -774,9 +774,9 @@ In practice, check for the existance of \"FILE.BASE\"."
     (previous-revision
      (bzr-revision-id-to-string
       (let* ((previous-list (nth 1 rev-id))
-             (rev (nth 1 previous-list))
+             (rev `(bzr ,(nth 1 previous-list)))
              (n-prev (nth 2 previous-list)))
-      (bzr-revision-nth-ancestor (list 'bzr rev) n-prev))))
+        (bzr-revision-nth-ancestor rev n-prev))))
     (last-revision
      (let* ((data (dvc-revision-get-data rev-id))
             (num (nth 1 data)))

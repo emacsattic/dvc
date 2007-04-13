@@ -315,10 +315,12 @@ archive/category--version."
     (error "%S is not a tla/baz revision ID." rev-id))
   (let* ((data (dvc-revision-get-data rev-id))
          (type (dvc-revision-get-type rev-id)))
+    (dvc-trace "data=%S" data)
+    (dvc-trace "type=%S" type)
     (case type
       (revision (car data))
       (previous-revision (tla-revision-direct-ancestor
-                          (car (dvc-revision-get-data (car data))) (nth 1 data)))
+                          (nth 1 (car data)) (nth 1 data)))
       (otherwise (error "TODO: type of revision not implemented: %S" type)))))
 
 ;;
