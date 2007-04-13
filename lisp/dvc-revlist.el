@@ -241,9 +241,11 @@ revision list."
   (let ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie))))
     (unless (eq (car elem) 'entry-patch)
       (error "Cursor is not on a revision."))
+    ;; get the buffer from the ewoc structure.
     (let ((buffer (dvc-revlist-entry-patch-diff-buffer
                    (nth 1 elem)))
           (log-buf (current-buffer)))
+      (dvc-trace "buffer1=%S" buffer)
       (if (and buffer (buffer-live-p buffer))
           (dvc-buffer-show-or-scroll buffer scroll-down)
         (setf (dvc-revlist-entry-patch-diff-buffer
@@ -258,7 +260,9 @@ revision list."
                   ;;(dvc-trace "prev-rev-id=%S" prev-rev-id)
                   ;;(dvc-trace "rev-id=%S" rev-id)
                   (dvc-delta prev-rev-id rev-id))))
-        (setq buffer (dvc-revlist-entry-patch-diff-buffer (nth 1 elem))))
+        (setq buffer (dvc-revlist-entry-patch-diff-buffer
+                      (nth 1 elem)))
+        (dvc-trace "buffer2=%S" buffer))
       ;; setup the dvc-partner-buffer stuff
       (with-current-buffer buffer
         (set (make-local-variable 'dvc-partner-buffer) log-buf))
