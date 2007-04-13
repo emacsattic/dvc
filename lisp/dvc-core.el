@@ -1,6 +1,6 @@
 ;;; dvc-core.el --- Core functions for distributed version control
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions From:
@@ -945,6 +945,8 @@ Strips the final newline if there is one."
 ;; Revision manipulation
 ;;
 
+;; revision grammar is specified in ../docs/DVC-API
+
 ;; accessors
 (defun dvc-revision-get-dvc (revision-id)
   (car revision-id))
@@ -995,10 +997,11 @@ REVISION-ID is as specified in docs/DVC-API."
   (let ((type (dvc-revision-get-type revision-id))
         (inhibit-read-only t))
     (if (eq type 'previous-revision)
-        (funcall (dvc-function
-                  (dvc-revision-get-dvc revision-id)
-                   "revision-get-previous-revision")
-                 file (dvc-revision-get-data revision-id))
+        (let* ((dvc (dvc-revision-get-dvc revision-id))
+              (data (nth 0 (dvc-revision-get-data revision-id)))
+              (rev-id (list dvc data)))
+          (funcall (dvc-function dvc "revision-get-previous-revision")
+                   file rev-id))
       (let ((buffer (dvc-revision-get-buffer file revision-id)))
         (with-current-buffer buffer
           (case type
@@ -1020,14 +1023,11 @@ REVISION-ID is as specified in docs/DVC-API."
 (defun dvc-revision-get-previous-revision (file revision)
   "Default function to get the previous revision of a FILE.
 
-REVISION looks like
-\((baz (...)) 42).
-\(REV-ID N)."
+REVISION is documented in docs/DVC-API."
   (dvc-trace "get-prev-rev. revision=%S" revision)
   (dvc-revision-get-file-in-buffer
    file
-   (dvc-revision-nth-ancestor (nth 0 revision)
-                              (or (nth 1 revision) 1))))
+   (dvc-revision-nth-ancestor revision 1)))
 
 (defun dvc-dvc-revision-nth-ancestor (revision n)
   "Default function to get the n-th ancestor of REVISION."

@@ -761,7 +761,7 @@ In practice, check for the existance of \"FILE.BASE\"."
 (defun bzr-revision-get-file-revision (file revision)
   "Insert the content of FILE in REVISION, in current buffer.
 
-REVISION looks like
+REVISION is a back-end-revision, not a dvc revision-id. It looks like
 \(local \"path\" NUM)."
   (let ((bzr-rev
          (if (eq (car (car revision)) 'local)

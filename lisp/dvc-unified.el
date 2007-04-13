@@ -103,9 +103,13 @@ If DONT-SWITCH is nil, switch to the newly created buffer.")
   (interactive (list buffer-file-name)))
 
 ;;;###autoload
-(dvc-create-unified-command "status" (&optional against)
-  "Display the status in this tree for the actual dvc."
-  (interactive))
+(defun dvc-status (&optional against path)
+  "Display the status in optional PATH tree."
+  (interactive)
+  (if path
+      (let ((default-directory path))
+        (dvc-apply "dvc-status" against path))
+    (dvc-apply "dvc-status" against nil)))
 
 (dvc-create-unified-command "name-construct" (back-end-revision)
   "Returns a string representation of BACK-END-REVISION.")
