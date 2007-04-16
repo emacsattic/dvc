@@ -148,26 +148,32 @@ via bzr init-repository."
 `bzr-merge-from-url'.
 
 An example setting is:
- (setq bzr-merge-from-url-rules '((\"http://www-verimag.imag.fr/~moy/bzr/dvc/moy/\" . (merge \"/home/stefan/work/myprg/dvc-dev-bzr/\"))))
+ (setq bzr-merge-from-url-rules '((\"http://bzr.xsteve.at/dvc/\" . (pull \"~/site-lisp/dvc/\"))
+                                  (\"http://www-verimag.imag.fr/~moy/bzr/dvc/moy/\" . (merge \"/home/stefan/work/myprg/dvc-dev-bzr/\"))))
 ")
 (defun bzr-merge-or-pull-from-url (url)
   "Merge or pull from a given url, autodetect the working directory via
 `bzr-merge-or-pull-from-url-rules'."
   (interactive "sMerge from url: ")
+  ;; (message "bzr-merge-or-pull-from-url %s" url)
   (let* ((dest (cdr (assoc url bzr-merge-or-pull-from-url-rules)))
          (merge-or-pull (car dest))
-         (path (cadr dest)))
-    (unless merge-or-pull
-      (setq merge-or-pull (cdr (assoc (completing-read (format "Merge or pull from %s: " "url") '("Merge" "Pull")) '(("Merge" . merge) ("Pull" . pull))))))
-    (unless path
-      (setq path (dvc-read-directory-name (format "%s from %s to: " (if (eq merge-or-pull 'merge) "Merge" "Pull") url))))
-    (if (eq merge-or-pull 'merge)
-        (let ((default-directory path))
-          (message "merging from %s to %s" url path)
-          (bzr-merge url))
-      (message "pulling from  %s to %s" url path)
-      ;;todo: implement pulling
-      )))
+         (path (cadr dest))
+         (doit t))
+    (when (and merge-or-pull path)
+      (setq doit (y-or-n-p (format "%s from %s to %s? " (if (eq merge-or-pull 'merge) "Merge" "Pull") url path))))
+    (when doit
+      (unless merge-or-pull
+        (setq merge-or-pull (cdr (assoc (completing-read (format "Merge or pull from %s: " url) '("Merge" "Pull")) '(("Merge" . merge) ("Pull" . pull))))))
+      (unless path
+        (setq path (dvc-read-directory-name (format "%s from %s to: " (if (eq merge-or-pull 'merge) "Merge" "Pull") url))))
+      (let ((default-directory path))
+        (if (eq merge-or-pull 'merge)
+            (progn
+              (message "merging from %s to %s" url path)
+              (bzr-merge url))
+          (message "pulling from  %s to %s" url path)
+          (bzr-pull url))))))
 
 ;;;###autoload
 (defun bzr-update (&optional path)

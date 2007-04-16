@@ -127,7 +127,8 @@ Otherwise `dvc-gnus-apply-patch' is called."
         (if (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t)
             (setq patch-type 'xhg)
           (goto-char (point-min))
-          (if (re-search-forward "^New revision in \\(.+\\)$" nil t)
+          (if (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
+                  (re-search-forward "^Committed revision [0-9]+ to \\(.+\\)$" nil t))
               (setq patch-type 'bzr-merge-or-pull
                     bzr-merge-or-pull-url (match-string-no-properties 1))
             (setq patch-type 'dvc)))))
