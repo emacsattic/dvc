@@ -8131,7 +8131,8 @@ revision list."
 The revision is named by ARCHIVE/CATEGORY--BRANCH--VERSION--REVISION."
   (interactive
    (let* ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie)))
-          (full (tla--revision-revision (car (cddr elem))))
+         (full (tla--revision-revision
+                (dvc-revlist-entry-patch-struct (nth 1 elem))))
           (revision (tla--name-revision full))
           (archive (tla--name-archive full))
           (category (tla--name-category full))
