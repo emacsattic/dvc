@@ -58,12 +58,14 @@ this function.
 Additionally the following key binding is defined for the gnus summary mode map:
 K t l `dvc-gnus-article-extract-log-message'
 K t v `tla-gnus-article-view-patch'
+K t m `dvc-gnus-article-view-missing'
 K t a `dvc-gnus-article-apply-patch'"
   (interactive)
   (dvc-gnus-initialize-keymap)
   (define-key gnus-summary-dvc-submap [?a] 'dvc-gnus-article-apply-patch)
   (define-key gnus-summary-dvc-submap [?l] 'dvc-gnus-article-extract-log-message)
   (define-key gnus-summary-dvc-submap [?v] 'dvc-gnus-article-view-patch)
+  (define-key gnus-summary-dvc-submap [?m] 'dvc-gnus-article-view-missing)
   (mapcar (lambda (x)
             (let ((fn (dvc-function x "insinuate-gnus" t)))
               (when (fboundp fn)
@@ -140,6 +142,34 @@ Otherwise `dvc-gnus-apply-patch' is called."
            (bzr-merge-or-pull-from-url bzr-merge-or-pull-url))
           (t
            (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
+
+(defun dvc-gnus-article-view-missing ()
+  "Apply MIME part N, as patchset.
+When called with no prefix arg, set N := 2.
+First is checked, if it is a tla changeset created with DVC.
+If that is the case, `tla-gnus-apply-patch' is called.
+The next check is whether it is a patch suitable for xhg. In that case
+`xhg-gnus-article-import-patch' is called.
+Otherwise `dvc-gnus-apply-patch' is called."
+  (interactive)
+  (save-window-excursion
+    (gnus-summary-select-article-buffer)
+    (goto-char (point-min))
+    (goto-char (point-min))
+    (if (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
+            (re-search-forward "^Committed revision [0-9]+ to \\(.+\\)$" nil t))
+    (let* ((bzr-missing-url (match-string-no-properties 1))
+           (dest (cdr (assoc bzr-missing-url bzr-merge-or-pull-from-url-rules)))
+           (path (cadr dest))
+           (doit t))
+      (when path
+        (setq doit (y-or-n-p (format "Run missing from %s in %s? " bzr-missing-url path))))
+      (when doit
+        (unless path
+          (setq path (dvc-read-directory-name (format "Run missing from %s in: " bzr-missing-url))))
+        (let ((default-directory path))
+          (message "Running bzr missing from %s in %s" bzr-missing-url path)
+          (bzr-missing bzr-missing-url)))))))
 
 (defun dvc-gnus-article-view-patch (n)
   "View MIME part N, as patchset.
