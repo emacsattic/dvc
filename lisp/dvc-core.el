@@ -458,14 +458,11 @@ used to get more info about the process.")
 (defun dvc-build-dvc-command (dvc list-args)
   "Build a shell command to run DVC with args LIST-ARGS.
 DVC can be one of 'baz, 'xhg, ..."
-  (let* ((executable (dvc-variable dvc "executable"))
-         (cmd (mapconcat 'shell-quote-argument
-                         (cons executable
-                               (delq nil list-args))
-                         " ")))
-    (when (eq system-type 'windows-nt)
-      (setq cmd (replace-regexp-in-string "\\\"" "" cmd)))
-    cmd))
+  (let ((executable (dvc-variable dvc "executable")))
+    (mapconcat 'shell-quote-argument
+               (cons executable
+                     (delq nil list-args))
+               " ")))
 
 (defcustom dvc-password-prompt-regexp
   "[Pp]ass\\(word\\|phrase\\).*:\\s *\\'"
@@ -560,6 +557,11 @@ Example:
             (let ((process-environment
                    (funcall (dvc-function dvc "prepare-environment")
                             process-environment)))
+              ;; `start-process' sends both stderr and stdout to
+              ;; `output-buf'. But we want to keep stderr separate. So
+              ;; we use a shell to redirect stderr before Emacs sees
+              ;; it. Note that this means we require "sh" even on
+              ;; MS Windows.
               (start-process
                (dvc-variable dvc "executable") output-buf
                "sh" "-c"
@@ -684,7 +686,7 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-kill-process-maybe (current-buffer)))
 
 (defun dvc-run-dvc-display-as-info (dvc arg-list &optional show-error-buffer info-string asynchron)
-  "Call either `dvc-run-dvc-sync' or `dvc-run-dvc-sync' and display the result in an info buffer.
+  "Call either `dvc-run-dvc-async' or `dvc-run-dvc-sync' and display the result in an info buffer.
 When INFO-STRING is given, insert it at the buffer beginning."
   (let ((buffer (dvc-get-buffer-create dvc 'info)))
     (funcall (if asynchron 'dvc-run-dvc-async 'dvc-run-dvc-sync) dvc arg-list
