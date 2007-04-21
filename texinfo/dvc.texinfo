@@ -12,7 +12,7 @@
 * DVC: (dvc).             The Emacs interface to tla
 @end direntry
 
-Copyright (c) 2004-2005 The DVC Development Team
+Copyright (c) 2004-2005, 2007 The DVC Development Team
 @end ifinfo
 
 @titlepage
@@ -82,20 +82,20 @@ This file documents @b{DVC}, version
 
 @c ============================================================================
 @menu
-* Installation::
-* DVC Tour::
-* Use cases::
-* Trouble Shooting::
-* Customization::
-* Internals::
-* Mailing Lists::
-* Wiki::
-* Changes::
-* The Latest Version::
-* The Future::
-* Thanks::
-* Concept Index::
-* Variable Index::
+* Installation::                
+* DVC Tour::                    
+* Use cases::                   
+* Trouble Shooting::            
+* Customization::               
+* Internals::                   
+* Mailing Lists::               
+* Wiki::                        
+* Changes::                     
+* The Latest Version::          
+* The Future::                  
+* Thanks::                      
+* Concept Index::               
+* Variable Index::              
 @end menu
 
 @node Installation, DVC Tour, Top, Top
@@ -114,12 +114,13 @@ This program consists of several groups of files, organized by directory:
 @end ifinfo
 
 @menu
-* Dependencies::
-* Hooking into GNU Emacs::
+* Dependencies::                
+* MS Windows::                  
+* Hooking into GNU Emacs::      
 @end menu
 
 @c ----------------------------------------------------------------------------
-@node Dependencies, Hooking into GNU Emacs, Installation, Installation
+@node Dependencies, MS Windows, Installation, Installation
 @subsection Dependencies
 
 Various parts of the @b{DVC} require extra packages to be available.
@@ -154,8 +155,55 @@ The latest version of @code{smerge-mode.el} can be found at
 
 @end itemize
 
+@node MS Windows, Hooking into GNU Emacs, Dependencies, Installation
+@subsection MS Windows
+DVC requires a POSIX shell, used to run the backends. On Unix-like
+systems, @file{/bin/sh} should be good. On MS Windows, you will need
+to install one. MinGW and Cygwin both work; other POSIX shells are
+also available.
+
+For MinGW, see @url{http://mingw.org/}, and see
+@url{http://www.venge.net/mtn-wiki/BuildingOnWindows} for excellent
+installation instructions.
+
+For Cygwin, see @url{http://cygwin.com/}.
+
+Both MinGW and Cygwin work better with native MS Windows Emacs if
+installed to @file{c:/} instead of @file{c:/MinGW} or
+@file{c:/Cygwin}. This is because of the way they mount filesystems,
+and refer to files not under a mounted directory. 
+
+For example, if Cygwin is installed at @file{c:/Cygwin}, it mounts
+@file{/} at @file{c:/Cygwin}. Then the file known to Emacs as
+@file{c:/Cygwin/bin/make.exe} is known to Cygwin applications as
+@file{/bin/make.exe}. Also, the file known to Emacs as
+@file{c:/Projects/my_file.text} is known to Cygwin as
+@file{/cygdrive/c/Projects/my_file.text}. This causes problems when
+using Cygwin make with native Emacs; Emacs can't find the files make
+is reporting in error messages.
+
+However, if Cygwin is installed at @file{c:/}, then it mounts @file{/}
+at @file{c:/}. Then the file known to Emacs as @file{c:/bin/make.exe}
+is known to Cygwin applications as @file{/bin/make.exe}. Also, the
+file known to Emacs as @file{c:/Projects/my_file.text} is known to
+Cygwin as @file{/Projects/my_file.text}. The only difference is the
+leading drive letter, which is unnecessary, as long as all files are
+on the same drive, which is typical of MS Windows boxes these days.
+
+MinGW has similar file naming conventions.
+
+The Cygwin installer warns that installing Cygwin at @file{c:/} is not
+recommended. But if you read the rationale for that in the Cygwin
+docs, it is because ``you might have other things installed there that
+conflict''. While true, that is up to you to control. For example, you
+certainly cannot install @emph{both} Cygwin and MinGW at @file{c:/}.
+
+In general, a backend used by DVC should be run by invoking a Windows
+executable, not a DOS batch file or other script. The Emacs variable
+@code{explicit-shell-file-name} may help in resolving shell issues.
+
 @c ----------------------------------------------------------------------------
-@node Hooking into GNU Emacs,  , Dependencies, Installation
+@node Hooking into GNU Emacs,  , MS Windows, Installation
 @subsection Hooking into GNU Emacs
 @cindex Hooking into GNU Emacs
 
@@ -194,7 +242,7 @@ This section discusses the basics of @b{DVC} - an overview of the
 available commands.
 
 @menu
-* A tutorial guide to DVC::
+* A tutorial guide to DVC::     
 * First contact::               DVC is self documented
 * Archive Browsing::            The basics of browsing
 * Editing Files::               Inserting tags, adding change logs
@@ -219,11 +267,11 @@ For the purposes of this tutorial, we will use the DVC project as an
 example of a project you might like to track (humour me).
 
 @menu
-* Register an archive::
-* Bookmarking a project::
-* Creating a branch of a project and getting a project tree::
-* Finding and merging missing patches::
-* Reviewing and committing your changes::
+* Register an archive::         
+* Bookmarking a project::       
+* Creating a branch of a project and getting a project tree::  
+* Finding and merging missing patches::  
+* Reviewing and committing your changes::  
 @end menu
 
 @node Register an archive, Bookmarking a project, A tutorial guide to DVC, A tutorial guide to DVC
@@ -472,9 +520,9 @@ some files before committing.
 @cindex Finding missing patches
 
 @menu
-* Bookmarks basics::
-* Using bookmarks for distributed development::
-* Bookmarks groups::
+* Bookmarks basics::            
+* Using bookmarks for distributed development::  
+* Bookmarks groups::            
 @end menu
 
 @node Bookmarks basics, Using bookmarks for distributed development, Using Bookmarks, Using Bookmarks
@@ -553,7 +601,7 @@ the missing patches for my projects. @kbd{* g dvc RET M} will tell me if my
 partners for @code{dvc} are up-to-date with my archive.
 
 @c ----------------------------------------------------------------------------
-@node Transmit patches via email, , Using Bookmarks, DVC Tour
+@node Transmit patches via email,  , Using Bookmarks, DVC Tour
 @subsection Transmit patches via email
 
 This section discusses a way to send/receive patches via email. That way
@@ -561,8 +609,8 @@ you can create patches for a project without the need to create a branch
 for your contribution.
 
 @menu
-* Send patches via Gnus::
-* Receive/Apply patches via Gnus::
+* Send patches via Gnus::       
+* Receive/Apply patches via Gnus::  
 @end menu
 
 @node Send patches via Gnus, Receive/Apply patches via Gnus, Transmit patches via email, Transmit patches via email
@@ -589,7 +637,7 @@ It defines, that every branch of the dvc project should submit patches
 to @code{dvc-el-dev@@gna.org}. The entry @code{"dvc"} just specifies,
 that the filename for the patch should start with @code{dvc}.
 
-@node Receive/Apply patches via Gnus, , Send patches via Gnus, Transmit patches via email
+@node Receive/Apply patches via Gnus,  , Send patches via Gnus, Transmit patches via email
 @comment  node-name,  next,  previous,  up
 @subsubsection Receive/Apply patches via Gnus
 
@@ -629,8 +677,8 @@ from the received mail:
 @section How to use DVC depending on your role
 
 @menu
-* Anarchic development::
-* Star-shaped development::
+* Anarchic development::        
+* Star-shaped development::     
 @end menu
 
 
@@ -652,11 +700,11 @@ subprojects (potentially hierarchic), the main version for the full
 project merging from the versions of the subprojects.
 
 @menu
-* Maintainer::
-* Missing patches::
-* Reviewing patches::
-* Patch-log Generation::
-* Contributor::
+* Maintainer::                  
+* Missing patches::             
+* Reviewing patches::           
+* Patch-log Generation::        
+* Contributor::                 
 @end menu
 
 @node Maintainer, Missing patches, Star-shaped development, Star-shaped development
