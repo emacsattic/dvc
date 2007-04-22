@@ -1,6 +1,6 @@
 ;;; xdarcs.el --- darcs interface for dvc
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006, 2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -104,7 +104,8 @@
             (when (or modif status)
               (ewoc-enter-last dvc-diff-cookie
                                (list 'file
-                                     (substring elem 2)
+                                     ;; Skip the status and "./" in the filename
+                                     (substring elem 4)
                                      status
                                      modif)))))))))
 
