@@ -91,20 +91,20 @@ Backends supported:
 
 @c ============================================================================
 @menu
-* Installation::                
-* DVC Tour::                    
-* Use cases::                   
-* Trouble Shooting::            
-* Customization::               
-* Internals::                   
-* Mailing Lists::               
-* Wiki::                        
-* Changes::                     
-* The Latest Version::          
-* The Future::                  
-* Thanks::                      
-* Concept Index::               
-* Variable Index::              
+* Installation::
+* DVC Tour::
+* Use cases::
+* Trouble Shooting::
+* Customization::
+* Internals::
+* Mailing Lists::
+* Wiki::
+* Changes::
+* The Latest Version::
+* The Future::
+* Thanks::
+* Concept Index::
+* Variable Index::
 @end menu
 
 @node Installation, DVC Tour, Top, Top
@@ -123,9 +123,9 @@ This program consists of several groups of files, organized by directory:
 @end ifinfo
 
 @menu
-* Dependencies::                
-* MS Windows::                  
-* Hooking into GNU Emacs::      
+* Dependencies::
+* MS Windows::
+* Hooking into GNU Emacs::
 @end menu
 
 @c ----------------------------------------------------------------------------
@@ -180,7 +180,7 @@ For Cygwin, see @url{http://cygwin.com/}.
 Both MinGW and Cygwin work better with native MS Windows Emacs if
 installed to @file{c:/} instead of @file{c:/MinGW} or
 @file{c:/Cygwin}. This is because of the way they mount filesystems,
-and refer to files not under a mounted directory. 
+and refer to files not under a mounted directory.
 
 For example, if Cygwin is installed at @file{c:/Cygwin}, it mounts
 @file{/} at @file{c:/Cygwin}. Then the file known to Emacs as
@@ -251,7 +251,7 @@ This section discusses the basics of @b{DVC} - an overview of the
 available commands.
 
 @menu
-* A tutorial guide to DVC::     
+* A tutorial guide to DVC::
 * First contact::               DVC is self documented
 * Archive Browsing::            The basics of browsing
 * Editing Files::               Inserting tags, adding change logs
@@ -276,11 +276,11 @@ For the purposes of this tutorial, we will use the DVC project as an
 example of a project you might like to track (humour me).
 
 @menu
-* Register an archive::         
-* Bookmarking a project::       
-* Creating a branch of a project and getting a project tree::  
-* Finding and merging missing patches::  
-* Reviewing and committing your changes::  
+* Register an archive::
+* Bookmarking a project::
+* Creating a branch of a project and getting a project tree::
+* Finding and merging missing patches::
+* Reviewing and committing your changes::
 @end menu
 
 @node Register an archive, Bookmarking a project, A tutorial guide to DVC, A tutorial guide to DVC
@@ -529,9 +529,9 @@ some files before committing.
 @cindex Finding missing patches
 
 @menu
-* Bookmarks basics::            
-* Using bookmarks for distributed development::  
-* Bookmarks groups::            
+* Bookmarks basics::
+* Using bookmarks for distributed development::
+* Bookmarks groups::
 @end menu
 
 @node Bookmarks basics, Using bookmarks for distributed development, Using Bookmarks, Using Bookmarks
@@ -618,8 +618,8 @@ you can create patches for a project without the need to create a branch
 for your contribution.
 
 @menu
-* Send patches via Gnus::       
-* Receive/Apply patches via Gnus::  
+* Send patches via Gnus::
+* Receive/Apply patches via Gnus::
 @end menu
 
 @node Send patches via Gnus, Receive/Apply patches via Gnus, Transmit patches via email, Transmit patches via email
@@ -686,8 +686,8 @@ from the received mail:
 @section How to use DVC depending on your role
 
 @menu
-* Anarchic development::        
-* Star-shaped development::     
+* Anarchic development::
+* Star-shaped development::
 @end menu
 
 
@@ -709,11 +709,11 @@ subprojects (potentially hierarchic), the main version for the full
 project merging from the versions of the subprojects.
 
 @menu
-* Maintainer::                  
-* Missing patches::             
-* Reviewing patches::           
-* Patch-log Generation::        
-* Contributor::                 
+* Maintainer::
+* Missing patches::
+* Reviewing patches::
+* Patch-log Generation::
+* Contributor::
 @end menu
 
 @node Maintainer, Missing patches, Star-shaped development, Star-shaped development
