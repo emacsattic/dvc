@@ -182,7 +182,7 @@
   (xmtn--command-lines-future root 'error arguments))
 
 (defun xmtn--command-output-lines (root arguments)
-  "Runs mtn in ROOT with ARGUMENTS and returns its output as a list of strings."
+  "Run mtn in ROOT with ARGUMENTS and return its output as a list of strings."
   (xmtn--check-cached-command-version)
   (let ((accu (list)))
     (let ((default-directory (file-truename (or root default-directory))))
@@ -207,9 +207,9 @@
     accu))
 
 (defun xmtn--command-output-line (root arguments)
-  "Runs mtn in ROOT with ARGUMENTS and returns the one line of output as string.
+  "Run mtn in ROOT with ARGUMENTS and return the one line of output as string.
 
-Signal an error if more (or fewer) than one line is output."
+Signals an error if more (or fewer) than one line is output."
   (let ((lines (xmtn--command-output-lines root arguments)))
     (unless (eql (length lines) 1)
       (error "Expected precisely one line of output from monotone, got %s: %s %S"
@@ -232,7 +232,7 @@ Signal an error if more (or fewer) than one line is output."
         (xmtn--check-cached-command-version))))
 
 (defun xmtn--command-version ()
-  "Returns a list (MAJOR MINOR REVISION VERSION-STRING).
+  "Return a list (MAJOR MINOR REVISION VERSION-STRING).
 
 VERSION-STRING is the string printed by mtn --version (with no
 trailing newline).  MAJOR and MINOR are integers, a parsed

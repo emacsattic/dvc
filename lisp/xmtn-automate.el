@@ -362,9 +362,9 @@
 ;; This one is used twice.  I think the error checking it provides is
 ;; a reasonable simplification for its callers.
 (defun xmtn-automate-simple-command-output-line (root command)
-  "Returns the one line output from mtn automate as a list of strings.
+  "Return the one line output from mtn automate as a string.
 
-Signal an error if output contains zero lines or more than one line."
+Signals an error if output contains zero lines or more than one line."
   (let ((lines (xmtn-automate-simple-command-output-lines root command)))
     (unless (eql (length lines) 1)
       (error "Expected precisely one line of output from mtn automate, got %s: %s %S"

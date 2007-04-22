@@ -523,7 +523,7 @@ the file before saving."
 
 ;;;###autoload
 (defun xmtn-show-base-revision ()
-  "Shows the base revision of the current monotone tree in the minibuffer."
+  "Show the base revision of the current monotone tree in the minibuffer."
   (interactive)
   (let ((root (dvc-tree-root)))
     (message "Base revision of tree %s is %s"
@@ -564,6 +564,9 @@ the file before saving."
       (dvc-save-some-buffers root)
       ;; Due to the possibility of race conditions, this check doesn't
       ;; guarantee the operation will succeed.
+      ;;
+      ;; FIXME: Shouldn't we be doing this test only if the workspace
+      ;; is actually involved, i.e. if BASE-REV is the workspace?
       (unless (endp (funcall (xmtn--missing-files-future root)))
         (error "Missing files in tree, unable to diff"))
       (let ((against-resolved (xmtn--resolve-revision-id root against))
@@ -1311,8 +1314,7 @@ finished."
            proto-revision))))))
 
 (defun xmtn--parse-partial-revision (parser)
-  "Parses the basic_io output from get_revision, starting with the
-old_revision stanzas."
+  "Parse basic_io output from get_revision, starting with the old_revision stanzas."
   (let ((old-revision-hash-ids (list))
         (delete (list))
         (rename (list))
