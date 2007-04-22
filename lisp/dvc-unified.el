@@ -74,23 +74,23 @@
 
 ;;;###autoload
 (progn
-  (defmacro dvc-create-unified-command (name args comment &optional interactive)
-    `(defun ,(intern (concat "dvc-" name)) ,args
+  (defmacro define-dvc-unified-command (name args comment &optional interactive)
+    `(defun ,name ,args
        ,comment
        ,@(when interactive (list interactive))
-       (dvc-apply ,(concat "dvc-" name) ,@(remove '&optional args))
+       (dvc-apply ,(symbol-name name) ,@(remove '&optional args))
        )))
 
 (put 'dvc-create-unified-command
      'lisp-indent-function 'defun)
 
 ;;;###autoload
-(dvc-create-unified-command "diff" (&optional against path dont-switch)
+(define-dvc-unified-command dvc-diff (&optional against path dont-switch)
   "Display the changes in this tree for the actual dvc."
   (interactive (list nil nil current-prefix-arg)))
 
 ;;;###autoload
-(dvc-create-unified-command "delta" (&optional base modified dont-switch)
+(define-dvc-unified-command dvc-delta (&optional base modified dont-switch)
   "Display from revision BASE to MODIFIED.
 
 BASE and MODIFIED must be revision ID.
@@ -98,7 +98,7 @@ BASE and MODIFIED must be revision ID.
 If DONT-SWITCH is nil, switch to the newly created buffer.")
 
 ;;;###autoload
-(dvc-create-unified-command "file-diff" (file &optional base modified dont-switch)
+(define-dvc-unified-command dvc-file-diff (file &optional base modified dont-switch)
   "Display the changes in FILE for the actual dvc."
   (interactive (list buffer-file-name)))
 
@@ -111,35 +111,35 @@ If DONT-SWITCH is nil, switch to the newly created buffer.")
         (dvc-apply "dvc-status" against path))
     (dvc-apply "dvc-status" against nil)))
 
-(dvc-create-unified-command "name-construct" (back-end-revision)
+(define-dvc-unified-command dvc-name-construct (back-end-revision)
   "Returns a string representation of BACK-END-REVISION.")
 
 ;;;###autoload
-(dvc-create-unified-command "log" (&optional arg)
+(define-dvc-unified-command dvc-log (&optional arg)
   "Display the log in this tree for the actual dvc."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "changelog" (&optional arg)
+(define-dvc-unified-command dvc-changelog (&optional arg)
   "Display the changelog in this tree for the actual dvc."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "add" (file)
+(define-dvc-unified-command dvc-add (file)
   "Adds FILE to the repository."
   (interactive))
 
-(dvc-create-unified-command "revision-direct-ancestor" (revision)
+(define-dvc-unified-command dvc-revision-direct-ancestor (revision)
   "Computes the direct ancestor of a revision.")
 
-(dvc-create-unified-command "revision-nth-ancestor" (revision n)
+(define-dvc-unified-command dvc-revision-nth-ancestor (revision n)
   "Computes the direct ancestor of a revision.")
 
-(dvc-create-unified-command "resolved" (file)
+(define-dvc-unified-command dvc-resolved (file)
   "Mark FILE as resolved"
   (interactive (list (buffer-file-name))))
 
-(dvc-create-unified-command "rename" ()
+(define-dvc-unified-command dvc-rename ()
   "Rename.file from-file-name to to-file-name."
   (interactive))
 
@@ -183,62 +183,62 @@ the current active back-end."
     root))
 
 ;;;###autoload
-(dvc-create-unified-command "log-edit" ()
+(define-dvc-unified-command dvc-log-edit ()
   "Edit the log before commiting."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "log-edit-done" ()
+(define-dvc-unified-command dvc-log-edit-done ()
   "Commit and close the log buffer."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "edit-ignore-files" ()
+(define-dvc-unified-command dvc-edit-ignore-files ()
   "Edit the ignored file list."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "ignore-files" (file-list)
+(define-dvc-unified-command dvc-ignore-files (file-list)
   "Ignore the marked files."
   (interactive (list (dvc-current-file-list))))
 
 ;;;###autoload
-(dvc-create-unified-command "ignore-file-extensions" (file-list)
+(define-dvc-unified-command dvc-ignore-file-extensions (file-list)
   "Ignore the file extensions of the marked files."
   (interactive (list (dvc-current-file-list))))
 
 ;;;###autoload
-(dvc-create-unified-command "missing" ()
+(define-dvc-unified-command dvc-missing ()
   "Show the missing changesets for this working copy."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "inventory" ()
+(define-dvc-unified-command dvc-inventory ()
   "Show the inventory for this working copy."
   (interactive))
 
 ;;###autoload
-(dvc-create-unified-command "save-diff" (file)
+(define-dvc-unified-command dvc-save-diff (file)
   "Store the diff from the working copy against the repository in a file."
   (interactive (list (read-file-name "Save the diff to: "))))
 
 ;;;###autoload
-(dvc-create-unified-command "update" ()
+(define-dvc-unified-command dvc-update ()
   "Update this working copy."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "pull" ()
+(define-dvc-unified-command dvc-pull ()
   "Pull changes in the working copy."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "submit-patch" ()
+(define-dvc-unified-command dvc-submit-patch ()
   "Submit a patch for the current project under DVC control."
   (interactive))
 
 ;;;###autoload
-(dvc-create-unified-command "send-commit-notification" ()
+(define-dvc-unified-command dvc-send-commit-notification ()
   "Send a commit notification for the changeset at point."
   (interactive))
 
