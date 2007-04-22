@@ -46,13 +46,24 @@
   log-buffer
   diff-buffer)
 
-;; elem should be
+(defvar dvc-revlist-cookie nil
+  "Ewoc cookie for dvc-revlist.")
+
+;; elem of dvc-revlist-cookie should be one of:
 ;; ('separator "string" kind)
-;; or
-;; ('entry-patch struct) Where "struct" is a dvc-revlist-entry-patch
-;; struct type.
+;;    `kind' is: one of
+;;    partner: ???
+;;    bookmark: ???
+;;    
+;; ('entry-patch struct)
+;;    `struct' is a dvc-revlist-entry-patch struct type.
+;;
 ;; ('entry-change "changes")
+;;
+;; ('message "message")
+;; 
 ;; The second element tells if the element is marked or not.
+
 (defun dvc-revlist-printer (elem)
   "Print an element ELEM of the revision list."
   (let ()
@@ -334,6 +345,8 @@ build the revision list."
   (let ((buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
       (let ((back-end dvc-buffer-current-active-dvc))
+        ;; FIXME: why are we rebinding back-end?
+        ;; dvc-buffer-current-active-dvc was just set to back-end by dvc-get-buffer-create
         (dvc-revlist-mode)
         (setq dvc-buffer-current-active-dvc back-end)))
     (if dvc-switch-to-buffer-first

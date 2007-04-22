@@ -547,31 +547,27 @@ Throw an error when not on a file."
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
   `dvc-show-changes-buffer'.")
+;; FIXME: actually, dvc-show-changes-buffer doesn't use this
 
-(defun dvc-show-changes-buffer (buffer &optional parser
+(defun dvc-show-changes-buffer (buffer parser &optional 
                                        output-buffer no-switch header-end-regexp)
-  "Show the *{tla|baz}-changes* buffer built from the *{tla|baz}-process* BUFFER.
+  ;; FIXME: pass in dvc?
+  "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
 
-FORMAT defines the way to parse the output buffer. It can have the
-values:
+PARSER is a function to parse the diff and fill in the ewoc list.
 
-Use OUTPUT-BUFFER to display changes if provided.  That buffer must
-already be in changes mode.
+Display changes in OUTPUT-BUFFER if non-nil; otherwise create a
+new display buffer.
 
 If NO-SWITCH is nil, don't switch to the created buffer.
 
-PARSER is a function to parse the diff and fill in the ewoc list.
-Defaults to `dvc-parse-other'.
-
-If non-nil, header-end-regexp is a regexp matching the first line
+If non-nil, HEADER-END-REGEXP is a regexp matching the first line
 which is not part of the diff header."
   (let* ((root (with-current-buffer buffer
                  (dvc-tree-root default-directory t)))
-         (changes-buffer (or output-buffer (dvc-get-buffer-create tla-arch-branch
+         (changes-buffer (or output-buffer (dvc-get-buffer-create (dvc-current-active-dvc)
                                             'diff root)))
-         (dvc-header "")
-         (parser (or parser (progn (require 'tla) ;cyclic module dependency!
-                                   'dvc-parse-other))))
+         (dvc-header ""))
     (if (or no-switch dvc-switch-to-buffer-first)
         (set-buffer changes-buffer)
       (dvc-switch-to-buffer changes-buffer))

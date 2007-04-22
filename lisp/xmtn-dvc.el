@@ -617,6 +617,7 @@ the file before saving."
 (defun xmtn-dvc-command-version ()
   (format "%s\nautomate interface version %s"
           (third (xmtn--command-version))
+          ;; FIXME: xmtn--automate-interface-version not declared anywhere
           (third (xmtn--automate-interface-version))))
 
 (defun xmtn--unknown-files-future (root)
