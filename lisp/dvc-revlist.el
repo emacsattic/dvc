@@ -1,6 +1,6 @@
 ;;; dvc-revlist.el --- Revision list in DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -344,11 +344,9 @@ caller has to provide the function PARSER which will actually
 build the revision list."
   (let ((buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
-      (let ((back-end dvc-buffer-current-active-dvc))
-        ;; FIXME: why are we rebinding back-end?
-        ;; dvc-buffer-current-active-dvc was just set to back-end by dvc-get-buffer-create
-        (dvc-revlist-mode)
-        (setq dvc-buffer-current-active-dvc back-end)))
+      (dvc-revlist-mode)
+      ;; dvc-buffer-current-active-dvc is killed by dvc-revlist-mode, so reset it
+      (setq dvc-buffer-current-active-dvc back-end))
     (if dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer)
       (set-buffer buffer))
