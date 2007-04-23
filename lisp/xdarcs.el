@@ -98,9 +98,9 @@
                    (setq status "?"))
 		  ((eq modif-char ?A)
 		   (setq status "A"
-			 modif "M"))
+			 modif " "))
                   ((eq modif-char ?R)
-                   (setq status "R"))
+                   (setq status "D"))
                   ((eq modif-char ??)
                    (setq status "?"))
                   (t
