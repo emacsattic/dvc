@@ -46,6 +46,8 @@
 
 ;;;###autoload
 (defalias 'xdarcs-dvc-status    'xdarcs-whatsnew)
+(defalias 'xdarcs-dvc-remove-files 'xdarcs-remove-files)
+(defalias 'xdarcs-dvc-revert-files 'xdarcs-revert-files)
 
 (defalias 'xdarcs-dvc-diff 'xdarcs-diff)
 
@@ -79,6 +81,8 @@
               (insert (format "\\.%s$\n" (regexp-quote ext-name))))
             (save-buffer)))
       (message "No files with an extension selected."))))
+
+
 
 (provide 'xdarcs-dvc)
 ;;; xdarcs-dvc.el ends here
