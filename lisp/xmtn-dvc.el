@@ -177,8 +177,13 @@
         ;; speedup (~14% on some informal benchmarks).  At least it
         ;; was with the version that I benchmarked, etc.
         (xmtn-automate-with-session (nil root)
-          (let ((unknown-future (xmtn--unknown-files-future root))
-                (missing (funcall (xmtn--missing-files-future root))))
+          (let* ((unknown-future (xmtn--unknown-files-future root))
+                 (missing-future (xmtn--missing-files-future root))
+                 (heads (xmtn--heads root branch))
+                 (missing (funcall missing-future))
+                 (revision (if missing
+                               nil
+                             (xmtn--get-revision root `(local-tree ,root)))))
             (when missing
               (insert-line
                "WARNING: There are missing files in this tree.")
@@ -191,6 +196,22 @@
             (insert-line "Committing on branch:")
             (insert-line branch)
             (insert-line)
+            (unless missing
+              (let* ((parents (xmtn--revision-old-revision-hash-ids revision))
+                     (all-parents-are-heads-p
+                      (subsetp parents heads :test #'equal))
+                     (all-heads-are-parents-p
+                      (subsetp heads parents :test #'equal)))
+                (cond ((and (not all-heads-are-parents-p)
+                            (not all-parents-are-heads-p))
+                       (insert-line "This commit will create divergence.")
+                       (insert-line))
+                      ((not all-heads-are-parents-p)
+                       (insert-line (concat "Divergence will continue to exist"
+                                            " after this commit."))
+                       (insert-line))
+                      (t
+                       (progn)))))
             (case normalized-files
               (all
                (insert-line "All files selected for commit."))
@@ -215,61 +236,60 @@
                        (insert-line
                         (concat "Unable to compute modified files while"
                                 " files are missing from the tree.")))
-              (let ((revision (xmtn--get-revision root `(local-tree ,root))))
-                (let ((committed-changes (list))
-                      (other-changes (list)))
-                  (flet ((collect (path message)
-                           (if (or (eql normalized-files 'all)
-                                   (member path normalized-files))
-                               (push message committed-changes)
-                             (push message other-changes))))
-                    (loop
-                     for (path) in (xmtn--revision-delete revision)
-                     do (collect path (format "delete    %s" path)))
-                    (loop
-                     for (from to) in (xmtn--revision-rename revision)
-                     ;; FIXME: collect from or collect to?  Monotone
-                     ;; doesn't specify how restrictions work for
-                     ;; renamings.
-                     do (collect to   (format "rename %s to %s" from to)))
-                    (loop
-                     for (path) in (xmtn--revision-add-dir revision)
-                     do (collect path (format "add_dir   %s" path)))
-                    (loop
-                     for (path contents)
-                     in (xmtn--revision-add-file revision)
-                     do (collect path (format "add_file  %s" path)))
-                    (loop
-                     for (path from-contents to-contents)
-                     in (xmtn--revision-patch-file revision)
-                     do (collect path (format "patch     %s" path)))
-                    (loop
-                     for (path attr-name)
-                     in (xmtn--revision-clear-attr revision)
-                     do (collect path (format "clear %s %s"
-                                             path attr-name)))
-                    (loop
-                     for (path attr-name attr-value)
-                     in (xmtn--revision-set-attr revision)
-                     do (collect path (format "set %s %s %s"
-                                             path attr-name attr-value))))
-                  (setq committed-changes (nreverse committed-changes))
-                  (setq other-changes (nreverse other-changes))
+              (let ((committed-changes (list))
+                    (other-changes (list)))
+                (flet ((collect (path message)
+                                (if (or (eql normalized-files 'all)
+                                        (member path normalized-files))
+                                    (push message committed-changes)
+                                  (push message other-changes))))
                   (loop
-                   for (lines heading-if heading-if-not) in
-                   `((,committed-changes
-                      ,(format "%s change(s) in selected files:"
-                               (length committed-changes))
-                      "No changes in selected files.")
-                     (,other-changes
-                      ,(format
-                        "%s change(s) in files not selected for commit:"
-                        (length other-changes))
-                      "No changes in files not selected for commit."))
-                   do
-                   (insert-line)
-                   (insert-line "%s" (if lines heading-if heading-if-not))
-                   (dolist (line lines) (insert-line "%s" line))))))
+                   for (path) in (xmtn--revision-delete revision)
+                   do (collect path (format "delete    %s" path)))
+                  (loop
+                   for (from to) in (xmtn--revision-rename revision)
+                   ;; FIXME: collect from or collect to?  Monotone
+                   ;; doesn't specify how restrictions work for
+                   ;; renamings.
+                   do (collect to   (format "rename %s to %s" from to)))
+                  (loop
+                   for (path) in (xmtn--revision-add-dir revision)
+                   do (collect path (format "add_dir   %s" path)))
+                  (loop
+                   for (path contents)
+                   in (xmtn--revision-add-file revision)
+                   do (collect path (format "add_file  %s" path)))
+                  (loop
+                   for (path from-contents to-contents)
+                   in (xmtn--revision-patch-file revision)
+                   do (collect path (format "patch     %s" path)))
+                  (loop
+                   for (path attr-name)
+                   in (xmtn--revision-clear-attr revision)
+                   do (collect path (format "clear %s %s"
+                                            path attr-name)))
+                  (loop
+                   for (path attr-name attr-value)
+                   in (xmtn--revision-set-attr revision)
+                   do (collect path (format "set %s %s %s"
+                                            path attr-name attr-value))))
+                (setq committed-changes (nreverse committed-changes))
+                (setq other-changes (nreverse other-changes))
+                (loop
+                 for (lines heading-if heading-if-not) in
+                 `((,committed-changes
+                    ,(format "%s change(s) in selected files:"
+                             (length committed-changes))
+                    "No changes in selected files.")
+                   (,other-changes
+                    ,(format
+                      "%s change(s) in files not selected for commit:"
+                      (length other-changes))
+                    "No changes in files not selected for commit."))
+                 do
+                 (insert-line)
+                 (insert-line "%s" (if lines heading-if heading-if-not))
+                 (dolist (line lines) (insert-line "%s" line)))))
             (let ((unknown (funcall unknown-future)))
               (insert-line)
               (if (endp unknown)
