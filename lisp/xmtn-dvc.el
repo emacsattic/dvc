@@ -1111,7 +1111,7 @@ finished."
             ;; should be computed against an empty file.  So just
             ;; leave the buffer empty.
             (progn)
-          (let (temp-dir)
+          (let ((temp-dir nil))
             (unwind-protect
                 (progn
                   (setq temp-dir (xmtn--make-temp-file
@@ -1147,7 +1147,8 @@ finished."
                         (let ((input-buffer (current-buffer)))
                           (with-current-buffer output-buffer
                             (insert-buffer-substring input-buffer)))))))
-              (dvc-delete-recursively temp-dir))))))))
+              (when temp-dir
+                (dvc-delete-recursively temp-dir)))))))))
 
 
 (defun xmtn--get-corresponding-path (root normalized-file-name
