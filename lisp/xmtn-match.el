@@ -67,6 +67,22 @@
 (deftype xmtn-match--atom ()
   `(not cons))
 
+(defun xmtn-match--match-variable-p (thing var-name-prefix-char)
+  (and (symbolp thing)
+       (eql (aref (symbol-name thing) 0) var-name-prefix-char)))
+
+(defun xmtn-match--contains-match-variable-p (thing var-name-prefix-char)
+  (labels ((walk (thing)
+            (or
+             (xmtn-match--match-variable-p thing var-name-prefix-char)
+             (etypecase thing
+               (cons (or (walk (car thing))
+                         (walk (cdr thing))))
+               ((and array (not string) (not xmtn-match--bool-vector))
+                (some #'walk thing))
+               (xmtn-match--atom nil)))))
+    (walk thing)))
+
 ;; They say it's bad style if function definitions are too big to fit
 ;; on a screen.  A small font is recommended for this one.
 (defun xmtn-match--generate-branch (var-name-prefix-char
@@ -74,71 +90,71 @@
   (let ((var-accu (list))
         (pattern-block (gensym "pattern-test-")))
     (let ((test
-           `(block ,pattern-block
-              ,@(labels
-                    ((walk-part (subsubpattern subsubobject-form)
-                      ;; Be smart and try not to introduce temporary
-                      ;; variables that would be accessed only once.
-                      ;; Since they are dynamic variables, Emacs might
-                      ;; not be able to optimize them away.  They also
-                      ;; make the generated code harder to understand
-                      ;; when debugging expansions.
-                      (if (etypecase subsubpattern
+           `(and
+             ,@(labels
+                   ;; The 'contains variable' check, the way it is
+                   ;; implemented here, is grossly inefficient at
+                   ;; compile-time.
+                   ((walk-part (subsubpattern subsubobject-form)
+                     ;; Be smart and try not to introduce temporary
+                     ;; variables that would be accessed only once.
+                     ;; Since they are dynamic variables, Emacs might
+                     ;; not be able to optimize them away.  They also
+                     ;; make the generated code harder to understand
+                     ;; when debugging expansions.
+                     (if (or
+                          (not (xmtn-match--contains-match-variable-p 
+                                subsubpattern var-name-prefix-char))
+                          (etypecase subsubpattern
                             (cons nil)
-                            (string t)
                             (array nil)
-                            (t t))
-                          (walk subsubobject-form subsubpattern)
-                        (let ((subsubobject (gensym)))
-                          `((let ((,subsubobject ,subsubobject-form))
-                              ,@(walk subsubobject subsubpattern))))))
-                     (walk (subobject subpattern)
-                      ;; Returns a list of forms that, when the body
-                      ;; of a progn, returns nil from block if no
-                      ;; match, or just returns if match.
-                      (etypecase subpattern
-                        (cons
-                         `((unless (consp ,subobject)
-                             (return-from ,pattern-block nil))
-                           ,@(loop for part-reader in '(car cdr)
-                                   append (walk-part
-                                           (funcall part-reader subpattern)
-                                           `(,part-reader ,subobject)))))
-                        ;; I think this will also allow char-tables.
-                        ;; Not sure how useful that is.
-                        ((and array (not string) (not xmtn-match--bool-vector))
-                         `((unless (and (typep ,subobject ',(type-of subpattern))
-                                        (eql (length ,subobject)
-                                             ,(length subpattern)))
-                             (return-from ,pattern-block nil))
-                           ,@(loop for index below (length subpattern)
-                                   append (walk-part
-                                           (aref subpattern index)
-                                           `(aref ,subobject ,index)))))
-                        (xmtn-match--atom
-                         (if (and (symbolp subpattern)
-                                  (eql (aref (symbol-name subpattern) 0)
-                                       var-name-prefix-char))
-                             (let ((var (intern
-                                         (subseq (symbol-name subpattern) 1))))
-                               (cond ((member var var-accu)
-                                      `((unless (equal ,subobject ,var)
-                                          (return-from ,pattern-block nil))))
-                                     (t
-                                      (push var var-accu)
-                                      `((setq ,var ,subobject)))))
-                           `((unless (,(etypecase subpattern
-                                         ;; The byte-compiler doesn't
-                                         ;; do this optimization as of
-                                         ;; GNU Emacs 22.0.50.1.
-                                         ;; Maybe that means it's not
-                                         ;; worth doing...
-                                         (symbol 'eq)
-                                         (t 'equal))
-                                      ,subobject ',subpattern)
-                               (return-from ,pattern-block nil))))))))
-                  (walk object pattern))
-              t)))
+                            (t t)))
+                         (walk subsubobject-form subsubpattern)
+                       (let ((subsubobject (gensym)))
+                         `((let ((,subsubobject ,subsubobject-form))
+                             (and
+                              ,@(walk subsubobject subsubpattern)))))))
+                    (walk (subobject subpattern)
+                     ;; Returns a list of conditions for an `and'
+                     ;; expression.
+                     (cond
+                      ((xmtn-match--match-variable-p subpattern
+                                                     var-name-prefix-char)
+                       (let ((var (intern (subseq (symbol-name subpattern) 1))))
+                         (cond ((member var var-accu)
+                                `((equal ,subobject ,var)))
+                               (t
+                                (push var var-accu)
+                                `((progn (setq ,var ,subobject) t))))))
+                      ((not (xmtn-match--contains-match-variable-p
+                             subpattern var-name-prefix-char))
+                       (etypecase subpattern
+                         ;; The byte-compiler doesn't do this
+                         ;; optimization as of GNU Emacs 22.0.50.1.
+                         ;; Maybe that means it's not worth doing...
+                         (symbol
+                          `((eq ,subobject ',subpattern)))
+                         (t
+                          `((equal ,subobject ',subpattern)))))
+                      (t
+                       (etypecase subpattern
+                         (cons
+                          `((consp ,subobject)
+                            ,@(loop for part-reader in '(car cdr)
+                                    append (walk-part
+                                            (funcall part-reader subpattern)
+                                            `(,part-reader ,subobject)))))
+                         ;; I think this will also allow char-tables.
+                         ;; Not sure how useful that is.
+                         ((and array (not string) (not xmtn-match--bool-vector))
+                          `((typep ,subobject ',(type-of
+                                                 subpattern))
+                            (eql (length ,subobject) ,(length subpattern))
+                            ,@(loop for index below (length subpattern)
+                                    append (walk-part
+                                            (aref subpattern index)
+                                            `(aref ,subobject ,index))))))))))
+                 (walk object pattern)))))
       (setq var-accu (nreverse var-accu))
       `(let (,@var-accu)
          (when
@@ -152,10 +168,10 @@
 (byte-compile 'xmtn-match--generate-branch)
 
 
-;;;; Factored out for profiling.
-;;;;;###autoload
-;;(defun xmtn-match--test (xmtn--thunk)
-;;  (funcall xmtn--thunk))
+;; Factored out for profiling.
+;;;###autoload
+(defun xmtn-match--test (xmtn--thunk)
+  (funcall xmtn--thunk))
 
 
 (defmacro* xmtn-match (object-form &body cases)
