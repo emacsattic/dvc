@@ -460,7 +460,7 @@ used to get more info about the process.")
 DVC can be one of 'baz, 'xhg, ..."
   (let ((executable (dvc-variable dvc "executable")))
     (mapconcat 'shell-quote-argument
-               (cons executable
+               (cons (executable-find executable) ; allow leading ~
                      (remq nil list-args))
                " ")))
 
