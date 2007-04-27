@@ -150,7 +150,7 @@
 ;;     ;; The variable `handle' now holds a command handle.
 ;;     ;; Check that the command was successful (not described above);
 ;;     ;; generate a default error message otherwise and abort.
-;;     (xmtn-automate-check-for-and-report-error handle)
+;;     (xmtn-automate-command-check-for-and-report-error handle)
 ;;     ;; Wait until the entire output of the command has arrived.
 ;;     (xmtn-automate-command-wait-until-finished handle)
 ;;     ;; Process output (in command buffer).
@@ -312,7 +312,7 @@
   (with-current-buffer (xmtn-automate-command-buffer handle)
     (buffer-substring-no-properties (point-min) (point-max))))
 
-(defun xmtn-automate-check-for-and-report-error (handle)
+(defun xmtn-automate-command-check-for-and-report-error (handle)
   (unless (eql (xmtn-automate-command-error-code handle) 0)
     (error "mtn automate command (arguments %S) reported an error (code %s):\n%s"
            (xmtn-automate--command-handle-arguments handle)
@@ -323,7 +323,7 @@
 (defun xmtn-automate-simple-command-output-string (root command)
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
-      (xmtn-automate-check-for-and-report-error handle)
+      (xmtn-automate-command-check-for-and-report-error handle)
       (xmtn-automate--command-output-as-string-ignoring-exit-code handle))))
 
 ;; Only used once.  Could be eliminated.
@@ -331,14 +331,14 @@
   (root buffer command)
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
-      (xmtn-automate-check-for-and-report-error handle)
+      (xmtn-automate-command-check-for-and-report-error handle)
       (xmtn-automate-command-wait-until-finished handle)
       (with-current-buffer buffer
         (xmtn--insert-buffer-substring-no-properties
          (xmtn-automate-command-buffer handle))))))
 
 (defun xmtn-automate-command-output-lines (handle)
-  (xmtn-automate-check-for-and-report-error handle)
+  (xmtn-automate-command-check-for-and-report-error handle)
   (xmtn-automate-command-wait-until-finished handle)
   ;; Maybe a simple buffer-substring-no-properties and split-string
   ;; would be more efficient.  I don't know.

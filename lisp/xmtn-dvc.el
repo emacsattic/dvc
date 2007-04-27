@@ -81,7 +81,7 @@
          (xmtn-automate-with-command (,handle
                                       ,session ,command
                                       :may-kill-p ,may-kill-p)
-           (xmtn-automate-check-for-and-report-error ,handle)
+           (xmtn-automate-command-check-for-and-report-error ,handle)
            (xmtn-automate-command-wait-until-finished ,handle)
            (xmtn-basic-io-with-stanza-parser (,parser
                                               (xmtn-automate-command-buffer
