@@ -375,7 +375,7 @@ Signals an error if output contains zero lines or more than one line."
 
 
 (defun xmtn-automate--set-process-session (process session)
-  (xmtn--assert-optional (typep session 'xmtn-automate--session))
+  (xmtn--assert-optional (typep session 'xmtn-automate--session) t)
   (xmtn--process-put process 'xmtn-automate--session session))
 
 (defun xmtn-automate--process-session (process)

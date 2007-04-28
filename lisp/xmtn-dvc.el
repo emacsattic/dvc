@@ -48,6 +48,7 @@
 ;; For debugging.
 (defun xmtn--load ()
   (require 'dvc-unified)
+  (save-some-buffers)
   (mapc (lambda (file)
           (byte-compile-file file t))
         '("xmtn-minimal.el"

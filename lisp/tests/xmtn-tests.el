@@ -398,7 +398,9 @@ YPFoLxe1V5oOyoe3ap0H
 
 (defun xmtn-tests--profile ()
   (interactive)
-  ;;(assert (not xmtn--*enable-assertions*))
+  (unless (not xmtn--*enable-assertions*)
+    (unless (y-or-n-p "Assertions appear to be enabled.  Continue anyway? ")
+      (error "Aborted")))
   (let ((command
          (read-from-minibuffer "Profile xmtn command: "
                                nil read-expression-map t
