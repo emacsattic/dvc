@@ -448,4 +448,33 @@ YPFoLxe1V5oOyoe3ap0H
       (oelp-restore-all))
   (message "Profiling finished"))
 
+(defun xmtn-tests--parse-basic-io-inventory-benchmark (mtn-executable tree)
+  (let ((default-directory tree)
+        (xmtn-executable mtn-executable)
+        (xmtn--*cached-command-version* nil))
+    (xmtn-automate-with-session (session (dvc-tree-root))
+      (xmtn-automate-with-command (handle session '("inventory"))
+        (xmtn-automate-command-wait-until-finished handle)
+        (xmtn-automate-command-check-for-and-report-error handle)
+        (xmtn-basic-io-with-stanza-parser (parser (xmtn-automate-command-buffer
+                                                   handle))
+          (let ((changed 0)
+                (total 0)
+                (unknown 0)
+                (ignored 0))
+            (loop for stanza = (funcall parser)
+                  while stanza
+                  do (incf total)
+                  do (let ((status (second (assoc "status" stanza))))
+                       (xmtn-match status
+                         ((string "known"))
+                         ((string "missing"))
+                         ((string "unknown") (incf unknown))
+                         ((string "ignored") (incf ignored)))
+                       (let ((changes (second (assoc "changes" stanza))))
+                         (unless (null changes)
+                           (incf changed)))))
+            (message "total=%s changed=%s ignored=%s unknown=%s"
+                     total changed ignored unknown)))))))
+
 ;;; xmtn-tests.el ends here
