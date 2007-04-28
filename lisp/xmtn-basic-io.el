@@ -220,8 +220,8 @@ Each stanza will be returned as a fresh, non-empty list of
 so-called lines.  See `xmtn-basic-io-with-line-parser' for a
 definition of the term \"line\" in this context.
 
-The macro `xmtn-match' is a useful way to process basic_io
-stanzas parsed this way.
+The macro `xmtn-match' and the function `assoc' are useful to
+process basic_io stanzas parsed this way.
 
 The parser should be assumed to have dynamic extent.  If the
 contents of the buffer that BUFFER-FORM evaluates to, or the
