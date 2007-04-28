@@ -406,47 +406,85 @@ YPFoLxe1V5oOyoe3ap0H
                                nil read-expression-map t
                                'xmtn-tests--profile-history))
         (reps 20))
-      (require 'oelp)
-      (oelp-instrument-package "xmtn-")
-      (oelp-instrument-package "dvc-")
-      (oelp-instrument-package "process-")
-      (oelp-instrument-package "ewoc-")
-      (oelp-instrument-function 'accept-process-output)
-      (oelp-instrument-function 'buffer-substring-no-properties)
-      (oelp-reset-all)
-      (setq oelp-reset-after-results nil)
-      ;; FIXME: Maybe use benchmark.el.
-      (let ((gc-cons-threshold 100000000)
-            (run-time 0)
-            (gc-time 0))
-        (loop for rep from 1
-              repeat reps
-              do
-              (with-temp-message (format "Profiling, repetition %s of %s..."
-                                         rep reps)
-                (assert (let ((start-time (current-time)))
-                          (garbage-collect)
+    (require 'oelp)
+    (oelp-instrument-package "xmtn-")
+    (oelp-instrument-package "dvc-")
+    (oelp-instrument-package "process-")
+    (oelp-instrument-package "ewoc-")
+    (oelp-instrument-function 'accept-process-output)
+    (oelp-instrument-function 'buffer-substring-no-properties)
+    (oelp-reset-all)
+    (setq oelp-reset-after-results nil)
+    ;; FIXME: Maybe use benchmark.el.
+    (let ((gc-cons-threshold (max gc-cons-threshold 100000000))
+          (run-time 0)
+          (gc-time 0))
+      (assert (garbage-collect))
+      (loop for rep from 1
+            repeat reps
+            do
+            (with-temp-message (format "Profiling, repetition %s of %s..."
+                                       rep reps)
+              (save-excursion
+                (save-window-excursion
+                  (let ((start-time (current-time)))
+                    (eval command)
+                    (let ((end-time (current-time)))
+                      (incf run-time (oelp-elapsed-time start-time
+                                                        end-time))))))
+              (assert (let ((start-time (current-time)))
+                        (prog1
+                            (garbage-collect)
                           (let ((end-time (current-time)))
                             (incf gc-time (oelp-elapsed-time start-time
-                                                             end-time)))))
-                (save-excursion
-                  (save-window-excursion
-                    (let ((start-time (current-time)))
-                      (eval command)
-                      (let ((end-time (current-time)))
-                        (incf run-time (oelp-elapsed-time start-time
-                                                          end-time))))))))
-        (oelp-results)
-        (setq truncate-lines t)
-        (goto-char (point-min))
-        (insert (format "Command: %S\n" command))
-        (insert (format "Repetitions: %s\n" reps))
-        (insert "\n")
-        (insert (format "Wall time (excluding gc): %s\n" run-time))
-        (insert (format "GC time (bogus):          %s\n" gc-time))
-        (insert "\n"))
-      (oelp-restore-all))
+                                                             end-time))))))))
+      (oelp-results)
+      (setq truncate-lines t)
+      (goto-char (point-min))
+      (insert (format "Command: %S\n" command))
+      (insert (format "Repetitions: %s\n" reps))
+      (insert "\n")
+      (insert (format "Wall time (excluding gc): %s\n" run-time))
+      (insert (format "GC time (bogus):          %s\n" gc-time))
+      (insert "\n"))
+    (oelp-restore-all))
   (message "Profiling finished"))
+
+(defun xmtn-tests--time ()
+  (interactive)
+  (unless (not xmtn--*enable-assertions*)
+    (unless (y-or-n-p "Assertions appear to be enabled.  Continue anyway? ")
+      (error "Aborted")))
+  (let ((command
+         (read-from-minibuffer "Time xmtn command: "
+                               nil read-expression-map t
+                               'xmtn-tests--profile-history))
+        (reps 100))
+    (let ((run-time 0))
+      (assert (garbage-collect))
+      (loop for rep from 1
+            repeat reps
+            do
+            (with-temp-message (format "Timing, repetition %s of %s..."
+                                       rep reps)
+              (save-excursion
+                (save-window-excursion
+                  (let ((start-time (current-time)))
+                    (eval command)
+                    (let ((end-time (current-time)))
+                      (incf run-time (oelp-elapsed-time start-time
+                                                        end-time))))))))
+      (switch-to-buffer-other-window (get-buffer-create
+                                      "*xmtn timing results*"))
+      (erase-buffer)
+      (setq truncate-lines t)
+      (goto-char (point-min))
+      (insert (format "Command: %S\n" command))
+      (insert (format "Repetitions: %s\n" reps))
+      (insert "\n")
+      (insert (format "Wall time (including gc): %s\n" run-time))
+      (insert "\n")))
+  (message "Timing finished"))
 
 (defun xmtn-tests--parse-basic-io-inventory-benchmark (mtn-executable tree)
   (let ((default-directory tree)
