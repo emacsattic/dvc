@@ -649,15 +649,11 @@ the file before saving."
 (defun xmtn--missing-files-future (root)
   (xmtn--command-output-lines-future root '("ls" "missing")))
 
-;; FIXME: use AGAINST
 ;;;###autoload
-(defun xmtn-dvc-status (&optional against path)
-  "run monotone inventory on optional PATH (default current tree), display results.
-
-AGAINST must be a revision specifier (number, last:N,
-revid:foobar, ...) or nil, but is currently not used."
+(defun xmtn-dvc-status (&optional root)
+  "Display status of monotone tree ROOT (default current tree)."
   ;; FIXME: Use mtn automate inventory?
-  (let ((root (or path (dvc-tree-root))))
+  (let ((root (or root (dvc-tree-root))))
     (let ((missing-future (xmtn--missing-files-future root)))
       (lexical-let ((buffer (dvc-get-buffer-create 'xmtn 'status root))
                     (root root))

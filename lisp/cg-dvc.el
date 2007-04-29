@@ -40,8 +40,7 @@
 (defalias 'cg-dvc-tree-root 'cg-tree-root)
 
 ;;;###autoload
-(defun cg-dvc-status (&optional against)
-  ;;Note the against argument is not yet used for git
+(defun cg-dvc-status (&optional path)
   (cg-status))
 
 (defalias 'cg-dvc-add-files 'cg-add-files)
