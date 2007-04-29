@@ -896,6 +896,12 @@ LAST-REVISION looks like
   (dvc-run-dvc-sync 'bzr (list "version-info")
                     :finished 'dvc-output-buffer-handler)))
 
+(defun bzr-upgrade ()
+  "Run bzr upgrade."
+  (interactive)
+  (let ((default-directory (dvc-tree-root)))
+    (dvc-run-dvc-display-as-info 'bzr '("upgrade") t)))
+
 (defun bzr-ignore (pattern)
   "Run bzr ignore PATTERN."
   (interactive "sbzr ignore: ")
