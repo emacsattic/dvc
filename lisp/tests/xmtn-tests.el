@@ -130,21 +130,36 @@ YPFoLxe1V5oOyoe3ap0H
 
 (defsuite xmtn
   (xmtn--match
-   (assert (equal (xmtn-match '(a b)
-                    (($y $y) nil)
-                    ($z z))
-                  '(a b)))
-   (assert (equal (xmtn-match '(a a)
-                    (($y $y) y))
-                  'a))
-   (assert (equal (xmtn-match '(a b)
-                    ($z z)
-                    ($z nil))
-                  '(a b)))
-   (assert (xmtn-match nil ([t $y] y) ($z t)))
-   (assert (xmtn-match [foo bar] ([foo $y] y)))
-   (assert (xmtn-match [foo bar] ((a . b) nil) ([foo bar] t)))
-   (assert (xmtn-match nil (nil t))))
+   (progn
+     (assert (xmtn-match--match-variable-p '$x ?$))
+     (assert (xmtn-match--match-variable-p '@x ?@))
+     (assert (not (xmtn-match--match-variable-p "$x" ?$)))
+     (assert (not (xmtn-match--match-variable-p 'x ?$)))
+     (assert (xmtn-match--contains-match-variable-p '$x ?$))
+     (assert (xmtn-match--contains-match-variable-p '(a b $x c) ?$))
+     (assert (xmtn-match--contains-match-variable-p '[a $y $z c] ?$))
+     (assert (xmtn-match--contains-match-variable-p '(nil . $y) ?$))
+     (assert (xmtn-match--contains-match-variable-p '((() $a)) ?$))
+     (assert (not (xmtn-match--contains-match-variable-p 'x ?$)))
+     (assert (not (xmtn-match--contains-match-variable-p '(a . b) ?$)))
+     (assert (not (xmtn-match--contains-match-variable-p nil ?$)))
+     (assert (not (xmtn-match--contains-match-variable-p '((() ())) ?$)))
+     (assert (not (xmtn-match--contains-match-variable-p nil ?$)))
+     (assert (equal (xmtn-match '(a b)
+                      (($y $y) nil)
+                      ($z z))
+                    '(a b)))
+     (assert (equal (xmtn-match '(a a)
+                      (($y $y) y))
+                    'a))
+     (assert (equal (xmtn-match '(a b)
+                      ($z z)
+                      ($z nil))
+                    '(a b)))
+     (assert (xmtn-match nil ([t $y] y) ($z t)))
+     (assert (xmtn-match [foo bar] ([foo $y] y)))
+     (assert (xmtn-match [foo bar] ((a . b) nil) ([foo bar] t)))
+     (assert (xmtn-match nil (nil t)))))
   (xmtn--version-case
     (flet ((xmtn--latest-mtn-release () ;flet has dynamic scope in Emacs Lisp
              '(2 5 "y")))
@@ -383,52 +398,121 @@ YPFoLxe1V5oOyoe3ap0H
 
 (defun xmtn-tests--profile ()
   (interactive)
-  ;;(assert (not xmtn--*enable-assertions*))
+  (unless (not xmtn--*enable-assertions*)
+    (unless (y-or-n-p "Assertions appear to be enabled.  Continue anyway? ")
+      (error "Aborted")))
   (let ((command
          (read-from-minibuffer "Profile xmtn command: "
                                nil read-expression-map t
                                'xmtn-tests--profile-history))
         (reps 20))
-      (require 'oelp)
-      (oelp-instrument-package "xmtn-")
-      (oelp-instrument-package "dvc-")
-      (oelp-instrument-package "process-")
-      (oelp-instrument-package "ewoc-")
-      (oelp-instrument-function 'accept-process-output)
-      (oelp-instrument-function 'buffer-substring-no-properties)
-      (oelp-reset-all)
-      (setq oelp-reset-after-results nil)
-      ;; FIXME: Maybe use benchmark.el.
-      (let ((gc-cons-threshold 100000000)
-            (run-time 0)
-            (gc-time 0))
-        (loop for rep from 1
-              repeat reps
-              do
-              (with-temp-message (format "Profiling, repetition %s of %s..."
-                                         rep reps)
-                (assert (let ((start-time (current-time)))
-                          (garbage-collect)
+    (require 'oelp)
+    (oelp-instrument-package "xmtn-")
+    (oelp-instrument-package "dvc-")
+    (oelp-instrument-package "process-")
+    (oelp-instrument-package "ewoc-")
+    (oelp-instrument-function 'accept-process-output)
+    (oelp-instrument-function 'buffer-substring-no-properties)
+    (oelp-reset-all)
+    (setq oelp-reset-after-results nil)
+    ;; FIXME: Maybe use benchmark.el.
+    (let ((gc-cons-threshold (max gc-cons-threshold 100000000))
+          (run-time 0)
+          (gc-time 0))
+      (assert (garbage-collect))
+      (loop for rep from 1
+            repeat reps
+            do
+            (with-temp-message (format "Profiling, repetition %s of %s..."
+                                       rep reps)
+              (save-excursion
+                (save-window-excursion
+                  (let ((start-time (current-time)))
+                    (eval command)
+                    (let ((end-time (current-time)))
+                      (incf run-time (oelp-elapsed-time start-time
+                                                        end-time))))))
+              (assert (let ((start-time (current-time)))
+                        (prog1
+                            (garbage-collect)
                           (let ((end-time (current-time)))
                             (incf gc-time (oelp-elapsed-time start-time
-                                                             end-time)))))
-                (save-excursion
-                  (save-window-excursion
-                    (let ((start-time (current-time)))
-                      (eval command)
-                      (let ((end-time (current-time)))
-                        (incf run-time (oelp-elapsed-time start-time
-                                                          end-time))))))))
-        (oelp-results)
-        (setq truncate-lines t)
-        (goto-char (point-min))
-        (insert (format "Command: %S\n" command))
-        (insert (format "Repetitions: %s\n" reps))
-        (insert "\n")
-        (insert (format "Wall time (excluding gc): %s\n" run-time))
-        (insert (format "GC time (bogus):          %s\n" gc-time))
-        (insert "\n"))
-      (oelp-restore-all))
+                                                             end-time))))))))
+      (oelp-results)
+      (setq truncate-lines t)
+      (goto-char (point-min))
+      (insert (format "Command: %S\n" command))
+      (insert (format "Repetitions: %s\n" reps))
+      (insert "\n")
+      (insert (format "Wall time (excluding gc): %s\n" run-time))
+      (insert (format "GC time (bogus):          %s\n" gc-time))
+      (insert "\n"))
+    (oelp-restore-all))
   (message "Profiling finished"))
+
+(defun xmtn-tests--time ()
+  (interactive)
+  (unless (not xmtn--*enable-assertions*)
+    (unless (y-or-n-p "Assertions appear to be enabled.  Continue anyway? ")
+      (error "Aborted")))
+  (let ((command
+         (read-from-minibuffer "Time xmtn command: "
+                               nil read-expression-map t
+                               'xmtn-tests--profile-history))
+        (reps 100))
+    (let ((run-time 0))
+      (assert (garbage-collect))
+      (loop for rep from 1
+            repeat reps
+            do
+            (with-temp-message (format "Timing, repetition %s of %s..."
+                                       rep reps)
+              (save-excursion
+                (save-window-excursion
+                  (let ((start-time (current-time)))
+                    (eval command)
+                    (let ((end-time (current-time)))
+                      (incf run-time (oelp-elapsed-time start-time
+                                                        end-time))))))))
+      (switch-to-buffer-other-window (get-buffer-create
+                                      "*xmtn timing results*"))
+      (erase-buffer)
+      (setq truncate-lines t)
+      (goto-char (point-min))
+      (insert (format "Command: %S\n" command))
+      (insert (format "Repetitions: %s\n" reps))
+      (insert "\n")
+      (insert (format "Wall time (including gc): %s\n" run-time))
+      (insert "\n")))
+  (message "Timing finished"))
+
+(defun xmtn-tests--parse-basic-io-inventory-benchmark (mtn-executable tree)
+  (let ((default-directory tree)
+        (xmtn-executable mtn-executable)
+        (xmtn--*cached-command-version* nil))
+    (xmtn-automate-with-session (session (dvc-tree-root))
+      (xmtn-automate-with-command (handle session '("inventory"))
+        (xmtn-automate-command-wait-until-finished handle)
+        (xmtn-automate-command-check-for-and-report-error handle)
+        (xmtn-basic-io-with-stanza-parser (parser (xmtn-automate-command-buffer
+                                                   handle))
+          (let ((changed 0)
+                (total 0)
+                (unknown 0)
+                (ignored 0))
+            (loop for stanza = (funcall parser)
+                  while stanza
+                  do (incf total)
+                  do (let ((status (second (assoc "status" stanza))))
+                       (xmtn-match status
+                         ((string "known"))
+                         ((string "missing"))
+                         ((string "unknown") (incf unknown))
+                         ((string "ignored") (incf ignored)))
+                       (let ((changes (second (assoc "changes" stanza))))
+                         (unless (null changes)
+                           (incf changed)))))
+            (message "total=%s changed=%s ignored=%s unknown=%s"
+                     total changed ignored unknown)))))))
 
 ;;; xmtn-tests.el ends here
