@@ -32,7 +32,7 @@
 
 (require 'bzr-dvc)
 (require 'cl)
-(require 'dvc-tests-utils)
+(require 'dvc-tests-utils "tests/dvc-tests-utils.el")
 (require 'elunit)
 
 ;;; This is preferable over separate set-up and tear-down functions
