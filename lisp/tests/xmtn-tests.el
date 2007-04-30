@@ -223,9 +223,6 @@ YPFoLxe1V5oOyoe3ap0H
          (xmtn-automate-terminate-processes-in-root root)
          (xmtn-automate-with-command (handle-2 session '("graph")
                                                :may-kill-p nil)
-           (message "%S %S"
-                    (xmtn-automate-command-buffer handle-1)
-                    (xmtn-automate-command-buffer handle-2))
            (assert (not (equal (xmtn-automate-command-buffer handle-1)
                                (xmtn-automate-command-buffer handle-2))))
            (xmtn-automate-command-wait-until-finished handle-2))))))
