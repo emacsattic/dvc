@@ -104,18 +104,19 @@ and `*elunit-default-suite*' are nil."
  (run-hooks (intern (concat suite "-setup-hook")))
  (with-output-to-temp-buffer "*elunit*"
    (princ (concat "Loaded suite: " suite "\n\n"))
-   (let ((tests (elunit-suite (intern suite)))
-	 (start-time (cadr (current-time))))
-     (let ((results (loop with total = (length tests)
-                          for test-id from 1
+   (let* ((tests (elunit-suite (intern suite)))
+          (start-time (cadr (current-time)))
+          (total (length tests)))
+     (let ((results (loop for test-id from 1
                           for test in (reverse tests)
-                          collect
-                          ;; XEmacs doesn't have `with-temp-message'.
-                          ;;(with-temp-message (format
-                          ;;                    "Running test \"%s\" (%s of %s)..."
-                          ;;                    (first test) test-id total)
-                            (apply #'elunit-run-test test))))
-;;)
+                          ;; This used to be `with-temp-message', but
+                          ;; writing the boundaries between test cases
+                          ;; into the *Messages* buffer can be
+                          ;; helpful.
+                          do (message "Running test \"%s\" (%s of %s)..."
+                                      (first test) test-id total)
+                          collect (apply #'elunit-run-test test))))
+       (message "Ran %s tests; %s failed" total *elunit-fail-count*)
        (elunit-report-results results))
      (princ (format " in %d seconds." (- (cadr (current-time)) start-time)))))
  (run-hooks (intern (concat suite "-teardown-hook"))))

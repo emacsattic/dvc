@@ -428,8 +428,9 @@ ARGUMENTS is a list of the arguments that the process was called with."
       (setq has-output (> (point-max) 1)))
     (when has-output
       (dvc-switch-to-buffer output))
-    (message "`%s %s' process finished!"
-             dvc-name (mapconcat 'identity arguments " "))
+    (when (or dvc-debug has-output)
+      (message "Process `%s %s' finished"
+               dvc-name (mapconcat 'identity arguments " ")))
     status))
 
 (defun dvc-finish-function-without-buffer-switch (output error status arguments)
@@ -443,8 +444,9 @@ ARGUMENTS is a list of the arguments that the process was called
     (with-current-buffer output
       (setq dvc-name (or (progn (string-match " \\*\\(.+\\)-process" (buffer-name))
                                 (match-string 1 (buffer-name))) "DVC")))
-    (message "`%s %s' process finished!"
-             dvc-name (mapconcat 'identity arguments " "))
+    (when dvc-debug
+      (message "Process `%s %s' finished"
+               dvc-name (mapconcat 'identity arguments " ")))
     status))
 
 (defvar dvc-process-running nil
@@ -570,11 +572,12 @@ Example:
            (process-event
             (list process
                   (dvc-log-event output-buf
-                                  error-buf
-                                  command
-                                  default-directory "started"))))
+                                 error-buf
+                                 command
+                                 default-directory "started"))))
       (with-current-buffer (or related-buffer (current-buffer))
-        (message "running process `%s' in `%s'" command default-directory)
+        (when dvc-debug
+          (message "Running process `%s' in `%s'" command default-directory))
         (add-to-list 'dvc-process-running process-event)
         (set-process-filter process 'dvc-process-filter)
         (set-process-sentinel
@@ -845,16 +848,16 @@ Returns that event."
   (let ((related-buffer (current-buffer)))
     (with-current-buffer (ewoc-buffer dvc-log-cookie)
       (let ((elem (make-dvc-event :output-buffer output
-                                   :error-buffer error
-                                   :related-buffer related-buffer
-                                   :command command
-                                   :tree tree
-                                   :event event
-                                   :time (current-time)))
+                                  :error-buffer error
+                                  :related-buffer related-buffer
+                                  :command command
+                                  :tree tree
+                                  :event event
+                                  :time (current-time)))
             buffer-read-only)
         (ewoc-enter-last dvc-log-cookie elem)
-        ;; If an event is too old(30 minutes later since it is recorded),
-        ;; throw away.
+        ;; If an event is too old (30 minutes after it has been
+        ;; recorded), throw it away.
         (ewoc-filter dvc-log-cookie 'dvc-log-recently-p 30)
         (ewoc-refresh dvc-log-cookie)
         elem))))

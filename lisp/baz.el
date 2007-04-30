@@ -93,7 +93,7 @@ Else it runs asynchronously."
       (baz-status root against))))
 
 ;;;###autoload
-(defun baz-status (&optional root against)
+(defun baz-status (&optional root)
   "Run \"baz status\".
 
 Doesn't work with tla. Use `tla-changes' or `tla-tree-lint'

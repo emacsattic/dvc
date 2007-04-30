@@ -639,9 +639,7 @@ the file before saving."
 
 ;;;###autoload
 (defun xmtn-dvc-command-version ()
-  (format "%s\nautomate interface version %s"
-          (third (xmtn--command-version))
-          (third (xmtn--automate-interface-version))))
+  (fourth (xmtn--command-version)))
 
 (defun xmtn--unknown-files-future (root)
   (xmtn--command-output-lines-future root '("ls" "unknown")))
@@ -649,15 +647,11 @@ the file before saving."
 (defun xmtn--missing-files-future (root)
   (xmtn--command-output-lines-future root '("ls" "missing")))
 
-;; FIXME: use AGAINST
 ;;;###autoload
-(defun xmtn-dvc-status (&optional against path)
-  "run monotone inventory on optional PATH (default current tree), display results.
-
-AGAINST must be a revision specifier (number, last:N,
-revid:foobar, ...) or nil, but is currently not used."
+(defun xmtn-dvc-status (&optional root)
+  "Display status of monotone tree ROOT (default current tree)."
   ;; FIXME: Use mtn automate inventory?
-  (let ((root (or path (dvc-tree-root))))
+  (let ((root (or root (dvc-tree-root))))
     (let ((missing-future (xmtn--missing-files-future root)))
       (lexical-let ((buffer (dvc-get-buffer-create 'xmtn 'status root))
                     (root root))
@@ -1117,9 +1111,10 @@ finished."
                 (progn
                   (setq temp-dir (xmtn--make-temp-file
                                   "xmtn--revision-get-file-" t))
-                  ;; Using `insert-file-contents' in conjunction with
-                  ;; as much of the original file name as possible
-                  ;; seems to be the best way to make sure that Emacs'
+                  ;; Going through a temporary file and using
+                  ;; `insert-file-contents' in conjunction with as
+                  ;; much of the original file name as possible seems
+                  ;; to be the best way to make sure that Emacs'
                   ;; entire file coding system detection logic is
                   ;; applied.  Functions like
                   ;; `find-operation-coding-system' and
@@ -1128,7 +1123,7 @@ finished."
                   ;; at all.
                   (let ((temp-file (concat temp-dir "/" corresponding-file)))
                     (make-directory (file-name-directory temp-file) t)
-                    (with-temp-buffer
+                    (with-temp-file temp-file
                       (set-buffer-multibyte nil)
                       (setq buffer-file-coding-system 'binary)
                       ;; This could be simplified slightly with the
@@ -1140,8 +1135,7 @@ finished."
                              (xmtn--revision-file-contents-hash
                               root backend-id corresponding-file)))
                         (xmtn--insert-file-contents root contents-hash
-                                                    (current-buffer)))
-                      (write-file temp-file))
+                                                    (current-buffer))))
                     (let ((output-buffer (current-buffer)))
                       (with-temp-buffer
                         (insert-file-contents temp-file)
@@ -1150,6 +1144,84 @@ finished."
                             (insert-buffer-substring input-buffer)))))))
               (when temp-dir
                 (dvc-delete-recursively temp-dir)))))))))
+
+
+(defun xmtn--revision-parents (root revision-hash-id)
+  (xmtn-automate-simple-command-output-lines root
+                                             `("parents" ,revision-hash-id)))
+
+(defun xmtn--get-content-changed (root backend-id normalized-file)
+  (xmtn-automate-with-session (nil root)
+    (xmtn-match (xmtn--resolve-backend-id root backend-id)
+      ((local-tree $path) (error "Not implemented"))
+      ((revision $revision-hash-id)
+       (xmtn--with-automate-command-output-basic-io-parser
+         (parser root `("get_content_changed" ,revision-hash-id
+                        ,normalized-file))
+         (loop for stanza = (funcall parser)
+               while stanza
+               collect (xmtn-match stanza
+                         ((("content_mark" (id $previous-id)))
+                          previous-id))))))))
+
+(defun* xmtn--close-set (fn initial-set &key test)
+  (unless test (setq test #'eql))
+  (loop for current-set = nil then (nconc new-elements current-set)
+        for new-elements = (copy-list initial-set)
+        then (loop for new-element in new-elements
+                   nconc
+                   (copy-list
+                    (set-difference (funcall fn new-element)
+                                    current-set :test test)))
+        while new-elements
+        finally (return current-set)))
+
+(defun xmtn--get-content-changed-closure (root backend-id normalized-file)
+  (xmtn-automate-with-session (nil root)
+    (lexical-let ((root root))
+      (labels ((changed-self-or-ancestors (entry)
+                (destructuring-bind (hash-id file-name) entry
+                  (check-type file-name string)
+                  (loop for next-change-id in (xmtn--get-content-changed
+                                               root `(revision ,hash-id)
+                                               file-name)
+                        for corresponding-path =
+                        (xmtn--get-corresponding-path-raw root file-name
+                                                          hash-id next-change-id)
+                        when corresponding-path
+                        collect `(,next-change-id ,corresponding-path))))
+               (changed-proper-ancestors (entry)
+                (destructuring-bind (hash-id file-name) entry
+                  (check-type file-name string)
+                  (loop for parent-id in (xmtn--revision-parents root hash-id)
+                        for path-in-parent =
+                        (xmtn--get-corresponding-path-raw root file-name
+                                                          hash-id parent-id)
+                        when path-in-parent
+                        append (changed-self-or-ancestors
+                                `(,parent-id ,path-in-parent))))))
+        (xmtn--close-set
+         #'changed-proper-ancestors
+         (xmtn-match (xmtn--resolve-backend-id root backend-id)
+           ((local-tree $path) (error "Not implemented"))
+           ((revision $id) (changed-self-or-ancestors
+                            `(,id ,normalized-file))))
+         :test #'equal)))))
+
+
+(defun xmtn--get-corresponding-path-raw (root normalized-file-name
+                                              source-revision-hash-id
+                                              target-revision-hash-id)
+  (xmtn--with-automate-command-output-basic-io-parser
+    (next-stanza root `("get_corresponding_path"
+                        ,source-revision-hash-id
+                        ,normalized-file-name
+                        ,target-revision-hash-id))
+    (xmtn-match (funcall next-stanza)
+      (nil nil)
+      ((("file" (string $result)))
+       (assert (null (funcall next-stanza)))
+       result))))
 
 
 (defun xmtn--get-corresponding-path (root normalized-file-name
@@ -1212,16 +1284,13 @@ finished."
                              (if (null rename-entry)
                                  file-name
                                (second rename-entry)))))))))))
-        (xmtn--with-automate-command-output-basic-io-parser
-          (next-stanza root `("get_corresponding_path"
-                              ,source-revision-hash-id
-                              ,normalized-file-name
-                              ,target-revision-hash-id))
-          (xmtn-match (funcall next-stanza)
-            (nil nil)
-            ((("file" (string $result)))
-             (assert (null (funcall next-stanza)))
-             (funcall file-name-postprocessor result))))))))
+        (let ((result
+               (xmtn--get-corresponding-path-raw root normalized-file-name
+                                                 source-revision-hash-id
+                                                 target-revision-hash-id)))
+          (if (null result)
+              nil
+            (funcall file-name-postprocessor result)))))))
 
 (defun xmtn--manifest-find-file (root manifest normalized-file-name)
   (let ((matches (remove* normalized-file-name

@@ -115,9 +115,9 @@
                                      modif)))))))))
 
 ;;;###autoload
-(defun xdarcs-whatsnew (&optional against path)
+(defun xdarcs-whatsnew (&optional path)
   "Run darcs whatsnew."
-  (interactive (list nil default-directory))
+  (interactive (list default-directory))
   (let* ((dir (or path default-directory))
          (root (xdarcs-tree-root dir))
          (buffer (dvc-prepare-changes-buffer

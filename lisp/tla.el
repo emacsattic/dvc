@@ -3593,9 +3593,8 @@ If FORCE is non-nil, reload the file even if it was loaded before."
     (let ((file (dvc-config-file-full-path tla-bookmarks-file-name t)))
       (save-excursion
         (unless (file-exists-p file)
-          (with-temp-buffer
-            (insert "()")
-            (write-file file)))
+          (with-temp-file file
+            (insert "()")))
         (unless (file-readable-p file)
           (error "Xtla bookmark file not readable"))
         (with-temp-buffer

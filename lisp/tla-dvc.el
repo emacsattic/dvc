@@ -52,8 +52,8 @@
   ;; To fill the gap, nil is passed to. -- Masatake.
   (tla-file-diff file nil modified dont-switch))
 
-(defun tla-dvc-status (&optional against path)
-  (tla-changes t against))
+(defun tla-dvc-status (&optional path)
+  (tla-changes t nil))
 
 (defalias 'tla-dvc-submit-patch 'tla-submit-patch)
 
