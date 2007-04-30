@@ -1032,6 +1032,25 @@ finished."
   nil)
 
 ;;;###autoload
+(defun xmtn-dvc-pull ()
+  "Implement `dvc-pull' for xmtn."
+  (lexical-let*
+      ((root (dvc-tree-root))
+       (name (concat "mtn pull " root)))
+    (message "%s..." name)
+    ;; mtn progress messages are put to stderr, and there is typically
+    ;; nothing written to stdout from this command, so put both in the
+    ;; same buffer.
+    ;; FIXME: this output is not useful; need to use automation
+    (xmtn--run-command-async root `("pull")
+                             :output-buffer name
+                             :error-buffer name
+                             :finished
+                             (lambda (output error status arguments)
+                               (pop-to-buffer output)
+                               (message "%s...done" name)))))
+
+;;;###autoload
 (defun xmtn-dvc-revert-files (file-names)
   ;; Accepting a string seems to be part of the API.
   (when (stringp file-names) (setq file-names (list file-names)))
@@ -1103,7 +1122,8 @@ finished."
                   ;; `find-file-name-handler' are not a complete
                   ;; replacement since they don't look at the contents
                   ;; at all.
-                  (let ((temp-file (concat temp-dir "/" corresponding-file)))
+                  (let ((temp-file (concat temp-dir "/" corresponding-file))
+                        (copyright-update nil))
                     (make-directory (file-name-directory temp-file) t)
                     (with-temp-buffer
                       (set-buffer-multibyte nil)
@@ -1118,6 +1138,13 @@ finished."
                               root backend-id corresponding-file)))
                         (xmtn--insert-file-contents root contents-hash
                                                     (current-buffer)))
+                      ;; FIXME: Stephe has copyright-update in
+                      ;; write-file-hooks; that offers to update
+                      ;; copyright here (erroneously), since
+                      ;; write-file unconditionally marks the buffer
+                      ;; as modified. Hence the binding of
+                      ;; copyright-update above. Alternative; have mtn
+                      ;; write the file directly, then visit it.
                       (write-file temp-file))
                     (let ((output-buffer (current-buffer)))
                       (with-temp-buffer

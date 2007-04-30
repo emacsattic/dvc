@@ -1,6 +1,6 @@
 ;;; dvc-unified.el --- The unification layer for dvc
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -229,7 +229,8 @@ the current active back-end."
 
 ;;;###autoload
 (dvc-create-unified-command "pull" ()
-  "Pull changes in the working copy."
+  "Pull changes from the remote source to the working copy or
+local database, as appropriate for the current back-end."
   (interactive))
 
 ;;;###autoload
