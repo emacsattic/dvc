@@ -853,7 +853,7 @@ containing information for developers.
 @node Mailing Lists, Wiki, Internals, Top
 @section Mailing Lists
 
-There is one mailing lists for @b{DVC}.
+There is one mailing list for @b{DVC}.
 
 @code{dvc-el-dev@@gna.org} intended for the discussion of development
 versions of @b{DVC}.  Users of development versions of @b{DVC} should

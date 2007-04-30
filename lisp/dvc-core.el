@@ -460,8 +460,8 @@ used to get more info about the process.")
 DVC can be one of 'baz, 'xhg, ..."
   (let ((executable (dvc-variable dvc "executable")))
     (mapconcat 'shell-quote-argument
-               (cons executable
-                     (delq nil list-args))
+               (cons (executable-find executable) ; allow leading ~
+                     (remq nil list-args))
                " ")))
 
 (defcustom dvc-password-prompt-regexp

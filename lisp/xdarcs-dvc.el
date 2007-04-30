@@ -1,6 +1,6 @@
 ;;; xdarcs-dvc.el --- The dvc layer for darcs
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006, 2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -46,8 +46,43 @@
 
 ;;;###autoload
 (defalias 'xdarcs-dvc-status    'xdarcs-whatsnew)
+(defalias 'xdarcs-dvc-remove-files 'xdarcs-remove-files)
+(defalias 'xdarcs-dvc-revert-files 'xdarcs-revert-files)
 
 (defalias 'xdarcs-dvc-diff 'xdarcs-diff)
+
+(defvar xdarcs-ignore-file "_darcs/prefs/boring"
+  "Relative path of the darcs boring file within the xdarcs-tree-root.")
+
+(defun xdarcs-dvc-edit-ignore-files ()
+  (interactive)
+  (find-file-other-window (concat (xdarcs-tree-root) xdarcs-ignore-file)))
+
+(defun xdarcs-dvc-ignore-files (file-list)
+  (interactive (list (dvc-current-file-list)))
+  (when (y-or-n-p (format "Ignore %S for %s? " file-list (xdarcs-tree-root)))
+    (with-current-buffer
+        (find-file-noselect (concat (xdarcs-tree-root) xdarcs-ignore-file))
+      (goto-char (point-max))
+      (dolist (f-name file-list)
+        (insert (format "^%s$\n" (regexp-quote f-name))))
+      (save-buffer))))
+
+(defun xdarcs-dvc-ignore-file-extensions (file-list)
+  (interactive (list (dvc-current-file-list)))
+  (let* ((extension-list (delete nil (mapcar 'file-name-extension file-list)))
+         (msg-list (mapconcat '(lambda (ext) (concat "*." ext)) extension-list " ")))
+    (if extension-list
+        (when (y-or-n-p (format "Ignore %s for %s? " msg-list (xdarcs-tree-root)))
+          (with-current-buffer
+              (find-file-noselect (concat (xdarcs-tree-root) xdarcs-ignore-file))
+            (goto-char (point-max))
+            (dolist (ext-name extension-list)
+              (insert (format "\\.%s$\n" (regexp-quote ext-name))))
+            (save-buffer)))
+      (message "No files with an extension selected."))))
+
+
 
 (provide 'xdarcs-dvc)
 ;;; xdarcs-dvc.el ends here

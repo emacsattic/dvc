@@ -711,7 +711,7 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-dvc-file-diff (file &optional base modified dont-switch)
-  "View changes in FILE between BASE and MODIFIED using ediff."
+  "View changes in FILE between BASE and MODIFIED."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
          (modified (or modified `(,dvc (local-tree ,file)))))
@@ -741,6 +741,11 @@ Usefull to clear diff buffers after a commit."
         (erase-buffer)
         (call-process dvc-diff-executable nil buffer nil
                       "-u"
+                      ;; FIXME: If the file has been renamed between
+                      ;; BASE and MODIFIED, the file names as
+                      ;; displayed here may be incorrect.  The
+                      ;; protocol needs to be extended to allow the
+                      ;; backend to supply the correct file names.
                       (concat "-La" slash file)
                       (concat "-Lb" slash file)
                       base-file modified-file))

@@ -150,7 +150,7 @@
 ;;     ;; The variable `handle' now holds a command handle.
 ;;     ;; Check that the command was successful (not described above);
 ;;     ;; generate a default error message otherwise and abort.
-;;     (xmtn-automate-check-for-and-report-error handle)
+;;     (xmtn-automate-command-check-for-and-report-error handle)
 ;;     ;; Wait until the entire output of the command has arrived.
 ;;     (xmtn-automate-command-wait-until-finished handle)
 ;;     ;; Process output (in command buffer).
@@ -312,7 +312,7 @@
   (with-current-buffer (xmtn-automate-command-buffer handle)
     (buffer-substring-no-properties (point-min) (point-max))))
 
-(defun xmtn-automate-check-for-and-report-error (handle)
+(defun xmtn-automate-command-check-for-and-report-error (handle)
   (unless (eql (xmtn-automate-command-error-code handle) 0)
     (error "mtn automate command (arguments %S) reported an error (code %s):\n%s"
            (xmtn-automate--command-handle-arguments handle)
@@ -323,7 +323,7 @@
 (defun xmtn-automate-simple-command-output-string (root command)
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
-      (xmtn-automate-check-for-and-report-error handle)
+      (xmtn-automate-command-check-for-and-report-error handle)
       (xmtn-automate--command-output-as-string-ignoring-exit-code handle))))
 
 ;; Only used once.  Could be eliminated.
@@ -331,14 +331,14 @@
   (root buffer command)
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
-      (xmtn-automate-check-for-and-report-error handle)
+      (xmtn-automate-command-check-for-and-report-error handle)
       (xmtn-automate-command-wait-until-finished handle)
       (with-current-buffer buffer
         (xmtn--insert-buffer-substring-no-properties
          (xmtn-automate-command-buffer handle))))))
 
 (defun xmtn-automate-command-output-lines (handle)
-  (xmtn-automate-check-for-and-report-error handle)
+  (xmtn-automate-command-check-for-and-report-error handle)
   (xmtn-automate-command-wait-until-finished handle)
   ;; Maybe a simple buffer-substring-no-properties and split-string
   ;; would be more efficient.  I don't know.
@@ -362,9 +362,9 @@
 ;; This one is used twice.  I think the error checking it provides is
 ;; a reasonable simplification for its callers.
 (defun xmtn-automate-simple-command-output-line (root command)
-  "Returns the one line output from mtn automate as a list of strings.
+  "Return the one line output from mtn automate as a string.
 
-Signal an error if output contains zero lines or more than one line."
+Signals an error if output contains zero lines or more than one line."
   (let ((lines (xmtn-automate-simple-command-output-lines root command)))
     (unless (eql (length lines) 1)
       (error "Expected precisely one line of output from mtn automate, got %s: %s %S"
@@ -375,7 +375,7 @@ Signal an error if output contains zero lines or more than one line."
 
 
 (defun xmtn-automate--set-process-session (process session)
-  (xmtn--assert-optional (typep session 'xmtn-automate--session))
+  (xmtn--assert-optional (typep session 'xmtn-automate--session) t)
   (xmtn--process-put process 'xmtn-automate--session session))
 
 (defun xmtn-automate--process-session (process)
