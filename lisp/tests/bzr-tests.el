@@ -64,10 +64,10 @@ the test file."
      (function*
       (lambda ()
         (lexical-let ((file-name "file-1"))
-          (with-temp-buffer (insert "a\n") (write-file file-name))
+          (with-temp-file file-name (insert "a\n"))
           (bzr-add file-name)
           (dvc-run-dvc-sync 'bzr '("commit" "--message" "\"commit 1\""))
-          (with-temp-buffer (insert "b\n") (write-file file-name))
+          (with-temp-file file-name (insert "b\n"))
           (dvc-run-dvc-sync 'bzr '("commit" "--message" "\"commit 2\""))
           (funcall body
                    :file-name file-name)))))))
@@ -130,10 +130,10 @@ the test file."
     (let ((default-directory bzr-test-dir))
       (message "test dir: %s" bzr-test-dir)
       (dvc-run-dvc-sync 'bzr '("init"))
-      (with-temp-buffer (insert "a\n") (write-file file-name))
+      (with-temp-file file-name (insert "a\n"))
       (bzr-add file-name)
       (dvc-run-dvc-sync 'bzr '("commit" "--message" "\"commit 1\""))
-      (with-temp-buffer (insert "b\n") (write-file file-name))
+      (with-temp-file file-name (insert "b\n"))
       (dvc-run-dvc-sync 'bzr '("commit" "--message" "\"commit 2\"")) )))
 
 (defun bzr-test-one ()
