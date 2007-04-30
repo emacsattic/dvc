@@ -401,7 +401,57 @@ YPFoLxe1V5oOyoe3ap0H
                (insert "x")
                (save-excursion
                  (call-interactively #'dvc-file-diff))))
-         (revert-buffer t t))))))
+         (revert-buffer t t)))))
+  (get-content-changed-closure
+   (save-window-excursion
+     (xmtn-tests--with-test-history (&key root file-name revision-1 revision-2
+                                          &allow-other-keys)
+       (let ((other-file-name (concat file-name "2"))
+             (renamed-file-name (concat file-name "x"))
+             revision-3 revision-4 revision-5)
+         (progn
+           (with-temp-file other-file-name (insert "a\n"))
+           (xmtn--add-files root (list other-file-name))
+           (xmtn--run-command-sync root `("commit" "--message=commit"))
+           (setq revision-3 (xmtn--get-base-revision-hash-id root)))
+         (progn
+           (xmtn--run-command-sync root
+                                   (xmtn--version-case
+                                    ((>= 0 34)
+                                     `("mv" "--" ,file-name ,renamed-file-name))
+                                    (t
+                                     `("mv" "-e" "--" ,file-name
+                                       ,renamed-file-name))))
+           (xmtn--run-command-sync root `("commit" "--message=commit"))
+           (setq revision-4 (xmtn--get-base-revision-hash-id root)))
+         (progn
+           (with-temp-file renamed-file-name (insert "c\n"))
+           (xmtn--run-command-sync root `("commit" "--message=commit"))
+           (setq revision-5 (xmtn--get-base-revision-hash-id root)))
+         (flet ((check (file start-rev expected-results)
+                  (let ((actual (xmtn--get-content-changed-closure
+                                 root `(revision ,start-rev) file)))
+                    (unless (null (set-exclusive-or expected-results
+                                                    actual
+                                                    :test #'equal))
+                      (assert nil nil
+                              "file=%S start-rev=%s expected=%S actual=%S"
+                              file start-rev expected-results actual)))))
+           (check file-name revision-1 `((,revision-1 ,file-name)))
+           (check file-name revision-2 `((,revision-1 ,file-name)
+                                         (,revision-2 ,file-name)))
+           (check file-name revision-3 `((,revision-1 ,file-name)
+                                         (,revision-2 ,file-name)))
+           (check renamed-file-name revision-4 `((,revision-1 ,file-name)
+                                                 (,revision-2 ,file-name)))
+           (check renamed-file-name revision-5 `((,revision-1 ,file-name)
+                                                 (,revision-2 ,file-name)
+                                                 (,revision-5
+                                                  ,renamed-file-name)))
+           (check other-file-name revision-3 `((,revision-3 ,other-file-name)))
+           (check other-file-name revision-4 `((,revision-3 ,other-file-name)))
+           (check other-file-name revision-5 `((,revision-3 ,other-file-name)))
+         ))))))
 
 (defvar xmtn-tests--profile-history (list))
 

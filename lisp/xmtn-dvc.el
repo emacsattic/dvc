@@ -1146,6 +1146,84 @@ finished."
                 (dvc-delete-recursively temp-dir)))))))))
 
 
+(defun xmtn--revision-parents (root revision-hash-id)
+  (xmtn-automate-simple-command-output-lines root
+                                             `("parents" ,revision-hash-id)))
+
+(defun xmtn--get-content-changed (root backend-id normalized-file)
+  (xmtn-automate-with-session (nil root)
+    (xmtn-match (xmtn--resolve-backend-id root backend-id)
+      ((local-tree $path) (error "Not implemented"))
+      ((revision $revision-hash-id)
+       (xmtn--with-automate-command-output-basic-io-parser
+         (parser root `("get_content_changed" ,revision-hash-id
+                        ,normalized-file))
+         (loop for stanza = (funcall parser)
+               while stanza
+               collect (xmtn-match stanza
+                         ((("content_mark" (id $previous-id)))
+                          previous-id))))))))
+
+(defun* xmtn--close-set (fn initial-set &key test)
+  (unless test (setq test #'eql))
+  (loop for current-set = nil then (nconc new-elements current-set)
+        for new-elements = (copy-list initial-set)
+        then (loop for new-element in new-elements
+                   nconc
+                   (copy-list
+                    (set-difference (funcall fn new-element)
+                                    current-set :test test)))
+        while new-elements
+        finally (return current-set)))
+
+(defun xmtn--get-content-changed-closure (root backend-id normalized-file)
+  (xmtn-automate-with-session (nil root)
+    (lexical-let ((root root))
+      (labels ((changed-self-or-ancestors (entry)
+                (destructuring-bind (hash-id file-name) entry
+                  (check-type file-name string)
+                  (loop for next-change-id in (xmtn--get-content-changed
+                                               root `(revision ,hash-id)
+                                               file-name)
+                        for corresponding-path =
+                        (xmtn--get-corresponding-path-raw root file-name
+                                                          hash-id next-change-id)
+                        when corresponding-path
+                        collect `(,next-change-id ,corresponding-path))))
+               (changed-proper-ancestors (entry)
+                (destructuring-bind (hash-id file-name) entry
+                  (check-type file-name string)
+                  (loop for parent-id in (xmtn--revision-parents root hash-id)
+                        for path-in-parent =
+                        (xmtn--get-corresponding-path-raw root file-name
+                                                          hash-id parent-id)
+                        when path-in-parent
+                        append (changed-self-or-ancestors
+                                `(,parent-id ,path-in-parent))))))
+        (xmtn--close-set
+         #'changed-proper-ancestors
+         (xmtn-match (xmtn--resolve-backend-id root backend-id)
+           ((local-tree $path) (error "Not implemented"))
+           ((revision $id) (changed-self-or-ancestors
+                            `(,id ,normalized-file))))
+         :test #'equal)))))
+
+
+(defun xmtn--get-corresponding-path-raw (root normalized-file-name
+                                              source-revision-hash-id
+                                              target-revision-hash-id)
+  (xmtn--with-automate-command-output-basic-io-parser
+    (next-stanza root `("get_corresponding_path"
+                        ,source-revision-hash-id
+                        ,normalized-file-name
+                        ,target-revision-hash-id))
+    (xmtn-match (funcall next-stanza)
+      (nil nil)
+      ((("file" (string $result)))
+       (assert (null (funcall next-stanza)))
+       result))))
+
+
 (defun xmtn--get-corresponding-path (root normalized-file-name
                                           source-revision-backend-id
                                           target-revision-backend-id)
@@ -1206,16 +1284,13 @@ finished."
                              (if (null rename-entry)
                                  file-name
                                (second rename-entry)))))))))))
-        (xmtn--with-automate-command-output-basic-io-parser
-          (next-stanza root `("get_corresponding_path"
-                              ,source-revision-hash-id
-                              ,normalized-file-name
-                              ,target-revision-hash-id))
-          (xmtn-match (funcall next-stanza)
-            (nil nil)
-            ((("file" (string $result)))
-             (assert (null (funcall next-stanza)))
-             (funcall file-name-postprocessor result))))))))
+        (let ((result
+               (xmtn--get-corresponding-path-raw root normalized-file-name
+                                                 source-revision-hash-id
+                                                 target-revision-hash-id)))
+          (if (null result)
+              nil
+            (funcall file-name-postprocessor result)))))))
 
 (defun xmtn--manifest-find-file (root manifest normalized-file-name)
   (let ((matches (remove* normalized-file-name
