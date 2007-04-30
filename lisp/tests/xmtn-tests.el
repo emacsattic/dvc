@@ -450,7 +450,17 @@ YPFoLxe1V5oOyoe3ap0H
            (check other-file-name revision-3 `((,revision-3 ,other-file-name)))
            (check other-file-name revision-4 `((,revision-3 ,other-file-name)))
            (check other-file-name revision-5 `((,revision-3 ,other-file-name)))
-         ))))))
+           )))))
+  (locale
+   ;; The test is simply that this doesn't crash.
+   (let ((process-environment (list* "LC_MESSAGES=de_DE" process-environment))
+         (xmtn--*cached-command-version* nil))
+     ;; Unfortunately, in my configuration, I don't seem to be able to
+     ;; get monotone to print non-English messages at all.  So, for
+     ;; me, this doesn't actually fail even without the appropriate
+     ;; changes to `xmtn--call-with-environment-for-subprocess'.
+     (xmtn-check-command-version)))
+  )
 
 (defvar xmtn-tests--profile-history (list))
 
