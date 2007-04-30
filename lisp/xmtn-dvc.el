@@ -639,9 +639,7 @@ the file before saving."
 
 ;;;###autoload
 (defun xmtn-dvc-command-version ()
-  (format "%s\nautomate interface version %s"
-          (third (xmtn--command-version))
-          (third (xmtn--automate-interface-version))))
+  (fourth (xmtn--command-version)))
 
 (defun xmtn--unknown-files-future (root)
   (xmtn--command-output-lines-future root '("ls" "unknown")))
@@ -1113,9 +1111,10 @@ finished."
                 (progn
                   (setq temp-dir (xmtn--make-temp-file
                                   "xmtn--revision-get-file-" t))
-                  ;; Using `insert-file-contents' in conjunction with
-                  ;; as much of the original file name as possible
-                  ;; seems to be the best way to make sure that Emacs'
+                  ;; Going through a temporary file and using
+                  ;; `insert-file-contents' in conjunction with as
+                  ;; much of the original file name as possible seems
+                  ;; to be the best way to make sure that Emacs'
                   ;; entire file coding system detection logic is
                   ;; applied.  Functions like
                   ;; `find-operation-coding-system' and
@@ -1124,7 +1123,7 @@ finished."
                   ;; at all.
                   (let ((temp-file (concat temp-dir "/" corresponding-file)))
                     (make-directory (file-name-directory temp-file) t)
-                    (with-temp-buffer
+                    (with-temp-file temp-file
                       (set-buffer-multibyte nil)
                       (setq buffer-file-coding-system 'binary)
                       ;; This could be simplified slightly with the
@@ -1136,8 +1135,7 @@ finished."
                              (xmtn--revision-file-contents-hash
                               root backend-id corresponding-file)))
                         (xmtn--insert-file-contents root contents-hash
-                                                    (current-buffer)))
-                      (write-file temp-file))
+                                                    (current-buffer))))
                     (let ((output-buffer (current-buffer)))
                       (with-temp-buffer
                         (insert-file-contents temp-file)

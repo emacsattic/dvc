@@ -74,7 +74,7 @@ The file will contain a setq setting the vars during loading by
                           (symbol-name v)
                           (symbol-value v)))))
       (insert "      )")
-      (write-region (point-min) (point-max) state-file))))
+      (write-region nil nil state-file))))
 
 (defun dvc-load-state (&optional state-file)
   "Load `dvc-state-file-name`, i.e. evaluate its content."

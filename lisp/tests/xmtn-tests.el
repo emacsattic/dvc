@@ -35,7 +35,8 @@
   (require 'elunit)
   (require 'cl)
   (require 'xmtn-match)
-  (require 'xmtn-dvc))
+  (require 'xmtn-dvc)
+  (require 'dvc-tests-utils "tests/dvc-tests-utils.el"))
 
 (defun xmtn-tests--keypair-string ()
   "[keypair xmtn-test]
@@ -83,12 +84,10 @@ YPFoLxe1V5oOyoe3ap0H
                         "--norc"
                         "--rcfile" ,rc-file)))
                 (make-directory key-dir)
-                (with-temp-buffer
-                  (insert (xmtn-tests--keypair-string) ?\n)
-                  (write-file (concat key-dir "xmtn-tests")))
-                (with-temp-buffer
-                  (insert (xmtn-tests--default-rc-file) ?\n)
-                  (write-file rc-file))
+                (with-temp-file (concat key-dir "xmtn-tests")
+                  (insert (xmtn-tests--keypair-string) ?\n))
+                (with-temp-file rc-file
+                  (insert (xmtn-tests--default-rc-file) ?\n))
                 (xmtn--run-command-sync nil '("db" "init"))
                 (xmtn--run-command-sync nil '("setup"
                                               "--branch" "invalid.xmtn-tests"
@@ -108,11 +107,11 @@ YPFoLxe1V5oOyoe3ap0H
                       (file-name "file-1")
                       revision-1
                       revision-2)
-          (with-temp-buffer (insert "a\n") (write-file file-name))
+          (with-temp-file file-name (insert "a\n"))
           (xmtn--add-files root (list file-name))
           (xmtn--run-command-sync root `("commit" "--message=commit 1"))
           (setq revision-1 (xmtn--get-base-revision-hash-id root))
-          (with-temp-buffer (insert "b\n") (write-file file-name))
+          (with-temp-file file-name (insert "b\n"))
           (xmtn--run-command-sync root `("commit" "--message=commit 2"))
           (setq revision-2 (xmtn--get-base-revision-hash-id root))
           (funcall body
@@ -206,12 +205,16 @@ YPFoLxe1V5oOyoe3ap0H
    (save-window-excursion
      (xmtn-tests--with-test-history (&key file-name &allow-other-keys)
        (find-file file-name)
-       (insert "x")
-       (write-file file-name)
-       (call-interactively #'dvc-diff)
-       ;; Try to delay deletion of our temp workspace until process
-       ;; has terminated.
-       (sleep-for 1))))
+       (let ((buffer (current-buffer)))
+         (unwind-protect
+             (progn
+               (insert "x")
+               (write-region nil nil file-name nil 'no-message nil nil)
+               (set-buffer-modified-p nil)
+               (call-interactively #'dvc-diff))
+           (dvc-tests-wait-async)
+           (with-current-buffer buffer
+             (kill-buffer buffer)))))))
   (automate-buffer-numbering
    (xmtn-tests--with-test-history (&key root &allow-other-keys)
      (xmtn-automate-with-session (session root)
@@ -245,9 +248,9 @@ YPFoLxe1V5oOyoe3ap0H
    (let ((umlaut (string (make-char 'latin-iso8859-1 #xe4)))) ; umlaut a
      (xmtn-tests--with-test-environment (&key root)
        (let ((file-name umlaut))
-         (with-temp-buffer
-           (let ((file-name-coding-system 'utf-8)) ; not sure about this...
-             (write-file file-name)))
+         (let ((file-name-coding-system 'utf-8)) ; not sure about this...
+           (with-temp-file file-name ; create empty file
+             (progn)))
          (xmtn--add-files root (list file-name))
          (let ((manifest (xmtn--get-manifest root `(local-tree ,root))))
            (xmtn-match manifest
@@ -267,14 +270,11 @@ YPFoLxe1V5oOyoe3ap0H
    (let ((umlaut (string (make-char 'latin-iso8859-1 #xe4)))) ; umlaut a
      (xmtn-tests--with-test-environment (&key root)
        (let ((file-name "foo")
-             (contents (concat umlaut
-                               "\n" ; avoid "buffer does not end in newline"
-                               ))
+             (contents (concat umlaut "\n"))
              (coding-system 'iso-8859-1-unix))
-         (with-temp-buffer
+         (with-temp-file file-name
            (setq buffer-file-coding-system coding-system)
-           (insert contents)
-           (write-file file-name))
+           (insert contents))
          (xmtn--add-files root (list file-name))
          (xmtn--run-command-sync root (list "commit" "--message=commit foo"))
          (let ((content-id "77785e6fd883a5e27a62bc6f26365e1b37e1900f"))
@@ -302,14 +302,11 @@ YPFoLxe1V5oOyoe3ap0H
      (let ((umlaut (string (make-char 'latin-iso8859-1 #xe4)))) ; umlaut a
        (xmtn-tests--with-test-environment (&key root)
          (let ((file-name "foo")
-               (contents (concat umlaut
-                                 "\n" ; avoid "buffer does not end in newline"
-                                 ))
+               (contents (concat umlaut "\n"))
                (coding-system 'utf-8-unix))
-           (with-temp-buffer
+           (with-temp-file file-name
              (setq buffer-file-coding-system coding-system)
-             (insert contents)
-             (write-file file-name))
+             (insert contents))
            (xmtn--add-files root (list file-name))
            (xmtn--run-command-sync root (list "commit" "--message=commit foo"))
            (with-temp-buffer
@@ -322,15 +319,12 @@ YPFoLxe1V5oOyoe3ap0H
      (let ((umlaut (string (make-char 'latin-iso8859-1 #xe4)))) ; umlaut a
        (xmtn-tests--with-test-environment (&key root)
          (let ((file-name "foo")
-               (contents (concat umlaut
-                                 "\n" ; avoid "buffer does not end in newline"
-                                 ))
+               (contents (concat umlaut "\n"))
                (coding-system-1 'utf-8-unix)
                (coding-system-2 'iso-8859-1-unix))
-           (with-temp-buffer
+           (with-temp-file file-name
              (setq buffer-file-coding-system coding-system-1)
-             (insert contents)
-             (write-file file-name))
+             (insert contents))
            (xmtn--add-files root (list file-name))
            (xmtn--run-command-sync root (list "commit" "--message=commit foo"))
            (with-temp-buffer
@@ -358,12 +352,12 @@ YPFoLxe1V5oOyoe3ap0H
   (diff-from-revlog
    (save-window-excursion
      (xmtn-tests--with-test-history (&key &allow-other-keys)
-       (dvc-changelog)
-       (dvc-revision-next)
-       (dvc-revlist-diff)
-       ;; Try to delay deletion of our temp workspace until process
-       ;; has terminated.
-       (sleep-for 1))))
+       (unwind-protect
+           (progn
+             (dvc-changelog)
+             (dvc-revision-next)
+             (dvc-revlist-diff))
+         (dvc-tests-wait-async)))))
   (stdio-command-options
    (xmtn--version-case
      ((>= 0 31)
@@ -392,7 +386,22 @@ YPFoLxe1V5oOyoe3ap0H
                         root `(("revision" ,revision-1
                                 "revision" ,revision-2)
                                "content_diff" ,file-name)))
-                       t))))))))
+                       t)))))))
+  (xmtn-dvc-command-version
+   ;; Should not error.
+   (xmtn-dvc-command-version))
+  (dvc-file-diff-write-file-hooks
+   (save-window-excursion
+     (xmtn-tests--with-test-history (&key file-name &allow-other-keys)
+       (find-file file-name)
+       (unwind-protect
+           (progn
+             (let ((write-file-hooks (list (lambda ()
+                                             (assert nil)))))
+               (insert "x")
+               (save-excursion
+                 (call-interactively #'dvc-file-diff))))
+         (revert-buffer t t))))))
 
 (defvar xmtn-tests--profile-history (list))
 
