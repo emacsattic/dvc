@@ -209,11 +209,13 @@ YPFoLxe1V5oOyoe3ap0H
          (unwind-protect
              (progn
                (insert "x")
-               (write-region nil nil file-name nil 'no-message nil nil)
+               (write-region (point-min) (point-max)
+                             file-name nil 'no-message nil nil)
                (set-buffer-modified-p nil)
                (call-interactively #'dvc-diff))
            (dvc-tests-wait-async)
            (with-current-buffer buffer
+             (set-buffer-modified-p nil)
              (kill-buffer buffer)))))))
   (automate-buffer-numbering
    (xmtn-tests--with-test-history (&key root &allow-other-keys)
