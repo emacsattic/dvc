@@ -1140,7 +1140,7 @@ finished."
                   ;; `find-file-name-handler' are not a complete
                   ;; replacement since they don't look at the contents
                   ;; at all.
-                  (let ((temp-file (concat temp-dir "/" corresponding-file))
+                  (let ((temp-file (concat temp-dir "/" corresponding-file)))
                     (make-directory (file-name-directory temp-file) t)
                     (with-temp-file temp-file
                       (set-buffer-multibyte nil)
@@ -1163,7 +1163,6 @@ finished."
                             (insert-buffer-substring input-buffer)))))))
               (when temp-dir
                 (dvc-delete-recursively temp-dir)))))))))
-
 
 (defun xmtn--revision-parents (root revision-hash-id)
   (xmtn-automate-simple-command-output-lines root
