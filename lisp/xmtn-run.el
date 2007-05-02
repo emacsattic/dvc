@@ -42,6 +42,7 @@
 (defun xmtn--call-with-environment-for-subprocess (xmtn--thunk)
   (let ((process-environment (list* "LC_ALL="
                                     "LC_CTYPE=en_US.UTF-8"
+                                    "LC_MESSAGES=C"
                                     process-environment)))
     (funcall xmtn--thunk)))
 

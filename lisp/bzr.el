@@ -418,7 +418,7 @@ of the commit. Additionally the destination email address can be specified."
     (forward-line 1)))
 
 ;;;###autoload
-(defun bzr-status (&optional against path)
+(defun bzr-status (&optional path)
   "Run \"bzr status\"."
   (interactive (list default-directory))
   (let* ((dir (or path default-directory))

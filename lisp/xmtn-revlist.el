@@ -45,7 +45,7 @@
 (defvar xmtn--revlist-*info-generator-fn* nil)
 (defvar xmtn--revlist-*first-line-only-p* nil)
 
-(defvar xmtn--revlist-*branch* nil)
+(defvar xmtn--revlist-*merge-destination-branch* nil)
 
 (defun xmtn--escape-branch-name-for-selector (branch-name)
   ;; FIXME.  The monotone manual refers to "shell wildcards" but
@@ -216,9 +216,11 @@
 
 (defun xmtn--revlist-refresh ()
   (let ((root xmtn--revlist-*root*))
-    (destructuring-bind (branch header-lines footer-lines revision-hash-ids)
+    (destructuring-bind (merge-destination-branch
+                         header-lines footer-lines revision-hash-ids)
         (funcall xmtn--revlist-*info-generator-fn* root)
-      (set (make-local-variable 'xmtn--revlist-*branch*) branch)
+      (set (make-local-variable 'xmtn--revlist-*merge-destination-branch*)
+           merge-destination-branch)
       (let ((ewoc dvc-revlist-cookie))
         (xmtn--revlist-setup-ewoc root ewoc
                                   (with-temp-buffer
@@ -387,6 +389,41 @@
      nil))
   nil)
 
+;;;###autoload
+;; This function doesn't quite offer the interface I really want: From
+;; the resulting revlist buffer, there's no way to request a diff
+;; restricted to the file in question.  But it's still handy.
+(defun xmtn-list-revisions-modifying-file (file &optional last-backend-id)
+  "Display a revlist buffer showing the revisions that modify FILE.
+
+Only ancestors of revision LAST-BACKEND-ID will be considered.
+FILE is a file name in revision LAST-BACKEND-ID, which defaults
+to the base revision of the current tree."
+  (interactive "FList revisions modifying file: ")
+  (let* ((root (dvc-tree-root))
+         (normalized-file (xmtn--normalize-file-name root file)))
+    (unless last-backend-id
+      (setq last-backend-id `(last-revision ,root 1)))
+    (lexical-let ((last-backend-id last-backend-id)
+                  (file file))
+      (xmtn--setup-revlist
+       root
+       (lambda (root)
+         (xmtn-automate-with-session (nil root)
+           (let ((branch (xmtn--tree-default-branch root))
+                 (revision-hash-ids
+                  (mapcar #'first
+                          (xmtn--get-content-changed-closure
+                           root last-backend-id normalized-file))))
+             (list
+              branch
+              (list (format "Tree %s" root))
+              '()
+              revision-hash-ids))))
+       ;; Passing nil as first-line-only-p is arbitrary here.
+       nil)))
+  nil)
+
 (defvar xmtn--*selector-history* nil)
 
 ;;;###autoload
@@ -500,7 +537,7 @@ To be invoked from an xmtn revlist buffer."
       (error "Precisely 2 revisions must be marked for merge, not %s"
              (length entries)))
     (let ((hash-ids (mapcar #'xmtn--revlist-entry-revision-hash-id entries))
-          (destination-branch-name xmtn--revlist-*branch*))
+          (destination-branch-name xmtn--revlist-*merge-destination-branch*))
       ;; FIXME: Does it make any difference which one we choose as
       ;; "left" and which one we choose as "right"?  (If it does, we
       ;; should also make their selection in the UI asymmetrical: For

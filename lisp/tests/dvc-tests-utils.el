@@ -19,11 +19,25 @@
 ;; the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
 ;; Boston, MA  02110-1301  USA.
 
+(eval-and-compile
+  (require 'cl))
+
 (defun dvc-tests-wait-async ()
   "Waits for all asynchronous dvc processes to terminate."
-  (while dvc-process-running
-    (message "Processes: %s" dvc-process-running)
-    (sit-for 0.2)))
+  (let* ((delay 0.2)
+         (seconds-before-message 2)
+         (iterations-before-message (/ seconds-before-message delay))
+         (iterations 0))
+    (while dvc-process-running
+      (when (>= iterations iterations-before-message)
+        (setq iterations 0)
+        (message "Waiting for processes: %S"
+                 (mapcar (lambda (entry)
+                           (dvc-event-command (second entry)))
+                         dvc-process-running)))
+      (incf iterations-before-message)
+      (sit-for delay))))
 
 (provide 'dvc-tests-utils)
+
 ;; end of file
