@@ -164,7 +164,7 @@ YPFoLxe1V5oOyoe3ap0H
     (flet ((xmtn--latest-mtn-release () ;flet has dynamic scope in Emacs Lisp
              '(2 5 "y")))
       (let ((xmtn--*cached-command-version* '(2 5 "x")))
-        (assert 
+        (assert
          (xmtn--version-case
            ((and (= 2 5) (>= 2 5) (or (= 2 4) (<= 3 0))
                  (<= 2 6) (/= 1 5) (not (/= 2 5))
@@ -406,15 +406,15 @@ YPFoLxe1V5oOyoe3ap0H
                                nil read-expression-map t
                                'xmtn-tests--profile-history))
         (reps 20))
-    (require 'oelp)
-    (oelp-instrument-package "xmtn-")
-    (oelp-instrument-package "dvc-")
-    (oelp-instrument-package "process-")
-    (oelp-instrument-package "ewoc-")
-    (oelp-instrument-function 'accept-process-output)
-    (oelp-instrument-function 'buffer-substring-no-properties)
-    (oelp-reset-all)
-    (setq oelp-reset-after-results nil)
+    (require 'elp)
+    (elp-instrument-package "xmtn-")
+    (elp-instrument-package "dvc-")
+    (elp-instrument-package "process-")
+    (elp-instrument-package "ewoc-")
+    (elp-instrument-function 'accept-process-output)
+    (elp-instrument-function 'buffer-substring-no-properties)
+    (elp-reset-all)
+    (setq elp-reset-after-results nil)
     ;; FIXME: Maybe use benchmark.el.
     (let ((gc-cons-threshold (max gc-cons-threshold 100000000))
           (run-time 0)
@@ -430,15 +430,15 @@ YPFoLxe1V5oOyoe3ap0H
                   (let ((start-time (current-time)))
                     (eval command)
                     (let ((end-time (current-time)))
-                      (incf run-time (oelp-elapsed-time start-time
+                      (incf run-time (elp-elapsed-time start-time
                                                         end-time))))))
               (assert (let ((start-time (current-time)))
                         (prog1
                             (garbage-collect)
                           (let ((end-time (current-time)))
-                            (incf gc-time (oelp-elapsed-time start-time
+                            (incf gc-time (elp-elapsed-time start-time
                                                              end-time))))))))
-      (oelp-results)
+      (elp-results)
       (setq truncate-lines t)
       (goto-char (point-min))
       (insert (format "Command: %S\n" command))
@@ -447,7 +447,7 @@ YPFoLxe1V5oOyoe3ap0H
       (insert (format "Wall time (excluding gc): %s\n" run-time))
       (insert (format "GC time (bogus):          %s\n" gc-time))
       (insert "\n"))
-    (oelp-restore-all))
+    (elp-restore-all))
   (message "Profiling finished"))
 
 (defun xmtn-tests--time ()
@@ -459,7 +459,7 @@ YPFoLxe1V5oOyoe3ap0H
          (read-from-minibuffer "Time xmtn command: "
                                nil read-expression-map t
                                'xmtn-tests--profile-history))
-        (reps 100))
+        (reps 29)) ;; FIXME: dies on rep 30 on Windows MinGW
     (let ((run-time 0))
       (assert (garbage-collect))
       (loop for rep from 1
@@ -472,7 +472,7 @@ YPFoLxe1V5oOyoe3ap0H
                   (let ((start-time (current-time)))
                     (eval command)
                     (let ((end-time (current-time)))
-                      (incf run-time (oelp-elapsed-time start-time
+                      (incf run-time (elp-elapsed-time start-time
                                                         end-time))))))))
       (switch-to-buffer-other-window (get-buffer-create
                                       "*xmtn timing results*"))
