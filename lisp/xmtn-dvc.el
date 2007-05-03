@@ -1049,6 +1049,25 @@ finished."
   nil)
 
 ;;;###autoload
+(defun xmtn-dvc-pull ()
+  "Implement `dvc-pull' for xmtn."
+  (lexical-let*
+      ((root (dvc-tree-root))
+       (name (concat "mtn pull " root)))
+    (message "%s..." name)
+    ;; mtn progress messages are put to stderr, and there is typically
+    ;; nothing written to stdout from this command, so put both in the
+    ;; same buffer.
+    ;; FIXME: this output is not useful; need to use automation
+    (xmtn--run-command-async root `("pull")
+                             :output-buffer name
+                             :error-buffer name
+                             :finished
+                             (lambda (output error status arguments)
+                               (pop-to-buffer output)
+                               (message "%s...done" name)))))
+
+;;;###autoload
 (defun xmtn-dvc-revert-files (file-names)
   ;; Accepting a string seems to be part of the API.
   (when (stringp file-names) (setq file-names (list file-names)))
@@ -1144,7 +1163,6 @@ finished."
                             (insert-buffer-substring input-buffer)))))))
               (when temp-dir
                 (dvc-delete-recursively temp-dir)))))))))
-
 
 (defun xmtn--revision-parents (root revision-hash-id)
   (xmtn-automate-simple-command-output-lines root

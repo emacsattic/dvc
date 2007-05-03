@@ -105,6 +105,7 @@
                :dvc 'cg
                :struct elem
                :rev-id `(cg (revision (local ,root ,(cg-revision-st-changeset elem))))))))
+        ;; FIXME: cg-revision-st-changeset is not defined anywhere
         (setq elem (make-cg-revision-st)))))
   (with-current-buffer log-buffer
       (goto-char (point-min))))

@@ -540,7 +540,7 @@ Example:
                         (message \"No changes in this working copy\"))
                       :error
                       (lambda (output error status arguments)
-                        (dvc-show-changes-buffer output)))"
+                        (dvc-show-changes-buffer 'tla--parse-changes output)))"
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys
