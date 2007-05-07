@@ -1,6 +1,6 @@
-;;; cg.el --- cogito/git interface for dvc
+;;; xgit.el --- git interface for dvc
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -21,9 +21,7 @@
 
 ;;; Commentary:
 
-;; The cogito/git interface for dvc
-;; The cogito manpage can be found online at:
-;;  http://www.kernel.org/pub/software/scm/cogito/docs/
+;; The git interface for dvc
 
 ;;; History:
 
@@ -32,43 +30,43 @@
 ;;; Code:
 
 (require 'dvc-core)
-(require 'cg-core)
-(require 'cg-log)
+(require 'xgit-core)
+(require 'xgit-log)
 
-(defun cg-init (&optional dir)
-  "Run cg init -I."
+(defun xgit-init (&optional dir)
+  "Run git init -I."
   (interactive
-   (list (expand-file-name (dvc-read-directory-name "Directory for cg init: "
+   (list (expand-file-name (dvc-read-directory-name "Directory for git init: "
                                                      (or default-directory
                                                          (getenv "HOME"))))))
-  (dvc-run-dvc-sync 'cg (list "init" "-I" dir)
+  (dvc-run-dvc-sync 'xgit (list "init" "-I" dir)
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
-                                 (message "cg init finished"))))
+                                 (message "git init finished"))))
 
-(defun cg-add-files (&rest files)
-  "Run cg add."
-  (message "cg-add-files: %s" files)
-  (dvc-run-dvc-sync 'cg (append '("add") files)
+(defun xgit-add-files (&rest files)
+  "Run git add."
+  (message "xgit-add-files: %s" files)
+  (dvc-run-dvc-sync 'xgit (append '("add") files)
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
-                                (message "cg add finished"))))
+                                (message "git add finished"))))
 
-(defun cg-command-version ()
-  "Run cg version."
+(defun xgit-command-version ()
+  "Run git version."
   (interactive)
-  (let ((version (dvc-run-dvc-sync 'cg (list "version")
+  (let ((version (dvc-run-dvc-sync 'xgit (list "version")
                                    :finished 'dvc-output-buffer-handler)))
     (when (interactive-p)
       (message "Cogito Version: %s" version))
     version))
 
-(defun cg-parse-status  (changes-buffer)
-  (dvc-trace "cg-parse-status (dolist)")
+(defun xgit-parse-status  (changes-buffer)
+  (dvc-trace "xgit-parse-status (dolist)")
   (let ((status-list
          (split-string (dvc-buffer-content output) "\n")))
     (with-current-buffer changes-buffer
-      (setq dvc-header (format "cg status -w for %s\n" default-directory))
+      (setq dvc-header (format "git status -w for %s\n" default-directory))
       (let ((buffer-read-only)
             status modif modif-char)
         (dolist (elem status-list)
@@ -95,25 +93,25 @@
                                      status
                                      modif)))))))))
 
-(defun cg-status (&optional against path)
-  "Run cg status."
+(defun xgit-status (&optional against path)
+  "Run git status."
   (interactive (list nil default-directory))
   (let* ((dir (or path default-directory))
-         (root (cg-tree-root dir))
+         (root (xgit-tree-root dir))
          (buffer (dvc-prepare-changes-buffer
-                  `(cg (last-revision ,root 1))
-                  `(cg (local-tree ,root))
-                  'status root 'cg)))
+                  `(git (last-revision ,root 1))
+                  `(git (local-tree ,root))
+                  'status root 'xgit)))
     (dvc-switch-to-buffer-maybe buffer)
-    (setq dvc-buffer-refresh-function 'cg-status)
+    (setq dvc-buffer-refresh-function 'xgit-status)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync
-     'cg '("status" "-w")
+     'xgit '("status" "-w")
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (with-current-buffer (capture buffer)
          (if (> (point-max) (point-min))
-             (dvc-show-changes-buffer output 'cg-parse-status
+             (dvc-show-changes-buffer output 'xgit-parse-status
                                       (capture buffer))
          (dvc-diff-no-changes (capture buffer)
                              "No changes in %s"
@@ -125,14 +123,14 @@
                                      (capture root)
                                      output error))))))
 
-(defun cg-log ()
-  "Run cg log."
+(defun xgit-log ()
+  "Run git log."
   (interactive)
-  (let ((buffer (dvc-get-buffer-create 'cg 'log)))
+  (let ((buffer (dvc-get-buffer-create 'xgit 'log)))
     (if dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer)
       (set-buffer buffer))
-    (dvc-run-dvc-sync 'cg '("log")
+    (dvc-run-dvc-sync 'xgit '("log")
                       :finished
                       (dvc-capturing-lambda (output error status arguments)
                         (progn
@@ -141,11 +139,11 @@
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))
-                              (insert (format "cg log for %s\n\n" default-directory))
-                              (cg-log-mode))))))))
+                              (insert (format "git log for %s\n\n" default-directory))
+                              (xgit-log-mode))))))))
 
 ;; copied from xhg-parse-diff: not yet fully working
-(defun cg-parse-diff (changes-buffer)
+(defun xgit-parse-diff (changes-buffer)
   (save-excursion
     (while (re-search-forward
             "^diff --git [^ ]+ b/\\(.*\\)$" nil t)
@@ -167,60 +165,60 @@
                                  " " ; dir. Nothing is a directory in hg.
                                  nil)))))))
 
-(defun cg-diff (&optional against path dont-switch)
+(defun xgit-diff (&optional against path dont-switch)
     (interactive (list nil nil current-prefix-arg))
   (let* ((cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
-         (root (cg-tree-root cur-dir))
+         (root (xgit-tree-root cur-dir))
          (buffer (dvc-prepare-changes-buffer
-                  `(cg (last-revision ,root 1))
-                  `(cg (local-tree ,root))
-                  'diff root 'cg))
+                  `(git (last-revision ,root 1))
+                  `(git (local-tree ,root))
+                  'diff root 'xgit))
          (command-list '("diff")))
     (if dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer)
       (set-buffer buffer))
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
-    (dvc-run-dvc-sync 'cg command-list
+    (dvc-run-dvc-sync 'xgit command-list
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
-                         (dvc-show-changes-buffer output 'cg-parse-diff
+                         (dvc-show-changes-buffer output 'xgit-parse-diff
                                                   (capture buffer))))))
 
-(defun cg-restore (force &rest files)
-  "Run cg restore
+(defun xgit-restore (force &rest files)
+  "Run git restore
 
-cg-restore
+xgit-restore
  -r REVISION: Not supported yet
  -f: FORCE"
-  (message "cg-restore: %s" files)
+  (message "xgit-restore: %s" files)
   (let ((args (cons "restore"
                     (if force '("-f") '()))))
-    (dvc-run-dvc-sync 'cg (append args files)
+    (dvc-run-dvc-sync 'xgit (append args files)
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
-                                  (message "cg restore finished")))))
-(defun cg-revert-files (&rest files)
-  "See `cg-restore'"
-  (apply 'cg-restore t files))
+                                  (message "git restore finished")))))
+(defun xgit-revert-files (&rest files)
+  "See `xgit-restore'"
+  (apply 'xgit-restore t files))
 
 ;; --------------------------------------------------------------------------------
 ;; dvc revision support
 ;; --------------------------------------------------------------------------------
 ;;;###autoload
-(defun cg-revision-get-last-revision (file last-revision)
+(defun xgit-revision-get-last-revision (file last-revision)
   "Insert the content of FILE in LAST-REVISION, in current buffer.
 
 LAST-REVISION looks like
 \(\"path\" NUM)"
-  (dvc-trace "cg-revision-get-last-revision file:%S last-revision:%S" file last-revision)
-  (let (;;(cg-rev (int-to-string (nth 1 last-revision)))
+  (dvc-trace "xgit-revision-get-last-revision file:%S last-revision:%S" file last-revision)
+  (let (;;(xgit-rev (int-to-string (nth 1 last-revision)))
         (default-directory (car last-revision)))
     ;; TODO: support the last-revision parameter??
     (insert (dvc-run-dvc-sync
-             'cg (list "admin-cat" file)
+             'xgit (list "admin-cat" file)
              :finished 'dvc-output-buffer-handler))))
 
-(provide 'cg)
-;;; cg.el ends here
+(provide 'xgit)
+;;; xgit.el ends here

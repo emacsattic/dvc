@@ -1,6 +1,6 @@
-;;; cg-core.el --- Common definitions for cogito/git support in DVC
+;;; xgit-core.el --- Common definitions for git support in DVC
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -21,7 +21,7 @@
 
 ;;; Commentary:
 
-;; This file provides the low-level functions used by the cogito interface
+;; This file provides the low-level functions used by the git interface
 ;; from DVC.
 
 
@@ -33,18 +33,18 @@
 
 (require 'dvc-core)
 
-;; Settings for cogito/git
-(defvar cg-executable
-  "cg"
-  "The executable used for the cogito commandline client.")
+;; Settings for git
+(defvar xgit-executable
+  "git"
+  "The executable used for the git commandline client.")
 
-(defvar cg-log-edit-file-name
-  "++cg-log-edit"
+(defvar xgit-log-edit-file-name
+  "++xgit-log-edit"
   "The filename, used to store the log message before commiting.
 Usually that file is placed in the tree-root of the working tree.")
 
 ;;;###autoload
-(defun cg-tree-root (&optional location no-error interactive)
+(defun xgit-tree-root (&optional location no-error interactive)
   "Return the tree root for LOCATION, nil if not in a local tree.
 Computation is done from withing Emacs, by looking at an .git/
 directory in a parent buffer of LOCATION.  This is therefore very
@@ -53,14 +53,14 @@ fast.
 If NO-ERROR is non-nil, don't raise an error if LOCATION is not a
 git managed tree (but return nil)."
   (dvc-tree-root-helper ".git/" (or interactive (interactive-p))
-                        "%S is not in a git/cogito tree!"
+                        "%S is not in a git tree!"
                         location no-error))
 
 
-(defun cg-tree-has-head ()
+(defun xgit-tree-has-head ()
   "Return t, if the git repository has a valid HEAD entry.
 It will be nil before the initial commit."
-  (file-readable-p (concat (cg-tree-root) "/.git/HEAD")))
+  (file-readable-p (concat (xgit-tree-root) "/.git/HEAD")))
 
-(provide 'cg-core)
-;;; cg-core.el ends here
+(provide 'xgit-core)
+;;; xgit-core.el ends here
