@@ -34,23 +34,33 @@
 (require 'xgit-log)
 
 (defun xgit-init (&optional dir)
-  "Run git init -I."
+  "Run git init."
   (interactive
    (list (expand-file-name (dvc-read-directory-name "Directory for git init: "
                                                      (or default-directory
                                                          (getenv "HOME"))))))
-  (dvc-run-dvc-sync 'xgit (list "init" "-I" dir)
-                     :finished (dvc-capturing-lambda
-                                   (output error status arguments)
-                                 (message "git init finished"))))
+  (let ((default-directory (or dir default-directory)))
+    (dvc-run-dvc-sync 'xgit (list "init-db")
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "git init finished")))))
 
 (defun xgit-add-files (&rest files)
   "Run git add."
   (message "xgit-add-files: %s" files)
-  (dvc-run-dvc-sync 'xgit (append '("add") files)
+  (let ((default-directory (xgit-tree-root)))
+    (dvc-run-dvc-sync 'xgit (append '("add") (mapcar #'file-relative-name files))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "git add finished")))))
+
+(defun xgit-remove-files (&rest files)
+  "Run git rm."
+  (message "xgit-remove-files: %s" files)
+  (dvc-run-dvc-sync 'xgit (append '("rm") (mapcar #'file-relative-name files))
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
-                                (message "git add finished"))))
+                                (message "git rm finished"))))
 
 (defun xgit-command-version ()
   "Run git version."
@@ -58,9 +68,10 @@
   (let ((version (dvc-run-dvc-sync 'xgit (list "version")
                                    :finished 'dvc-output-buffer-handler)))
     (when (interactive-p)
-      (message "Cogito Version: %s" version))
+      (message "Git Version: %s" version))
     version))
 
+;; TODO: update for git
 (defun xgit-parse-status  (changes-buffer)
   (dvc-trace "xgit-parse-status (dolist)")
   (let ((status-list
@@ -93,6 +104,7 @@
                                      status
                                      modif)))))))))
 
+;; TODO: update for git
 (defun xgit-status (&optional against path)
   "Run git status."
   (interactive (list nil default-directory))
@@ -106,7 +118,7 @@
     (setq dvc-buffer-refresh-function 'xgit-status)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync
-     'xgit '("status" "-w")
+     'xgit '("status")
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (with-current-buffer (capture buffer)
@@ -123,6 +135,7 @@
                                      (capture root)
                                      output error))))))
 
+;; TODO: update for git
 (defun xgit-log ()
   "Run git log."
   (interactive)
@@ -142,6 +155,7 @@
                               (insert (format "git log for %s\n\n" default-directory))
                               (xgit-log-mode))))))))
 
+;; TODO: update for git
 ;; copied from xhg-parse-diff: not yet fully working
 (defun xgit-parse-diff (changes-buffer)
   (save-excursion
@@ -165,6 +179,7 @@
                                  " " ; dir. Nothing is a directory in hg.
                                  nil)))))))
 
+;; TODO: update for git
 (defun xgit-diff (&optional against path dont-switch)
     (interactive (list nil nil current-prefix-arg))
   (let* ((cur-dir (or path default-directory))
@@ -186,6 +201,7 @@
                          (dvc-show-changes-buffer output 'xgit-parse-diff
                                                   (capture buffer))))))
 
+;; TODO: update for git
 (defun xgit-restore (force &rest files)
   "Run git restore
 
@@ -199,6 +215,7 @@ xgit-restore
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
                                   (message "git restore finished")))))
+;; TODO: update for git
 (defun xgit-revert-files (&rest files)
   "See `xgit-restore'"
   (apply 'xgit-restore t files))
@@ -206,6 +223,7 @@ xgit-restore
 ;; --------------------------------------------------------------------------------
 ;; dvc revision support
 ;; --------------------------------------------------------------------------------
+;; TODO: update for git
 ;;;###autoload
 (defun xgit-revision-get-last-revision (file last-revision)
   "Insert the content of FILE in LAST-REVISION, in current buffer.
