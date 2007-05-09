@@ -183,9 +183,11 @@ the current active back-end."
     root))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-log-edit ()
-  "Edit the log before commiting."
-  (interactive))
+(define-dvc-unified-command dvc-log-edit (&optional other-frame)
+  ;; FIXME: added other-frame; fix uses. xmtn done.
+  "Edit the log before commiting. Optional user prefix puts log
+edit buffer in a separate frame."
+  (interactive "P"))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-log-edit-done ()

@@ -32,8 +32,9 @@
 ;; http://dev.technomancy.us/phil/wiki/ElUnit .
 
 (eval-and-compile
-  (require 'elunit)
   (require 'cl)
+  (require 'elunit)
+  (require 'elp) ;; elp-elapsed-time is a 'defsubst', so we require elp at load time, not run time.
   (require 'xmtn-match)
   (require 'xmtn-dvc)
   (require 'dvc-tests-utils "tests/dvc-tests-utils.el"))
@@ -474,7 +475,6 @@ YPFoLxe1V5oOyoe3ap0H
                                nil read-expression-map t
                                'xmtn-tests--profile-history))
         (reps 20))
-    (require 'elp)
     (elp-instrument-package "xmtn-")
     (elp-instrument-package "dvc-")
     (elp-instrument-package "process-")
@@ -527,7 +527,9 @@ YPFoLxe1V5oOyoe3ap0H
          (read-from-minibuffer "Time xmtn command: "
                                nil read-expression-map t
                                'xmtn-tests--profile-history))
-        (reps 29)) ;; FIXME: dies on rep 30 on Windows MinGW
+        (reps 10)) ;; FIXME: dies on rep 30 on Windows MinGW
+    ;; Run command once before starting timing to get everything in cache
+    (eval command)
     (let ((run-time 0))
       (assert (garbage-collect))
       (loop for rep from 1

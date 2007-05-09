@@ -1187,7 +1187,7 @@ The result is based on `dvc-diff-cookie'."
     'dont-know))
 
 ;;;###autoload
-(defun tla-edit-log (&optional insert-changelog source-buffer)
+(defun tla-edit-log (&optional insert-changelog source-buffer other-frame)
   "Edit the tla log file.
 
 With an optional prefix argument INSERT-CHANGELOG, insert the last
