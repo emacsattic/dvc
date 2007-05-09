@@ -1,6 +1,6 @@
-;;; cg-log.el --- Cogito interface for dvc: mode for git log style output
+;;; xgit-log.el --- git interface for dvc: mode for git log style output
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -21,7 +21,7 @@
 
 ;;; Commentary:
 
-;; The git/cogito interface for dvc: a mode to handle cg log style output
+;; The git interface for dvc: a mode to handle cg log style output
 
 ;;; History:
 
@@ -29,64 +29,64 @@
 
 ;;; Code:
 
-(defvar cg-log-mode-map
+(defvar xgit-log-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map dvc-keyvec-help 'describe-mode)
-    (define-key map [?g] 'cg-log)
-    (define-key map [?s] 'cg-status)
-    (define-key map dvc-keyvec-next 'cg-log-next)
-    (define-key map dvc-keyvec-previous 'cg-log-previous)
+    (define-key map [?g] 'xgit-log)
+    (define-key map [?s] 'xgit-status)
+    (define-key map dvc-keyvec-next 'xgit-log-next)
+    (define-key map dvc-keyvec-previous 'xgit-log-previous)
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     map)
-  "Keymap used in `cg-log-mode'.")
+  "Keymap used in `xgit-log-mode'.")
 
-(easy-menu-define cg-log-mode-menu cg-log-mode-map
-  "`cg-log-mode' menu"
-  `("cg-log"
-    ["Show status" cg-status t]
+(easy-menu-define xgit-log-mode-menu xgit-log-mode-map
+  "`xgit-log-mode' menu"
+  `("xgit-log"
+    ["Show status" xgit-status t]
     ["Start Commiting" dvc-log-edit t]
     ))
 
 
-(defvar cg-log-font-lock-keywords
+(defvar xgit-log-font-lock-keywords
    '(("^committer" . font-lock-function-name-face)
      ("^commit" . font-lock-function-name-face)
      ("^tree" . font-lock-function-name-face)
      ("^parent" . font-lock-function-name-face)
      ("^author" . font-lock-function-name-face))
-  "Keywords in `cg-log-mode' mode.")
+  "Keywords in `xgit-log-mode' mode.")
 
 
-(define-derived-mode cg-log-mode fundamental-mode "cg-log"
+(define-derived-mode xgit-log-mode fundamental-mode "xgit-log"
   "Major mode to display cg log output.
 
 Commands:
-\\{cg-log-mode-map}
+\\{xgit-log-mode-map}
 "
   (set (make-local-variable 'font-lock-defaults)
-       (list 'cg-log-font-lock-keywords t nil nil))
+       (list 'xgit-log-font-lock-keywords t nil nil))
   (toggle-read-only 1))
 
-(defconst cg-log-start-regexp "^commit +\\([0-9a-f]+\\)")
-(defun cg-log-next (n)
+(defconst xgit-log-start-regexp "^commit +\\([0-9a-f]+\\)")
+(defun xgit-log-next (n)
   "Move to the next changeset header of the next diff hunk"
   (interactive "p")
   (end-of-line)
-  (re-search-forward cg-log-start-regexp nil t n)
+  (re-search-forward xgit-log-start-regexp nil t n)
   (beginning-of-line))
 
-(defun cg-log-previous (n)
+(defun xgit-log-previous (n)
   "Move to the previous changeset header of the previous diff hunk"
   (interactive "p")
   (end-of-line)
-  (re-search-backward cg-log-start-regexp)
-  (re-search-backward cg-log-start-regexp nil t n))
+  (re-search-backward xgit-log-start-regexp)
+  (re-search-backward xgit-log-start-regexp nil t n))
 
-(defun cg-log-revision-at-point ()
+(defun xgit-log-revision-at-point ()
   (save-excursion
     (end-of-line)
-    (re-search-backward cg-log-start-regexp)
+    (re-search-backward xgit-log-start-regexp)
     (match-string-no-properties 1)))
 
-(provide 'cg-log)
-;;; cg-log.el ends here
+(provide 'xgit-log)
+;;; xgit-log.el ends here
