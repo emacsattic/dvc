@@ -55,7 +55,8 @@
   "Revert FILES for the currently active dvc."
   (interactive (dvc-current-file-list))
   (let* ((dvc (dvc-current-active-dvc))
-         (multiprompt (format "Revert %%d files to their stored version in %s? " dvc))
+         (multiprompt (format "Revert %%d files to their stored version in %s? "
+                              dvc))
          (singleprompt (format "Revert file to its state in %s: " dvc)))
     (when (setq files (dvc-confirm-read-file-name-list multiprompt files
                                                        singleprompt nil))
@@ -73,16 +74,11 @@
       (apply 'dvc-apply "dvc-remove-files" files))))
 
 ;;;###autoload
-(progn
-  (defmacro define-dvc-unified-command (name args comment &optional interactive)
-    `(defun ,name ,args
-       ,comment
-       ,@(when interactive (list interactive))
-       (dvc-apply ,(symbol-name name) ,@(remove '&optional args))
-       )))
-
-(put 'dvc-create-unified-command
-     'lisp-indent-function 'defun)
+(defmacro define-dvc-unified-command (name args comment &optional interactive)
+  `(defun ,name ,args
+     ,comment
+     ,@(when interactive (list interactive))
+     (dvc-apply ,(symbol-name name) ,@(remove '&optional args))))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-diff (&optional against path dont-switch)
@@ -98,7 +94,8 @@ BASE and MODIFIED must be revision ID.
 If DONT-SWITCH is nil, switch to the newly created buffer.")
 
 ;;;###autoload
-(define-dvc-unified-command dvc-file-diff (file &optional base modified dont-switch)
+(define-dvc-unified-command dvc-file-diff (file &optional base modified
+                                                dont-switch)
   "Display the changes in FILE for the actual dvc."
   (interactive (list buffer-file-name)))
 
@@ -146,8 +143,8 @@ If DONT-SWITCH is nil, switch to the newly created buffer.")
 (defvar dvc-command-version nil)
 ;;;###autoload
 (defun dvc-command-version ()
-  (interactive)
   "Returns and/or shows the version identity string of backend command."
+  (interactive)
   (setq dvc-command-version (dvc-apply "dvc-command-version"))
   (when (interactive-p)
     (message "%s" dvc-command-version))
@@ -175,11 +172,12 @@ the current active back-end."
             (setq dvc (car dvc-list)))))
       (setq dvc-list (cdr dvc-list)))
     (when (string= root "/")
-      (unless no-error (error "Tree %s is not version controled"
+      (unless no-error (error "Tree %s is not under version control"
                               path))
       (setq root nil))
     (when (interactive-p)
-      (message "Root: %s (managed by %s)" root (dvc-variable dvc "backend-name")))
+      (message "Root: %s (managed by %s)"
+               root (dvc-variable dvc "backend-name")))
     root))
 
 ;;;###autoload
@@ -243,4 +241,5 @@ the current active back-end."
   (interactive))
 
 (provide 'dvc-unified)
+
 ;;; dvc-unified.el ends here
