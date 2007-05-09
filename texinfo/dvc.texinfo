@@ -78,7 +78,16 @@ The main features are:
 This file documents @b{DVC}, version
 @include dvc-version.texinfo
 
+Backends supported:
+   @table @dfn
+   @item Bazaar (bzr)
+@url{http://bazaar-vcs.org/}
 
+   @item monotone (mtn)
+@url{http://www.venge.net/monotone/}
+
+@c FIXME: add others
+   @end table
 
 @c ============================================================================
 @menu

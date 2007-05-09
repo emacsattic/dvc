@@ -39,7 +39,7 @@
 ;;;###autoload
 (defalias 'xhg-dvc-tree-root 'xhg-tree-root)
 
-(defun xhg-dvc-log-edit ()
+(defun xhg-dvc-log-edit (&optional other-frame)
   (dvc-dvc-log-edit))
 
 (defvar xhg-dvc-commit-extra-parameters nil "A list of extra parameters for the next hg commit.")

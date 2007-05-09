@@ -460,9 +460,12 @@ used to get more info about the process.")
 (defun dvc-build-dvc-command (dvc list-args)
   "Build a shell command to run DVC with args LIST-ARGS.
 DVC can be one of 'baz, 'xhg, ..."
-  (let ((executable (dvc-variable dvc "executable")))
+  (let ((executable (executable-find (dvc-variable dvc "executable"))))
+    ;; 'executable-find' allows leading ~
+    (if (not executable)
+        (error "executable for %s not found" (symbol-name dvc)))
     (mapconcat 'shell-quote-argument
-               (cons (executable-find executable) ; allow leading ~
+               (cons executable
                      (remq nil list-args))
                " ")))
 
@@ -540,7 +543,7 @@ Example:
                         (message \"No changes in this working copy\"))
                       :error
                       (lambda (output error status arguments)
-                        (dvc-show-changes-buffer output)))"
+                        (dvc-show-changes-buffer 'tla--parse-changes output)))"
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys

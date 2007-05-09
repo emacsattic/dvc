@@ -1,6 +1,6 @@
 ;;; dvc-revlist.el --- Revision list in DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -46,13 +46,24 @@
   log-buffer
   diff-buffer)
 
-;; elem should be
+(defvar dvc-revlist-cookie nil
+  "Ewoc cookie for dvc-revlist.")
+
+;; elem of dvc-revlist-cookie should be one of:
 ;; ('separator "string" kind)
-;; or
-;; ('entry-patch struct) Where "struct" is a dvc-revlist-entry-patch
-;; struct type.
+;;    `kind' is: one of
+;;    partner: ???
+;;    bookmark: ???
+;;    
+;; ('entry-patch struct)
+;;    `struct' is a dvc-revlist-entry-patch struct type.
+;;
 ;; ('entry-change "changes")
+;;
+;; ('message "message")
+;; 
 ;; The second element tells if the element is marked or not.
+
 (defun dvc-revlist-printer (elem)
   "Print an element ELEM of the revision list."
   (let ()
@@ -333,9 +344,9 @@ caller has to provide the function PARSER which will actually
 build the revision list."
   (let ((buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
-      (let ((back-end dvc-buffer-current-active-dvc))
-        (dvc-revlist-mode)
-        (setq dvc-buffer-current-active-dvc back-end)))
+      (dvc-revlist-mode)
+      ;; dvc-buffer-current-active-dvc is killed by dvc-revlist-mode, so reset it
+      (setq dvc-buffer-current-active-dvc back-end))
     (if dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer)
       (set-buffer buffer))

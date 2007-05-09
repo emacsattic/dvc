@@ -1,6 +1,6 @@
 ;;; bzr.el --- Support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -527,6 +527,19 @@ of the commit. Additionally the destination email address can be specified."
                                   (output error status arguments)
                                 (message "bzr remove finished"))))
 
+;;;###autoload
+(defun bzr-rename (from to &optional after)
+  "Run bzr rename."
+  (interactive
+   (let* ((from-name (dvc-confirm-read-file-name "bzr rename: "))
+          (to-name (dvc-confirm-read-file-name (concat "bzr rename '" from-name "' to: ") nil "" from-name)))
+     (list from-name to-name nil)))
+  (dvc-run-dvc-sync 'bzr (list "rename" (dvc-uniquify-file-name from) (dvc-uniquify-file-name to)
+                               (when after "--after"))
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr rename finished"))))
+
 (defun bzr-is-bound (&optional path)
   "True if branch containing PATH is bound"
   (file-exists-p (concat (file-name-as-directory
@@ -537,7 +550,7 @@ of the commit. Additionally the destination email address can be specified."
 (defun bzr-log-edit-commit-local ()
   "Local commit"
   (interactive)
-  (bzr-log-edit-done t))
+  (bzr-log-edit-done))
 
 (defun bzr-log-edit-commit (&optional local)
   "Commit without --local by default.

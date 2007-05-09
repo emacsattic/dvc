@@ -51,26 +51,29 @@
 (defun xhg-add-files (&rest files)
   "Run hg add."
   (message "xhg-add-files: %s" files)
-  (dvc-run-dvc-sync 'xhg (append '("add") files)
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (message "hg add finished"))))
+  (let ((default-directory (xhg-tree-root)))
+    (dvc-run-dvc-sync 'xhg (append '("add") (mapcar #'file-relative-name files))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "hg add finished")))))
 
 (defun xhg-revert-files (&rest files)
   "Run hg revert."
   (message "xhg-revert-files: %s" files)
-  (dvc-run-dvc-sync 'xhg (append '("revert") files)
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (message "hg revert finished"))))
+  (let ((default-directory (xhg-tree-root)))
+    (dvc-run-dvc-sync 'xhg (append '("revert") (mapcar #'file-relative-name files))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "hg revert finished")))))
 
 (defun xhg-remove-files (&rest files)
   "Run hg remove."
   (message "xhg-remove-files: %s" files)
-  (dvc-run-dvc-sync 'xhg (append '("remove") files)
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (message "hg remove finished"))))
+  (let ((default-directory (xhg-tree-root)))
+    (dvc-run-dvc-sync 'xhg (append '("remove") (mapcar #'file-relative-name files))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "hg remove finished")))))
 
 ;;;###autoload
 (defun xhg-addremove ()

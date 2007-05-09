@@ -1,6 +1,6 @@
 ;;; dvc-unified.el --- The unification layer for dvc
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -181,9 +181,11 @@ the current active back-end."
     root))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-log-edit ()
-  "Edit the log before commiting."
-  (interactive))
+(define-dvc-unified-command dvc-log-edit (&optional other-frame)
+  ;; FIXME: added other-frame; fix uses. xmtn done.
+  "Edit the log before commiting. Optional user prefix puts log
+edit buffer in a separate frame."
+  (interactive "P"))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-log-edit-done ()
@@ -227,7 +229,8 @@ the current active back-end."
 
 ;;;###autoload
 (define-dvc-unified-command dvc-pull ()
-  "Pull changes in the working copy."
+  "Pull changes from the remote source to the working copy or
+local database, as appropriate for the current back-end."
   (interactive))
 
 ;;;###autoload

@@ -20,3 +20,4 @@ www/download
 ./config.log
 ./config.status
 www/dvc.png
+./lisp/tests/xmtn-tests-one.el

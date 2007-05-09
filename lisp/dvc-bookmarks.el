@@ -1,6 +1,6 @@
 ;;; dvc-bookmarks.el --- The bookmark system for DVC
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -93,6 +93,8 @@
     (define-key map "f"      'dvc-bookmarks-pull)
     (define-key map "."      'dvc-bookmarks-show-info-at-point)
     (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
+    (define-key map "Ap"     'dvc-bookmarks-add-partner)
+    (define-key map "Rp"     'dvc-bookmarks-remove-partner)
     map)
   "Keymap used in `dvc-bookmarks-mode'.")
 
@@ -107,6 +109,9 @@
     ["DVC pull" dvc-bookmarks-pull t]
    "--"
     ["Add new bookmark" dvc-bookmarks-add t]
+    ["Add partner" dvc-bookmarks-add-partner t]
+    ["Remove partner" dvc-bookmarks-remove-partner t]
+   "--"
     ["Save bookmarks" dvc-bookmarks-save t]
      ))
 
@@ -302,6 +307,28 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (interactive)
   (dvc-bookmark-goto-name (ido-completing-read "Jump to dvc bookmark: " (dvc-bookmark-names))))
 
+(defun dvc-bookmarks-get-partners ()
+  (delete nil (mapcar '(lambda (e) (when (and (listp e) (eq (car e) 'partner)) (cadr e)))
+                      (dvc-bookmarks-current-data))))
+
+(defun dvc-bookmarks-add-partner ()
+  (interactive)
+  (let* ((cur-data (dvc-bookmarks-current-data))
+         (partner-url (read-string (format "Add partner to '%s': " (car cur-data)))))
+    (if (not (member partner-url (dvc-bookmarks-get-partners)))
+        (progn
+          (setcdr cur-data (append (cdr cur-data) (list (list 'partner partner-url))))
+          (message "dvc-bookmarks-add-partner %s" cur-data))
+      (message "%s is already a partner for %s" partner-url (car cur-data)))))
+
+(defun dvc-bookmarks-remove-partner ()
+  (interactive)
+  (let* ((cur-data (dvc-bookmarks-current-data))
+         (partner-to-remove (ido-completing-read (format "Remove partner from %s: " (car cur-data))
+                                                 (dvc-bookmarks-get-partners))))
+    (delete (list 'partner partner-to-remove) cur-data)))
+
+;; (dvc-bookmarks-load-from-file t)
 
 (provide 'dvc-bookmarks)
 ;;; dvc-bookmarks.el ends here

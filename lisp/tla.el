@@ -309,6 +309,7 @@ minibuffer:
                                           func)
                             (match-string 1 func)))
           (setq line (concat line (format "%s => `%s'" keys1 func) "    "))))
+    ;; FIXME: tla--message-with-rolling is not defined anywhere
     (tla--message-with-rolling line)
     ))
 
@@ -1186,7 +1187,7 @@ The result is based on `dvc-diff-cookie'."
     'dont-know))
 
 ;;;###autoload
-(defun tla-edit-log (&optional insert-changelog source-buffer)
+(defun tla-edit-log (&optional insert-changelog source-buffer other-frame)
   "Edit the tla log file.
 
 With an optional prefix argument INSERT-CHANGELOG, insert the last
@@ -1456,7 +1457,7 @@ Value is chosen depending on user configuration and arch branch."
                                dvc-diff-cookie)
                      ))
                  (dvc-show-changes-buffer
-                  output 'dvc-parse-other (capture buffer))
+                  output 'tla--parse-other (capture buffer))
                  (message "`%s update' finished" (tla--executable))
                  (dvc-revert-some-buffers (capture root))
                  (when (capture handle) (funcall (capture handle))))
@@ -1616,7 +1617,7 @@ the root of the projects is displayed."
                   (message "Error in diff process"))))
           (dvc-show-changes-buffer output
                                    (if (eq tla-arch-branch 'tla)
-                                       'dvc-parse-other 'tla--parse-baz-diff)
+                                       'tla--parse-other 'tla--parse-baz-diff)
                                    (capture buffer)
                                    (capture master-buffer)
                                    "^[^*\\.]")
@@ -1729,7 +1730,7 @@ CHANGES-BUFFER is the target buffer."
                                        "/" " "))))
           (forward-line 1))))))
 
-(defun dvc-parse-other (changes-buffer)
+(defun tla--parse-other (changes-buffer)
   "Parses, for example, the output of tla-changes."
   (beginning-of-line)
   (while (or (eq (char-after) ?*)
@@ -1804,7 +1805,7 @@ CHANGES-BUFFER is the target buffer."
 
 (defun tla--parse-baz-diff (changes-buffer)
   (if (looking-at "^[^\\*]")
-      (dvc-parse-other changes-buffer)
+      (tla--parse-other changes-buffer)
     (save-excursion
       (while (re-search-forward
               "^--- \\(orig/\\)?\\([^\n]*\\)\n\\+\\+\\+ mod/\\([^\n]*\\)$" nil t)
@@ -1948,7 +1949,7 @@ MODIFIED)."
           (message
            (concat "tla delta finished: "
                    "No changes in this arch working copy"))
-        (dvc-show-changes-buffer output 'dvc-parse-other buffer)
+        (dvc-show-changes-buffer output 'tla--parse-other buffer)
         (unless dont-switch
           (dvc-switch-to-buffer buffer))
         (message "tla delta finished")))))
@@ -2059,7 +2060,7 @@ will be used for the variables `dvc-diff-base' and
                      (dvc-capturing-lambda (output error status arguments)
                         (dvc-show-changes-buffer output
                                                  (if (capture without-diff)
-                                                     'dvc-parse-other
+                                                     'tla--parse-other
                                                    'tla--parse-show-changeset)
                                                  (capture buffer)
                                                  (capture dvc-switch-to-buffer-first))
@@ -2118,7 +2119,7 @@ If REVERSE is non-nil, use --reverse too."
                            changeset target)
                      :finished (dvc-capturing-lambda (output error status arguments)
                                   ;; (tla--show-last--process-buffer)
-                                  (dvc-show-changes-buffer output)
+                                  (dvc-show-changes-buffer output 'tla--parse-other)
                                   (message "tla apply-changeset finished")
                                   (dvc-revert-some-buffers (capture target)))))
 
@@ -2906,9 +2907,6 @@ as the place where changelog is got."
     (dvc-show-last-process-buffer 'changelog 'tla-changelog-mode)
     (goto-char (point-min))))
 
-(defvar dvc-revlist-cookie nil
-  "Ewoc cookie for tla-bookmark-missing.")
-
 ;;;###autoload
 (defun tla-logs ()
   "Run tla logs."
@@ -3355,7 +3353,7 @@ i.e. the destination mirror."
                           :finished (dvc-capturing-lambda (output error status arguments)
                                        ;; (tla--show-last--process-buffer)
                                        (dvc-show-changes-buffer
-                                        output 'dvc-parse-other (capture buffer))
+                                        output 'tla--parse-other (capture buffer))
                                        (message "merge command finished")
                                        (dvc-revert-some-buffers (capture to-tree)))
                           :error (dvc-capturing-lambda (output error status arguments)
@@ -3364,7 +3362,7 @@ i.e. the destination mirror."
                                       (2 (dvc-default-error-function
                                           output error status arguments))
                                       ;; How about other status?
-                                      (otherwise (dvc-show-changes-buffer output)
+                                      (otherwise (dvc-show-changes-buffer output 'tla--parse-other)
                                                  output nil (capture buffer))))))))
 
 (defun tla--replay-arguments ()
@@ -3419,7 +3417,7 @@ If REVERSE is non-nil, reverse the requested revision."
                                 (list from)))
                           :finished (dvc-capturing-lambda (output error status arguments)
                                        (dvc-show-changes-buffer output
-                                                                'dvc-parse-other
+                                                                'tla--parse-other
                                                                 (capture buffer))
                                        (message "tla replay finished")
                                        (dvc-revert-some-buffers (capture to-tree)))
@@ -3446,7 +3444,7 @@ If REVERSE is non-nil, reverse the requested revision."
                                      (message "tla sync-tree finished")
                                      (dvc-revert-some-buffers (capture to-tree)))
                         :error (lambda (output error status arguments)
-                                 (dvc-show-changes-buffer output)))))
+                                 (dvc-show-changes-buffer output 'tla--parse-other)))))
 
 ;;;###autoload
 (defun tla-switch (tree version &optional handle)
@@ -3481,7 +3479,7 @@ After running update, execute HANDLE (function taking no argument)."
                                     (lambda (output error status arguments)
                                       ;; (tla--show-last--process-buffer)
                                       (dvc-show-changes-buffer
-                                       output 'dvc-parse-other buffer-lex)
+                                       output 'tla--parse-other buffer-lex)
                                       (message "`%s switch' finished" (tla--executable))
                                       (dvc-revert-some-buffers tree-lex)
                                       (when handle-lex (funcall handle-lex))))
