@@ -327,7 +327,7 @@ the file before saving."
   (dvc-log-flush-commit-file-list))
 
 ;;;###autoload
-(defun xmtn-dvc-log-edit ()
+(defun xmtn-dvc-log-edit (&optional other-frame)
   (let ((root (dvc-tree-root))
         (orig-buffer (current-buffer))
         log-edit-buffer)
@@ -341,7 +341,7 @@ the file before saving."
               (unwind-protect
                   (dvc-log-flush-commit-file-list)
                 (set-buffer-modified-p previously-modified-p)))))
-        (dvc-dvc-log-edit)
+        (dvc-dvc-log-edit other-frame)
       (with-current-buffer log-edit-buffer
         (setq buffer-file-coding-system 'xmtn--monotone-normal-form)
         (add-to-list 'buffer-file-format 'xmtn--log-file)

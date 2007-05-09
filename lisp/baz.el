@@ -1,6 +1,6 @@
 ;;; baz.el --- baz related code for dvc
 
-;; Copyright (C) 2005-2006  Free Software Foundation, Inc.
+;; Copyright (C) 2005-2007  Free Software Foundation, Inc.
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Keywords:
@@ -90,7 +90,7 @@ Else it runs asynchronously."
          (buffer (dvc-get-buffer 'status default-directory)))
     (if buffer
         (dvc-switch-to-buffer buffer)
-      (baz-status root against))))
+      (baz-status root))))
 
 ;;;###autoload
 (defun baz-status (&optional root)

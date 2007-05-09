@@ -96,7 +96,7 @@ Commands:
 (defvar dvc-pre-commit-window-configuration nil)
 
 ;;;###autoload
-(defun dvc-dvc-log-edit ()
+(defun dvc-dvc-log-edit (&optional other-frame)
   "Edit the log file before a commit.
 
 If  invoked from  a buffer  containing marked  files,  only those
@@ -106,7 +106,9 @@ files  will be  taken  into  account when  you  will commit  with
   (setq dvc-pre-commit-window-configuration
         (current-window-configuration))
   (let ((start-buffer (current-buffer)))
-    (dvc-switch-to-buffer (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit))
+    (dvc-switch-to-buffer
+     (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit)
+     other-frame)
     (let ((buffer-name (buffer-name))
           (file-name (dvc-log-edit-file-name)))
       (set-visited-file-name file-name t t)
