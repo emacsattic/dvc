@@ -54,9 +54,9 @@
 
     <p>A nightly snapshot can be found from the download page
     (currently, Matthieu's branch):
-    <a href="download/">download/</a></p>
+    <a href="http://download.gna.org/dvc/download/dvc-snapshot.tar.gz">download/</a></p>
 
-    <p>The manual is also available online: <a href="docs/">docs/</a></p>
+    <p>The manual is also available online: <a href="http://download.gna.org/dvc/docs/dvc-snapshot.html">docs/</a></p>
 
     <p>DVC is the place where the future hacking will be done. There have
     been a lot of code moving and function renamings which makes the merge
@@ -133,10 +133,10 @@
       <tr>
         <!--
             ***
-            *** 6 stands for the number of backends ***
+            *** 7 stands for the number of backends ***
             ***
           -->
-        <th rowspan="6">Backend</th>
+        <th rowspan="7">Backend</th>
 
         <th>tla</th>
         <!-- FUNCTIONS BEGIN -->
@@ -167,10 +167,10 @@
         <th>+</th>
         <th>+</th>
         <th>+</th>
-        <th>-</th>
+        <th>+</th>
         <th>+</th>
         <!-- FUNCTIONS END -->
-        <th>Matthieu</th>
+        <th>Matthieu, Stefan</th>
         <th></th>
       </tr>
       <tr>
@@ -178,7 +178,7 @@
         <!-- FUNCTIONS BEGIN -->
         <th>+</th>
         <th>+</th>
-        <th>-</th>
+        <th>+</th>
         <th>+</th>
         <th>+</th>
         <!-- FUNCTIONS END -->
@@ -186,15 +186,15 @@
         <th></th>
       </tr>
       <tr>
-        <th>cg</th>
+        <th>monotone</th>
         <!-- FUNCTIONS BEGIN -->
         <th>+</th>
         <th>+</th>
-        <th>-</th>
-        <th>-</th>
+        <th>+</th>
+        <th>+</th>
         <th>+</th>
         <!-- FUNCTIONS END -->
-        <th>Stefan</th>
+        <th>Christian</th>
         <th></th>
       </tr>
       <tr>
@@ -209,14 +209,28 @@
         <th>Stefan</th>
         <th></th>
       </tr>
+      <tr>
+        <th>git</th>
+        <!-- FUNCTIONS BEGIN -->
+        <th>-</th>
+        <th>-</th>
+        <th>-</th>
+        <th>-</th>
+        <th>-</th>
+        <!-- FUNCTIONS END -->
+        <th>Stefan</th>
+        <th></th>
+      </tr>
     </table>
 
     <pre>
       TODO: make a clean array here.
 
       * tla and baz (Xtla). Should remain ~100% functional. We may break some functionalities by accident.
-      * bzr. Basic support (diff, ediff, edit log, commit). Currently the most advanced back-end.
-      * xhg. Basic support.
+      * bzr. Good support (diff, ediff, edit log, commit).
+      * xhg. Good support. There is also a nice support for mercurial queues (mq).
+      * xmtn. Good support.
+      * git. We dropped the cogito backend. The git backend is not yet usable.
       * darcs. Just started. Not usable yet.
     </pre>
 
