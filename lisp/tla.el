@@ -5959,7 +5959,7 @@ If ONLY-ID is non-nil, move only the ID file."
    (list (read-file-name "Move file: "
                          nil nil t
                          (file-name-nondirectory
-                          (or (buffer-file-name) "")))
+                          (or (dvc-get-file-info-at-point) "")))
          nil nil))
   (setq to (or to (read-file-name (format "Move file %S to: " from)
                                   nil nil nil (file-name-nondirectory from)))
