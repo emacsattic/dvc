@@ -30,7 +30,7 @@
 
 ;;; Code:
 
-(require 'cg)
+(require 'xgit)
 (eval-and-compile (require 'dvc-unified))
 
 ;;;###autoload
