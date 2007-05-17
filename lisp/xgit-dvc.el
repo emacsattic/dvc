@@ -30,7 +30,7 @@
 
 ;;; Code:
 
-(require 'cg)
+(require 'xgit)
 (eval-and-compile (require 'dvc-unified))
 
 ;;;###autoload
@@ -55,22 +55,22 @@
 (defun xgit-dvc-log-edit-file-name-func ()
   xgit-log-edit-file-name)
 
-(defun xgit-dvc-log-edit ()
-  (dvc-dvc-log-edit))
+(defun xgit-dvc-log-edit (&optional other-frame)
+  (dvc-dvc-log-edit other-frame))
 
 (defun xgit-dvc-log-edit-done ()
-  "Finish a commit for git."
+  "Finish a commit for git, using git commit -a"
   (let ((buffer (find-file-noselect (dvc-log-edit-file-name)))
-        (files-to-commit (with-current-buffer dvc-partner-buffer (dvc-current-file-list 'nil-if-none-marked))))
+        (files-to-commit (with-current-buffer dvc-partner-buffer
+                           (dvc-current-file-list 'nil-if-none-marked))))
     (dvc-log-flush-commit-file-list)
     (save-buffer buffer)
     (message "committing %S in %s" (or files-to-commit "all files") (dvc-tree-root))
     (dvc-run-dvc-sync
-     ;; cg 0.17 supports the -M command line switch for commit
-     'cg (append (list "commit"
-                       (unless (xgit-tree-has-head) "-C") ;; specifiy -C for the initial commit
-                       "-M" (dvc-log-edit-file-name))
-                 files-to-commit)
+     'xgit (append (list "commit"
+                         (unless files-to-commit "-a")
+                         "-F" (dvc-log-edit-file-name))
+                   );;files-to-commit)    ;; TODO: specification of a file list does not yet work...
      :finished (dvc-capturing-lambda
                    (output error status arguments)
                  (dvc-show-error-buffer output 'commit)
@@ -80,7 +80,7 @@
                              (buffer-string))))
                  (dvc-log-close (capture buffer))
                  ;; doesn't work at the moment (Stefan, 10.02.2006)
-                 ;; (dvc-diff-clear-buffers 'cg (capture default-directory)
+                 ;; (dvc-diff-clear-buffers 'xgit (capture default-directory)
                  ;;  "* Just committed! Please refresh buffer\n")
                  (message "git commit finished")))
     (dvc-tips-popup-maybe)))
