@@ -67,6 +67,8 @@ Commands:
   (dvc-install-buffer-menu)
   (set (make-local-variable 'font-lock-defaults)
        '(dvc-log-edit-font-lock-keywords t))
+  (set (make-local-variable 'fill-paragraph-function)
+       'dvc-log-fill-paragraph)
   (setq fill-column 73)
   (when (eq (point-min) (point-max))
     (dvc-log-edit-insert-initial-commit-message))
@@ -137,6 +139,16 @@ All lines starting with `dvc-log-edit-flush-prefix' are deleted."
   (save-excursion
     (goto-char (point-min))
     (flush-lines (concat "^" dvc-log-edit-flush-prefix))))
+
+(defun dvc-log-fill-paragraph (&optional justify)
+  "Fill the paragraph, but preserve open parentheses at beginning of lines.
+Prefix arg means justify as well."
+  (interactive "P")
+  (let ((end (progn (forward-paragraph) (point)))
+        (beg (progn (backward-paragraph) (point)))
+        (paragraph-start (concat paragraph-start "\\|\\s *\\s(")))
+    (fill-region beg end justify)
+    t))
 
 (defun dvc-log-insert-commit-file-list (arg)
   "Insert the file list that will be committed.
@@ -249,8 +261,10 @@ Inserts the entry in the arch log file instead of the ChangeLog."
                       "\\(\\s \\|[(),:]\\)")
               bound t))
            ;; Add to the existing entry for the same file.
-           (re-search-forward "^\\s *$\\|^\\s \\*")
-           (goto-char (match-beginning 0))
+           (if (re-search-forward "^\\s *$\\|^\\s \\*" nil t)
+               (goto-char (match-beginning 0))
+             (goto-char (point-max))
+             (insert-char ?\n 1))
            ;; Delete excess empty lines; make just 2.
            (while (and (not (eobp)) (looking-at "^\\s *$"))
              (delete-region (point) (line-beginning-position 2)))

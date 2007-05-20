@@ -56,7 +56,7 @@ git managed tree (but return nil)."
                         "%S is not in a git tree!"
                         location no-error))
 
-
+;; Stefan: 17.05.2007: not sure, if xgit-tree-has-head is still needed/valid
 (defun xgit-tree-has-head ()
   "Return t, if the git repository has a valid HEAD entry.
 It will be nil before the initial commit."
