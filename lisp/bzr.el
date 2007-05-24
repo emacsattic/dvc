@@ -72,7 +72,7 @@ This is used by the `bzr-send-commit-notification' function."
   (dvc-run-dvc-sync 'bzr (list "init" dir)
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
-                                 (message (format "bzr init %s finished" dir)))))
+                                 (message "bzr init %s finished" dir))))
 
 (defun bzr-init-repository (&optional dir)
   "Run bzr init-repository.
@@ -89,7 +89,7 @@ via bzr init-repository."
   (dvc-run-dvc-sync 'bzr (list "init-repository" dir)
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
-                                 (message (format "bzr init-repository '%s' finished" dir))))
+                                 (message "bzr init-repository '%s' finished" dir)))
   dir)
 
 (defun bzr-checkout (branch-location to-location &optional lightweight revision)
@@ -112,9 +112,9 @@ via bzr init-repository."
                                branch-location to-location)
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
-                                (message (format "bzr checkout%s %s -> %s finished"
-                                                 (if lightweight " --lightweight" "")
-                                                 branch-location to-location))
+                                (message "bzr checkout%s %s -> %s finished"
+                                         (if lightweight " --lightweight" "")
+                                         branch-location to-location)
                                 (dired to-location))))
 
 ;;;###autoload
@@ -127,8 +127,8 @@ via bzr init-repository."
                      :finished
                      (dvc-capturing-lambda
                          (output error status arguments)
-                       (message (format "bzr pull finished => %s"
-                                        (concat (dvc-buffer-content error) (dvc-buffer-content output)))))))
+                       (message "bzr pull finished => %s"
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
 ;;;###autoload
 (defun bzr-merge (&optional repo-path)
@@ -140,8 +140,8 @@ via bzr init-repository."
                      :finished
                      (dvc-capturing-lambda
                          (output error status arguments)
-                       (message (format "bzr merge finished => %s"
-                                        (concat (dvc-buffer-content error) (dvc-buffer-content output)))))))
+                       (message "bzr merge finished => %s"
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
 (defvar bzr-merge-or-pull-from-url-rules nil
   "An alist that maps repository urls to working copies. This rule is used by
@@ -185,8 +185,8 @@ An example setting is:
                      :finished
                      (dvc-capturing-lambda
                          (output error status arguments)
-                       (message (format "bzr update finished => %s"
-                                        (concat (dvc-buffer-content error) (dvc-buffer-content output)))))))
+                       (message "bzr update finished => %s"
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
 
 ;; bzr-start-project implements the following idea:
@@ -494,11 +494,11 @@ of the commit. Additionally the destination email address can be specified."
 (defun bzr-add (file)
   "Adds FILE to the repository."
   (interactive "fAdd file or directory: ")
-  (message
-   (let ((default-directory (bzr-tree-root)))
-     (dvc-run-dvc-sync
-      'bzr (list "add" (file-relative-name file))
-      :finished 'dvc-output-and-error-buffer-handler))))
+  (message "%s"
+           (let ((default-directory (bzr-tree-root)))
+             (dvc-run-dvc-sync
+              'bzr (list "add" (file-relative-name file))
+              :finished 'dvc-output-and-error-buffer-handler))))
 
 (defun bzr-add-files (&rest files)
   "Run bzr add."
