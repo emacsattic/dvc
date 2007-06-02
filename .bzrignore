@@ -21,3 +21,5 @@ www/download
 ./config.status
 www/dvc.png
 ./lisp/tests/xmtn-tests-one.el
+patches/
+.pc/
