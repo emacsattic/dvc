@@ -35,10 +35,15 @@
 
 (require 'dvc-core)
 
+(defgroup dvc-xgit nil
+  "Git support in dvc"
+  :group 'dvc)
+
 ;; Settings for git
-(defvar xgit-executable
-  "git"
-  "The executable used for the git commandline client.")
+(defcustom xgit-executable "git"
+  "The executable used for the git commandline client."
+  :type 'string
+  :group 'dvc-xgit)
 
 (defvar xgit-log-edit-file-name
   "++xgit-log-edit"
