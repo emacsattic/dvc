@@ -3,6 +3,8 @@
 ;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
+;; Contributions from:
+;;    Takuzo O'hara <takuzo.ohara@gmail.com>
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,6 +34,22 @@
 (require 'dvc-core)
 (require 'xgit-core)
 (require 'xgit-log)
+
+;; There must be something like these in standard emacs distributions
+;; but I couldn't find them.
+;; I don't know where to put these things so I put it here temporarily.
+;; -- takuzo
+(defun any-to-string (arg)
+  "Tries to convert anything passed to args to a string.
+Args can be list, number or string."
+  (cond ((null arg)
+	  "")
+	((listp arg)
+	 (reduce (lambda (s1 s2) (format "%s %s" s1 s2)) arg))
+	((numberp arg)
+	 (number-to-string arg))
+	((stringp arg)
+	 arg)))
 
 (defun xgit-init (&optional dir)
   "Run git init."
