@@ -35,6 +35,7 @@
 (require 'xgit-core)
 (require 'xgit-log)
 (eval-when-compile (require 'cl))
+(require 'xgit-annotate)
 
 ;; There must be something like these in standard emacs distributions
 ;; but I couldn't find them.
@@ -374,6 +375,40 @@ else returns list of '(tag offset all-described-string)."
 	  (list (match-string 1 info)
 		(match-string 2 info)
 		info))))))
+
+(defun git-annotate (dir file)
+  "Run git annotate for file in DIR.
+DIR is a directory controlled by Git/Cogito.
+FILE is filename in repostory.
+"
+  (let* ((buffer (dvc-get-buffer-create 'xgit 'annotate))
+	 (repo (xgit-git-dir dir))
+	 (cmd "blame")
+	 (fname (file-relative-name file (xgit-tree-root dir)))
+	 (args (list repo cmd "--" fname)))
+    (if dvc-switch-to-buffer-first
+        (dvc-switch-to-buffer buffer)
+      (set-buffer buffer))
+    (dvc-run-dvc-sync 'xgit args
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (progn
+                          (with-current-buffer (capture buffer)
+                            (let ((inhibit-read-only t))
+                              (erase-buffer)
+                              (insert-buffer-substring output)
+                              (goto-char (point-min))
+                              (xgit-annotate-mode))))))))
+
+(defun xgit-annotate ()
+  "Run git annotate"
+  (interactive)
+  (let* ((line (line-number-at-pos))
+	 (filename (dvc-confirm-read-file-name "Filename to annotate: "))
+	 (default-directory (xgit-tree-root filename)))
+    (git-annotate default-directory filename)
+    (goto-line line)))
+
 
 ;; --------------------------------------------------------------------------------
 ;; dvc revision support
