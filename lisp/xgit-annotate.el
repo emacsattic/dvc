@@ -24,6 +24,20 @@
 ;; The git/cogito interface for dvc: a mode to handle git-annotate style output
 
 ;;; Code:
+(require 'dvc-annotate)
+
+(defvar xgit-annotate-font-lock-keywords
+  '(("^[[:xdigit:]]\\{40\\}\s[[:digit:]]+\s[[:digit:]]+\s[[:digit:]]+" . font-lock-keyword-face)
+    ("^[[:xdigit:]]\\{40\\}\s[[:digit:]]+\s[[:digit:]]+" . font-lock-string-face)
+    ("^^[[:xdigit:]]\\{7\\}" . font-lock-string-face)
+    ("^[[:xdigit:]]\\{8\\}" . font-lock-function-name-face)
+    ("^author\\(-mail\\|-time\\|-tz\\)?" . font-lock-function-name-face)
+    ("^committer\\(-mail\\|-time\\|-tz\\)?" . font-lock-function-name-face)
+    ("^filename" . font-lock-function-name-face)
+    ("^summary" . font-lock-function-name-face)
+    ("^boundary" . font-lock-function-name-face)
+    )
+  "Keywords in `xgit-annotate-mode' mode.")
 
 (defvar xgit-annotate-mode-map
   (let ((map (make-sparse-keymap)))
@@ -39,6 +53,8 @@
 Commands:
 \\{xgit-annotate-mode-map}
 "
+  (dvc-annotate-display-autoscale t)
+  (dvc-annotate-lines (point-max))
   (xgit-annotate-hide-revinfo)
   (toggle-read-only 1))
 
@@ -112,5 +128,22 @@ Commands:
     (while (< (point) (point-max))
       (_xgit-annotate-hide-revinfo))))
 
-(provide 'xgit-annotate)
+(defun xgit-annotate-time ()
+  (when (< (point) (point-max))
+    (beginning-of-line)
+    (if (re-search-forward xgit-annotate-info-regexp nil t)
+	(let* ((year  (xgit-info-to-year))
+	       (month (xgit-info-to-month))
+	       (day   (xgit-info-to-day))
+	       (hour  (xgit-info-to-hour))
+	       (min   (xgit-info-to-min))
+	       (sec   (xgit-info-to-sec))
+	       (zone-hour (xgit-info-to-zone-hour))
+	       (zone-min  (xgit-info-to-zone-min))
+	       (zone-sec  (* 60 (+ (* 60 zone-hour) zone-min))))
+	  (dvc-annotate-convert-time
+	   (encode-time sec min hour day month year zone-sec))
+	  ))))
+
+provide 'xgit-annotate)
 ;;; xgit-annotate.el ends here
