@@ -3,6 +3,8 @@
 ;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
+;; Contributions from:
+;;    Takuzo O'hara <takuzo.ohara@gmail.com>
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -61,6 +63,10 @@ git managed tree (but return nil)."
   "Return t, if the git repository has a valid HEAD entry.
 It will be nil before the initial commit."
   (file-readable-p (concat (xgit-tree-root) "/.git/HEAD")))
+
+(defun xgit-git-dir (&optional location)
+  "Utility function to add --git-dir option to git command."
+  (concat "--git-dir=" (xgit-tree-root location) "/.git"))
 
 (provide 'xgit-core)
 ;;; xgit-core.el ends here
