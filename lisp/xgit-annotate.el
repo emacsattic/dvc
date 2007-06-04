@@ -145,5 +145,5 @@ Commands:
 	   (encode-time sec min hour day month year zone-sec))
 	  ))))
 
-provide 'xgit-annotate)
+(provide 'xgit-annotate)
 ;;; xgit-annotate.el ends here
