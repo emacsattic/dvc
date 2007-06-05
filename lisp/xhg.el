@@ -1,6 +1,6 @@
 ;;; xhg.el --- Mercurial interface for dvc
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -509,7 +509,7 @@ LAST-REVISION looks like
     ;; TODO: support the last-revision parameter??
     (insert (dvc-run-dvc-sync
              'xhg (list "cat" file)
-             :finished 'dvc-output-buffer-handler))))
+             :finished 'dvc-output-buffer-handler-withnewline))))
 
 ;; --------------------------------------------------------------------------------
 ;; higher level commands
