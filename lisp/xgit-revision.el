@@ -102,7 +102,7 @@
            dvc-revlist-cookie
            `(entry-patch
              ,(make-dvc-revlist-entry-patch
-               :dvc 'cg
+               :dvc 'xgit
                :struct elem
                :rev-id `(cg (revision (local ,root ,(xgit-revision-st-changeset elem))))))))
         ;; FIXME: xgit-revision-st-changeset is not defined anywhere
@@ -117,7 +117,7 @@
   ;; cogito pipes the result of cg log to the PAGER, set PAGER to cat to work around that feature
   (let ((process-environment
          (append '("PAGER=cat") process-environment)))
-    (dvc-build-revision-list 'cg 'log path '("log") 'xgit-dvc-log-parse)))
+    (dvc-build-revision-list 'xgit 'log path '("log") 'xgit-dvc-log-parse)))
 
 
 (provide 'xgit-revision)
