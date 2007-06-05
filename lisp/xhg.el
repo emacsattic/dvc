@@ -579,15 +579,17 @@ LAST-REVISION looks like
       (xhg-log (concat (number-to-string (+ actual-rev 1)) ":tip")))))
 
 (defun xhg-save-diff (filename)
+  "Save the current hg diff to a file named FILENAME."
   (interactive (list (read-file-name "Save the hg diff to: ")))
   (message "xhg-save-diff %s" filename)
   (with-current-buffer
       (find-file-noselect filename)
-    (delete-region (point-min) (point-max))
-    (insert (dvc-run-dvc-sync 'xhg (list "diff")
-                              :finished 'dvc-output-buffer-handler))
-    (save-buffer)
-    (kill-buffer (current-buffer))))
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert (dvc-run-dvc-sync 'xhg (list "diff")
+                                :finished 'dvc-output-buffer-handler-withnewline))
+      (save-buffer)
+      (kill-buffer (current-buffer)))))
 
 
 ;; --------------------------------------------------------------------------------
