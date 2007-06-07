@@ -406,7 +406,7 @@ of the commit. Additionally the destination email address can be specified."
                                 (list 'file newname
                                       " " " " dir
                                       oldname)))))
-          ((looking-at " +\\([^\n]*?\\)\\([/@]\\)?$")
+          ((looking-at " +\\(?:Text conflict in \\)?\\([^\n]*?\\)\\([/@]\\)?$")
            (let ((file (match-string-no-properties 1))
                  (dir (match-string-no-properties 2)))
              (with-current-buffer changes-buffer
