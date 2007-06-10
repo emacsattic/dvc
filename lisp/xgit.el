@@ -403,7 +403,7 @@ FILE is filename in repostory.
 (defun xgit-annotate ()
   "Run git annotate"
   (interactive)
-  (let* ((line (line-number-at-pos))
+  (let* ((line (dvc-line-number-at-pos))
 	 (filename (dvc-confirm-read-file-name "Filename to annotate: "))
 	 (default-directory (xgit-tree-root filename)))
     (git-annotate default-directory filename)
