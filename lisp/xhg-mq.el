@@ -426,7 +426,7 @@ that is used in the generated email."
   (toggle-read-only 1))
 
 (defun xhg-mq-ewoc-data-at-point ()
-  (if (or (= (line-number-at-pos) 1) (eq (line-beginning-position) (line-end-position)) (not (eq major-mode 'xhg-mq-mode)))
+  (if (or (= (dvc-line-number-at-pos) 1) (eq (line-beginning-position) (line-end-position)) (not (eq major-mode 'xhg-mq-mode)))
       nil
     (ewoc-data (ewoc-locate xhg-mq-cookie))))
 

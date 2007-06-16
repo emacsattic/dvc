@@ -3,9 +3,16 @@
 Developers
 ==========
 
-Xtla will be merged to GNU Emacs(we hope).
+DVC will be merged to GNU Emacs(we hope).
 So the developers should be able to sign to FSF about
-copyright assignment.
+copyright assignment. In other words, we can accept
+only patches whose author agrees to sign to FSF.
+CONTRIBUTORS file is for tracking the contributors
+and their copyright assignments.
+
+CONTRIBUTORS file is mainly maintained by me (Masatake
+YAMATO). However, I'm always looking for people who
+will help me to interact with FSF.
 
 GNU Emacs, XEmacs and its version
 =================================

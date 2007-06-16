@@ -140,7 +140,7 @@ If DONT-SWITCH is nil, switch to the newly created buffer.")
   (interactive (list (buffer-file-name))))
 
 (define-dvc-unified-command dvc-rename ()
-  "Rename.file from-file-name to to-file-name."
+  "Rename file from-file-name to to-file-name."
   (interactive))
 
 (defvar dvc-command-version nil)

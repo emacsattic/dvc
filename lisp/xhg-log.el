@@ -1,6 +1,6 @@
 ;;; xhg-log.el --- Mercurial interface for dvc: mode for hg log style output
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -41,6 +41,7 @@
     (define-key map [?=] 'xhg-log-toggle-diff-for-changeset)
     (define-key map dvc-keyvec-next 'xhg-log-next)
     (define-key map dvc-keyvec-previous 'xhg-log-previous)
+    (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
 
     ;; the merge group
     (define-key map (dvc-prefix-merge ?u) 'dvc-update)

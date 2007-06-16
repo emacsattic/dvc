@@ -72,6 +72,10 @@
   "Call `tla-remove' to remove a list of files."
   (apply 'tla-remove nil files))
 
+(defun tla-dvc-rename ()
+  (interactive)
+  (call-interactively 'tla-move))
+
 (defun tla-dvc-log (arg)
   "Show the log for the current Arch tree."
   (tla-logs))

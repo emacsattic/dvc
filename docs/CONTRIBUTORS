@@ -1,0 +1,5 @@
+;; (contributor :name "yourname" :signed done-or-not-yet)
+(contributor :name "Stefan Reichoer" :signed done)
+(contributor :name "Matthieu MOY"    :signed done)
+(contributor :name "Masatake YAMATO" :signed done)
+(contributor :name "Michael Olson"   :signed done)
