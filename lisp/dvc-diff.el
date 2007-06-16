@@ -549,7 +549,7 @@ Throw an error when not on a file."
   `dvc-show-changes-buffer'.")
 ;; FIXME: actually, dvc-show-changes-buffer doesn't use this
 
-(defun dvc-show-changes-buffer (buffer parser &optional 
+(defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch header-end-regexp)
   ;; FIXME: pass in dvc?
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
@@ -641,13 +641,13 @@ recursive command."
       (recenter)))
   (message msg dir))
 
-(defun dvc-diff-error-in-process (diff-buffer msg dir stdout stderr
+(defun dvc-diff-error-in-process (diff-buffer msg dir output error
                                                &optional
                                                master-buffer)
   "Similar to `dvc-diff-no-changes', but to report a real error.
 
-STDOUT and STDERR are the buffers containing the stdout and stderr of
-the process that raised an error."
+OUTPUT and ERROR are the buffers containing the stdout and stderr
+of the process that raised an error."
   (with-current-buffer diff-buffer
     (dvc-diff-delete-messages)
     (ewoc-enter-last
