@@ -363,7 +363,7 @@ This command resets xmtn's command version cache."
 (defun xmtn--latest-mtn-release ()
   ;; Version number and revision id of the latest mtn release at the
   ;; time of this xmtn release.
-  '(0 34 "6ae6de16b31495a773ac3002505ad51f2e4a8616"))
+  '(0 35 "f92dd754bf5c1e6eddc9c462b8d68691cfeb7f8b"))
 
 (provide 'xmtn-run)
 
