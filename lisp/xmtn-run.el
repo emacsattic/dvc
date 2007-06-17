@@ -223,25 +223,37 @@ Signals an error if more (or fewer) than one line is output."
   '(0 30))
 
 (defvar xmtn--*cached-command-version* nil)
+(defvar xmtn--*command-version-cached-for-executable* nil)
 
 (defun xmtn--clear-command-version-cache ()
-  (setq xmtn--*cached-command-version* nil))
+  (setq xmtn--*command-version-cached-for-executable* nil
+        ;; This is redundant but neater.
+        xmtn--*cached-command-version* nil))
 
 (defun xmtn--cached-command-version ()
-  (or xmtn--*cached-command-version*
-      (prog1 (setq xmtn--*cached-command-version* (xmtn--command-version))
-        (xmtn--check-cached-command-version))))
+  (if (equal xmtn--*command-version-cached-for-executable* xmtn-executable)
+      xmtn--*cached-command-version*
+    (let ((executable xmtn-executable))
+      (prog1 (setq xmtn--*cached-command-version* (xmtn--command-version
+                                                   executable))
+        (setq xmtn--*command-version-cached-for-executable* executable)
+        (xmtn--check-cached-command-version)))))
 
-(defun xmtn--command-version ()
-  "Return a list (MAJOR MINOR REVISION VERSION-STRING).
+(defun xmtn--command-version (executable)
+  "Return EXECUTABLE's version as a list (MAJOR MINOR REVISION VERSION-STRING).
 
 VERSION-STRING is the string printed by mtn --version (with no
 trailing newline).  MAJOR and MINOR are integers, a parsed
 representation of the version number.  REVISION is the revision
 id."
-  (let ((xmtn--*cached-command-version* ; avoid infinite mutual recursion
+  (let (
+        ;; Cache a fake version number to avoid infinite mutual
+        ;; recursion.
+        (xmtn--*cached-command-version*
          (append (xmtn--minimum-required-command-version)
-                 '("xmtn-dummy" "xmtn-dummy"))))
+                 '("xmtn-dummy" "xmtn-dummy")))
+        (xmtn--*command-version-cached-for-executable* executable)
+        (xmtn-executable executable))
     (let ((string (xmtn--command-output-line nil '("--version"))))
       (unless (string-match
                (concat "\\`monotone \\([0-9]+\\)\\.\\([0-9]+\\)"
@@ -281,39 +293,40 @@ This command resets xmtn's command version cache."
   (xmtn--clear-command-version-cache)
   (destructuring-bind (major minor revision version-string)
       (xmtn--cached-command-version)
-    (message (xmtn--version-case
-               (mainline "%s (xmtn considers this a 'mainline' version)")
-               (t "%s"))
-             version-string))
+    (let* ((latest (xmtn--latest-mtn-release))
+           (latest-major (first latest))
+           (latest-minor (second latest)))      
+      (if (eval `(xmtn--version-case
+                   ((and (= ,latest-major latest-minor)
+                         (mainline> latest-major latest-minor))
+                    t)
+                   (t
+                    nil)))
+          (message "%s (xmtn considers this version newer than %s.%s)"
+                   version-string major minor)
+        (message "%s" version-string))))
   nil)
 
 (defun xmtn--make-version-check-form (version-var condition)
+  ;; The expression (mainline> X Y) matches all command versions
+  ;; strictly newer than X.Y, and, if X.Y is the latest version
+  ;; according to (xmtn--latest-mtn-release), command versions that
+  ;; report version X.Y with a revision ID different from what
+  ;; (xmtn--latest-mtn-release) returns.  This is a kludge to attempt
+  ;; to distinguish the latest mtn release from the current
+  ;; bleeding-edge ("mainline") version.  (Bleeding-edge mtn versions
+  ;; always report a version equal to the last release, while they
+  ;; generally have syntax and semantics that match the upcoming
+  ;; release; i.e., their syntax and semantics don't match the version
+  ;; number they report.)
   (case condition
     ((t) `t)
     ((nil) `nil)
-    ((mainline)
-     ;; The symbol "mainline" matches all command versions strictly
-     ;; newer than (xmtn--latest-mtn-release) as well as command
-     ;; versions equal to (xmtn--latest-mtn-release) that report a
-     ;; different revision ID.  This is a kludge to attempt to
-     ;; distinguish the latest mtn release from the current
-     ;; bleeding-edge ("mainline") version.  (Bleeding-edge mtn
-     ;; versions always report a version equal to the last release,
-     ;; while they generally have syntax and semantics that match the
-     ;; upcoming release; i.e., their syntax and semantics don't match
-     ;; the version number they report.)
-     `(let ((-latest- (xmtn--latest-mtn-release)))
-        (or (> (car ,version-var) (car -latest-))
-            (and (= (car ,version-var) (car -latest-))
-                 (or (> (cadr ,version-var) (cadr -latest-))
-                     (and (= (cadr ,version-var) (cadr -latest-))
-                          (not (equal (caddr -latest-)
-                                      (caddr ,version-var)))))))))
     (t
      (let ((operator (car condition))
            (arguments (cdr condition)))
        (ecase operator
-         ((< <= > >= = /=)
+         ((< <= > >= = /= mainline>)
           (let ((target-version arguments))
             (assert (eql (length arguments) 2))
             (ecase operator
@@ -325,6 +338,17 @@ This command resets xmtn's command version cache."
                     (and
                      (= (car ,version-var) ,(car target-version))
                      (,operator (cadr ,version-var) ,(cadr target-version)))))
+              ((mainline>)
+               `(or (> (car ,version-var) ,(car target-version))
+                    (and (= (car ,version-var) ,(car target-version))
+                         (or (> (cadr ,version-var) ,(cadr target-version))
+                             (and (= (cadr ,version-var) ,(cadr target-version))
+                                  (let ((-latest- (xmtn--latest-mtn-release)))
+                                    (and (= (car -latest-) ,(car target-version))
+                                         (= (cadr -latest-)
+                                            ,(cadr target-version))
+                                         (not (equal (caddr ,version-var)
+                                                     (caddr -latest-))))))))))
               ((/= <= >=)
                (let ((negated-operator (ecase operator
                                          (/= '=)
