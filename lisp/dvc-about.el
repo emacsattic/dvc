@@ -122,7 +122,7 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
     (if buffer (dvc-switch-to-buffer buffer)
       (dvc-switch-to-buffer
        (setq buffer (get-buffer-create name)))
-      (insert "               *** Welcome to DVC+ ! *** \n")
+      (insert "               *** Welcome to DVC ! *** \n")
       (insert "\n")
       (insert (format "DVC version: %s" dvc-version))
       (insert "\n")
@@ -135,6 +135,7 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
       (toggle-read-only t)
       (local-set-key [?q] (lambda () (interactive)
                             (kill-buffer (current-buffer)))))
+    ;; TODO: Use CONTRIBUTORS file.
     (dvc-about-message-with-bouncing
      (concat "Author: Stefan Reichoer <stefan@xsteve.at>, "
              "Contributions from: "
