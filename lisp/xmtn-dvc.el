@@ -549,10 +549,11 @@ the file before saving."
 (defun xmtn-show-base-revision ()
   "Show the base revision of the current monotone tree in the minibuffer."
   (interactive)
-  (let ((root (dvc-tree-root)))
-    (message "Base revision of tree %s is %s"
-             root
-             (xmtn--get-base-revision-hash-id root))))
+  (let* ((root (dvc-tree-root))
+         (hash-id-or-null (xmtn--get-base-revision-hash-id-or-null root)))
+    (if hash-id-or-null
+        (message "Base revision of tree %s is %s" root hash-id-or-null)
+      (message "Tree %s has no base revision" root))))
 
 
 ;;;###autoload
@@ -703,40 +704,43 @@ the file before saving."
 
 (defun xmtn--status-process-entry (ewoc path status changes old-path-or-null
                                         old-type new-type fs-type)
+  "Returns true if this entry indicates changes."
   (let ((name-to-display-for-root-directory "."))
-    (unless (or (and (equal status '(known))
-                     (equal changes '()))
-                (equal status '(ignored))
-                (equal status '(rename-source)))
-      (let ((file (if (equal path "") name-to-display-for-root-directory path))
-            ;; The docstring of `dvc-diff-cookie' almost looks like a
-            ;; specification of the format of STATUS and MODIF; but
-            ;; `dvc-diff-printer' only prints them verbatim, so I'll
-            ;; assume they are free-form elements.
-            (status (concat (if (member 'invalid status) "X" " ")
-                            (if (member 'added status) "A" " ")
-                            (if (member 'dropped status) "D" " ")
-                            (if (member 'unknown status) "?" " ")
-                            (if (member 'rename-target status) "R" " ")
-                            (if (member 'missing status) "M" " ")))
-            (modif (concat
-                    ;; "e" like "edited"; "m" (like "modified") is too
-                    ;; easy to confuse with "missing".
-                    (if (member 'content changes) "e" " ")
-                    (if (member 'attrs changes) "a" " ")))
-            (dir (ecase fs-type
-                   (directory "/")
-                   ((file none) "")))
-            (origname (if (equal old-path-or-null "")
-                          name-to-display-for-root-directory
-                        old-path-or-null)))
-        (ewoc-enter-last ewoc
-                         `(file
-                           ,file
-                           ,status
-                           ,modif
-                           ,dir
-                           ,origname))))))
+    (if (or (and (equal status '(known))
+                 (equal changes '()))
+            (equal status '(ignored))
+            (equal status '(rename-source)))
+        (let ((file (if (equal path "") name-to-display-for-root-directory path))
+              ;; The docstring of `dvc-diff-cookie' almost looks like a
+              ;; specification of the format of STATUS and MODIF; but
+              ;; `dvc-diff-printer' only prints them verbatim, so I'll
+              ;; assume they are free-form elements.
+              (status (concat (if (member 'invalid status) "X" " ")
+                              (if (member 'added status) "A" " ")
+                              (if (member 'dropped status) "D" " ")
+                              (if (member 'unknown status) "?" " ")
+                              (if (member 'rename-target status) "R" " ")
+                              (if (member 'missing status) "M" " ")))
+              (modif (concat
+                      ;; "e" like "edited"; "m" (like "modified") is too
+                      ;; easy to confuse with "missing".
+                      (if (member 'content changes) "e" " ")
+                      (if (member 'attrs changes) "a" " ")))
+              (dir (ecase fs-type
+                     (directory "/")
+                     ((file none) "")))
+              (origname (if (equal old-path-or-null "")
+                            name-to-display-for-root-directory
+                          old-path-or-null)))
+          (ewoc-enter-last ewoc
+                           `(file
+                             ,file
+                             ,status
+                             ,modif
+                             ,dir
+                             ,origname))
+          t)
+      nil)))
 
 (defun xmtn--parse-inventory (stanza-parser fn)
   (loop for stanza = (funcall stanza-parser)
@@ -805,11 +809,13 @@ the file before saving."
         (error "Process still running in buffer %s" buffer)))
     (let ((header (with-output-to-string
                     (princ (format "Status for %s:\n" root))
-                    (let ((base-revision-hash-id
-                           (xmtn--get-base-revision-hash-id root))
+                    (let ((base-revision-hash-id-or-null
+                           (xmtn--get-base-revision-hash-id-or-null root))
                           (branch (xmtn--tree-default-branch root)))
-                      (princ (format "  base revision %s\n"
-                                     base-revision-hash-id))
+                      (princ (if base-revision-hash-id-or-null
+                                 (format "  base revision %s\n"
+                                         base-revision-hash-id-or-null)
+                               "  tree has no base revision\n"))
                       (princ (format "  branch %s\n" branch))
                       (let ((heads (length (xmtn--heads root branch))))
                         (princ
@@ -818,13 +824,15 @@ the file before saving."
                            (1 "  branch is merged\n")
                            (t (format "  branch has %s heads\n"
                                       heads)))))
-                      (let ((children
-                             (xmtn-automate-simple-command-output-lines
-                              root `("children" ,base-revision-hash-id))))
-                        (princ
-                         (if children
-                             "  base revision is not a head\n"
-                           "  base revision is a head revision\n"))))))
+                      (when base-revision-hash-id-or-null
+                        (let ((children
+                               (xmtn-automate-simple-command-output-lines
+                                root `("children"
+                                       ,base-revision-hash-id-or-null))))
+                          (princ
+                           (if children
+                               "  base revision is not a head revision\n"
+                             "  base revision is a head revision\n")))))))
           (footer ""))
       (with-current-buffer buffer
         (setq buffer-read-only t)
@@ -848,15 +856,27 @@ the file before saving."
                      (ewoc-refresh ewoc)
                      (redisplay t)
                      (dvc-diff-delete-messages)
-                     (xmtn-basic-io-with-stanza-parser (parser output)
-                       (xmtn--parse-inventory
-                        parser
-                        (lambda (path status changes old-path-or-null
-                                      old-type new-type fs-type)
-                          (xmtn--status-process-entry ewoc path status changes
-                                                      old-path-or-null
-                                                      old-type new-type
-                                                      fs-type))))))
+                     (lexical-let ((changesp nil))
+                       (xmtn-basic-io-with-stanza-parser (parser output)
+                         (xmtn--parse-inventory
+                          parser
+                          (lambda (path status changes old-path-or-null
+                                        old-type new-type fs-type)
+                            (when
+                                (xmtn--status-process-entry ewoc path status
+                                                            changes
+                                                            old-path-or-null
+                                                            old-type new-type
+                                                            fs-type)
+                              (setq changesp t)))))
+                       (when (not changesp)
+                         ;; Calling `dvc-diff-no-changes' here is part
+                         ;; of the protocol, so we do it, even though
+                         ;; its output is not very pretty (printing an
+                         ;; asterisk, repeating the root directory and
+                         ;; adding two newlines to the end of the
+                         ;; buffer is redundant in our layout).
+                         (dvc-diff-no-changes buffer "No changes in %s" root)))))
        :error (lambda (output error status arguments)
                 (dvc-diff-error-in-process
                  buffer
@@ -1473,7 +1493,7 @@ finished."
             ((local-tree $path)
              (assert (xmtn--same-tree-p root path))
              (let ((base-revision-hash-id
-                    (xmtn--get-base-revision-hash-id path)))
+                    (xmtn--get-base-revision-hash-id-or-null path)))
                (if (null base-revision-hash-id)
                    (xmtn-match resolved-target-revision
                      ((revision $hash-id)
@@ -1490,7 +1510,7 @@ finished."
             ((local-tree $path)
              (assert (xmtn--same-tree-p root path))
              (let ((base-revision-hash-id
-                    (xmtn--get-base-revision-hash-id path)))
+                    (xmtn--get-base-revision-hash-id-or-null path)))
                (if (null base-revision-hash-id)
                    (return-from get-corresponding-path nil)
                  (setq target-revision-hash-id base-revision-hash-id
