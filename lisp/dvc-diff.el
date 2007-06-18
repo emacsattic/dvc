@@ -183,6 +183,7 @@ Pretty-print ELEM."
     (define-key map [?d] 'dvc-remove-files)
     (define-key map dvc-keyvec-mark   'dvc-diff-mark-file)
     (define-key map dvc-keyvec-unmark 'dvc-diff-unmark-file)
+    (define-key map [backspace] 'dvc-diff-unmark-file-up)
     (define-key map [?v] 'dvc-diff-view-source)
     (define-key map dvc-keyvec-parent 'dvc-diff-master-buffer)
     (define-key map [?j] 'dvc-diff-diff-or-list)
@@ -434,14 +435,23 @@ a 'file."
   (if (eq (car (ewoc-data (ewoc-locate dvc-diff-cookie)))
           'message)
       (dvc-diff-mark-group t)
-    (let ((current (ewoc-locate dvc-diff-cookie))
-          (file (dvc-get-file-info-at-point)))
+    (let* ((current (ewoc-locate dvc-diff-cookie))
+           (cur-loc (ewoc-location current))
+           (prev (ewoc-prev dvc-diff-cookie current)))
+      (when (and up prev)
+        (goto-char (if (= cur-loc (point)) (ewoc-location prev) cur-loc))
+        (setq current (ewoc-locate dvc-diff-cookie)))
       (setq dvc-buffer-marked-file-list
-            (delete file dvc-buffer-marked-file-list))
+            (delete (dvc-get-file-info-at-point) dvc-buffer-marked-file-list))
       (ewoc-invalidate dvc-diff-cookie current)
-      (goto-char (ewoc-location (or (ewoc-next dvc-diff-cookie
-                                               current)
-                                    current))))))
+      (unless up
+        (goto-char (ewoc-location (or (ewoc-next dvc-diff-cookie current)
+                                      current)))))))
+
+(defun dvc-diff-unmark-file-up ()
+  "Unmark the file under point and move up."
+  (interactive)
+  (dvc-diff-unmark-file t))
 
 (defun dvc-diff-diff ()
   "Run tla file-diff on the file at point in *{tla|baz}-changes*."
