@@ -91,40 +91,91 @@ Args can be list, number or string."
       (message "Git Version: %s" version))
     version))
 
-;; TODO: update for git
+(defvar xgit-status-line-regexp
+  "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
+  "Regexp that matches a line of status output.
+The first match string is the status type, and the optional
+second match is the file.")
+
+(defvar xgit-status-untracked-regexp "^#\t\\(.+\\)$"
+  "Regexp that matches a line of status output indicating an
+untracked file.
+
+The first match is the file.")
+
+(defvar xgit-status-renamed-regexp "^\\(.+\\) -> \\(.+\\)$"
+  "Regexp that divides a filename string.
+The first match is the original file, and the second match is the
+new file.")
+
+(defun xgit-parse-status-sort (status-list)
+  "Sort STATUS-LIST in the order A, M, R, D, ?."
+  (let ((order '(("A" . 1) ("M" . 2) ("R" . 3) ("D" . 4) ("?" . 5))))
+    (sort status-list
+          #'(lambda (a b)
+              (let ((ao (cdr (assoc (car (cddr a)) order)))
+                    (bo (cdr (assoc (car (cddr b)) order))))
+                (and (integerp ao) (integerp bo)
+                     (< ao bo)))))))
+
 (defun xgit-parse-status  (changes-buffer)
   (dvc-trace "xgit-parse-status (dolist)")
-  (let ((status-list
-         (split-string (dvc-buffer-content output) "\n")))
-    (with-current-buffer changes-buffer
-      (setq dvc-header (format "git status -w for %s\n" default-directory))
-      (let ((buffer-read-only)
-            status modif modif-char)
-        (dolist (elem status-list)
-          (unless (string= "" elem)
-            (setq modif-char (aref elem 0))
-            (cond ((eq modif-char ?M)
-                   (setq status "M"
-                         modif "M"))
-                  ((eq modif-char ?A)
+  (with-current-buffer changes-buffer
+    (setq dvc-header (format "git status for %s\n" default-directory))
+    (with-current-buffer output
+      (save-excursion
+        (goto-char (point-min))
+        (let ((buffer-read-only)
+              (grouping "")
+              status-string
+              file status modif dir orig
+              status-list)
+          (while (re-search-forward xgit-status-line-regexp nil t)
+            (setq status-string (match-string 1)
+                  file (match-string 2)
+                  modif nil
+                  dir nil
+                  orig nil)
+            (cond ((or (null file) (string= "" file))
+                   (when (string= status-string "Untracked files")
+                     (let ((end
+                            (save-excursion
+                              (re-search-forward xgit-status-line-regexp
+                                                 nil 'end)
+                              (point))))
+                       (forward-line 2)
+                       (while (re-search-forward xgit-status-untracked-regexp
+                                                 end t)
+                         (when (match-beginning 1)
+                           (setq status-list
+                                 (cons (list 'file (match-string 1) "?")
+                                       status-list))))
+                       (forward-line -1)))
+                   (setq grouping status-string
+                         status nil))
+                  ((string= status-string "modified")
+                   (setq status "M"))
+                  ((string= status-string "new file")
                    (setq status "A"))
-                  ((eq modif-char ?R)
-                   (setq status "R"))
-                  ((eq modif-char ?!)
-                   (setq status "D"))
-                  ((eq modif-char ??)
-                   (setq status "?"))
+                  ((string= status-string "deleted")
+                   (setq status "D")
+                   (when (string= grouping "Changed but not updated")
+                     (setq modif "?")))
+                  ((string= status-string "renamed")
+                   (setq status "R")
+                   (when (string-match xgit-status-renamed-regexp file)
+                     (setq orig (match-string 1 file)
+                           file (match-string 2 file)
+                           dir " ")))
                   (t
-                   (setq modif nil
-                         status nil)))
-            (when (or modif status)
-              (ewoc-enter-last dvc-diff-cookie
-                               (list 'file
-                                     (substring elem 2)
-                                     status
-                                     modif)))))))))
+                   (setq status nil)))
+            (when status
+              (setq status-list (cons (list 'file file status modif dir orig)
+                                      status-list))))
+          (with-current-buffer changes-buffer
+            (dolist (elem (xgit-parse-status-sort (nreverse status-list)))
+              (ewoc-enter-last dvc-diff-cookie elem))))))))
 
-;; TODO: update for git
 (defun xgit-status (&optional against path)
   "Run git status."
   (interactive (list nil default-directory))
@@ -145,15 +196,18 @@ Args can be list, number or string."
          (if (> (point-max) (point-min))
              (dvc-show-changes-buffer output 'xgit-parse-status
                                       (capture buffer))
-         (dvc-diff-no-changes (capture buffer)
-                             "No changes in %s"
-                             (capture root))))
-       :error
-       (dvc-capturing-lambda (output error status arguments)
-         (dvc-diff-error-in-process (capture buffer)
-                                     "Error in diff process"
-                                     (capture root)
-                                     output error))))))
+           (dvc-diff-no-changes (capture buffer)
+                                "No changes in %s"
+                                (capture root)))))
+     :error
+     (dvc-capturing-lambda (output error status arguments)
+       (with-current-buffer (capture buffer)
+         (if (> (point-max) (point-min))
+             (dvc-show-changes-buffer output 'xgit-parse-status
+                                      (capture buffer))
+           (dvc-diff-no-changes (capture buffer)
+                                "No changes in %s"
+                                (capture root))))))))
 
 (defcustom git-log-max-count -1
   "Number of logs to print.  Specify negative value for all logs.
