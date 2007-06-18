@@ -620,7 +620,7 @@ which is not part of the diff header."
 
 
 (defun dvc-diff-no-changes (diff-buffer msg dir &optional
-                                         master-buffer)
+                                        master-buffer)
   "Function to call when there are no changes in a tree.
 
 Inserts a message in the changes buffer, and in the minibuffer.
@@ -642,13 +642,13 @@ recursive command."
         (with-current-buffer master-buffer
           (ewoc-map (lambda (x)
                       (when (and (eq (car x) 'subtree)
-                                 (eq (cadr x) buffer))
+                                 (eq (cadr x) diff-buffer))
                         (setcar (cdr (cddr x)) 'no-changes))
                       )
                     ;; (ewoc-refresh dvc-diff-cookie)))
                     dvc-diff-cookie)))
       (ewoc-refresh dvc-diff-cookie)
-      (recenter)))
+      (recenter '(4))))
   (message msg dir))
 
 (defun dvc-diff-error-in-process (diff-buffer msg dir output error
