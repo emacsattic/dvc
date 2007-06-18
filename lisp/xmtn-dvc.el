@@ -1490,11 +1490,9 @@ finished."
                    (return-from get-corresponding-path nil)
                  (setq target-revision-hash-id base-revision-hash-id
                        file-name-postprocessor
-                       (lexical-let ((path path)
-                                     (base-revision-hash-id
-                                      base-revision-hash-id))
+                       (lexical-let ((path path))
                          (lambda (file-name)
-                           (xmtn--get-rename-in-workspace-from root
+                           (xmtn--get-rename-in-workspace-from path
                                                                file-name)))))))))
         (let ((result
                (xmtn--get-corresponding-path-raw root normalized-file-name
