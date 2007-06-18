@@ -183,6 +183,7 @@ Pretty-print ELEM."
     (define-key map [?d] 'dvc-remove-files)
     (define-key map dvc-keyvec-mark   'dvc-diff-mark-file)
     (define-key map dvc-keyvec-unmark 'dvc-diff-unmark-file)
+    (define-key map [backspace] 'dvc-diff-unmark-file-up)
     (define-key map [?v] 'dvc-diff-view-source)
     (define-key map dvc-keyvec-parent 'dvc-diff-master-buffer)
     (define-key map [?j] 'dvc-diff-diff-or-list)
@@ -428,20 +429,29 @@ a 'file."
       (goto-char (point-max)))))
 
 
-(defun dvc-diff-unmark-file ()
+(defun dvc-diff-unmark-file (&optional up)
   "Unmark the file under point."
   (interactive)
   (if (eq (car (ewoc-data (ewoc-locate dvc-diff-cookie)))
           'message)
       (dvc-diff-mark-group t)
-    (let ((current (ewoc-locate dvc-diff-cookie))
-          (file (dvc-get-file-info-at-point)))
+    (let* ((current (ewoc-locate dvc-diff-cookie))
+           (cur-loc (ewoc-location current))
+           (prev (ewoc-prev dvc-diff-cookie current)))
+      (when (and up prev)
+        (goto-char (if (= cur-loc (point)) (ewoc-location prev) cur-loc))
+        (setq current (ewoc-locate dvc-diff-cookie)))
       (setq dvc-buffer-marked-file-list
-            (delete file dvc-buffer-marked-file-list))
+            (delete (dvc-get-file-info-at-point) dvc-buffer-marked-file-list))
       (ewoc-invalidate dvc-diff-cookie current)
-      (goto-char (ewoc-location (or (ewoc-next dvc-diff-cookie
-                                               current)
-                                    current))))))
+      (unless up
+        (goto-char (ewoc-location (or (ewoc-next dvc-diff-cookie current)
+                                      current)))))))
+
+(defun dvc-diff-unmark-file-up ()
+  "Unmark the file under point and move up."
+  (interactive)
+  (dvc-diff-unmark-file t))
 
 (defun dvc-diff-diff ()
   "Run tla file-diff on the file at point in *{tla|baz}-changes*."
@@ -549,7 +559,7 @@ Throw an error when not on a file."
   `dvc-show-changes-buffer'.")
 ;; FIXME: actually, dvc-show-changes-buffer doesn't use this
 
-(defun dvc-show-changes-buffer (buffer parser &optional 
+(defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch header-end-regexp)
   ;; FIXME: pass in dvc?
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
@@ -610,7 +620,7 @@ which is not part of the diff header."
 
 
 (defun dvc-diff-no-changes (diff-buffer msg dir &optional
-                                         master-buffer)
+                                        master-buffer)
   "Function to call when there are no changes in a tree.
 
 Inserts a message in the changes buffer, and in the minibuffer.
@@ -632,22 +642,22 @@ recursive command."
         (with-current-buffer master-buffer
           (ewoc-map (lambda (x)
                       (when (and (eq (car x) 'subtree)
-                                 (eq (cadr x) buffer))
+                                 (eq (cadr x) diff-buffer))
                         (setcar (cdr (cddr x)) 'no-changes))
                       )
                     ;; (ewoc-refresh dvc-diff-cookie)))
                     dvc-diff-cookie)))
       (ewoc-refresh dvc-diff-cookie)
-      (recenter)))
+      (recenter '(4))))
   (message msg dir))
 
-(defun dvc-diff-error-in-process (diff-buffer msg dir stdout stderr
+(defun dvc-diff-error-in-process (diff-buffer msg dir output error
                                                &optional
                                                master-buffer)
   "Similar to `dvc-diff-no-changes', but to report a real error.
 
-STDOUT and STDERR are the buffers containing the stdout and stderr of
-the process that raised an error."
+OUTPUT and ERROR are the buffers containing the stdout and stderr
+of the process that raised an error."
   (with-current-buffer diff-buffer
     (dvc-diff-delete-messages)
     (ewoc-enter-last

@@ -263,6 +263,9 @@
   ;; profiler output unreadable, since every function would only
   ;; appear to call `xmtn-automate--call-with-session', and that
   ;; function would appear to do all computation.
+  ;;
+  ;; mtn automate stdio requires a valid database, so we require a
+  ;; root directory here.
   (let ((session (gensym))
         (session-var (or session-var-or-null (gensym)))
         (root (gensym))

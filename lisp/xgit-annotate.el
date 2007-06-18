@@ -26,19 +26,6 @@
 ;;; Code:
 (require 'dvc-annotate)
 
-(defvar xgit-annotate-font-lock-keywords
-  '(("^[[:xdigit:]]\\{40\\}\\s[[:digit:]]+\\s[[:digit:]]+\\s[[:digit:]]+" . font-lock-keyword-face)
-    ("^[[:xdigit:]]\\{40\\}\\s[[:digit:]]+\\s[[:digit:]]+" . font-lock-string-face)
-    ("^[[:xdigit:]]\\{7\\}" . font-lock-string-face)
-    ("^[[:xdigit:]]\\{8\\}" . font-lock-function-name-face)
-    ("^author\\(-mail\\|-time\\|-tz\\)?" . font-lock-function-name-face)
-    ("^committer\\(-mail\\|-time\\|-tz\\)?" . font-lock-function-name-face)
-    ("^filename" . font-lock-function-name-face)
-    ("^summary" . font-lock-function-name-face)
-    ("^boundary" . font-lock-function-name-face)
-    )
-  "Keywords in `xgit-annotate-mode' mode.")
-
 (defvar xgit-annotate-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map dvc-keyvec-help 'describe-mode)
@@ -66,7 +53,7 @@ Commands:
 ;;    "^de398cf (Takuzo Ohara 2007-02-21 21:28:35 +0900 366) ..."
 ;; or not yet commited:
 ;;    "00000000 (Not Committed Yet 2007-02-24 15:31:42 +0900  37) ..."
-(defconst xgit-annotate-info-regexp "^\\(\\(\\^?\\([[:xdigit:]]+\\)\\)\\s+(\\(.*?\\)\\s+\\([0-9]\\{4\\}\\)-\\([0-9]\\{2\\}\\)-\\([0-9]\\{2\\}\\) \\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\) \\([+-][0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)\\s+\\)\\([0-9]+\\))")
+(defconst xgit-annotate-info-regexp "^\\(\\(\\^?\\([[:xdigit:]]+\\)\\)[[:blank:]]+(\\(.*?\\)[[:blank:]]+\\([0-9]\\{4\\}\\)-\\([0-9]\\{2\\}\\)-\\([0-9]\\{2\\}\\) \\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\) \\([+-][0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)[[:blank:]]+\\)\\([0-9]+\\))")
 (defun xgit-info-to-allbutlinenum ()                   (match-string-no-properties 1))
 (defun xgit-info-to-rev       	()                   (match-string-no-properties 2))
 (defun xgit-info-to-initrev   	()                   (match-string-no-properties 3))
@@ -81,7 +68,7 @@ Commands:
 (defun xgit-info-to-zone-min  	() (string-to-number (match-string-no-properties 12)))
 (defun xgit-info-to-linenum   	() (string-to-number (match-string-no-properties 13)))
 
-(defconst xgit-annotate-revision-regexp "^[[:xdigit:]]+")
+(defconst xgit-annotate-revision-regexp "^^?\\([[:xdigit:]]+\\)")
 
 (defun xgit-annotate-get-rev ()
   "Returns git revision at point in annotate buffer."
@@ -96,7 +83,7 @@ Commands:
   "Show the information at the point."
   (interactive)
   (let ((rev (xgit-annotate-get-rev)))
-    (if (string-match "^\\([[:xdigit:]]+\\)" rev)
+    (if (string-match xgit-annotate-revision-regexp rev)
 	;initial version might result too large for git-show, so use
 	;git-log.
 	(git-log default-directory :rev (match-string-no-properties 1 rev))
