@@ -429,7 +429,7 @@ a 'file."
       (goto-char (point-max)))))
 
 
-(defun dvc-diff-unmark-file ()
+(defun dvc-diff-unmark-file (&optional up)
   "Unmark the file under point."
   (interactive)
   (if (eq (car (ewoc-data (ewoc-locate dvc-diff-cookie)))
