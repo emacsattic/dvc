@@ -58,6 +58,9 @@
                  :signed maybe-emacs-only-needs-confirm
                  :mail-addresses ("mwolson#member.fsf.org"
                                   "mwolson#gnu.org"))
+    (contributor :name "Sam Steingold"
+                 :signed maybe-emacs-only-needs-confirm
+                 :mail-addresses "sds#gnu.org")
     (contributor :name "Daniel Dehennin"
                  :signed maybe-not-yet
                  :mail-addresses "nebuchadnezzar#asgardr.info")
