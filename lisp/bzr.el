@@ -376,10 +376,14 @@ of the commit. Additionally the destination email address can be specified."
     (compose-mail (if dest-specs (cadr dest-specs) "")
                   (concat (if dest-specs (car dest-specs) "") "rev " rev ": " summary))
     (message-goto-body)
+    (while (looking-at "<#part[^>]*>")
+      (forward-line 1))
     (insert (concat "Committed revision " rev
                     (if branch-location (concat " to " branch-location) "")
                     "\n\n"))
     (insert log-message)
+    (unless (and (bolp) (looking-at "^$"))
+      (insert "\n"))
     (message-goto-body)))
 
 
