@@ -233,6 +233,7 @@ patch \(see: `bzr-patch-sent-action')."
                (car (cddr bzr-patch-data))))))
 (add-hook 'message-sent-hook 'bzr-submit-patch-done)
 
+;;;###autoload
 (defun bzr-submit-patch ()
   "Submit a patch for the current bzr project.
 With this feature it is not necessary to tag an arch archive.

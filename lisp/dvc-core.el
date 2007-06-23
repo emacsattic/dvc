@@ -84,8 +84,10 @@ This function may be useful to find \{arch\} and/or _darcs directories."
             (expand-file-name (concat (file-name-as-directory pwd) "..")))
       (setq pwd (if (string= new-pwd pwd) "/" new-pwd)))
     (unless (string= pwd "/")
-      (expand-file-name
-       (replace-regexp-in-string "/+$" "/" pwd)))))
+      (setq pwd (replace-regexp-in-string "\\([^:]\\)/*$" "\\1" pwd))
+      (if (memq system-type '(ms-dos windows-nt))
+          (expand-file-name pwd)
+        pwd))))
 
 (defun dvc-tree-root-helper (file-or-dir interactivep msg
                                          &optional location no-error)
@@ -665,24 +667,28 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
             (unless output-buffer (dvc-kill-process-buffer output-buf))
             (unless error-buffer (dvc-kill-process-buffer error-buf))))))))
 
+(defun dvc-processes-related-to-buffer (buffer)
+  "Returns a list of DVC process whose related buffer is BUFFER."
+  (let ((accu nil))
+    (dolist (entry dvc-process-running)
+      (when (eq (dvc-event-related-buffer (cadr entry)) buffer)
+        (push (car entry) accu)))
+    (setq accu (nreverse accu))
+    accu))
+
 (defun dvc-kill-process-maybe (buffer)
   "Prompts and possibly kill process whose related buffer is BUFFER."
-  (let ((process-list nil))
-    (dolist (process-buffer dvc-process-running)
-      (when (eq (dvc-event-related-buffer (cadr process-buffer))
-                buffer)
-        (add-to-list 'process-list (car process-buffer))))
-    (let ((l (length process-list)))
-      (when (and process-list
-                 (y-or-n-p (format "%s process%s running in buffer %s.  Kill %s? "
-                                   l (if (> l 1) "es" "")
-                                   (buffer-name buffer)
-                                   (if (> l 1) "Them" "it"))))
-        (dolist (process process-list)
-          (setq dvc-default-killed-function-noerror
-                (1+ dvc-default-killed-function-noerror))
-          (if (eq (process-status process) 'run)
-              (kill-process process)))))))
+  (let* ((processes (dvc-processes-related-to-buffer buffer))
+         (l (length processes)))
+    (when (and processes
+               (y-or-n-p (format "%s process%s running in buffer %s.  Kill %s? "
+                                 l (if (= l 1) "" "es")
+                                 (buffer-name buffer)
+                                 (if (= l 1) "it" "them"))))
+      (dolist (process processes)
+        (when (eq (process-status process) 'run)
+          (incf dvc-default-killed-function-noerror)
+          (kill-process process))))))
 
 (add-hook 'kill-buffer-hook 'dvc-kill-buffer-function)
 

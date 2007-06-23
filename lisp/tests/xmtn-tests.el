@@ -162,28 +162,39 @@ YPFoLxe1V5oOyoe3ap0H
      (assert (xmtn-match nil (nil t)))))
   (xmtn--version-case
     (flet ((xmtn--latest-mtn-release () ;flet has dynamic scope in Emacs Lisp
-             '(2 5 "y")))
-      (let ((xmtn--*cached-command-version* '(2 5 "x")))
-        (assert
-         (xmtn--version-case
-           ((and (= 2 5) (>= 2 5) (or (= 2 4) (<= 3 0))
-                 (<= 2 6) (/= 1 5) (not (/= 2 5))
-                 (not (>= 2 6))
-                 (not (<= 2 4))
-                 (not (< 2 5))
-                 (not (< 2 4))) t)
-           (t nil)))
-        (assert
-         (not (ignore-errors
-                (xmtn--version-case
-                  (nil t)))))
-        (assert (xmtn--version-case (mainline t) (t nil))))
-      (let ((xmtn--*cached-command-version* '(2 5 "y")))
-        (assert (xmtn--version-case (mainline nil) (t t))))
-      (let ((xmtn--*cached-command-version* '(1 5 "w")))
-        (assert (xmtn--version-case (mainline nil) (t t))))
-      (let ((xmtn--*cached-command-version* '(2 6 "z")))
-        (assert (xmtn--version-case (mainline t) (t nil))))))
+                                     '(2 5 "y")))
+      (let* ((xmtn-executable 'xmtn-dummy)
+             (xmtn--*command-version-cached-for-executable* xmtn-executable))
+        (let ((xmtn--*cached-command-version* '(2 5 "x")))
+          (assert
+           (xmtn--version-case
+             ((and (= 2 5) (>= 2 5) (or (= 2 4) (<= 3 0))
+                   (<= 2 6) (/= 1 5) (not (/= 2 5))
+                   (not (>= 2 6))
+                   (not (<= 2 4))
+                   (not (< 2 5))
+                   (not (< 2 4))) t)
+             (t nil)))
+          (assert
+           (not (ignore-errors
+                  (xmtn--version-case
+                    (nil t)))))
+          (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
+          (assert (xmtn--version-case ((mainline> 2 5) t) (t nil)))
+          (assert (xmtn--version-case ((mainline> 2 6) nil) (t t))))
+        (let ((xmtn--*cached-command-version* '(2 5 "y")))
+          (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
+          (assert (xmtn--version-case ((mainline> 2 5) nil) (t t)))
+          (assert (xmtn--version-case ((mainline> 2 6) nil) (t t))))
+        (let ((xmtn--*cached-command-version* '(1 5 "w")))
+          (assert (xmtn--version-case ((mainline> 2 4) nil) (t t)))
+          (assert (xmtn--version-case ((mainline> 2 5) nil) (t t)))
+          (assert (xmtn--version-case ((mainline> 1 4) t) (t nil)))
+          (assert (xmtn--version-case ((mainline> 1 5) nil) (t t))))
+        (let ((xmtn--*cached-command-version* '(2 6 "z")))
+          (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
+          (assert (xmtn--version-case ((mainline> 2 5) t) (t nil)))
+          (assert (xmtn--version-case ((mainline> 2 6) nil) (t t)))))))
   (log
    (save-window-excursion
      (xmtn-tests--with-test-history (&key &allow-other-keys)
@@ -262,7 +273,9 @@ YPFoLxe1V5oOyoe3ap0H
          ;; doesn't matter as much as the fact that monotone receives
          ;; it correctly.
          (xmtn--with-automate-command-output-basic-io-parser
-          (next-stanza root `("attributes" ,file-name))
+           (next-stanza root (xmtn--version-case
+                               ((mainline> 0 35) `("get_attributes" ,file-name))
+                               (t `("attributes" ,file-name))))
           (xmtn-match (funcall next-stanza)
             ((("format_version" (string "1")))))
           (assert (null (funcall next-stanza)) t))))))
@@ -434,16 +447,25 @@ YPFoLxe1V5oOyoe3ap0H
                     (unless (null (set-exclusive-or expected-results
                                                     actual
                                                     :test #'equal))
-                      (assert nil nil
-                              "file=%S start-rev=%s expected=%S actual=%S"
-                              file start-rev expected-results actual)))))
+                      (error "file=%S start-rev=%s expected=%S actual=%S; revisions=%S"
+                             file start-rev expected-results actual
+                             (list revision-1 revision-2 revision-3 revision-4
+                                   revision-5))))))
            (check file-name revision-1 `((,revision-1 ,file-name)))
+           ;; Some of these checks fail with mtn 0.30; not
+           ;; investigated further.
+           ;;
+           ;; 0.30 reports ((1 file))
            (check file-name revision-2 `((,revision-1 ,file-name)
                                          (,revision-2 ,file-name)))
+           
+           ;; 0.30 reports ((1 file))
            (check file-name revision-3 `((,revision-1 ,file-name)
                                          (,revision-2 ,file-name)))
+           ;; 0.30 reports ((1 file) (4 renamed))
            (check renamed-file-name revision-4 `((,revision-1 ,file-name)
                                                  (,revision-2 ,file-name)))
+           ;; 0.30 reports ((1 file) (4 renamed))
            (check renamed-file-name revision-5 `((,revision-1 ,file-name)
                                                  (,revision-2 ,file-name)
                                                  (,revision-5

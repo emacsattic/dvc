@@ -138,8 +138,6 @@ See file commentary for details."
     (unless path-root
       (error "Path is not in a monotone tree: %S" `(last-revision ,path ,num)))
     (let ((base-revision-hash-id (xmtn--get-base-revision-hash-id path-root)))
-      (unless base-revision-hash-id
-        (error "Tree has no base revision: %S" path-root))
       (xmtn--resolve-backend-id path-root
                                 `(previous-revision
                                   ,base-revision-hash-id
@@ -196,12 +194,18 @@ See file commentary for details."
               (length parents)
               hash-id)))))
 
-(defun xmtn--get-base-revision-hash-id (root)
+(defun xmtn--get-base-revision-hash-id-or-null (root)
   (let ((hash-id (xmtn-automate-simple-command-output-line
                   root `("get_base_revision_id"))))
     (when (equal hash-id "") (setq hash-id nil))
     (assert (typep hash-id '(or xmtn--hash-id null)))
     hash-id))
+
+(defun xmtn--get-base-revision-hash-id (root)
+  (let ((hash-id-or-null (xmtn--get-base-revision-hash-id-or-null root)))
+    (unless hash-id-or-null
+      (error "Tree has no base revision: %S" root))
+    hash-id-or-null))
 
 (provide 'xmtn-ids)
 

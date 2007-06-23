@@ -115,11 +115,11 @@ otherwise.
 
 (defun dvc-buffers-tree-remove (buffer)
   "Remove BUFFER from the buffers tree."
-    (dolist (dvc-cons dvc-buffers-tree)
-      (dolist (type-cons (cdr dvc-cons))
-        (dolist (path-buffer (cdr type-cons))
-          (when (eq (cadr path-buffer) buffer)
-            (setcdr type-cons (delete path-buffer (cdr type-cons))))))))
+  (dolist (dvc-cons dvc-buffers-tree)
+    (dolist (type-cons (cdr dvc-cons))
+      (dolist (path-buffer (cdr type-cons))
+        (when (eq (cadr path-buffer) buffer)
+          (setcdr type-cons (delete path-buffer (cdr type-cons))))))))
 
 (defun dvc-buffers-tree-add (dvc type path buffer)
   "Add a buffer for back-end DVC, of TYPE visiting PATH to the buffers tree.
