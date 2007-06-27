@@ -526,7 +526,7 @@ LAST-REVISION looks like
         (subject)
         (description))
     (dolist (m xhg-submit-patch-mapping)
-      (when (string= (dvc-uniquify-file-name (car m)) (xhg-tree-root))
+      (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (xhg-tree-root)))
         ;;(message "%S" (cadr m))
         (setq destination-email (car (cadr m)))
         (setq base-file-name (cadr (cadr m)))))
