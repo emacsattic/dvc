@@ -141,9 +141,7 @@ positive : Don't show patches, ask for revisions."
         (setq command-list (append command-list (list "-r" r2)))))
     (when show-patch
       (setq command-list (append command-list (list "-p"))))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
     (xhg-log-mode)
@@ -200,7 +198,8 @@ positive : Don't show patches, ask for revisions."
   "Run hg diff.
 If DONT-SWITCH, don't switch to the diff buffer"
   (interactive (list nil nil current-prefix-arg))
-  (let* ((cur-dir (or path default-directory))
+  (let* ((window-conf (current-window-configuration))
+         (cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
          (root (xhg-tree-root cur-dir))
          (buffer (dvc-prepare-changes-buffer
@@ -208,9 +207,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
                   `(xhg (local-tree ,root))
                   'diff root 'xhg))
          (command-list '("diff")))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
+    (dvc-buffer-push-previous-window-config window-conf)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (when base-rev
@@ -227,14 +225,14 @@ If DONT-SWITCH, don't switch to the diff buffer"
 (defun xhg-status ()
   "Run hg status."
   (interactive)
-  (let* ((root (xhg-tree-root))
+  (let* ((window-conf (current-window-configuration))
+         (root (xhg-tree-root))
          (buffer (dvc-prepare-changes-buffer
                   `(xhg (last-revision ,root 1))
                   `(xhg (local-tree ,root))
                   'status root 'xhg)))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
+    (dvc-buffer-push-previous-window-config window-conf)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xhg '("status")
        :finished
@@ -303,9 +301,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; no-merges
                      ))
   (let ((buffer (dvc-get-buffer-create 'xhg 'logs)))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
     (xhg-log-mode)

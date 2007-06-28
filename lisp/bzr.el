@@ -278,15 +278,16 @@ revid:foobar, ...).
 
 TODO: DONT-SWITCH is currently ignored."
   (interactive (list nil nil current-prefix-arg))
-  (let* ((dir (or path default-directory))
+  (let* ((window-conf (current-window-configuration))
+         (dir (or path default-directory))
          (root (bzr-tree-root dir))
          (against (or against `(bzr (last-revision ,root 1))))
          (buffer (dvc-prepare-changes-buffer
                   against
                   `(bzr (local-tree ,root))
                   'diff root 'bzr)))
-    (when dvc-switch-to-buffer-first
-      (dvc-switch-to-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
+    (dvc-buffer-push-previous-window-config window-conf)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-async
      'bzr `("diff" ,@(when against
@@ -425,13 +426,15 @@ of the commit. Additionally the destination email address can be specified."
 (defun bzr-status (&optional path)
   "Run \"bzr status\"."
   (interactive (list default-directory))
-  (let* ((dir (or path default-directory))
+  (let* ((window-conf (current-window-configuration))
+         (dir (or path default-directory))
          (root (bzr-tree-root dir))
          (buffer (dvc-prepare-changes-buffer
                   `(bzr (last-revision ,root 1))
                   `(bzr (local-tree ,root))
                   'status root 'bzr)))
     (dvc-switch-to-buffer-maybe buffer)
+    (dvc-buffer-push-previous-window-config window-conf)
     (setq dvc-buffer-refresh-function 'bzr-status)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-async

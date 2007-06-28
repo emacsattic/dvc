@@ -245,9 +245,7 @@ FILE is filename in repostory to filter logs by matching filename.
          (pretty (if (not (string= "" git-log-pretty)) (format "--pretty=%s" git-log-pretty)))
          (fname (if file (file-relative-name file (xgit-tree-root dir))))
          (args (list repo cmd pretty count grep diff rev "--" fname)))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (dvc-run-dvc-sync 'xgit args
                       :finished
                       (dvc-capturing-lambda (output error status arguments)
@@ -321,9 +319,7 @@ FILE is filename in repostory to filter logs by matching filename.
                   `(git (local-tree ,root))
                   'diff root 'xgit))
          (command-list '("diff" "HEAD")))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xgit command-list
@@ -388,9 +384,7 @@ files changed in the revision is passed to git-show-filter-filename-func and res
          (args (list repo cmd rev "--")))
     (if files
         (setq args (append args (if (stringp files) (list files) files))))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (dvc-run-dvc-sync 'xgit args
                       :finished
                       (dvc-capturing-lambda (output error status arguments)
@@ -440,9 +434,7 @@ FILE is filename in repostory.
 	 (cmd "blame")
 	 (fname (file-relative-name file (xgit-tree-root dir)))
 	 (args (list repo cmd "--" fname)))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (dvc-run-dvc-sync 'xgit args
                       :finished
                       (dvc-capturing-lambda (output error status arguments)
