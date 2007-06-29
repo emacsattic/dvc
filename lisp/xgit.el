@@ -320,7 +320,7 @@ FILE is filename in repostory to filter logs by matching filename.
                   `(git (last-revision ,root 1))
                   `(git (local-tree ,root))
                   'diff root 'xgit))
-         (command-list '("diff")))
+         (command-list '("diff" "HEAD")))
     (if dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer)
       (set-buffer buffer))

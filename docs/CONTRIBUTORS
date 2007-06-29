@@ -58,6 +58,9 @@
                  :signed maybe-emacs-only-needs-confirm
                  :mail-addresses ("mwolson#member.fsf.org"
                                   "mwolson#gnu.org"))
+    (contributor :name "Sam Steingold"
+                 :signed maybe-emacs-only-needs-confirm
+                 :mail-addresses "sds#gnu.org")
     (contributor :name "Daniel Dehennin"
                  :signed maybe-not-yet
                  :mail-addresses "nebuchadnezzar#asgardr.info")
@@ -69,10 +72,8 @@
                  :signed maybe-not-yet
                  :mail-addresses "ohler+mtn#fastmail.net")
     (contributor :name "Stephen Leake"
-                 :signed maybe-not-yet
-                 :mail-addresses ("stephen_leake#stephe-leake.org"
-                                  "stephe#ACS1100007992"
-                                  "stephe#acs1100007992"))
+                 :signed done
+                 :mail-addresses "stephen_leake#stephe-leake.org")
     (contributor :name "Alan Shutko"
                  :signed maybe-not-yet
                  :mail-addresses "ats#acm.org")

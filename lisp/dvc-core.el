@@ -84,8 +84,10 @@ This function may be useful to find \{arch\} and/or _darcs directories."
             (expand-file-name (concat (file-name-as-directory pwd) "..")))
       (setq pwd (if (string= new-pwd pwd) "/" new-pwd)))
     (unless (string= pwd "/")
-      (expand-file-name
-       (replace-regexp-in-string "/+$" "/" pwd)))))
+      (setq pwd (replace-regexp-in-string "\\([^:]\\)/*$" "\\1" pwd))
+      (if (memq system-type '(ms-dos windows-nt))
+          (expand-file-name pwd)
+        pwd))))
 
 (defun dvc-tree-root-helper (file-or-dir interactivep msg
                                          &optional location no-error)
