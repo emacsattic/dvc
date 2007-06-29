@@ -80,9 +80,6 @@
      ,@(when interactive (list interactive))
      (dvc-apply ,(symbol-name name) ,@(remove '&optional args))))
 
-(put 'dvc-create-unified-command
-     'lisp-indent-function 'defun)
-
 ;;;###autoload
 (define-dvc-unified-command dvc-diff (&optional against path dont-switch)
   "Display the changes in this tree for the actual dvc."

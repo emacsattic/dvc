@@ -710,37 +710,37 @@ the file before saving."
                  (equal changes '()))
             (equal status '(ignored))
             (equal status '(rename-source)))
-        (let ((file (if (equal path "") name-to-display-for-root-directory path))
-              ;; The docstring of `dvc-diff-cookie' almost looks like a
-              ;; specification of the format of STATUS and MODIF; but
-              ;; `dvc-diff-printer' only prints them verbatim, so I'll
-              ;; assume they are free-form elements.
-              (status (concat (if (member 'invalid status) "X" " ")
-                              (if (member 'added status) "A" " ")
-                              (if (member 'dropped status) "D" " ")
-                              (if (member 'unknown status) "?" " ")
-                              (if (member 'rename-target status) "R" " ")
-                              (if (member 'missing status) "M" " ")))
-              (modif (concat
-                      ;; "e" like "edited"; "m" (like "modified") is too
-                      ;; easy to confuse with "missing".
-                      (if (member 'content changes) "e" " ")
-                      (if (member 'attrs changes) "a" " ")))
-              (dir (ecase fs-type
-                     (directory "/")
-                     ((file none) "")))
-              (origname (if (equal old-path-or-null "")
-                            name-to-display-for-root-directory
-                          old-path-or-null)))
-          (ewoc-enter-last ewoc
-                           `(file
-                             ,file
-                             ,status
-                             ,modif
-                             ,dir
-                             ,origname))
-          t)
-      nil)))
+        nil
+      (let ((file (if (equal path "") name-to-display-for-root-directory path))
+            ;; The docstring of `dvc-diff-cookie' almost looks like a
+            ;; specification of the format of STATUS and MODIF; but
+            ;; `dvc-diff-printer' only prints them verbatim, so I'll
+            ;; assume they are free-form elements.
+            (status (concat (if (member 'invalid status) "X" " ")
+                            (if (member 'added status) "A" " ")
+                            (if (member 'dropped status) "D" " ")
+                            (if (member 'unknown status) "?" " ")
+                            (if (member 'rename-target status) "R" " ")
+                            (if (member 'missing status) "M" " ")))
+            (modif (concat
+                    ;; "e" like "edited"; "m" (like "modified") is too
+                    ;; easy to confuse with "missing".
+                    (if (member 'content changes) "e" " ")
+                    (if (member 'attrs changes) "a" " ")))
+            (dir (ecase fs-type
+                   (directory "/")
+                   ((file none) "")))
+            (origname (if (equal old-path-or-null "")
+                          name-to-display-for-root-directory
+                        old-path-or-null)))
+        (ewoc-enter-last ewoc
+                         `(file
+                           ,file
+                           ,status
+                           ,modif
+                           ,dir
+                           ,origname))
+        t))))
 
 (defun xmtn--parse-inventory (stanza-parser fn)
   (loop for stanza = (funcall stanza-parser)
