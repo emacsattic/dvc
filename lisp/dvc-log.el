@@ -330,7 +330,7 @@ Inserts the entry in the arch log file instead of the ChangeLog."
   "Insert the initial commit message at point.
 See `dvc-log-edit-register-initial-content-function' to register functions that provide the message text."
   (interactive)
-  (let ((initial-content-function (gethash (dvc-tree-root) dvc-log-edit-init-functions)))
+  (let ((initial-content-function (gethash (dvc-uniquify-file-name (dvc-tree-root)) dvc-log-edit-init-functions)))
     (when initial-content-function
       (insert (funcall initial-content-function)))))
 

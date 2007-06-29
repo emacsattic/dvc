@@ -96,13 +96,15 @@ outstanding uncommitted changes."
         (xhg-log "tip:-10")
         (delete-other-windows)))))
 
+(defvar xhg-gnus-status-window-configuration nil)
 (defun xhg-gnus-article-view-status-for-import-patch (n)
   "View the status for the repository, where MIME part N would be applied as hg patch.
 
 Use the same logic as in `xhg-gnus-article-import-patch' to guess the repository path
 via `xhg-apply-patch-mapping'."
   (interactive "p")
-  (gnus-article-part-wrapper n 'xhg-gnus-view-status-for-import-patch))
+  (gnus-article-part-wrapper n 'xhg-gnus-view-status-for-import-patch)
+  (set-window-configuration xhg-gnus-status-window-configuration))
 
 (defun xhg-gnus-view-status-for-import-patch (handle)
   "View the status for a repository before applying a hg patch via gnus.
@@ -122,6 +124,7 @@ HANDLE should be the handle of the part."
     (let ((default-directory import-dir))
       (xhg-status)
       (delete-other-windows)
+      (setq xhg-gnus-status-window-configuration (current-window-configuration))
       (dvc-buffer-push-previous-window-config window-conf))))
 
 (provide 'xhg-gnus)
