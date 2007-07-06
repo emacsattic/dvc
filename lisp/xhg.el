@@ -110,6 +110,14 @@
                                     (message "hg forget finished"))))))
 
 ;;;###autoload
+(defun xhg-add-all-files (arg)
+  "Run 'hg add' to add all files to mercurial.
+Normally run 'hg add -n' to simulate the operation to see which files will be added.
+Only when called with a prefix argument, add the files."
+  (interactive "P")
+  (dvc-run-dvc-sync 'xhg (list "add" (unless arg "-n"))))
+
+;;;###autoload
 (defun xhg-log (&optional r1 r2 show-patch file)
   "Run hg log.
 When run interactively, the prefix argument decides, which parameters are queried from the user.
