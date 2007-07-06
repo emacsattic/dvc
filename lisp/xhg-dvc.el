@@ -135,7 +135,7 @@ ARG is passed as prefix argument"
 
 (defun xhg-dvc-edit-ignore-files ()
   (interactive)
-  (find-file-other-window (concat (xhg-tree-root) ".hgignore")))
+  (find-file-other-window (concat (dvc-uniquify-file-name (xhg-tree-root)) ".hgignore")))
 
 (defun xhg-dvc-ignore-files (file-list)
   (interactive (list (dvc-current-file-list)))
