@@ -906,6 +906,8 @@ the file before saving."
 (defun xmtn-dvc-status (&optional root)
   "Display status of monotone tree ROOT (default current tree)."
   (let ((root (or root (dvc-tree-root))))
+    ;; FIXME: We should prompt to save buffers that visit files inside
+    ;; ROOT.
     (if (xmtn--mtn-has-basic-io-inventory)
         (xmtn--status-using-inventory root)
       (xmtn--status-without-inventory root))))
