@@ -41,14 +41,18 @@
 
 ;;;###autoload
 (defun dvc-add-files (&rest files)
-  "Add FILES to the currently active dvc."
+  "Add FILES to the currently active dvc. FILES is a list of
+strings including path from root; interactive defaults
+to (dvc-current-file-list)."
   (interactive (dvc-current-file-list))
-  (let* ((dvc (dvc-current-active-dvc))
-         (multiprompt (format "Add %%d files to %s? " dvc))
-         (singleprompt (format "Add file to %s: " dvc)))
-    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
-                                                       singleprompt t))
-      (apply 'dvc-apply "dvc-add-files" files))))
+  (if dvc-confirm-add
+      (let* ((dvc (dvc-current-active-dvc))
+             (multiprompt (format "Add %%d files to %s? " dvc))
+             (singleprompt (format "Add file to %s: " dvc)))
+        (when (setq files (dvc-confirm-read-file-name-list multiprompt files
+                                                           singleprompt t))
+          (apply 'dvc-apply "dvc-add-files" files)))
+    (apply 'dvc-apply "dvc-add-files" files)))
 
 ;;;###autoload
 (defun dvc-revert-files (&rest files)
@@ -99,16 +103,21 @@ If DONT-SWITCH is nil, switch to the newly created buffer.")
 ;;;###autoload
 (define-dvc-unified-command dvc-file-diff (file &optional base modified
                                                 dont-switch)
-  "Display the changes in FILE for the actual dvc."
+  "Display the changes in FILE (default current buffer file) for
+the actual dvc."
+  ;; FIXME: other operations default to (dvc-current-file-list); this
+  ;; should default to (dvc-get-file-info-at-point)
   (interactive (list buffer-file-name)))
 
 ;;;###autoload
 (defun dvc-status (&optional path)
   "Display the status in optional PATH tree."
   (interactive)
+  (save-some-buffers (not dvc-confirm-save-buffers))
   (if path
-      (let ((default-directory path))
-        (dvc-apply "dvc-status" path))
+      (let* ((abs-path (expand-file-name path))
+             (default-directory abs-path))
+        (dvc-apply "dvc-status" abs-path))
     (dvc-apply "dvc-status" nil)))
 
 (define-dvc-unified-command dvc-name-construct (back-end-revision)

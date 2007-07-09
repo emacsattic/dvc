@@ -79,6 +79,7 @@ YPFoLxe1V5oOyoe3ap0H
             (lexical-let ((key-dir (concat temp-dir "keys/"))
                           (rc-file (concat temp-dir "rc")))
               (let* ((default-directory temp-dir)
+                     (dvc-test-mode t)
                      (xmtn-additional-arguments
                       `("--db" ,(concat temp-dir "a.mtn")
                         "--keydir" ,key-dir
@@ -458,7 +459,7 @@ YPFoLxe1V5oOyoe3ap0H
            ;; 0.30 reports ((1 file))
            (check file-name revision-2 `((,revision-1 ,file-name)
                                          (,revision-2 ,file-name)))
-           
+
            ;; 0.30 reports ((1 file))
            (check file-name revision-3 `((,revision-1 ,file-name)
                                          (,revision-2 ,file-name)))
@@ -483,6 +484,34 @@ YPFoLxe1V5oOyoe3ap0H
      ;; me, this doesn't actually fail even without the appropriate
      ;; changes to `xmtn--call-with-environment-for-subprocess'.
      (xmtn-check-command-version)))
+    (dvc-status-add
+     (save-window-excursion
+       (xmtn-tests--with-test-environment
+        (&key &allow-other-keys)
+        ;; add and commit an unknown file, using dvc-status keystrokes
+        (with-temp-file "unknown" (insert "unknown - to be added\n"))
+        (with-temp-file "unknown-marked" (insert "unknown, marked\n"))
+        (dvc-status)
+        (dvc-tests-wait-async)
+        (assert (looking-at "   unknown       unknown"))
+        (execute-kbd-macro (vector dvc-key-add))
+        (dvc-tests-wait-async)
+        (assert (looking-at "   added         unknown"))
+        (forward-line)
+        (assert (looking-at "   unknown       unknown-marked"))
+        (execute-kbd-macro (vector dvc-key-mark dvc-key-add))
+        ;; FIXME: checking for the mark doesn't work; something about the fontification of the line.
+        (dvc-tests-wait-async)
+        (execute-kbd-macro (vector dvc-key-unmark))
+        (assert (looking-at "   added         unknown-marked"))
+        ;; FIXME: commit hangs when run from this test, in xmtn--insert-log-edit-hints, which runs stuff asynchronously
+;;         (execute-kbd-macro (vector dvc-key-commit))
+;;         (dvc-tests-wait-async)
+;;         (debug)
+;;         (execute-kbd-macro (vector "C-c" "C-c"))
+;;         (dvc-tests-wait-async)
+;;         (assert (looking-at ""))
+        )))
   )
 
 (defvar xmtn-tests--profile-history (list))
@@ -607,4 +636,5 @@ YPFoLxe1V5oOyoe3ap0H
             (message "total=%s changed=%s ignored=%s unknown=%s"
                      total changed ignored unknown)))))))
 
+(provide 'xmtn-tests)
 ;;; xmtn-tests.el ends here

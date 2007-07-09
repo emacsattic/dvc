@@ -55,7 +55,7 @@ Must be buffer-local.")
   "Create and return a buffer to run command showing diffs.
 
 Sets the local-variables `dvc-diff-base' and
-`dvc-diff-modified' are set according to BASE and MODIFIED.
+`dvc-diff-modified' to BASE and MODIFIED.
 
 TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
@@ -696,6 +696,7 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-file-ediff (file)
+  "Run ediff of FILE (defaut current buffer file) against last revision."
   (interactive (list (buffer-file-name)))
   (let ((file-buffer (find-file-noselect file))
         (pristine-buffer
@@ -721,7 +722,8 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-dvc-file-diff (file &optional base modified dont-switch)
-  "View changes in FILE between BASE and MODIFIED."
+  "View changes in FILE between BASE (default last-revision) and
+MODIFIED (default workspace version)."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
          (modified (or modified `(,dvc (local-tree ,file)))))

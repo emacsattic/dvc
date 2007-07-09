@@ -42,6 +42,7 @@
   (require 'xmtn-match)
   (require 'dvc-log)
   (require 'dvc-diff)
+  (require 'dvc-status)
   (require 'dvc-core)
   (require 'ewoc))
 
@@ -200,7 +201,7 @@
             (insert-line "Committing on branch:")
             (insert-line branch)
             (insert-line)
-            (unless 
+            (unless
               (let* ((parents (xmtn--revision-old-revision-hash-ids revision))
                      (all-parents-are-heads-p
                       (subsetp parents heads :test #'equal))
@@ -701,46 +702,52 @@ the file before saving."
             :finished (xmtn--simple-finished-notification buffer)))))
       (xmtn--display-buffer-maybe buffer nil))))
 
-
 (defun xmtn--status-process-entry (ewoc path status changes old-path-or-null
                                         old-type new-type fs-type)
-  "Returns true if this entry indicates changes."
-  (let ((name-to-display-for-root-directory "."))
-    (if (or (and (equal status '(known))
-                 (equal changes '()))
-            (equal status '(ignored))
-            (equal status '(rename-source)))
-        (let ((file (if (equal path "") name-to-display-for-root-directory path))
-              ;; The docstring of `dvc-diff-cookie' almost looks like a
-              ;; specification of the format of STATUS and MODIF; but
-              ;; `dvc-diff-printer' only prints them verbatim, so I'll
-              ;; assume they are free-form elements.
-              (status (concat (if (member 'invalid status) "X" " ")
-                              (if (member 'added status) "A" " ")
-                              (if (member 'dropped status) "D" " ")
-                              (if (member 'unknown status) "?" " ")
-                              (if (member 'rename-target status) "R" " ")
-                              (if (member 'missing status) "M" " ")))
-              (modif (concat
-                      ;; "e" like "edited"; "m" (like "modified") is too
-                      ;; easy to confuse with "missing".
-                      (if (member 'content changes) "e" " ")
-                      (if (member 'attrs changes) "a" " ")))
-              (dir (ecase fs-type
-                     (directory "/")
-                     ((file none) "")))
-              (origname (if (equal old-path-or-null "")
-                            name-to-display-for-root-directory
-                          old-path-or-null)))
-          (ewoc-enter-last ewoc
-                           `(file
-                             ,file
-                             ,status
-                             ,modif
-                             ,dir
-                             ,origname))
-          t)
-      nil)))
+  "Create a file entry in ewoc."
+  ;; FIXME: fix monotone to not return root in inventory.
+  ;; For now, just don't display it (it has path "").
+  (if (and (or (not (equal '(known) status))
+               (member 'content changes)
+               dvc-status-display-known)
+           (or (not (equal '(ignored) status))
+               dvc-status-display-ignored)
+           (not (equal path "")))
+      (let ((file path)
+            (status (or
+                     ;;  special case
+                     (if (and (member 'known status)
+                              (member 'content changes))
+                         'modified)
+
+                     (if (member 'added status) 'added)
+                     (if (member 'dropped status) 'dropped)
+                     (if (member 'ignored status) 'ignored)
+                     (if (member 'invalid status) 'invalid)
+                     (if (member 'known status) 'known)
+                     (if (member 'missing status) 'missing)
+                     (if (member 'rename-source status) 'rename-source)
+                     (if (member 'rename-target status) 'rename-target)
+                     (if (member 'unknown status) 'unknown)))
+
+            ;; FIXME: dvc-status doesn't support directories yet
+            ;;               (dir (ecase fs-type
+            ;;                      (directory "/")
+            ;;                      ((file none) "")))
+
+            ;; FIXME: put the rest of status and changes here
+            (more-status ""))
+
+        (ewoc-enter-last ewoc
+                         (list 'file
+                               (make-dvc-status-fileinfo
+                                :mark nil
+                                :dir (file-name-directory file)
+                                :file (file-name-nondirectory file)
+                                :status status
+                                :more-status more-status))))
+    nil)
+  )
 
 (defun xmtn--parse-inventory (stanza-parser fn)
   (loop for stanza = (funcall stanza-parser)
@@ -835,13 +842,14 @@ the file before saving."
                              "  base revision is a head revision\n")))))))
           (footer ""))
       (with-current-buffer buffer
+        ;; FIXME: dvc-status should do this part; provide "prepare-status-buffer"
         (setq buffer-read-only t)
         (buffer-disable-undo)
         (let ((inhibit-read-only t))
           (erase-buffer))
-        (dvc-diff-mode)
+        (dvc-status-mode)
         (set (make-local-variable 'dvc-buffer-refresh-function) 'xmtn-dvc-status)
-        (setq ewoc dvc-diff-cookie)
+        (setq ewoc dvc-status-ewoc)
         (ewoc-set-hf ewoc header footer)
         (ewoc-enter-last ewoc `(message "Running monotone..."))
         (ewoc-refresh ewoc))
@@ -855,28 +863,16 @@ the file before saving."
                      (ewoc-enter-last ewoc `(message "Parsing inventory..."))
                      (ewoc-refresh ewoc)
                      (redisplay t)
-                     (dvc-diff-delete-messages)
-                     (lexical-let ((changesp nil))
-                       (xmtn-basic-io-with-stanza-parser (parser output)
+                     (dvc-status-delete-messages)
+                     (xmtn-basic-io-with-stanza-parser (parser output)
                          (xmtn--parse-inventory
                           parser
                           (lambda (path status changes old-path-or-null
                                         old-type new-type fs-type)
-                            (when
-                                (xmtn--status-process-entry ewoc path status
-                                                            changes
-                                                            old-path-or-null
-                                                            old-type new-type
-                                                            fs-type)
-                              (setq changesp t)))))
-                       (when (not changesp)
-                         ;; Calling `dvc-diff-no-changes' here is part
-                         ;; of the protocol, so we do it, even though
-                         ;; its output is not very pretty (printing an
-                         ;; asterisk, repeating the root directory and
-                         ;; adding two newlines to the end of the
-                         ;; buffer is redundant in our layout).
-                         (dvc-diff-no-changes buffer "No changes in %s" root)))))
+                            (xmtn--status-process-entry ewoc path status changes
+                                                        old-path-or-null
+                                                        old-type new-type
+                                                        fs-type))))))
        :error (lambda (output error status arguments)
                 (dvc-diff-error-in-process
                  buffer
@@ -977,17 +973,12 @@ the file before saving."
                   (insert pattern "\n")
                   (setq modified-p t)))
           (when modified-p
-            (if interactive-p
+            (if (and interactive-p
+                    dvc-confirm-ignore)
                 (lexical-let ((buffer (current-buffer)))
                   (save-some-buffers nil (lambda ()
                                            (eql (current-buffer) buffer))))
-              (save-buffer))
-            (when (not (xmtn--file-registered-p root mtnignore-file-name))
-              (when (if interactive-p
-                        (y-or-n-p (format "Add file %s to workspace manifest? "
-                                          mtnignore-file-name))
-                      t)
-                (xmtn--add-files root (list mtnignore-file-name)))))))))
+              (save-buffer)))))))
   nil)
 
 ;;;###autoload
@@ -999,7 +990,9 @@ the file before saving."
                 (1 (format "%s" (first normalized-file-names)))
                 (t (format "%s files/directories"
                            (length normalized-file-names))))))
-    (when (y-or-n-p (format "Ignore %s in monotone tree %s? " msg root))
+    ;; FIXME: confirm should be in upper level DVC code.
+    (when (or (not dvc-confirm-ignore)
+              (y-or-n-p (format "Ignore %s in monotone tree %s? " msg root)))
       (xmtn--add-patterns-to-mtnignore
        root
        (let ((default-directory root))
@@ -1075,6 +1068,7 @@ the file before saving."
 (defun xmtn--do-remove (root file-names do-not-execute)
   (xmtn--run-command-sync
    root `("drop"
+          ;; FIXME: "--execute" is for old version of mtn
           ,@(if do-not-execute `() `("--execute"))
           "--" ,@(xmtn--normalize-file-names root file-names)))
   nil)
@@ -1604,7 +1598,6 @@ finished."
   (check-type content-hash-id xmtn--hash-id)
   (xmtn-automate-simple-command-output-insert-into-buffer
    root buffer `("get_file" ,content-hash-id)))
-
 
 (defun xmtn--same-tree-p (a b)
   (equal (file-truename a) (file-truename b)))

@@ -212,15 +212,20 @@ The following sources are tried (in that order) and used if they are non nil:
                   (file-name-nondirectory (or file-name ""))))
 
 (defun dvc-confirm-read-file-name-list (prompt &optional files single-prompt mustmatch)
-  (let ((num-files (length files)))
-    (if (= num-files 1)
-        (let ((confirmed-file-name
-               (dvc-confirm-read-file-name single-prompt mustmatch (car files))))
-          ;; I don't think `dvc-confirm-read-file-name' can return nil.
-          (assert confirmed-file-name)
-          (list confirmed-file-name))
-      (and (y-or-n-p (format prompt num-files))
-           files))))
+  (or
+   ;; FIXME: is there a way to respond to this prompt from a unit
+   ;; test? See tests/xmtn-tests.el dvc-status-add. For now, bypassing
+   ;; confirmation with `dvc-test-mode'.
+   (if dvc-test-mode files)
+   (let ((num-files (length files)))
+     (if (= num-files 1)
+         (let ((confirmed-file-name
+                (dvc-confirm-read-file-name single-prompt mustmatch (car files))))
+           ;; I don't think `dvc-confirm-read-file-name' can return nil.
+           (assert confirmed-file-name)
+           (list confirmed-file-name))
+       (and (y-or-n-p (format prompt num-files))
+            files)))))
 
 ;(dvc-confirm-read-file-name "Add file ")
 ;(dvc-confirm-read-file-name-list "Add %d files? " (dvc-current-file-list) "Add file " t)
