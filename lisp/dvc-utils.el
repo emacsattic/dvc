@@ -1,6 +1,6 @@
 ;;; dvc-utils.el --- Utility functions for DVC
 
-;; Copyright (C) 2005, 2006 by all contributors
+;; Copyright (C) 2005 - 2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -107,6 +107,18 @@ front."
 	    (set list-var (append (eval list-var) (list element))))
         (add-to-list list-var element))
     (add-to-list list-var element append)))
+
+(defun dvc-any-to-string (arg)
+  "Tries to convert anything passed to args to a string.
+Args can be list, number or string."
+  (cond ((null arg)
+	  "")
+	((listp arg)
+	 (reduce (lambda (s1 s2) (format "%s %s" s1 s2)) arg))
+	((numberp arg)
+	 (number-to-string arg))
+	((stringp arg)
+	 arg)))
 
 (eval-and-compile
   (unless (fboundp 'dired-delete-file)

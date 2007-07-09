@@ -37,22 +37,7 @@
 (eval-when-compile (require 'cl))
 (require 'xgit-annotate)
 
-;; There must be something like these in standard emacs distributions
-;; but I couldn't find them.
-;; I don't know where to put these things so I put it here temporarily.
-;; -- takuzo
-(defun any-to-string (arg)
-  "Tries to convert anything passed to args to a string.
-Args can be list, number or string."
-  (cond ((null arg)
-	  "")
-	((listp arg)
-	 (reduce (lambda (s1 s2) (format "%s %s" s1 s2)) arg))
-	((numberp arg)
-	 (number-to-string arg))
-	((stringp arg)
-	 arg)))
-
+;;;###autoload
 (defun xgit-init (&optional dir)
   "Run git init."
   (interactive
@@ -255,7 +240,7 @@ FILE is filename in repostory to filter logs by matching filename.
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))
-                              (insert (format "git %s\n\n" (any-to-string args)))
+                              (insert (format "git %s\n\n" (dvc-any-to-string args)))
                               (xgit-log-mode))))))))
 
 ;; TODO: update for git
@@ -394,7 +379,7 @@ files changed in the revision is passed to git-show-filter-filename-func and res
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))
-                              (insert (format "git %s\n\n" (any-to-string args)))
+                              (insert (format "git %s\n\n" (dvc-any-to-string args)))
                               (diff-mode)
                               (toggle-read-only 1))))))))
 
