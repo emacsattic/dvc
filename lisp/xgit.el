@@ -50,6 +50,12 @@
                                     (output error status arguments)
                                   (message "git init finished")))))
 
+;;;###autoload
+(defun xgit-clone (src)
+  "Run git clone."
+  (interactive (list (read-string "git clone from: ")))
+  (dvc-run-dvc-async 'xgit (list "clone" src)))
+
 (defun xgit-add-files (&rest files)
   "Run git add."
   (message "xgit-add-files: %s" files)
