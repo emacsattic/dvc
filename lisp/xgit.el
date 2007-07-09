@@ -76,6 +76,14 @@
       (message "Git Version: %s" version))
     version))
 
+;;;###autoload
+(defun xgit-add-all-files (arg)
+  "Run 'git add .' to add all files to git.
+Normally run 'git add -n .' to simulate the operation to see which files will be added.
+Only when called with a prefix argument, add the files."
+  (interactive "P")
+  (dvc-run-dvc-sync 'xgit (list "add" (unless arg "-n") ".")))
+
 (defvar xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
   "Regexp that matches a line of status output.
