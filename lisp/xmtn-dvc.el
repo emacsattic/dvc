@@ -959,9 +959,12 @@ the file before saving."
 (defun xmtn--perl-regexp-for-file-name (file-name)
   (format "^%s$" (xmtn--quote-string-as-partial-perl-regexp file-name)))
 
-(defun xmtn--perl-regexp-for-files-in-directory (directory-file-name)
-  (format "^%s" (xmtn--quote-string-as-partial-perl-regexp
-                 (file-name-as-directory directory-file-name))))
+(defun xmtn--perl-regexp-for-extension-in-dir (file-name)
+  (format "^%s.*\\.%s$"
+          (xmtn--quote-string-as-partial-perl-regexp
+           (file-name-directory file-name))
+          (xmtn--quote-string-as-partial-perl-regexp
+           (file-name-extension file-name))))
 
 (defun xmtn--add-patterns-to-mtnignore (root patterns interactive-p)
   (let ((mtnignore-file-name (xmtn--mtnignore-file-name root)))
@@ -1019,24 +1022,23 @@ the file before saving."
        t))))
 
 ;;;###autoload
-(defun xmtn-dvc-ignore-file-extensions (file-names)
-  (let* ((extensions (delete nil (mapcar #'file-name-extension file-names)))
-         (root (dvc-tree-root))
-         (msg (case (length extensions)
-                (1 (format "extension *.%s" (first extensions)))
-                (t (format "%s extensions" (length extensions))))))
-    ;; This UI stuff shouldn't have to be part of the backend.
-    (if extensions
-        (when (y-or-n-p (format "Ignore %s in monotone tree %s? " msg root))
-          (xmtn--add-patterns-to-mtnignore
-           root
-           (mapcar #'xmtn--perl-regexp-for-extension extensions)
-           t))
-      (error "No files with an extension selected"))))
+(defun xmtn-dvc-backend-ignore-file-extensions (extensions)
+  (xmtn--add-patterns-to-mtnignore
+   (dvc-tree-root)
+   (mapcar #'xmtn--perl-regexp-for-extension extensions)
+   t))
+
+;;;###autoload
+(defun xmtn-dvc-backend-ignore-file-extensions-in-dir (file-list)
+  (xmtn--add-patterns-to-mtnignore
+   (dvc-tree-root)
+   (mapcar #'xmtn--perl-regexp-for-extension-in-dir file-list)
+   t))
 
 (defun xmtn--add-files (root file-names)
   (dolist (file-name file-names)
     ;; On directories, mtn add will recurse, which isn't what we want.
+    ;; FIXME: not true, unless we specify --recursive
     (assert (not (file-directory-p file-name)))
     ;; I don't know how mtn handles symlinks (and symlinks to
     ;; directories), so forbid them for now.

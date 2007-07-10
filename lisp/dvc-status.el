@@ -211,11 +211,10 @@ conflicts, and/or ediff current files."
     (define-key map dvc-keyvec-unmark   'dvc-status-unmark-file)
     (define-key map dvc-keyvec-unmark-all   'dvc-status-unmark-all)
     (define-key map [?i]                'dvc-status-ignore-files) ; FIXME: ?i collides with dvc-key-inventory
-    ;; FIXME: need ignore extensions in directory
-    ;; (define-key map [?I]                'dvc-ignore-file-extensions-in-directory)
+    (define-key map [?I]                'dvc-ignore-file-extensions-in-dir)
     (define-key map "\M-I"              'dvc-ignore-file-extensions)
     (define-key map [?k]                'dvc-status-kill)
-    (define-key map [?r]                'dvc-status-remove-files)
+    (define-key map dvc-keyvec-remove   'dvc-status-remove-files)
     (define-key map "\r"                'dvc-find-file-other-window)
     (define-key map "\M-d"              'dvc-status-dtrt)
 
@@ -245,7 +244,8 @@ conflicts, and/or ediff current files."
      )
     ("Ignore"
      ["Ignore Files"           dvc-ignore-files           t]
-     ["Ignore File Extensions" dvc-ignore-file-extensions t]
+     ["Ignore Extensions in dir" dvc-ignore-file-extensions-in-dir t]
+     ["Ignore Extensions globally" dvc-ignore-file-extensions t]
      ["Edit Ignore File"       dvc-edit-ignore-files      t]
      )
     ["Ediff File"              dvc-status-ediff           t]
@@ -290,8 +290,8 @@ conflicts, and/or ediff current files."
   (ewoc-delete dvc-status-ewoc (ewoc-locate dvc-status-ewoc))
   (toggle-read-only 1))
 
-(defun dvc-status-mark-dir (ewoc dir)
-  "In EWOC, mark all files in DIR, recursively."
+(defun dvc-status-mark-dir (ewoc dir mark)
+  "In EWOC, set the mark for all files in DIR to MARK, recursively."
   (let ((dir-compare (file-name-as-directory dir)))
     (ewoc-map (lambda (elem)
                 (ecase (car elem)
@@ -300,11 +300,13 @@ conflicts, and/or ediff current files."
                          (file (dvc-status-fileinfo-dir-file fileinfo)))
                      (if (string-equal dir-compare (dvc-status-fileinfo-dir fileinfo))
                          (progn
-                           (setf (dvc-status-fileinfo-mark fileinfo) t)
-                           (add-to-list 'dvc-buffer-marked-file-list file)
+                           (setf (dvc-status-fileinfo-mark fileinfo) mark)
+                           (if mark
+                               (add-to-list 'dvc-buffer-marked-file-list file)
+                             (delete file dvc-buffer-marked-file-list))
                            (ecase (car elem)
                              (dir
-                              (dvc-status-mark-dir ewoc file)
+                              (dvc-status-mark-dir ewoc file mark)
                               ;; return non-nil so this element is refreshed
                               t)
 
@@ -315,40 +317,43 @@ conflicts, and/or ediff current files."
                   (message nil)))
               dvc-status-ewoc)))
 
-(defun dvc-status-mark-file ()
-  "Mark the file under point."
-  (interactive)
+(defun dvc-status-mark-file-1 (mark)
+  "Set the mark for file under point to MARK. If a directory, mark all files in that directory."
   (let* ((current (ewoc-locate dvc-status-ewoc))
          (elem (ewoc-data current)))
     (ecase (car elem)
       (dir
        (let* ((fileinfo (cadr elem))
               (file (dvc-status-fileinfo-dir-file fileinfo)))
-         (setf (dvc-status-fileinfo-mark fileinfo) t)
-         (add-to-list 'dvc-buffer-marked-file-list file)
+         (setf (dvc-status-fileinfo-mark fileinfo) mark)
+         (if mark
+             (add-to-list 'dvc-buffer-marked-file-list file)
+           (delete file dvc-buffer-marked-file-list))
          (ewoc-invalidate dvc-status-ewoc current)
-         (dvc-status-mark-dir dvc-status-ewoc file)))
+         (dvc-status-mark-dir dvc-status-ewoc file mark)))
 
       (file
        (let* ((fileinfo (cadr elem))
               (file (dvc-status-fileinfo-dir-file fileinfo)))
-         (add-to-list 'dvc-buffer-marked-file-list file)
-         (setf (dvc-status-fileinfo-mark fileinfo) t)
+         (setf (dvc-status-fileinfo-mark fileinfo) mark)
+         (if mark
+             (add-to-list 'dvc-buffer-marked-file-list file)
+           (delete file dvc-buffer-marked-file-list))
          (ewoc-invalidate dvc-status-ewoc current)
          (dvc-status-next)))
 
       (message
        (error "not on a fileinfo")))))
 
-(defun dvc-status-unmark-file ()
-  "Unmark the file under point."
+(defun dvc-status-mark-file ()
+  "Mark the file under point. If a directory, mark all files in that directory."
   (interactive)
-  (let* ((fileinfo (dvc-status-current-fileinfo))
-         (file (concat (dvc-status-fileinfo-dir fileinfo) (dvc-status-fileinfo-file fileinfo))))
-    (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list))
-    (setf (dvc-status-fileinfo-mark fileinfo) nil)
-    (ewoc-invalidate dvc-status-ewoc (ewoc-locate dvc-status-ewoc))
-    (dvc-status-next)))
+  (dvc-status-mark-file-1 t))
+
+(defun dvc-status-unmark-file ()
+  "Unmark the file under point. If a directory, unmark all files in that directory."
+  (interactive)
+  (dvc-status-mark-file-1 nil))
 
 (defun dvc-status-unmark-all ()
   "Unmark all files."
@@ -359,6 +364,7 @@ conflicts, and/or ediff current files."
                 (if (dvc-status-fileinfo-mark fileinfo)
                     (progn
                       (setf (dvc-status-fileinfo-mark fileinfo) nil)
+                      (delete (dvc-status-fileinfo-file fileinfo) dvc-buffer-marked-file-list)
                       ;; return non-nil so this element is refreshed
                       t))))
             dvc-status-ewoc))
@@ -414,20 +420,20 @@ conflicts, and/or ediff current files."
 
 ;; database operations
 (defun dvc-status-add-files ()
-  "Add current files to the database."
+  "Add current files to the database. Directories are also added,
+but not recursively."
   (interactive)
   (let* ((files (dvc-current-file-list))
          (filtered files))
     (dolist (file files)
-      ;; On directories, "mtn add" will recurse, which isn't what we
-      ;; want. "mtn add" will add directories as needed for files. We
-      ;; assume the other backends work similarly. FIXME: need to
-      ;; check.
+      ;; FIXME: xmtn-dvc.el xmtn--add-files says on directories, "mtn
+      ;; add" will recurse, which isn't what we want. but that's not
+      ;; true for current monotone. bzr also does not recurse.
       ;;
       ;; Note that there is no "add recursive" DVC command. Selecting
       ;; all the files in a directory is the prefered approach.
       (if (file-directory-p file)
-          (setq filtered (remove file filtered))))
+          (delete file filtered)))
     (apply 'dvc-add-files filtered))
 
   ;; Update the ewoc status of each added file to 'added'; this avoids
