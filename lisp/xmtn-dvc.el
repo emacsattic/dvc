@@ -730,24 +730,31 @@ the file before saving."
                      (if (member 'rename-target status) 'rename-target)
                      (if (member 'unknown status) 'unknown)))
 
-            ;; FIXME: dvc-status doesn't support directories yet
-            ;;               (dir (ecase fs-type
-            ;;                      (directory "/")
-            ;;                      ((file none) "")))
-
             ;; FIXME: put the rest of status and changes here
             (more-status ""))
 
-        (ewoc-enter-last ewoc
-                         (list 'file
-                               (make-dvc-status-fileinfo
-                                :mark nil
-                                :dir (file-name-directory file)
-                                :file (file-name-nondirectory file)
-                                :status status
-                                :more-status more-status))))
-    nil)
-  )
+
+        (ecase fs-type
+          (directory
+           (ewoc-enter-last ewoc
+                            (list 'dir
+                                  (make-dvc-status-fileinfo
+                                   :mark nil
+                                   :dir (file-name-directory file)
+                                   :file (file-name-nondirectory file)
+                                   :status status
+                                   :more-status more-status))))
+          (file
+           (ewoc-enter-last ewoc
+                            (list 'file
+                                  (make-dvc-status-fileinfo
+                                   :mark nil
+                                   :dir (file-name-directory file)
+                                   :file (file-name-nondirectory file)
+                                   :status status
+                                   :more-status more-status))))
+          (none
+           (error "'none' fs-type"))))))
 
 (defun xmtn--parse-inventory (stanza-parser fn)
   (loop for stanza = (funcall stanza-parser)

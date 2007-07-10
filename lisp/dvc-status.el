@@ -66,33 +66,33 @@
 (defun dvc-status-status-image (status)
   "String image of STATUS."
   (ecase status
-    ('added          "added        ")
-    ('dropped        "dropped      ")
-    ('ignored        "ignored      ")
-    ('invalid        "invalid      ")
-    ('known          "known        ")
-    ('missing        "missing      ")
-    ('modified       "modified     ")
-    ('rename-source  "rename-source")
-    ('rename-target  "rename-target")
-    ('unknown        "unknown      ")))
+    (added          "added        ")
+    (dropped        "dropped      ")
+    (ignored        "ignored      ")
+    (invalid        "invalid      ")
+    (known          "known        ")
+    (missing        "missing      ")
+    (modified       "modified     ")
+    (rename-source  "rename-source")
+    (rename-target  "rename-target")
+    (unknown        "unknown      ")))
 
 (defvar dvc-status-ewoc nil
   "Ewoc for the status buffer.
 
 Element is one of:
   (file dvc-status-fileinfo)
-  (message \"<message>\").
+  (dir  dvc-status-fileinfo)
+  (message \"<message>\")
 
 A file element specifies the status of a file in the workspace.
 
 A message element gives an informative message.")
-;;FIXME: add directories, for visual effect, and for marking all at once.
 
 (defun dvc-status-printer (elem)
   "Ewoc pretty-printer for `dvc-status-ewoc'."
   (ecase (car elem)
-    ('file
+    ((dir file)
      (let* ((fileinfo (cadr elem))
             (line (concat
                    (dvc-status-status-image (dvc-status-fileinfo-status fileinfo))
@@ -111,21 +111,20 @@ A message element gives an informative message.")
        (insert " ")
        (insert (dvc-face-add line face))))
 
-   ('message
+   (message
     (insert (cadr elem)))
   ))
 
 (defun dvc-status-current-fileinfo ()
   "Return the fileinfo (a dvc-status-fileinfo struct) for the current
-file. Throws an error if point is not on a file."
-  (let* ((current (ewoc-locate dvc-status-ewoc))
-         (elem (ewoc-data current)))
+file. Throws an error if point is on a message."
+  (let ((elem (ewoc-data (ewoc-locate dvc-status-ewoc))))
     (ecase (car elem)
-      ('message
-       (error "not on a file"))
+      ((dir file)
+       (cadr elem))
 
-      ('file
-       (cadr elem)))))
+      (message
+       (error "not on a fileinfo")))))
 
 (defun dvc-status-fileinfo-dir-file (fileinfo)
   "Return directory and file from fileinfo, as a string."
@@ -144,19 +143,19 @@ conflicts, and/or ediff current files."
   (interactive)
 
   (let (status)
-    ;; Note that only 'file elements can be marked. Make sure all
+    ;; Note that message elements cannot be marked. Make sure all
     ;; selected files need the same action.
     (if (< 1 (length dvc-buffer-marked-file-list))
         (ewoc-map (lambda (elem)
                     (ecase (car elem)
-                      ('message
+                      (message
                        nil)
-                      ('file
+                      ((dir file)
                        (let ((fileinfo (cadr elem)))
                          (if status
-                             (if (not (equal status (dvc-status-fileinfo-status (fileinfo))))
+                             (if (not (equal status (dvc-status-fileinfo-status fileinfo)))
                                  (error "cannot Do The Right Thing on files with different status"))
-                           (setq status (dvc-status-fileinfo-status (fileinfo)))))))
+                           (setq status (dvc-status-fileinfo-status fileinfo))))))
                     ;; don't redisplay the element
                     nil)
                   dvc-status-ewoc)
@@ -291,15 +290,55 @@ conflicts, and/or ediff current files."
   (ewoc-delete dvc-status-ewoc (ewoc-locate dvc-status-ewoc))
   (toggle-read-only 1))
 
+(defun dvc-status-mark-dir (ewoc dir)
+  "In EWOC, mark all files in DIR, recursively."
+  (let ((dir-compare (file-name-as-directory dir)))
+    (ewoc-map (lambda (elem)
+                (ecase (car elem)
+                  ((dir file)
+                   (let* ((fileinfo (cadr elem))
+                         (file (dvc-status-fileinfo-dir-file fileinfo)))
+                     (if (string-equal dir-compare (dvc-status-fileinfo-dir fileinfo))
+                         (progn
+                           (setf (dvc-status-fileinfo-mark fileinfo) t)
+                           (add-to-list 'dvc-buffer-marked-file-list file)
+                           (ecase (car elem)
+                             (dir
+                              (dvc-status-mark-dir ewoc file)
+                              ;; return non-nil so this element is refreshed
+                              t)
+
+                             (file
+                              ;; return non-nil so this element is refreshed
+                              t))))))
+
+                  (message nil)))
+              dvc-status-ewoc)))
+
 (defun dvc-status-mark-file ()
   "Mark the file under point."
   (interactive)
-  (let* ((fileinfo (dvc-status-current-fileinfo))
-         (file (concat (dvc-status-fileinfo-dir fileinfo) (dvc-status-fileinfo-file fileinfo))))
-    (add-to-list 'dvc-buffer-marked-file-list file)
-    (setf (dvc-status-fileinfo-mark fileinfo) t)
-    (ewoc-invalidate dvc-status-ewoc (ewoc-locate dvc-status-ewoc))
-    (dvc-status-next)))
+  (let* ((current (ewoc-locate dvc-status-ewoc))
+         (elem (ewoc-data current)))
+    (ecase (car elem)
+      (dir
+       (let* ((fileinfo (cadr elem))
+              (file (dvc-status-fileinfo-dir-file fileinfo)))
+         (setf (dvc-status-fileinfo-mark fileinfo) t)
+         (add-to-list 'dvc-buffer-marked-file-list file)
+         (ewoc-invalidate dvc-status-ewoc current)
+         (dvc-status-mark-dir dvc-status-ewoc file)))
+
+      (file
+       (let* ((fileinfo (cadr elem))
+              (file (dvc-status-fileinfo-dir-file fileinfo)))
+         (add-to-list 'dvc-buffer-marked-file-list file)
+         (setf (dvc-status-fileinfo-mark fileinfo) t)
+         (ewoc-invalidate dvc-status-ewoc current)
+         (dvc-status-next)))
+
+      (message
+       (error "not on a fileinfo")))))
 
 (defun dvc-status-unmark-file ()
   "Unmark the file under point."
@@ -377,7 +416,8 @@ conflicts, and/or ediff current files."
 (defun dvc-status-add-files ()
   "Add current files to the database."
   (interactive)
-  (let ((files (dvc-current-file-list)))
+  (let* ((files (dvc-current-file-list))
+         (filtered files))
     (dolist (file files)
       ;; On directories, "mtn add" will recurse, which isn't what we
       ;; want. "mtn add" will add directories as needed for files. We
@@ -387,8 +427,8 @@ conflicts, and/or ediff current files."
       ;; Note that there is no "add recursive" DVC command. Selecting
       ;; all the files in a directory is the prefered approach.
       (if (file-directory-p file)
-          (delete file files)))
-    (dvc-add-files files))
+          (setq filtered (remove file filtered))))
+    (apply 'dvc-add-files filtered))
 
   ;; Update the ewoc status of each added file to 'added'; this avoids
   ;; the need to run the backend again. Assume any directories that
@@ -430,7 +470,7 @@ conflicts, and/or ediff current files."
 (defun dvc-status-remove-files ()
   "Remove current files."
   (interactive)
-  (dvc-remove-files (dvc-current-file-list))
+  (apply 'dvc-remove-files (dvc-current-file-list))
 
   ;; kill the files from the ewoc, since we are removing them; this
   ;; avoids the need to run the backend again.
