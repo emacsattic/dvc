@@ -108,6 +108,55 @@ front."
         (add-to-list list-var element))
     (add-to-list list-var element append)))
 
+;; copied from Emacs22, only needed when omit-nulls is needed,
+;; otherwise split-string can be used
+(defun dvc-split-string (string &optional separators omit-nulls)
+  "Split STRING into substrings bounded by matches for SEPARATORS.
+
+The beginning and end of STRING, and each match for SEPARATORS, are
+splitting points.  The substrings matching SEPARATORS are removed, and
+the substrings between the splitting points are collected as a list,
+which is returned.
+
+If SEPARATORS is non-nil, it should be a regular expression matching text
+which separates, but is not part of, the substrings.  If nil it defaults to
+`split-string-default-separators', normally \"[ \\f\\t\\n\\r\\v]+\", and
+OMIT-NULLS is forced to t.
+
+If OMIT-NULLS is t, zero-length substrings are omitted from the list \(so
+that for the default value of SEPARATORS leading and trailing whitespace
+are effectively trimmed).  If nil, all zero-length substrings are retained,
+which correctly parses CSV format, for example.
+
+Note that the effect of `(split-string STRING)' is the same as
+`(split-string STRING split-string-default-separators t)').  In the rare
+case that you wish to retain zero-length substrings when splitting on
+whitespace, use `(split-string STRING split-string-default-separators)'.
+
+Modifies the match data; use `save-match-data' if necessary."
+  (let ((keep-nulls (not (if separators omit-nulls t)))
+	(rexp (or separators split-string-default-separators))
+	(start 0)
+	notfirst
+	(list nil))
+    (while (and (string-match rexp string
+			      (if (and notfirst
+				       (= start (match-beginning 0))
+				       (< start (length string)))
+				  (1+ start) start))
+		(< start (length string)))
+      (setq notfirst t)
+      (if (or keep-nulls (< start (match-beginning 0)))
+	  (setq list
+		(cons (substring string start (match-beginning 0))
+		      list)))
+      (setq start (match-end 0)))
+    (if (or keep-nulls (< start (length string)))
+	(setq list
+	      (cons (substring string start)
+		    list)))
+    (nreverse list)))
+
 (defun dvc-any-to-string (arg)
   "Tries to convert anything passed to args to a string.
 Args can be list, number or string."

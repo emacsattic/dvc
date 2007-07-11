@@ -415,7 +415,7 @@ otherwise: Return a list of two element sublists containing alias, path"
       (dvc-run-dvc-display-as-info 'xhg '("paths"))
     (let* ((path-list (dvc-run-dvc-sync 'xhg (list "paths")
                                         :finished 'dvc-output-buffer-split-handler))
-           (lisp-path-list (mapcar '(lambda(arg) (split-string arg " = " arg)) path-list))
+           (lisp-path-list (mapcar '(lambda(arg) (dvc-split-string arg " = " arg)) path-list))
            (result-list))
       (cond ((eq type 'alias)
              (setq result-list (mapcar 'car lisp-path-list)))
