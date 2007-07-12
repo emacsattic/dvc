@@ -180,7 +180,7 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-previous  'dvc-diff-prev)
     (define-key map dvc-keyvec-revert    'dvc-revert-files)
     (define-key map dvc-keyvec-quit      'dvc-buffer-quit)
-    (define-key map [?d] 'dvc-remove-files)
+    (define-key map dvc-keyvec-remove 'dvc-remove-files)
     (define-key map dvc-keyvec-mark   'dvc-diff-mark-file)
     (define-key map dvc-keyvec-unmark 'dvc-diff-unmark-file)
     (define-key map [backspace] 'dvc-diff-unmark-file-up)
