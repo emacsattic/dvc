@@ -220,7 +220,7 @@ edit buffer in a separate frame."
 directories of the workspace."
   (interactive (list (dvc-current-file-list)))
   (let* ((extensions (delete nil (mapcar 'file-name-extension file-list)))
-         ;; FIXME: should also filter duplicates.
+         ;; FIXME: should also filter duplicates. use delete-duplicates
          (root (dvc-tree-root))
          (msg (case (length extensions)
                 (1 (format "extension *.%s" (first extensions)))

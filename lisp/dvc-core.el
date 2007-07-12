@@ -288,7 +288,8 @@ These function bypasses the used revision control system."
 
 ;; partner buffer stuff
 (defvar dvc-partner-buffer nil
-  "DVC Partner buffer. Must be local to each buffer.")
+  "DVC Partner buffer; stores diff buffer for log-edit, etc. Must
+  be local to each buffer.")
 
 (defun dvc-buffer-pop-to-partner-buffer ()
   "Pop to dvc-partner-buffer, if available."

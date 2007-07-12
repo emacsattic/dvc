@@ -713,8 +713,7 @@ the file before saving."
            (or (not (equal '(ignored) status))
                dvc-status-display-ignored)
            (not (equal path "")))
-      (let ((file path)
-            (status (or
+      (let ((status (or
                      ;;  special case
                      (if (and (member 'known status)
                               (member 'content changes))
@@ -734,14 +733,18 @@ the file before saving."
             (more-status ""))
 
 
-        (ecase fs-type
+        (case (if (equal fs-type 'none)
+                   (if (equal old-type 'none)
+                       new-type
+                     old-type)
+                 fs-type)
           (directory
            (ewoc-enter-last ewoc
                             (list 'dir
                                   (make-dvc-status-fileinfo
                                    :mark nil
-                                   :dir (file-name-directory file)
-                                   :file (file-name-nondirectory file)
+                                   :dir (file-name-directory path)
+                                   :file (file-name-nondirectory path)
                                    :status status
                                    :more-status more-status))))
           (file
@@ -749,12 +752,16 @@ the file before saving."
                             (list 'file
                                   (make-dvc-status-fileinfo
                                    :mark nil
-                                   :dir (file-name-directory file)
-                                   :file (file-name-nondirectory file)
+                                   :dir (file-name-directory path)
+                                   :file (file-name-nondirectory path)
                                    :status status
                                    :more-status more-status))))
           (none
-           (error "'none' fs-type"))))))
+           (error "fs-type 'none'"))
+
+          (t
+           (error "path %s fs-type %s old-type %s new-type %s" path fs-type old-type new-type))
+          ))))
 
 (defun xmtn--parse-inventory (stanza-parser fn)
   (loop for stanza = (funcall stanza-parser)
@@ -959,6 +966,10 @@ the file before saving."
 (defun xmtn--perl-regexp-for-file-name (file-name)
   (format "^%s$" (xmtn--quote-string-as-partial-perl-regexp file-name)))
 
+(defun xmtn--perl-regexp-for-files-in-directory (directory-file-name)
+  (format "^%s" (xmtn--quote-string-as-partial-perl-regexp
+                 (file-name-as-directory directory-file-name))))
+
 (defun xmtn--perl-regexp-for-extension-in-dir (file-name)
   (format "^%s.*\\.%s$"
           (xmtn--quote-string-as-partial-perl-regexp
@@ -1077,8 +1088,11 @@ the file before saving."
 (defun xmtn--do-remove (root file-names do-not-execute)
   (xmtn--run-command-sync
    root `("drop"
-          ;; FIXME: "--execute" is for old version of mtn
-          ,@(if do-not-execute `() `("--execute"))
+          ,@(xmtn--version-case
+              ((>= 0 34)
+               (if do-not-execute `("--bookkeep-only") `()))
+              (t
+               (if do-not-execute `() `("--execute"))))
           "--" ,@(xmtn--normalize-file-names root file-names)))
   nil)
 

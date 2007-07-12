@@ -203,6 +203,7 @@ conflicts, and/or ediff current files."
     (define-key map dvc-keyvec-ediff    'dvc-status-ediff)
     (define-key map dvc-keyvec-help     'describe-mode)
     (define-key map dvc-keyvec-mark     'dvc-status-mark-file)
+    (define-key map dvc-keyvec-mark-all 'dvc-status-mark-all)
     (define-key map dvc-keyvec-next     'dvc-status-next)
     (define-key map dvc-keyvec-previous 'dvc-status-prev)
     (define-key map dvc-keyvec-quit     'dvc-buffer-quit)
@@ -283,7 +284,7 @@ conflicts, and/or ediff current files."
   ;; if marked, also need to delete from dvc-buffer-marked-file-list
   (let ((fileinfo (dvc-status-current-fileinfo)))
     (if (dvc-status-fileinfo-mark fileinfo)
-        (delete (dvc-status-fileinfo-dir-file fileinfo) dvc-buffer-marked-file-list)))
+        (setq dvc-buffer-marked-file-list (delete (dvc-status-fileinfo-dir-file fileinfo) dvc-buffer-marked-file-list))))
 
   ;; binding inhibit-read-only doesn't seem to work here
   (toggle-read-only 0)
@@ -302,8 +303,9 @@ conflicts, and/or ediff current files."
                          (progn
                            (setf (dvc-status-fileinfo-mark fileinfo) mark)
                            (if mark
-                               (add-to-list 'dvc-buffer-marked-file-list file)
-                             (delete file dvc-buffer-marked-file-list))
+                               (progn
+                                 (add-to-list 'dvc-buffer-marked-file-list file))
+                             (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list)))
                            (ecase (car elem)
                              (dir
                               (dvc-status-mark-dir ewoc file mark)
@@ -328,7 +330,7 @@ conflicts, and/or ediff current files."
          (setf (dvc-status-fileinfo-mark fileinfo) mark)
          (if mark
              (add-to-list 'dvc-buffer-marked-file-list file)
-           (delete file dvc-buffer-marked-file-list))
+           (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list)))
          (ewoc-invalidate dvc-status-ewoc current)
          (dvc-status-mark-dir dvc-status-ewoc file mark)))
 
@@ -338,7 +340,7 @@ conflicts, and/or ediff current files."
          (setf (dvc-status-fileinfo-mark fileinfo) mark)
          (if mark
              (add-to-list 'dvc-buffer-marked-file-list file)
-           (delete file dvc-buffer-marked-file-list))
+           (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list)))
          (ewoc-invalidate dvc-status-ewoc current)
          (dvc-status-next)))
 
@@ -355,6 +357,17 @@ conflicts, and/or ediff current files."
   (interactive)
   (dvc-status-mark-file-1 nil))
 
+(defun dvc-status-mark-all ()
+  "Mark all files."
+  (interactive)
+  (ewoc-map (lambda (elem)
+              (let ((fileinfo (cadr elem)))
+                (setf (dvc-status-fileinfo-mark fileinfo) t)
+                (add-to-list 'dvc-buffer-marked-file-list (dvc-status-fileinfo-dir-file fileinfo))
+                ;; return non-nil so this element is refreshed
+                t))
+            dvc-status-ewoc))
+
 (defun dvc-status-unmark-all ()
   "Unmark all files."
   (interactive)
@@ -364,7 +377,6 @@ conflicts, and/or ediff current files."
                 (if (dvc-status-fileinfo-mark fileinfo)
                     (progn
                       (setf (dvc-status-fileinfo-mark fileinfo) nil)
-                      (delete (dvc-status-fileinfo-file fileinfo) dvc-buffer-marked-file-list)
                       ;; return non-nil so this element is refreshed
                       t))))
             dvc-status-ewoc))
@@ -433,7 +445,7 @@ but not recursively."
       ;; Note that there is no "add recursive" DVC command. Selecting
       ;; all the files in a directory is the prefered approach.
       (if (file-directory-p file)
-          (delete file filtered)))
+          (setq filtered (delete file filtered))))
     (apply 'dvc-add-files filtered))
 
   ;; Update the ewoc status of each added file to 'added'; this avoids
