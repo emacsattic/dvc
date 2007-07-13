@@ -684,6 +684,9 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
 
 (defun dvc-kill-process-maybe (buffer)
   "Prompts and possibly kill process whose related buffer is BUFFER."
+  ;; FIXME: It would be reasonable to run this here, to give any
+;;  process one last chance to run. But somehow this screws up
+;;  package-maint-clean-some-elc. (accept-process-output)
   (let* ((processes (dvc-processes-related-to-buffer buffer))
          (l (length processes)))
     (when (and processes
@@ -694,7 +697,11 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
       (dolist (process processes)
         (when (eq (process-status process) 'run)
           (incf dvc-default-killed-function-noerror)
-          (kill-process process))))))
+          (kill-process process)))))
+  ;; make sure it worked
+  (let ((processes (dvc-processes-related-to-buffer buffer)))
+    (when processes
+      (error "Process still running in buffer %s" buffer))))
 
 (add-hook 'kill-buffer-hook 'dvc-kill-buffer-function)
 

@@ -46,7 +46,10 @@ Must be buffer-local.")
 Must be buffer-local.")
 
 (defvar dvc-buffer-search-file nil
-  "Function to search a file inside a diff")
+  "Function to find a file in a diff display. Function is passed
+  one argument FILE; it should place point on the first line of
+  the diff for that file. Each backend can customize this for its
+  diff format. Buffer-local in diff buffers.")
 
 (defun dvc-dvc-search-file-in-diff (file)
   (re-search-forward (concat "^\\+\\+\\+ \\(a\\|mod\\)/" file "$")))

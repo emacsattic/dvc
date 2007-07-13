@@ -814,93 +814,62 @@ the file before saving."
   ;; We don't run automate inventory through xmtn-automate here as
   ;; that would block.  xmtn-automate doesn't support asynchronous
   ;; command execution yet.
-  (lexical-let* ((root root)
-                 (buffer
-                  ;; Don't use `dvc-prepare-changes-buffer' here
-                  ;; because it sets `dvc-buffer-search-file', which
-                  ;; doesn't make sense for us.
-                  (dvc-get-buffer-create 'xmtn 'status root))
-                 ewoc)
-    (dvc-switch-to-buffer-maybe buffer)
-    (dvc-kill-process-maybe buffer)
-    ;; Attempt to make sure the sentinels have a chance to run.
-    (accept-process-output)
-    (let ((processes (dvc-processes-related-to-buffer buffer)))
-      (when processes
-        (error "Process still running in buffer %s" buffer)))
-    (let ((header (with-output-to-string
-                    (princ (format "Status for %s:\n" root))
-                    (let ((base-revision-hash-id-or-null
-                           (xmtn--get-base-revision-hash-id-or-null root))
-                          (branch (xmtn--tree-default-branch root)))
-                      (princ (if base-revision-hash-id-or-null
-                                 (format "  base revision %s\n"
-                                         base-revision-hash-id-or-null)
-                               "  tree has no base revision\n"))
-                      (princ (format "  branch %s\n" branch))
-                      (let ((heads (length (xmtn--heads root branch))))
-                        (princ
-                         (case heads
-                           (0 "  branch is empty\n")
-                           (1 "  branch is merged\n")
-                           (t (format "  branch has %s heads\n"
-                                      heads)))))
-                      (when base-revision-hash-id-or-null
-                        (let ((children
-                               (xmtn-automate-simple-command-output-lines
-                                root `("children"
-                                       ,base-revision-hash-id-or-null))))
-                          (princ
-                           (if children
-                               "  base revision is not a head revision\n"
-                             "  base revision is a head revision\n")))))))
-          (footer ""))
-      (with-current-buffer buffer
-        ;; FIXME: dvc-status should do this part; provide "prepare-status-buffer"
-        (setq buffer-read-only t)
-        (buffer-disable-undo)
-        (let ((inhibit-read-only t))
-          (erase-buffer))
-        (dvc-status-mode)
-        (set (make-local-variable 'dvc-buffer-refresh-function) 'xmtn-dvc-status)
-        (setq ewoc dvc-status-ewoc)
-        (ewoc-set-hf ewoc header footer)
-        (ewoc-enter-last ewoc `(message "Running monotone..."))
-        (ewoc-refresh ewoc))
-      (xmtn--run-command-async
-       root `("automate" "inventory")
-       :finished (lambda (output error status arguments)
-                   ;; Don't use `dvc-show-changes-buffer' here because
-                   ;; it attempts to do some regexp stuff for us that we
-                   ;; don't need to be done.
-                   (with-current-buffer buffer
-                     (ewoc-enter-last ewoc `(message "Parsing inventory..."))
-                     (ewoc-refresh ewoc)
-                     (redisplay t)
-                     (dvc-status-delete-messages)
-                     (xmtn-basic-io-with-stanza-parser (parser output)
-                         (xmtn--parse-inventory
-                          parser
-                          (lambda (path status changes old-path-or-null
-                                        old-type new-type fs-type)
-                            (xmtn--status-process-entry ewoc path status changes
-                                                        old-path-or-null
-                                                        old-type new-type
-                                                        fs-type))))))
-       :error (lambda (output error status arguments)
-                (dvc-diff-error-in-process
-                 buffer
-                 (format "Error running mtn with arguments %S" arguments)
-                 root output error))
-       :killed (lambda (output error status arguments)
-                 ;; Create an empty buffer as a fake output buffer to
-                 ;; avoid printing all the output so far.
-                 (with-temp-buffer
-                   (dvc-diff-error-in-process
-                    buffer
-                    (format "Received signal running mtn with arguments %S"
-                            arguments)
-                    root (current-buffer) error)))))))
+  (lexical-let*
+      ((root root)
+       (status-buffer
+        (let* ((base-revision (xmtn--get-base-revision-hash-id-or-null root))
+               (branch (xmtn--tree-default-branch root))
+               (heads (length (xmtn--heads root branch))))
+          (dvc-status-prepare-buffer
+           'xmtn
+           root
+           ;; base-revision
+           (if base-revision (format "%s" base-revision) "none")
+           ;; branch
+           (format "%s" branch)
+           ;; header-more
+           (lambda ()
+             (case heads
+               (0 "  branch is empty\n")
+               (1 "  branch is merged\n")
+               (t (format "  branch has %s heads\n" heads)))
+             (when base-revision
+               (let ((children
+                      (xmtn-automate-simple-command-output-lines
+                       root `("children" ,base-revision))))
+                 (if children
+                     "  base revision is not a head revision\n"
+                   "  base revision is a head revision\n"))))
+           ;; refresh
+           'xmtn-dvc-status)))
+       (ewoc dvc-status-ewoc))
+    (xmtn--run-command-async
+     root `("automate" "inventory")
+     :finished (lambda (output error status arguments)
+                 (dvc-status-inventory-done status-buffer)
+                 (with-current-buffer status-buffer
+                   (xmtn-basic-io-with-stanza-parser
+                    (parser output)
+                    (xmtn--parse-inventory
+                     parser
+                     (lambda (path status changes old-path-or-null old-type new-type fs-type)
+                       (xmtn--status-process-entry ewoc path status changes old-path-or-null
+                                                   old-type new-type fs-type))))))
+     :error (lambda (output error status arguments)
+              ;; FIXME: need `dvc-status-error-in-process', or change name.
+              (dvc-diff-error-in-process
+               status-buffer
+               (format "Error running mtn with arguments %S" arguments)
+               root output error))
+     :killed (lambda (output error status arguments)
+               ;; Create an empty buffer as a fake output buffer to
+               ;; avoid printing all the output so far.
+               (with-temp-buffer
+                 (dvc-diff-error-in-process
+                  status-buffer
+                  (format "Received signal running mtn with arguments %S"
+                          arguments)
+                  root (current-buffer) error))))))
 
 (defun xmtn--mtn-has-basic-io-inventory ()
   ;; FIXME: This is a hack.  It should look like

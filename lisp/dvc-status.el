@@ -202,6 +202,7 @@ conflicts, and/or ediff current files."
     (define-key map dvc-keyvec-commit   'dvc-log-edit)
     (define-key map dvc-keyvec-ediff    'dvc-status-ediff)
     (define-key map dvc-keyvec-help     'describe-mode)
+    (define-key map dvc-keyvec-logs     'dvc-log)
     (define-key map dvc-keyvec-mark     'dvc-status-mark-file)
     (define-key map dvc-keyvec-mark-all 'dvc-status-mark-all)
     (define-key map dvc-keyvec-next     'dvc-status-next)
@@ -262,8 +263,46 @@ conflicts, and/or ediff current files."
   (use-local-map dvc-status-mode-map)
   (easy-menu-add dvc-status-mode-menu)
   (dvc-install-buffer-menu)
-  (toggle-read-only 1)
+  (setq buffer-read-only t)
+  (buffer-disable-undo)
   (set-buffer-modified-p nil))
+
+(defun dvc-status-prepare-buffer (dvc root base-revision branch header-more refresh)
+  "Prepare and return a status buffer. Should be called by backend-dvc-status.
+DVC is backend.
+ROOT is absolute path to workspace.
+BASE-REVISION is a string identifying the workspace's base revision.
+BRANCH is a string identifying the workspace's branch.
+HEADER-MORE is a function called to add other text to the ewoc header;
+it should return a string, which is added to the header with princ.
+REFRESH is a function that refreshes the status; see `dvc-buffer-refresh-function'."
+
+  (let ((status-buffer (dvc-get-buffer-create dvc 'status root)))
+    (dvc-kill-process-maybe status-buffer)
+    (with-current-buffer status-buffer
+      (let ((inhibit-read-only t)) (erase-buffer))
+      (dvc-status-mode)
+      (let ((header (with-output-to-string
+                      (princ (format "Status for %s:\n" root))
+                      (princ (format "  base revision : %s\n" base-revision))
+                      (princ (format "  branch        : %s\n" branch))
+                      (if (functionp header-more) (princ (funcall header-more)))))
+            (footer ""))
+        (set (make-local-variable 'dvc-buffer-refresh-function) refresh)
+        (ewoc-filter dvc-status-ewoc (lambda (elem) nil))
+        (ewoc-set-hf dvc-status-ewoc header footer)
+        (ewoc-enter-last dvc-status-ewoc `(message ,(format "Running %s..." dvc)))
+        (ewoc-refresh dvc-status-ewoc)))
+    (dvc-switch-to-buffer-maybe status-buffer)))
+
+(defun dvc-status-inventory-done (status-buffer)
+  (with-current-buffer status-buffer
+    (ewoc-enter-last dvc-status-ewoc '(message "Parsing inventory..."))
+    (ewoc-refresh dvc-status-ewoc)
+    (redisplay t)
+    ;; delete "running", "parsing" from the ewoc now, but don't
+    ;; refresh until the status is displayed
+    (dvc-status-delete-messages)))
 
 (defun dvc-status-refresh ()
   "Refresh the buffer."
