@@ -816,32 +816,32 @@ the file before saving."
   ;; command execution yet.
   (lexical-let*
       ((root root)
+       (base-revision (xmtn--get-base-revision-hash-id-or-null root))
+       (branch (xmtn--tree-default-branch root))
+       (heads (length (xmtn--heads root branch)))
        (status-buffer
-        (let* ((base-revision (xmtn--get-base-revision-hash-id-or-null root))
-               (branch (xmtn--tree-default-branch root))
-               (heads (length (xmtn--heads root branch))))
-          (dvc-status-prepare-buffer
-           'xmtn
-           root
-           ;; base-revision
-           (if base-revision (format "%s" base-revision) "none")
-           ;; branch
-           (format "%s" branch)
-           ;; header-more
-           (lambda ()
-             (case heads
-               (0 "  branch is empty\n")
-               (1 "  branch is merged\n")
-               (t (format "  branch has %s heads\n" heads)))
-             (when base-revision
-               (let ((children
-                      (xmtn-automate-simple-command-output-lines
-                       root `("children" ,base-revision))))
-                 (if children
-                     "  base revision is not a head revision\n"
-                   "  base revision is a head revision\n"))))
-           ;; refresh
-           'xmtn-dvc-status)))
+        (dvc-status-prepare-buffer
+         'xmtn
+         root
+         ;; base-revision
+         (if base-revision (format "%s" base-revision) "none")
+         ;; branch
+         (format "%s" branch)
+         ;; header-more
+         (lambda ()
+           (case heads
+             (0 "  branch is empty\n")
+             (1 "  branch is merged\n")
+             (t (format "  branch has %s heads\n" heads)))
+           (when base-revision
+             (let ((children
+                    (xmtn-automate-simple-command-output-lines
+                     root `("children" ,base-revision))))
+               (if children
+                   "  base revision is not a head revision\n"
+                 "  base revision is a head revision\n"))))
+         ;; refresh
+         'xmtn-dvc-status))
        (ewoc dvc-status-ewoc))
     (xmtn--run-command-async
      root `("automate" "inventory")

@@ -509,8 +509,17 @@ YPFoLxe1V5oOyoe3ap0H
 ;;         (dvc-tests-wait-async)
 ;;         (debug)
 ;;         (execute-kbd-macro (vector "C-c" "C-c"))
-;;         (dvc-tests-wait-async)
-;;         (assert (looking-at ""))
+        ;; this works
+        (dvc-log-edit)
+        (dvc-tests-wait-async)
+        (dvc-log-edit-done)
+        (dvc-tests-wait-async)
+
+        ;; currently need dvc-status-refresh to see results of the
+        ;; commit; eventually dvc-status will edit the ewoc directly
+        (dvc-status-refresh)
+        (dvc-tests-wait-async)
+        (assert (looking-at "$"))
         )))
   )
 
