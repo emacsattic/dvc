@@ -1,6 +1,6 @@
 ;;; dvc-buffers.el --- Buffer management for DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -115,11 +115,11 @@ otherwise.
 
 (defun dvc-buffers-tree-remove (buffer)
   "Remove BUFFER from the buffers tree."
-    (dolist (dvc-cons dvc-buffers-tree)
-      (dolist (type-cons (cdr dvc-cons))
-        (dolist (path-buffer (cdr type-cons))
-          (when (eq (cadr path-buffer) buffer)
-            (setcdr type-cons (delete path-buffer (cdr type-cons))))))))
+  (dolist (dvc-cons dvc-buffers-tree)
+    (dolist (type-cons (cdr dvc-cons))
+      (dolist (path-buffer (cdr type-cons))
+        (when (eq (cadr path-buffer) buffer)
+          (setcdr type-cons (delete path-buffer (cdr type-cons))))))))
 
 (defun dvc-buffers-tree-add (dvc type path buffer)
   "Add a buffer for back-end DVC, of TYPE visiting PATH to the buffers tree.
@@ -337,22 +337,29 @@ to quit the buffer"
 (defvar dvc-switched-buffer nil)
 (defvar dvc-switched-from-buffer nil)
 
-(defun dvc-switch-to-buffer (buffer)
+(defun dvc-switch-to-buffer (buffer &optional other-frame)
   "Switch to BUFFER using the user's preferred method.
 See `dvc-switch-to-buffer-mode' for possible settings."
   (setq dvc-switched-from-buffer (current-buffer))
-  (cond ((eq dvc-switch-to-buffer-mode 'pop-to-buffer)
-         (pop-to-buffer buffer))
-        ((eq dvc-switch-to-buffer-mode 'single-window)
-         (switch-to-buffer buffer))
-        ((eq dvc-switch-to-buffer-mode 'show-in-other-window)
-         (pop-to-buffer buffer)
-         (setq dvc-switched-buffer (current-buffer))
-         (pop-to-buffer dvc-switched-from-buffer))
-        ;; TODO : dedicated frame.
-        (t
-         (error "Switch mode %s not implemented"
-  dvc-switch-to-buffer-mode))))
+  (cond
+   (other-frame
+    ;;FIXME: customize the width and height parameters
+    (let ((display-reuse-frames t)
+          (pop-up-frames t)
+          (pop-up-frame-alist '((width . 80)
+                                (height . 10)
+                                (minibuffer . nil))))
+      (pop-to-buffer buffer)))
+   ((eq dvc-switch-to-buffer-mode 'pop-to-buffer)
+    (pop-to-buffer buffer))
+   ((eq dvc-switch-to-buffer-mode 'single-window)
+    (switch-to-buffer buffer))
+   ((eq dvc-switch-to-buffer-mode 'show-in-other-window)
+    (pop-to-buffer buffer)
+    (setq dvc-switched-buffer (current-buffer))
+    (pop-to-buffer dvc-switched-from-buffer))
+   (t
+    (error "Switch mode %s not implemented" dvc-switch-to-buffer-mode))))
 
 (defun dvc-switch-to-buffer-maybe (buffer)
   "Either switch to buffer BUFFER or just set-buffer.

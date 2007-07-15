@@ -1,6 +1,6 @@
 ;;; dvc-revlist.el --- Revision list in DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -46,13 +46,24 @@
   log-buffer
   diff-buffer)
 
-;; elem should be
+(defvar dvc-revlist-cookie nil
+  "Ewoc cookie for dvc-revlist.")
+
+;; elem of dvc-revlist-cookie should be one of:
 ;; ('separator "string" kind)
-;; or
-;; ('entry-patch struct) Where "struct" is a dvc-revlist-entry-patch
-;; struct type.
+;;    `kind' is: one of
+;;    partner: ???
+;;    bookmark: ???
+;;    
+;; ('entry-patch struct)
+;;    `struct' is a dvc-revlist-entry-patch struct type.
+;;
 ;; ('entry-change "changes")
+;;
+;; ('message "message")
+;; 
 ;; The second element tells if the element is marked or not.
+
 (defun dvc-revlist-printer (elem)
   "Print an element ELEM of the revision list."
   (let ()
@@ -241,9 +252,11 @@ revision list."
   (let ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie))))
     (unless (eq (car elem) 'entry-patch)
       (error "Cursor is not on a revision."))
+    ;; get the buffer from the ewoc structure.
     (let ((buffer (dvc-revlist-entry-patch-diff-buffer
                    (nth 1 elem)))
           (log-buf (current-buffer)))
+      (dvc-trace "buffer1=%S" buffer)
       (if (and buffer (buffer-live-p buffer))
           (dvc-buffer-show-or-scroll buffer scroll-down)
         (setf (dvc-revlist-entry-patch-diff-buffer
@@ -254,11 +267,13 @@ revision list."
                 (unless (eq rev-type 'revision)
                   (error "Only 'revision type is supported here. Got %S" rev-type))
                 (let* ((prev-rev-id `(,(car rev-id) (previous-revision
-                                                     ,rev-id 1))))
+                                                     ,(cadr rev-id) 1))))
                   ;;(dvc-trace "prev-rev-id=%S" prev-rev-id)
                   ;;(dvc-trace "rev-id=%S" rev-id)
                   (dvc-delta prev-rev-id rev-id))))
-        (setq buffer (dvc-revlist-entry-patch-diff-buffer (nth 1 elem))))
+        (setq buffer (dvc-revlist-entry-patch-diff-buffer
+                      (nth 1 elem)))
+        (dvc-trace "buffer2=%S" buffer))
       ;; setup the dvc-partner-buffer stuff
       (with-current-buffer buffer
         (set (make-local-variable 'dvc-partner-buffer) log-buf))
@@ -329,9 +344,9 @@ caller has to provide the function PARSER which will actually
 build the revision list."
   (let ((buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
-      (let ((back-end dvc-buffer-current-active-dvc))
-        (dvc-revlist-mode)
-        (setq dvc-buffer-current-active-dvc back-end)))
+      (dvc-revlist-mode)
+      ;; dvc-buffer-current-active-dvc is killed by dvc-revlist-mode, so reset it
+      (setq dvc-buffer-current-active-dvc back-end))
     (if dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer)
       (set-buffer buffer))

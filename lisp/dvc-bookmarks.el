@@ -1,6 +1,6 @@
 ;;; dvc-bookmarks.el --- The bookmark system for DVC
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -71,6 +71,8 @@
 
 (defvar dvc-bookmarks-file-name "dvc-bookmarks.el" "The file that holds the dvc bookmarks")
 
+(defvar dvc-bookmarks-show-partners nil)
+
 (defvar dvc-bookmarks-loaded nil "Whether `dvc-bookmark-alist' has been loaded from `dvc-bookmarks-file-name'.")
 (defvar dvc-bookmarks-cookie nil "The ewoc cookie for the *dvc-bookmarks* buffer.")
 
@@ -93,6 +95,9 @@
     (define-key map "f"      'dvc-bookmarks-pull)
     (define-key map "."      'dvc-bookmarks-show-info-at-point)
     (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
+    (define-key map "Ap"     'dvc-bookmarks-add-partner)
+    (define-key map "Rp"     'dvc-bookmarks-remove-partner)
+    (define-key map "Tp"     'dvc-bookmarks-toggle-partner-visibility)
     map)
   "Keymap used in `dvc-bookmarks-mode'.")
 
@@ -107,13 +112,25 @@
     ["DVC pull" dvc-bookmarks-pull t]
    "--"
     ["Add new bookmark" dvc-bookmarks-add t]
+    ["Add partner" dvc-bookmarks-add-partner t]
+    ["Remove partner" dvc-bookmarks-remove-partner t]
+    "--"
+    ("Toggle visibility"
+     ["Partners"    dvc-bookmarks-toggle-partner-visibility
+      :style toggle :selected dvc-bookmarks-show-partners])
+   "--"
     ["Save bookmarks" dvc-bookmarks-save t]
      ))
 
 (defun dvc-bookmarks-printer (elem)
   (let ((entry (car elem))
-        (indent (cadr elem)))
-  (insert (format "%s%s" (make-string indent ? ) entry))))
+        (indent (cadr elem))
+        (partners (and dvc-bookmarks-show-partners (dvc-bookmarks-get-partners (nth 2 elem)))))
+    ;; (dvc-trace "dvc-bookmarks-printer - elem: %S, partners: %S" elem partners)
+    (insert (format "%s%s" (make-string indent ? ) entry))
+    (when partners
+      (dolist (p partners)
+        (insert (format "\n%sPartner %s" (make-string (+ 2 indent) ? ) p))))))
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
@@ -153,7 +170,9 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (dvc-bookmarks-mode))
 
 (defun dvc-bookmarks-mode ()
-  "Mode to display DVC bookmarks."
+  "Mode to display DVC bookmarks.
+
+\\{dvc-bookmarks-mode-map}"
   (interactive)
   (kill-all-local-variables)
   (use-local-map dvc-bookmarks-mode-map)
@@ -300,6 +319,36 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (interactive)
   (dvc-bookmark-goto-name (ido-completing-read "Jump to dvc bookmark: " (dvc-bookmark-names))))
 
+(defun dvc-bookmarks-get-partners (&optional entry-data)
+  (unless entry-data
+    (setq entry-data (dvc-bookmarks-current-data)))
+  (delete nil (mapcar '(lambda (e) (when (and (listp e) (eq (car e) 'partner)) (cadr e)))
+                      entry-data)))
+
+(defun dvc-bookmarks-add-partner ()
+  (interactive)
+  (let* ((cur-data (dvc-bookmarks-current-data))
+         (partner-url (read-string (format "Add partner to '%s': " (car cur-data)))))
+    (if (not (member partner-url (dvc-bookmarks-get-partners)))
+        (progn
+          (setcdr cur-data (append (cdr cur-data) (list (list 'partner partner-url))))
+          (message "dvc-bookmarks-add-partner %s" cur-data))
+      (message "%s is already a partner for %s" partner-url (car cur-data)))))
+
+(defun dvc-bookmarks-remove-partner ()
+  (interactive)
+  (let* ((cur-data (dvc-bookmarks-current-data))
+         (partner-to-remove (ido-completing-read (format "Remove partner from %s: " (car cur-data))
+                                                 (dvc-bookmarks-get-partners))))
+    (delete (list 'partner partner-to-remove) cur-data)))
+
+(defun dvc-bookmarks-toggle-partner-visibility ()
+  (interactive)
+  (setq dvc-bookmarks-show-partners (not dvc-bookmarks-show-partners))
+  (dvc-bookmarks))
+
+
+;; (dvc-bookmarks-load-from-file t)
 
 (provide 'dvc-bookmarks)
 ;;; dvc-bookmarks.el ends here

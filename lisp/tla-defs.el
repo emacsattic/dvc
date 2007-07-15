@@ -482,7 +482,7 @@ Must be buffer-local, in a tree-lint mode buffer.")
   "Keymap used on files in tla-lint-mode buffers.")
 
 ;;
-;; Revlog mdoe
+;; Revlog mode
 ;;
 (defvar tla-revlog-mode-map
   (let ((map (make-sparse-keymap)))

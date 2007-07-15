@@ -17,6 +17,11 @@ www/download
 *~
 ./configure
 ./autom4te.cache
+./configure.lineno
 ./config.log
 ./config.status
 www/dvc.png
+./lisp/tests/xmtn-tests-one.el
+patches/
+.pc/
+.tmp-dvc/

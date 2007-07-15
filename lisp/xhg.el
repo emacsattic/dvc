@@ -1,6 +1,6 @@
 ;;; xhg.el --- Mercurial interface for dvc
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -51,26 +51,29 @@
 (defun xhg-add-files (&rest files)
   "Run hg add."
   (message "xhg-add-files: %s" files)
-  (dvc-run-dvc-sync 'xhg (append '("add") files)
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (message "hg add finished"))))
+  (let ((default-directory (xhg-tree-root)))
+    (dvc-run-dvc-sync 'xhg (append '("add") (mapcar #'file-relative-name files))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "hg add finished")))))
 
 (defun xhg-revert-files (&rest files)
   "Run hg revert."
   (message "xhg-revert-files: %s" files)
-  (dvc-run-dvc-sync 'xhg (append '("revert") files)
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (message "hg revert finished"))))
+  (let ((default-directory (xhg-tree-root)))
+    (dvc-run-dvc-sync 'xhg (append '("revert") (mapcar #'file-relative-name files))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "hg revert finished")))))
 
 (defun xhg-remove-files (&rest files)
   "Run hg remove."
   (message "xhg-remove-files: %s" files)
-  (dvc-run-dvc-sync 'xhg (append '("remove") files)
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (message "hg remove finished"))))
+  (let ((default-directory (xhg-tree-root)))
+    (dvc-run-dvc-sync 'xhg (append '("remove") (mapcar #'file-relative-name files))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "hg remove finished")))))
 
 ;;;###autoload
 (defun xhg-addremove ()
@@ -107,6 +110,14 @@
                                     (message "hg forget finished"))))))
 
 ;;;###autoload
+(defun xhg-add-all-files (arg)
+  "Run 'hg add' to add all files to mercurial.
+Normally run 'hg add -n' to simulate the operation to see which files will be added.
+Only when called with a prefix argument, add the files."
+  (interactive "P")
+  (dvc-run-dvc-sync 'xhg (list "add" (unless arg "-n"))))
+
+;;;###autoload
 (defun xhg-log (&optional r1 r2 show-patch file)
   "Run hg log.
 When run interactively, the prefix argument decides, which parameters are queried from the user.
@@ -138,9 +149,7 @@ positive : Don't show patches, ask for revisions."
         (setq command-list (append command-list (list "-r" r2)))))
     (when show-patch
       (setq command-list (append command-list (list "-p"))))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
     (xhg-log-mode)
@@ -197,7 +206,8 @@ positive : Don't show patches, ask for revisions."
   "Run hg diff.
 If DONT-SWITCH, don't switch to the diff buffer"
   (interactive (list nil nil current-prefix-arg))
-  (let* ((cur-dir (or path default-directory))
+  (let* ((window-conf (current-window-configuration))
+         (cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
          (root (xhg-tree-root cur-dir))
          (buffer (dvc-prepare-changes-buffer
@@ -205,9 +215,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
                   `(xhg (local-tree ,root))
                   'diff root 'xhg))
          (command-list '("diff")))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
+    (dvc-buffer-push-previous-window-config window-conf)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (when base-rev
@@ -224,14 +233,14 @@ If DONT-SWITCH, don't switch to the diff buffer"
 (defun xhg-status ()
   "Run hg status."
   (interactive)
-  (let* ((root (xhg-tree-root))
+  (let* ((window-conf (current-window-configuration))
+         (root (xhg-tree-root))
          (buffer (dvc-prepare-changes-buffer
                   `(xhg (last-revision ,root 1))
                   `(xhg (local-tree ,root))
                   'status root 'xhg)))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
+    (dvc-buffer-push-previous-window-config window-conf)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xhg '("status")
        :finished
@@ -300,9 +309,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; no-merges
                      ))
   (let ((buffer (dvc-get-buffer-create 'xhg 'logs)))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
     (xhg-log-mode)
@@ -408,7 +415,7 @@ otherwise: Return a list of two element sublists containing alias, path"
       (dvc-run-dvc-display-as-info 'xhg '("paths"))
     (let* ((path-list (dvc-run-dvc-sync 'xhg (list "paths")
                                         :finished 'dvc-output-buffer-split-handler))
-           (lisp-path-list (mapcar '(lambda(arg) (split-string arg " = " arg)) path-list))
+           (lisp-path-list (mapcar '(lambda(arg) (dvc-split-string arg " = " arg)) path-list))
            (result-list))
       (cond ((eq type 'alias)
              (setq result-list (mapcar 'car lisp-path-list)))
@@ -506,7 +513,7 @@ LAST-REVISION looks like
     ;; TODO: support the last-revision parameter??
     (insert (dvc-run-dvc-sync
              'xhg (list "cat" file)
-             :finished 'dvc-output-buffer-handler))))
+             :finished 'dvc-output-buffer-handler-withnewline))))
 
 ;; --------------------------------------------------------------------------------
 ;; higher level commands
@@ -523,7 +530,7 @@ LAST-REVISION looks like
         (subject)
         (description))
     (dolist (m xhg-submit-patch-mapping)
-      (when (string= (dvc-uniquify-file-name (car m)) (xhg-tree-root))
+      (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (xhg-tree-root)))
         ;;(message "%S" (cadr m))
         (setq destination-email (car (cadr m)))
         (setq base-file-name (cadr (cadr m)))))
@@ -576,15 +583,17 @@ LAST-REVISION looks like
       (xhg-log (concat (number-to-string (+ actual-rev 1)) ":tip")))))
 
 (defun xhg-save-diff (filename)
+  "Save the current hg diff to a file named FILENAME."
   (interactive (list (read-file-name "Save the hg diff to: ")))
   (message "xhg-save-diff %s" filename)
   (with-current-buffer
       (find-file-noselect filename)
-    (delete-region (point-min) (point-max))
-    (insert (dvc-run-dvc-sync 'xhg (list "diff")
-                              :finished 'dvc-output-buffer-handler))
-    (save-buffer)
-    (kill-buffer (current-buffer))))
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert (dvc-run-dvc-sync 'xhg (list "diff")
+                                :finished 'dvc-output-buffer-handler-withnewline))
+      (save-buffer)
+      (kill-buffer (current-buffer)))))
 
 
 ;; --------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 ;;; dvc-core.el --- Core functions for distributed version control
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions From:
@@ -84,8 +84,10 @@ This function may be useful to find \{arch\} and/or _darcs directories."
             (expand-file-name (concat (file-name-as-directory pwd) "..")))
       (setq pwd (if (string= new-pwd pwd) "/" new-pwd)))
     (unless (string= pwd "/")
-      (expand-file-name
-       (replace-regexp-in-string "/+$" "/" pwd)))))
+      (setq pwd (replace-regexp-in-string "\\([^:]\\)/*$" "\\1" pwd))
+      (if (memq system-type '(ms-dos windows-nt))
+          (expand-file-name pwd)
+        pwd))))
 
 (defun dvc-tree-root-helper (file-or-dir interactivep msg
                                          &optional location no-error)
@@ -212,8 +214,13 @@ The following sources are tried (in that order) and used if they are non nil:
 (defun dvc-confirm-read-file-name-list (prompt &optional files single-prompt mustmatch)
   (let ((num-files (length files)))
     (if (= num-files 1)
-        (dvc-confirm-read-file-name single-prompt mustmatch (car files))
-      (y-or-n-p (format prompt num-files)))))
+        (let ((confirmed-file-name
+               (dvc-confirm-read-file-name single-prompt mustmatch (car files))))
+          ;; I don't think `dvc-confirm-read-file-name' can return nil.
+          (assert confirmed-file-name)
+          (list confirmed-file-name))
+      (and (y-or-n-p (format prompt num-files))
+           files))))
 
 ;(dvc-confirm-read-file-name "Add file ")
 ;(dvc-confirm-read-file-name-list "Add %d files? " (dvc-current-file-list) "Add file " t)
@@ -423,8 +430,9 @@ ARGUMENTS is a list of the arguments that the process was called with."
       (setq has-output (> (point-max) 1)))
     (when has-output
       (dvc-switch-to-buffer output))
-    (message "`%s %s' process finished!"
-             dvc-name (mapconcat 'identity arguments " "))
+    (when (or dvc-debug has-output)
+      (message "Process `%s %s' finished"
+               dvc-name (mapconcat 'identity arguments " ")))
     status))
 
 (defun dvc-finish-function-without-buffer-switch (output error status arguments)
@@ -438,8 +446,9 @@ ARGUMENTS is a list of the arguments that the process was called
     (with-current-buffer output
       (setq dvc-name (or (progn (string-match " \\*\\(.+\\)-process" (buffer-name))
                                 (match-string 1 (buffer-name))) "DVC")))
-    (message "`%s %s' process finished!"
-             dvc-name (mapconcat 'identity arguments " "))
+    (when dvc-debug
+      (message "Process `%s %s' finished"
+               dvc-name (mapconcat 'identity arguments " ")))
     status))
 
 (defvar dvc-process-running nil
@@ -453,19 +462,18 @@ used to get more info about the process.")
 (defun dvc-build-dvc-command (dvc list-args)
   "Build a shell command to run DVC with args LIST-ARGS.
 DVC can be one of 'baz, 'xhg, ..."
-  (let* ((executable (dvc-variable dvc "executable"))
-         (cmd (mapconcat 'shell-quote-argument
-                         (cons executable
-                               (delq nil list-args))
-                         " ")))
-    (when (eq system-type 'windows-nt)
-      (setq cmd (replace-regexp-in-string "\\\"" "" cmd)))
-    cmd))
+  (let ((executable (executable-find (dvc-variable dvc "executable"))))
+    ;; 'executable-find' allows leading ~
+    (if (not executable)
+        (error "executable for %s not found" (symbol-name dvc)))
+    (mapconcat 'shell-quote-argument
+               (cons executable
+                     (remq nil list-args))
+               " ")))
 
 (defcustom dvc-password-prompt-regexp
   "[Pp]ass\\(word\\|phrase\\).*:\\s *\\'"
-  "*Regexp matching prompts for passwords in the inferior process.
-This is used by `eshell-watch-for-password-prompt'."
+  "*Regexp matching prompts for passwords in the inferior process."
   :type 'regexp
   :group 'dvc)
 
@@ -537,7 +545,7 @@ Example:
                         (message \"No changes in this working copy\"))
                       :error
                       (lambda (output error status arguments)
-                        (dvc-show-changes-buffer output)))"
+                        (dvc-show-changes-buffer 'tla--parse-changes output)))"
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys
@@ -556,6 +564,11 @@ Example:
             (let ((process-environment
                    (funcall (dvc-function dvc "prepare-environment")
                             process-environment)))
+              ;; `start-process' sends both stderr and stdout to
+              ;; `output-buf'. But we want to keep stderr separate. So
+              ;; we use a shell to redirect stderr before Emacs sees
+              ;; it. Note that this means we require "sh" even on
+              ;; MS Windows.
               (start-process
                (dvc-variable dvc "executable") output-buf
                "sh" "-c"
@@ -564,11 +577,12 @@ Example:
            (process-event
             (list process
                   (dvc-log-event output-buf
-                                  error-buf
-                                  command
-                                  default-directory "started"))))
+                                 error-buf
+                                 command
+                                 default-directory "started"))))
       (with-current-buffer (or related-buffer (current-buffer))
-        (message "running process `%s' in `%s'" command default-directory)
+        (when dvc-debug
+          (message "Running process `%s' in `%s'" command default-directory))
         (add-to-list 'dvc-process-running process-event)
         (set-process-filter process 'dvc-process-filter)
         (set-process-sentinel
@@ -653,24 +667,28 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
             (unless output-buffer (dvc-kill-process-buffer output-buf))
             (unless error-buffer (dvc-kill-process-buffer error-buf))))))))
 
+(defun dvc-processes-related-to-buffer (buffer)
+  "Returns a list of DVC process whose related buffer is BUFFER."
+  (let ((accu nil))
+    (dolist (entry dvc-process-running)
+      (when (eq (dvc-event-related-buffer (cadr entry)) buffer)
+        (push (car entry) accu)))
+    (setq accu (nreverse accu))
+    accu))
+
 (defun dvc-kill-process-maybe (buffer)
   "Prompts and possibly kill process whose related buffer is BUFFER."
-  (let ((process-list nil))
-    (dolist (process-buffer dvc-process-running)
-      (when (eq (dvc-event-related-buffer (cadr process-buffer))
-                buffer)
-        (add-to-list 'process-list (car process-buffer))))
-    (let ((l (length process-list)))
-      (when (and process-list
-                 (y-or-n-p (format "%s process%s running in buffer %s.  Kill %s? "
-                                   l (if (> l 1) "es" "")
-                                   (buffer-name buffer)
-                                   (if (> l 1) "Them" "it"))))
-        (dolist (process process-list)
-          (setq dvc-default-killed-function-noerror
-                (1+ dvc-default-killed-function-noerror))
-          (if (eq (process-status process) 'run)
-              (kill-process process)))))))
+  (let* ((processes (dvc-processes-related-to-buffer buffer))
+         (l (length processes)))
+    (when (and processes
+               (y-or-n-p (format "%s process%s running in buffer %s.  Kill %s? "
+                                 l (if (= l 1) "" "es")
+                                 (buffer-name buffer)
+                                 (if (= l 1) "it" "them"))))
+      (dolist (process processes)
+        (when (eq (process-status process) 'run)
+          (incf dvc-default-killed-function-noerror)
+          (kill-process process))))))
 
 (add-hook 'kill-buffer-hook 'dvc-kill-buffer-function)
 
@@ -680,7 +698,7 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-kill-process-maybe (current-buffer)))
 
 (defun dvc-run-dvc-display-as-info (dvc arg-list &optional show-error-buffer info-string asynchron)
-  "Call either `dvc-run-dvc-sync' or `dvc-run-dvc-sync' and display the result in an info buffer.
+  "Call either `dvc-run-dvc-async' or `dvc-run-dvc-sync' and display the result in an info buffer.
 When INFO-STRING is given, insert it at the buffer beginning."
   (let ((buffer (dvc-get-buffer-create dvc 'info)))
     (funcall (if asynchron 'dvc-run-dvc-async 'dvc-run-dvc-sync) dvc arg-list
@@ -839,16 +857,16 @@ Returns that event."
   (let ((related-buffer (current-buffer)))
     (with-current-buffer (ewoc-buffer dvc-log-cookie)
       (let ((elem (make-dvc-event :output-buffer output
-                                   :error-buffer error
-                                   :related-buffer related-buffer
-                                   :command command
-                                   :tree tree
-                                   :event event
-                                   :time (current-time)))
+                                  :error-buffer error
+                                  :related-buffer related-buffer
+                                  :command command
+                                  :tree tree
+                                  :event event
+                                  :time (current-time)))
             buffer-read-only)
         (ewoc-enter-last dvc-log-cookie elem)
-        ;; If an event is too old(30 minutes later since it is recorded),
-        ;; throw away.
+        ;; If an event is too old (30 minutes after it has been
+        ;; recorded), throw it away.
         (ewoc-filter dvc-log-cookie 'dvc-log-recently-p 30)
         (ewoc-refresh dvc-log-cookie)
         elem))))
@@ -941,6 +959,8 @@ Strips the final newline if there is one."
 ;; Revision manipulation
 ;;
 
+;; revision grammar is specified in ../docs/DVC-API
+
 ;; accessors
 (defun dvc-revision-get-dvc (revision-id)
   (car revision-id))
@@ -991,10 +1011,11 @@ REVISION-ID is as specified in docs/DVC-API."
   (let ((type (dvc-revision-get-type revision-id))
         (inhibit-read-only t))
     (if (eq type 'previous-revision)
-        (funcall (dvc-function
-                  (dvc-revision-get-dvc revision-id)
-                   "revision-get-previous-revision")
-                 file (dvc-revision-get-data revision-id))
+        (let* ((dvc (dvc-revision-get-dvc revision-id))
+              (data (nth 0 (dvc-revision-get-data revision-id)))
+              (rev-id (list dvc data)))
+          (funcall (dvc-function dvc "revision-get-previous-revision")
+                   file rev-id))
       (let ((buffer (dvc-revision-get-buffer file revision-id)))
         (with-current-buffer buffer
           (case type
@@ -1016,21 +1037,18 @@ REVISION-ID is as specified in docs/DVC-API."
 (defun dvc-revision-get-previous-revision (file revision)
   "Default function to get the previous revision of a FILE.
 
-REVISION looks like
-\((baz (...)) 42).
-\(REV-ID N)."
+REVISION is documented in docs/DVC-API."
   (dvc-trace "get-prev-rev. revision=%S" revision)
   (dvc-revision-get-file-in-buffer
    file
-   (dvc-revision-nth-ancestor (nth 0 revision)
-                              (or (nth 1 revision) 1))))
+   (dvc-revision-nth-ancestor revision 1)))
 
 (defun dvc-dvc-revision-nth-ancestor (revision n)
   "Default function to get the n-th ancestor of REVISION."
   (let ((count n)
         (res revision))
     (while (> count 0)
-      (setq res (dvc-revision-direct-ancestor revision)
+      (setq res (dvc-revision-direct-ancestor res)
             count (- count 1)))
     res))
 

@@ -1,6 +1,6 @@
 ;;; tla-dvc.el --- The dvc layer for xtla
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributors: Matthieu Moy, <Matthieu.Moy@imag.fr>
@@ -52,8 +52,8 @@
   ;; To fill the gap, nil is passed to. -- Masatake.
   (tla-file-diff file nil modified dont-switch))
 
-(defun tla-dvc-status (&optional against)
-  (tla-changes t against))
+(defun tla-dvc-status (&optional path)
+  (tla-changes t nil))
 
 (defalias 'tla-dvc-submit-patch 'tla-submit-patch)
 
@@ -67,6 +67,14 @@
   (tla-add nil file))
 
 (defalias 'tla-dvc-add-files 'tla-add-files)
+
+(defun tla-dvc-remove-files (&rest files)
+  "Call `tla-remove' to remove a list of files."
+  (apply 'tla-remove nil files))
+
+(defun tla-dvc-rename ()
+  (interactive)
+  (call-interactively 'tla-move))
 
 (defun tla-dvc-log (arg)
   "Show the log for the current Arch tree."

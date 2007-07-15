@@ -1,6 +1,6 @@
 ;;; xdarcs.el --- darcs interface for dvc
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006, 2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -88,14 +88,19 @@
             (cond ((eq modif-char ?M)
                    (setq status "M"
                          modif "M")
-                   (when (string-match "\\(.+\\) -[0-9]+ \\+[0-9]+$"
-                                       elem)
+                   (when (or (string-match "\\(.+\\) -[0-9]+ \\+[0-9]+$"
+					   elem)
+			     (string-match "\\(.+\\) [+-][0-9]+$"
+					   elem))
                      (setq elem (match-string 1 elem))))
                   ;; ???a
                   ((eq modif-char ?a)
-                   (setq status "a"))
+                   (setq status "?"))
+		  ((eq modif-char ?A)
+		   (setq status "A"
+			 modif " "))
                   ((eq modif-char ?R)
-                   (setq status "R"))
+                   (setq status "D"))
                   ((eq modif-char ??)
                    (setq status "?"))
                   (t
@@ -104,13 +109,15 @@
             (when (or modif status)
               (ewoc-enter-last dvc-diff-cookie
                                (list 'file
-                                     (substring elem 2)
+                                     ;; Skip the status and "./" in the filename
+                                     (substring elem 4)
                                      status
                                      modif)))))))))
 
-(defun xdarcs-whatsnew (&optional against path)
+;;;###autoload
+(defun xdarcs-whatsnew (&optional path)
   "Run darcs whatsnew."
-  (interactive (list nil default-directory))
+  (interactive (list default-directory))
   (let* ((dir (or path default-directory))
          (root (xdarcs-tree-root dir))
          (buffer (dvc-prepare-changes-buffer
@@ -154,9 +161,7 @@
                   `(xdarcs (local-tree ,root))
                   'diff root 'xdarcs))
          (command-list '("diff" "--unified")))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xdarcs command-list
@@ -212,6 +217,24 @@ LAST-REVISION looks like
         (insert-file-contents output-file)
         ;; TODO: remove output-file
         ))))
+
+(defun xdarcs-revert-files (&rest files)
+  "Run darcs revert."
+  (message "xdarcs-revert-files: %s" files)
+  (let ((default-directory (xdarcs-tree-root)))
+    (dvc-run-dvc-sync 'xdarcs (append '("revert" "-a") (mapcar #'file-relative-name files))
+		      :finished (dvc-capturing-lambda
+				    (output error status arguments)
+				  (message "xdarcs revert finished")))))
+
+(defun xdarcs-remove-files (&rest files)
+  "Run darcs remove."
+  (message "xdarcs-remove-files: %s" files)
+  (dvc-run-dvc-sync 'xdarcs (append '("remove" "-a") files)
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "xdarcs remove finished"))))
+
 
 (provide 'xdarcs)
 ;;; xdarcs.el ends here

@@ -1,6 +1,6 @@
 ;;; xhg-dvc.el --- The dvc layer for xhg
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -39,7 +39,7 @@
 ;;;###autoload
 (defalias 'xhg-dvc-tree-root 'xhg-tree-root)
 
-(defun xhg-dvc-log-edit ()
+(defun xhg-dvc-log-edit (&optional other-frame)
   (dvc-dvc-log-edit))
 
 (defvar xhg-dvc-commit-extra-parameters nil "A list of extra parameters for the next hg commit.")
@@ -47,7 +47,7 @@
 (defun xhg-select-committer-for-next-commit (committer)
   "Select the committer for the next hg commit.
 This is done via setting `xhg-dvc-commit-extra-parameters'."
-  (interactive "sCommitter for next hg commit: ")
+  (interactive (list (read-string "Committer for next hg commit: " xhg-gnus-patch-from-user)))
   (setq xhg-dvc-commit-extra-parameters `("--user" ,committer)))
 
 ;; Base functions that are required for every supported dvc system
@@ -83,8 +83,8 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
 (defalias 'xhg-dvc-save-diff 'xhg-save-diff)
 
 ;;;###autoload
-(defun xhg-dvc-status (&optional against)
-  ;;Note the against argument is not useful for hg
+(defun xhg-dvc-status (&optional path)
+  ;; Path is already set as default-directory in dvc-status so it can be ignored here
   (xhg-status))
 
 
@@ -135,7 +135,7 @@ ARG is passed as prefix argument"
 
 (defun xhg-dvc-edit-ignore-files ()
   (interactive)
-  (find-file-other-window (concat (xhg-tree-root) ".hgignore")))
+  (find-file-other-window (concat (dvc-uniquify-file-name (xhg-tree-root)) ".hgignore")))
 
 (defun xhg-dvc-ignore-files (file-list)
   (interactive (list (dvc-current-file-list)))

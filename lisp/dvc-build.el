@@ -31,9 +31,12 @@
 ;; FIXME: defined here because package-maint.el is part of DVC for now.
 (setq srcdir (or (getenv "srcdir") "."))
 (setq contribdir (or (getenv "contribdir") (concat srcdir "/contrib")))
-(setq otherdirs (or (getenv "otherdirs") nil))
+(setq otherdirs (or (getenv "otherdirs") ""))
 
 (setq loaddir (and load-file-name (file-name-directory load-file-name)))
+
+;; Increase the max-specpdl-size size to avoid an error on some platforms
+(setq max-specpdl-size (max 1000 max-specpdl-size))
 
 (add-to-list 'load-path srcdir)
 (when (file-exists-p contribdir)

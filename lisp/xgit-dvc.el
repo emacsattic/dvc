@@ -1,6 +1,6 @@
-;;; cg-dvc.el --- The dvc layer for cg
+;;; xgit-dvc.el --- The dvc layer for git
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -21,7 +21,7 @@
 
 ;;; Commentary:
 
-;; This file provides the common dvc layer for cogito/git
+;; This file provides the common dvc layer for git
 
 
 ;;; History:
@@ -30,47 +30,47 @@
 
 ;;; Code:
 
-(require 'cg)
+(require 'xgit)
 (eval-and-compile (require 'dvc-unified))
 
 ;;;###autoload
-(dvc-register-dvc 'cg "Cogito")
+(dvc-register-dvc 'xgit "git")
 
 ;;;###autoload
-(defalias 'cg-dvc-tree-root 'cg-tree-root)
+(defalias 'xgit-dvc-tree-root 'xgit-tree-root)
 
 ;;;###autoload
-(defun cg-dvc-status (&optional against)
-  ;;Note the against argument is not yet used for git
-  (cg-status))
+(defun xgit-dvc-status (&optional path)
+  (xgit-status))
 
-(defalias 'cg-dvc-add-files 'cg-add-files)
-(defalias 'cg-dvc-revert-files 'cg-revert-files)
+(defalias 'xgit-dvc-add-files 'xgit-add-files)
+(defalias 'xgit-dvc-remove-files 'xgit-remove-files)
+(defalias 'xgit-dvc-revert-files 'xgit-revert-files)
 
 ;;;###autoload
-(defalias 'cg-dvc-command-version 'cg-command-version)
+(defalias 'xgit-dvc-command-version 'xgit-command-version)
 
-(defalias 'cg-dvc-diff 'cg-diff)
+(defalias 'xgit-dvc-diff 'xgit-diff)
 
-(defun cg-dvc-log-edit-file-name-func ()
-  cg-log-edit-file-name)
+(defun xgit-dvc-log-edit-file-name-func ()
+  (concat (xgit-tree-root) "/" xgit-log-edit-file-name))
 
-(defun cg-dvc-log-edit ()
-  (dvc-dvc-log-edit))
+(defun xgit-dvc-log-edit (&optional other-frame)
+  (dvc-dvc-log-edit other-frame))
 
-(defun cg-dvc-log-edit-done ()
-  "Finish a commit for Cogito."
+(defun xgit-dvc-log-edit-done ()
+  "Finish a commit for git, using git commit -a"
   (let ((buffer (find-file-noselect (dvc-log-edit-file-name)))
-        (files-to-commit (with-current-buffer dvc-partner-buffer (dvc-current-file-list 'nil-if-none-marked))))
+        (files-to-commit (with-current-buffer dvc-partner-buffer
+                           (dvc-current-file-list 'nil-if-none-marked))))
     (dvc-log-flush-commit-file-list)
     (save-buffer buffer)
     (message "committing %S in %s" (or files-to-commit "all files") (dvc-tree-root))
     (dvc-run-dvc-sync
-     ;; cg 0.17 supports the -M command line switch for commit
-     'cg (append (list "commit"
-                       (unless (cg-tree-has-head) "-C") ;; specifiy -C for the initial commit
-                       "-M" (dvc-log-edit-file-name))
-                 files-to-commit)
+     'xgit (append (list "commit"
+                         (unless files-to-commit "-a")
+                         "-F" (dvc-log-edit-file-name))
+                   );;files-to-commit)    ;; TODO: specification of a file list does not yet work...
      :finished (dvc-capturing-lambda
                    (output error status arguments)
                  (dvc-show-error-buffer output 'commit)
@@ -80,21 +80,21 @@
                              (buffer-string))))
                  (dvc-log-close (capture buffer))
                  ;; doesn't work at the moment (Stefan, 10.02.2006)
-                 ;; (dvc-diff-clear-buffers 'cg (capture default-directory)
+                 ;; (dvc-diff-clear-buffers 'xgit (capture default-directory)
                  ;;  "* Just committed! Please refresh buffer\n")
-                 (message "Cogito commit finished")))
+                 (message "git commit finished")))
     (dvc-tips-popup-maybe)))
 
 ;;TODO: Use the dvc log system
-(defun cg-dvc-log (arg)
-  "Shows the changelog in the current git/cogito tree.
+(defun xgit-dvc-log (arg)
+  "Shows the changelog in the current git tree.
 ARG is passed as prefix argument"
-  (call-interactively 'cg-log))
+  (call-interactively 'xgit-log))
 
-(defun cg-dvc-changelog (arg)
-  "Shows the changelog in the current git/cogito tree.
+(defun xgit-dvc-changelog (arg)
+  "Shows the changelog in the current git tree.
 ARG is passed as prefix argument"
-  (call-interactively 'cg-log))
+  (call-interactively 'xgit-log))
 
-(provide 'cg-dvc)
-;;; cg-dvc.el ends here
+(provide 'xgit-dvc)
+;;; xgit-dvc.el ends here

@@ -1,6 +1,6 @@
 ;;; baz-dvc.el --- The dvc layer for baz
 
-;; Copyright (C) 2005 by all contributors
+;; Copyright (C) 2005, 2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributors: Matthieu Moy, <Matthieu.Moy@imag.fr>
@@ -33,9 +33,10 @@
 (defun baz-dvc-diff (against path dont-switch)
   (baz-changes nil against))
 (defalias 'baz-dvc-file-diff 'baz-file-diff)
-(defun baz-dvc-status (&optional against)
-  (baz-status default-directory against))
-(defalias 'baz-dvc-log-edit 'baz-edit-log)
+(defun baz-dvc-status (&optional path)
+  (baz-status path))
+(defun baz-dvc-log-edit (&optional other-frame)
+  (tla-edit-log nil nil other-frame))
 (defun baz-dvc-add (file)
   (baz-add nil file))
 (defun baz-dvc-log (arg)

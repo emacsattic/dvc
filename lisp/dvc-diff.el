@@ -1,6 +1,6 @@
 ;;; dvc-diff.el --- A generic diff mode for DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -95,11 +95,25 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
 (defvar dvc-diff-cookie nil
   "Ewoc cookie for the changes buffer.
 
-Element should look like
+Element should look like one of:
 
  (file \"filename\" \"[CRADP?]\" \"M\" \"/\" \"origname\")
+
+To mean that FILENAME has modifications (the two first fields are
+letters, inspired by baz \"status\" output, the third one is \"/\" in
+the case of a directory, and the fourth one is the original name in
+the case of a renamed file.
+
+
  (subtree \"name\" related-buffer changes?)
- (message \"doing such or such thing\")")
+
+To make a reference to a subtree (in which another dvc-diff is
+probably running).
+
+
+ (message \"doing such or such thing\")
+
+For informative messages.")
 
 (defun dvc-diff-printer (elem)
   "Ewoc pretty-printer for `dvc-diff-cookie'.
@@ -166,9 +180,10 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-previous  'dvc-diff-prev)
     (define-key map dvc-keyvec-revert    'dvc-revert-files)
     (define-key map dvc-keyvec-quit      'dvc-buffer-quit)
-    (define-key map [?d] 'dvc-diff-rm)
+    (define-key map dvc-keyvec-remove 'dvc-remove-files)
     (define-key map dvc-keyvec-mark   'dvc-diff-mark-file)
     (define-key map dvc-keyvec-unmark 'dvc-diff-unmark-file)
+    (define-key map [backspace] 'dvc-diff-unmark-file-up)
     (define-key map [?v] 'dvc-diff-view-source)
     (define-key map dvc-keyvec-parent 'dvc-diff-master-buffer)
     (define-key map [?j] 'dvc-diff-diff-or-list)
@@ -206,7 +221,7 @@ Pretty-print ELEM."
     ["View Diff in Separate Buffer"   dvc-diff-diff           t]
     ["View Diff with Ediff"           dvc-diff-ediff          t]
     "--"
-    ["Delete File"                    dvc-diff-rm             t]
+    ["Delete File"                    dvc-remove-files        t]
     ["Revert File"                    dvc-revert-files        t]
     )
   "Used both in the global and the context menu of `dvc-diff-mode'.")
@@ -373,14 +388,6 @@ files."
            (dvc-switch-to-buffer (cadr data)))
           (t (error "Not on a recognized location")))))
 
-(defun dvc-diff-rm ()
-  "Remove the file under point."
-  (interactive)
-  (let ((file (dvc-get-file-info-at-point)))
-    (unless file
-      (error "No file at point"))
-    (tla-rm file)))
-
 (defun dvc-diff-mark-file ()
   "Mark the file under point."
   (interactive)
@@ -422,20 +429,29 @@ a 'file."
       (goto-char (point-max)))))
 
 
-(defun dvc-diff-unmark-file ()
+(defun dvc-diff-unmark-file (&optional up)
   "Unmark the file under point."
   (interactive)
   (if (eq (car (ewoc-data (ewoc-locate dvc-diff-cookie)))
           'message)
       (dvc-diff-mark-group t)
-    (let ((current (ewoc-locate dvc-diff-cookie))
-          (file (dvc-get-file-info-at-point)))
+    (let* ((current (ewoc-locate dvc-diff-cookie))
+           (cur-loc (ewoc-location current))
+           (prev (ewoc-prev dvc-diff-cookie current)))
+      (when (and up prev)
+        (goto-char (if (= cur-loc (point)) (ewoc-location prev) cur-loc))
+        (setq current (ewoc-locate dvc-diff-cookie)))
       (setq dvc-buffer-marked-file-list
-            (delete file dvc-buffer-marked-file-list))
+            (delete (dvc-get-file-info-at-point) dvc-buffer-marked-file-list))
       (ewoc-invalidate dvc-diff-cookie current)
-      (goto-char (ewoc-location (or (ewoc-next dvc-diff-cookie
-                                               current)
-                                    current))))))
+      (unless up
+        (goto-char (ewoc-location (or (ewoc-next dvc-diff-cookie current)
+                                      current)))))))
+
+(defun dvc-diff-unmark-file-up ()
+  "Unmark the file under point and move up."
+  (interactive)
+  (dvc-diff-unmark-file t))
 
 (defun dvc-diff-diff ()
   "Run tla file-diff on the file at point in *{tla|baz}-changes*."
@@ -541,30 +557,27 @@ Throw an error when not on a file."
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
   `dvc-show-changes-buffer'.")
+;; FIXME: actually, dvc-show-changes-buffer doesn't use this
 
-(defun dvc-show-changes-buffer (buffer &optional parser
+(defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch header-end-regexp)
-  "Show the *{tla|baz}-changes* buffer built from the *{tla|baz}-process* BUFFER.
+  ;; FIXME: pass in dvc?
+  "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
 
-FORMAT defines the way to parse the output buffer. It can have the
-values:
+PARSER is a function to parse the diff and fill in the ewoc list.
 
-Use OUTPUT-BUFFER to display changes if provided.  That buffer must
-already be in changes mode.
+Display changes in OUTPUT-BUFFER if non-nil; otherwise create a
+new display buffer.
 
 If NO-SWITCH is nil, don't switch to the created buffer.
 
-PARSER is a function to parse the diff and fill in the ewoc list.
-Defaults to `dvc-parse-other'.
-
-If non-nil, header-end-regexp is a regexp matching the first line
+If non-nil, HEADER-END-REGEXP is a regexp matching the first line
 which is not part of the diff header."
   (let* ((root (with-current-buffer buffer
                  (dvc-tree-root default-directory t)))
-         (changes-buffer (or output-buffer (dvc-get-buffer-create tla-arch-branch
+         (changes-buffer (or output-buffer (dvc-get-buffer-create (dvc-current-active-dvc)
                                             'diff root)))
-         (dvc-header "")
-         (parser (or parser 'dvc-parse-other)))
+         (dvc-header ""))
     (if (or no-switch dvc-switch-to-buffer-first)
         (set-buffer changes-buffer)
       (dvc-switch-to-buffer changes-buffer))
@@ -607,7 +620,7 @@ which is not part of the diff header."
 
 
 (defun dvc-diff-no-changes (diff-buffer msg dir &optional
-                                         master-buffer)
+                                        master-buffer)
   "Function to call when there are no changes in a tree.
 
 Inserts a message in the changes buffer, and in the minibuffer.
@@ -629,22 +642,22 @@ recursive command."
         (with-current-buffer master-buffer
           (ewoc-map (lambda (x)
                       (when (and (eq (car x) 'subtree)
-                                 (eq (cadr x) buffer))
+                                 (eq (cadr x) diff-buffer))
                         (setcar (cdr (cddr x)) 'no-changes))
                       )
                     ;; (ewoc-refresh dvc-diff-cookie)))
                     dvc-diff-cookie)))
       (ewoc-refresh dvc-diff-cookie)
-      (recenter)))
+      (recenter '(4))))
   (message msg dir))
 
-(defun dvc-diff-error-in-process (diff-buffer msg dir stdout stderr
+(defun dvc-diff-error-in-process (diff-buffer msg dir output error
                                                &optional
                                                master-buffer)
   "Similar to `dvc-diff-no-changes', but to report a real error.
 
-STDOUT and STDERR are the buffers containing the stdout and stderr of
-the process that raised an error."
+OUTPUT and ERROR are the buffers containing the stdout and stderr
+of the process that raised an error."
   (with-current-buffer diff-buffer
     (dvc-diff-delete-messages)
     (ewoc-enter-last
@@ -708,7 +721,7 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-dvc-file-diff (file &optional base modified dont-switch)
-  "View changes in FILE between BASE and MODIFIED using ediff."
+  "View changes in FILE between BASE and MODIFIED."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
          (modified (or modified `(,dvc (local-tree ,file)))))
@@ -722,18 +735,25 @@ Usefull to clear diff buffers after a commit."
             (dvc-revision-get-file-in-buffer file modified))
            (base-file (make-temp-file "DVC-file-diff-base"))
            (modified-file (make-temp-file "DVC-file-diff-mod")))
-      (with-temp-buffer
+      (with-temp-file base-file
         (insert (with-current-buffer base-buffer (buffer-string)))
-        (write-file base-file))
-      (with-temp-buffer
+        (setq buffer-file-coding-system (with-current-buffer base-buffer
+                                          buffer-file-coding-system)))
+      (with-temp-file modified-file
         (insert (with-current-buffer modified-buffer (buffer-string)))
-        (write-file modified-file))
+        (setq buffer-file-coding-system (with-current-buffer modified-buffer
+                                          buffer-file-coding-system)))
       (dvc-switch-to-buffer buffer)
       (let ((inhibit-read-only t)
             (slash (unless (file-name-absolute-p file) "/")))
         (erase-buffer)
         (call-process dvc-diff-executable nil buffer nil
                       "-u"
+                      ;; FIXME: If the file has been renamed between
+                      ;; BASE and MODIFIED, the file names as
+                      ;; displayed here may be incorrect.  The
+                      ;; protocol needs to be extended to allow the
+                      ;; backend to supply the correct file names.
                       (concat "-La" slash file)
                       (concat "-Lb" slash file)
                       base-file modified-file))
@@ -741,6 +761,7 @@ Usefull to clear diff buffers after a commit."
       (delete-file modified-file)
       (message "")
       (toggle-read-only 1)
+      (goto-char (point-min))
       (diff-mode))))
 
 (defun dvc-ediff-startup-hook ()

@@ -1,6 +1,6 @@
 ;;; dvc-log.el --- Manipulation of the log before commiting
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -48,6 +48,10 @@
 
 (defvar dvc-log-edit-flush-prefix "## ")
 
+(defvar dvc-log-edit-init-functions (make-hash-table :test 'equal)
+  "A hash table that holds the mapping from work directory roots to
+functions that provide the initial content for a commit.")
+
 ;; --------------------------------------------------------------------------------
 ;; Menus
 ;; --------------------------------------------------------------------------------
@@ -63,7 +67,11 @@ Commands:
   (dvc-install-buffer-menu)
   (set (make-local-variable 'font-lock-defaults)
        '(dvc-log-edit-font-lock-keywords t))
+  (set (make-local-variable 'fill-paragraph-function)
+       'dvc-log-fill-paragraph)
   (setq fill-column 73)
+  (when (eq (point-min) (point-max))
+    (dvc-log-edit-insert-initial-commit-message))
   (run-hooks 'dvc-log-edit-mode-hook))
 
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?c)] 'dvc-log-edit-done)
@@ -72,6 +80,7 @@ Commands:
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?f)] 'dvc-log-insert-commit-file-list)
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?p)] 'dvc-buffer-pop-to-partner-buffer)
 (define-key dvc-log-edit-mode-map [(control ?c) (control ?m)] 'dvc-log-edit-insert-memorized-log)
+(define-key dvc-log-edit-mode-map [(control ?c) (control ?i)] 'dvc-log-edit-insert-initial-commit-message)
 
 (easy-menu-define dvc-log-edit-mode-menu dvc-log-edit-mode-map
   "`dvc-log-edit-mode' menu"
@@ -89,7 +98,7 @@ Commands:
 (defvar dvc-pre-commit-window-configuration nil)
 
 ;;;###autoload
-(defun dvc-dvc-log-edit ()
+(defun dvc-dvc-log-edit (&optional other-frame)
   "Edit the log file before a commit.
 
 If  invoked from  a buffer  containing marked  files,  only those
@@ -99,7 +108,9 @@ files  will be  taken  into  account when  you  will commit  with
   (setq dvc-pre-commit-window-configuration
         (current-window-configuration))
   (let ((start-buffer (current-buffer)))
-    (dvc-switch-to-buffer (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit))
+    (dvc-switch-to-buffer
+     (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit)
+     other-frame)
     (let ((buffer-name (buffer-name))
           (file-name (dvc-log-edit-file-name)))
       (set-visited-file-name file-name t t)
@@ -128,6 +139,16 @@ All lines starting with `dvc-log-edit-flush-prefix' are deleted."
   (save-excursion
     (goto-char (point-min))
     (flush-lines (concat "^" dvc-log-edit-flush-prefix))))
+
+(defun dvc-log-fill-paragraph (&optional justify)
+  "Fill the paragraph, but preserve open parentheses at beginning of lines.
+Prefix arg means justify as well."
+  (interactive "P")
+  (let ((end (progn (forward-paragraph) (point)))
+        (beg (progn (backward-paragraph) (point)))
+        (paragraph-start (concat paragraph-start "\\|\\s *\\s(")))
+    (fill-region beg end justify)
+    t))
 
 (defun dvc-log-insert-commit-file-list (arg)
   "Insert the file list that will be committed.
@@ -240,8 +261,10 @@ Inserts the entry in the arch log file instead of the ChangeLog."
                       "\\(\\s \\|[(),:]\\)")
               bound t))
            ;; Add to the existing entry for the same file.
-           (re-search-forward "^\\s *$\\|^\\s \\*")
-           (goto-char (match-beginning 0))
+           (if (re-search-forward "^\\s *$\\|^\\s \\*" nil t)
+               (goto-char (match-beginning 0))
+             (goto-char (point-max))
+             (insert-char ?\n 1))
            ;; Delete excess empty lines; make just 2.
            (while (and (not (eobp)) (looking-at "^\\s *$"))
              (delete-region (point) (line-beginning-position 2)))
@@ -298,6 +321,19 @@ Inserts the entry in the arch log file instead of the ChangeLog."
                 (beginning-of-line 1)
                 (looking-at "\\s *\\(\\*\\s *\\)?$"))
         (insert ": ")))))
+
+(defun dvc-log-edit-register-initial-content-function (working-copy-root the-function)
+  "Register a mapping from a work directory root to a function that provide the initial content for a commit."
+  (puthash (dvc-uniquify-file-name working-copy-root) the-function dvc-log-edit-init-functions))
+
+(defun dvc-log-edit-insert-initial-commit-message ()
+  "Insert the initial commit message at point.
+See `dvc-log-edit-register-initial-content-function' to register functions that provide the message text."
+  (interactive)
+  (let ((initial-content-function (gethash (dvc-uniquify-file-name (dvc-tree-root)) dvc-log-edit-init-functions)))
+    (when initial-content-function
+      (insert (funcall initial-content-function)))))
+
 
 (provide 'dvc-log)
 ;;; dvc-log.el ends here
