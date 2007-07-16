@@ -1,11 +1,11 @@
 Source: dvc
+Section: devel
 Priority: optional
 Maintainer: Milan Zamazal <pdm@debian.org>
 Build-Depends-Indep: debhelper (>= 4.0.0), autoconf, emacsen, tla | bazaar | bzr, texinfo
 Standards-Version: 3.6.2
 
 Package: dvc
-Section: devel
 Architecture: all
 Depends: tla | bazaar | bzr, emacs21 | xemacs21 | emacs-snapshot
 Conflicts: xtla
