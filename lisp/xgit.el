@@ -175,7 +175,7 @@ new file.")
             (dolist (elem (xgit-parse-status-sort (nreverse status-list)))
               (ewoc-enter-last dvc-diff-cookie elem))))))))
 
-(defun xgit-status (&optional against path)
+(defun xgit-status (&optional against path verbose)
   "Run git status."
   (interactive (list nil default-directory))
   (let* ((dir (or path default-directory))
@@ -188,7 +188,7 @@ new file.")
     (setq dvc-buffer-refresh-function 'xgit-status)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync
-     'xgit '("status")
+     'xgit `("status" ,(when verbose "-v"))
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (with-current-buffer (capture buffer)
@@ -207,6 +207,10 @@ new file.")
            (dvc-diff-no-changes (capture buffer)
                                 "No changes in %s"
                                 (capture root))))))))
+
+(defun xgit-status-verbose (&optional against path)
+  (interactive (list nil default-directory))
+  (xgit-status against path t))
 
 (defcustom git-log-max-count -1
   "Number of logs to print.  Specify negative value for all logs.
