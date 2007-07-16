@@ -98,6 +98,7 @@
     (define-key map "Ap"     'dvc-bookmarks-add-partner)
     (define-key map "Rp"     'dvc-bookmarks-remove-partner)
     (define-key map "Tp"     'dvc-bookmarks-toggle-partner-visibility)
+    (define-key map "An"     'dvc-bookmarks-add-nickname)
     map)
   "Keymap used in `dvc-bookmarks-mode'.")
 
@@ -125,12 +126,17 @@
 (defun dvc-bookmarks-printer (elem)
   (let ((entry (car elem))
         (indent (cadr elem))
-        (partners (and dvc-bookmarks-show-partners (dvc-bookmarks-get-partners (nth 2 elem)))))
-    ;; (dvc-trace "dvc-bookmarks-printer - elem: %S, partners: %S" elem partners)
+        (partners (and dvc-bookmarks-show-partners (dvc-bookmarks-get-partners (nth 2 elem))))
+        (nick-name))
+    ;;(dvc-trace "dvc-bookmarks-printer - elem: %S, partners: %S" elem partners)
     (insert (format "%s%s" (make-string indent ? ) entry))
     (when partners
       (dolist (p partners)
-        (insert (format "\n%sPartner %s" (make-string (+ 2 indent) ? ) p))))))
+        (setq nick-name (dvc-bookmarks-partner-nickname (nth 2 elem) p))
+        (insert (format "\n%sPartner %s%s"
+                        (make-string (+ 2 indent) ? )
+                        p
+                        (if nick-name (format "  [%s]" nick-name) "")))))))
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
@@ -347,6 +353,37 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (setq dvc-bookmarks-show-partners (not dvc-bookmarks-show-partners))
   (dvc-bookmarks))
 
+(defun dvc-bookmarks-partner-nickname (bookmark-entry partner-url)
+  ;;(message "dvc-bookmarks-partner-nickname %S %s" bookmark-entry partner-url)
+  (let ((nick-name))
+    (dolist (e bookmark-entry)
+      (when (and (listp e) (eq (car e) 'partner))
+        (when (string= partner-url (cadr e))
+          (when (eq (length e) 3)
+            (setq nick-name (nth 2 e))))))
+    nick-name))
+
+
+(defun dvc-bookmarks-partner-at-point ()
+  (interactive)
+  (save-excursion
+    (let ((partner-url))
+      (goto-char (line-beginning-position))
+      (when (looking-at "  Partner \\(.+?\\)\\(  \\[.+\\)?$")
+        (setq partner-url (match-string 1)))
+      partner-url)))
+
+(defun dvc-bookmarks-add-nickname ()
+  (interactive)
+  ;;(message "dvc-bookmarks-add-nickname %S" (dvc-bookmarks-current-data))
+  (let ((partner-at-point (dvc-bookmarks-partner-at-point)))
+    (dolist (e (dvc-bookmarks-current-data))
+      (when (and (listp e) (eq (car e) 'partner))
+        (when (string= partner-at-point (cadr e))
+          (if (= (length e) 2)
+              (setcdr (nthcdr 1 e) (cons (read-string (format "Nickname for %s: " partner-at-point)) nil)) ;;(add-to-list 'e "Nickname" t)
+            (setcar (nthcdr 2 e) (read-string (format "Nickname for %s: " partner-at-point) (nth 2 e))))
+          (message "Added nickname %s to the partner %s" (nth 2 e) partner-at-point))))))
 
 ;; (dvc-bookmarks-load-from-file t)
 
