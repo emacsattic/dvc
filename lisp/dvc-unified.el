@@ -208,8 +208,8 @@ edit buffer in a separate frame."
   (interactive (list (dvc-current-file-list))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-missing ()
-  "Show the missing changesets for this working copy."
+(define-dvc-unified-command dvc-missing (&optional other)
+  "Show the missing changesets for this working copy in regard to other."
   (interactive))
 
 ;;;###autoload
