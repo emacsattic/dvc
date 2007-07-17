@@ -313,7 +313,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
     (let ((inhibit-read-only t))
       (erase-buffer))
     (xhg-log-mode)
-    (dvc-run-dvc-async 'xhg (list "incoming" src)
+    (dvc-run-dvc-async 'xhg (list "incoming" src (when show-patch "--patch") (when no-merges "--no-merges"))
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
                          (progn
