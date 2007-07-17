@@ -82,6 +82,7 @@
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     (define-key map [return] 'dvc-bookmarks-goto)
     (define-key map "\C-m"   'dvc-bookmarks-goto)
+    (define-key map "g"      'dvc-bookmarks)
     (define-key map "j"      'dvc-bookmarks-jump)
     (define-key map "n"      'dvc-bookmarks-next)
     (define-key map "p"      'dvc-bookmarks-previous)
@@ -91,8 +92,8 @@
     (define-key map "s"      'dvc-bookmarks-status)
     (define-key map "l"      'dvc-bookmarks-changelog)
     (define-key map "L"      'dvc-bookmarks-log)
-    (define-key map "m"      'dvc-bookmarks-missing)
-    (define-key map "f"      'dvc-bookmarks-pull)
+    (define-key map "Mm"     'dvc-bookmarks-missing)
+    (define-key map "Mf"     'dvc-bookmarks-pull)
     (define-key map "."      'dvc-bookmarks-show-info-at-point)
     (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
     (define-key map "Ap"     'dvc-bookmarks-add-partner)
@@ -115,6 +116,7 @@
     ["Add new bookmark" dvc-bookmarks-add t]
     ["Add partner" dvc-bookmarks-add-partner t]
     ["Remove partner" dvc-bookmarks-remove-partner t]
+    ["Add/edit partner Nickname" dvc-bookmarks-add-nickname t]
     "--"
     ("Toggle visibility"
      ["Partners"    dvc-bookmarks-toggle-partner-visibility
@@ -164,15 +166,18 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (interactive "P")
   (dvc-bookmarks-load-from-file arg)
   (switch-to-buffer (get-buffer-create "*dvc-bookmarks*"))
-  (toggle-read-only 0)
-  (erase-buffer)
-  (set (make-local-variable 'dvc-bookmarks-cookie)
-       (ewoc-create (dvc-ewoc-create-api-select
-		     #'dvc-bookmarks-printer)))
-  (put 'dvc-bookmarks-cookie 'permanent-local t)
-  (dolist (entry dvc-bookmark-alist)
-    (dvc-bookmarks-add-to-cookie entry 0))
-  (goto-char (point-min))
+  (let ((cur-pos (point)))
+    (toggle-read-only 0)
+    (erase-buffer)
+    (set (make-local-variable 'dvc-bookmarks-cookie)
+         (ewoc-create (dvc-ewoc-create-api-select
+                       #'dvc-bookmarks-printer)))
+    (put 'dvc-bookmarks-cookie 'permanent-local t)
+    (dolist (entry dvc-bookmark-alist)
+      (dvc-bookmarks-add-to-cookie entry 0))
+    (if (eq major-mode 'dvc-bookmarks-mode)
+        (goto-char cur-pos)
+      (goto-char (point-min))))
   (dvc-bookmarks-mode))
 
 (defun dvc-bookmarks-mode ()
