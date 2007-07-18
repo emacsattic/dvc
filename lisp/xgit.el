@@ -258,7 +258,8 @@ FILE is filename in repostory to filter logs by matching filename.
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))
-                              (insert (format "git %s\n\n" (dvc-any-to-string args)))
+                              (insert (format "git %s\n\n" (mapconcat #'identity
+                                                                      args " ")))
                               (xgit-log-mode))))))))
 
 ;; TODO: update for git
@@ -397,7 +398,8 @@ files changed in the revision is passed to git-show-filter-filename-func and res
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))
-                              (insert (format "git %s\n\n" (dvc-any-to-string args)))
+                              (insert (format "git %s\n\n" (mapconcat #'identity
+                                                                      args " ")))
                               (diff-mode)
                               (toggle-read-only 1))))))))
 
