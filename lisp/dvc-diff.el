@@ -761,6 +761,7 @@ Usefull to clear diff buffers after a commit."
       (delete-file modified-file)
       (message "")
       (toggle-read-only 1)
+      (goto-char (point-min))
       (diff-mode))))
 
 (defun dvc-ediff-startup-hook ()
