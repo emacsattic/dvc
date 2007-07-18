@@ -234,6 +234,11 @@ local database, as appropriate for the current back-end."
   (interactive))
 
 ;;;###autoload
+(define-dvc-unified-command dvc-merge (&optional other)
+  "Merge with other"
+  (interactive))
+
+;;;###autoload
 (define-dvc-unified-command dvc-submit-patch ()
   "Submit a patch for the current project under DVC control."
   (interactive))
