@@ -161,9 +161,13 @@ ARG is passed as prefix argument"
             (save-buffer)))
       (message "No files with an extension selected."))))
 
-(defun xhg-dvc-missing ()
+(defun xhg-dvc-missing (&optional other)
+  "Run hg incoming to show the missing patches for this tree.
+When `last-command' was `dvc-pull', run `xhg-missing'."
   (interactive)
-  (xhg-missing))
+  (if (eq last-command 'dvc-pull)
+      (xhg-missing)
+    (xhg-incoming other t)))
 
 (defun xhg-dvc-update ()
   (interactive)
