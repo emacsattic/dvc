@@ -309,7 +309,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; no-merges
                      ))
   (let ((buffer (dvc-get-buffer-create 'xhg 'logs)))
-    (dvc-switch-to-buffer-maybe buffer)
+    (dvc-switch-to-buffer-maybe buffer t)
     (let ((inhibit-read-only t))
       (erase-buffer))
     (xhg-log-mode)
