@@ -181,9 +181,10 @@
 ;;;###autoload
 (defun bzr-missing (&optional other)
   "Run bzr missing."
-  (interactive "sBzr missing for branch: ")
+  (interactive "sBzr missing against other: ")
   (when (string= other "")
     (setq other nil))
+  ;;(message "bzr-missing %S" other)
   (setq bzr-log-show-only-short-message nil)
   (dvc-build-revision-list 'bzr 'missing (bzr-tree-root) `("missing" ,other) 'bzr-missing-parse)
   (goto-char (point-min)))

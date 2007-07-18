@@ -1,8 +1,10 @@
 ;;; bzr-dvc.el --- Support for Bazaar 2 in DVC's unification layer
 
-;; Copyright (C) 2005 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
+;; Contributions from:
+;;    Stefan Reichoer, <stefan@xsteve.at>
 ;; Keywords: tools
 
 ;; This file is free software; you can redistribute it and/or modify
@@ -43,6 +45,8 @@
 (defalias 'bzr-dvc-missing 'bzr-missing)
 ;;;###autoload
 (defalias 'bzr-dvc-pull 'bzr-pull)
+;;;###autoload
+(defalias 'bzr-dvc-merge 'bzr-merge)
 ;;;###autoload
 (defalias 'bzr-dvc-submit-patch 'bzr-submit-patch)
 ;;;###autoload

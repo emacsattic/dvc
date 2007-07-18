@@ -208,8 +208,8 @@ edit buffer in a separate frame."
   (interactive (list (dvc-current-file-list))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-missing ()
-  "Show the missing changesets for this working copy."
+(define-dvc-unified-command dvc-missing (&optional other)
+  "Show the missing changesets for this working copy in regard to other."
   (interactive))
 
 ;;;###autoload
@@ -231,6 +231,11 @@ edit buffer in a separate frame."
 (define-dvc-unified-command dvc-pull ()
   "Pull changes from the remote source to the working copy or
 local database, as appropriate for the current back-end."
+  (interactive))
+
+;;;###autoload
+(define-dvc-unified-command dvc-merge (&optional other)
+  "Merge with other"
   (interactive))
 
 ;;;###autoload

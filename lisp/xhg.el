@@ -309,11 +309,11 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; no-merges
                      ))
   (let ((buffer (dvc-get-buffer-create 'xhg 'logs)))
-    (dvc-switch-to-buffer-maybe buffer)
+    (dvc-switch-to-buffer-maybe buffer t)
     (let ((inhibit-read-only t))
       (erase-buffer))
     (xhg-log-mode)
-    (dvc-run-dvc-async 'xhg (list "incoming" src)
+    (dvc-run-dvc-async 'xhg (list "incoming" src (when show-patch "--patch") (when no-merges "--no-merges"))
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
                          (progn
@@ -415,7 +415,7 @@ otherwise: Return a list of two element sublists containing alias, path"
       (dvc-run-dvc-display-as-info 'xhg '("paths"))
     (let* ((path-list (dvc-run-dvc-sync 'xhg (list "paths")
                                         :finished 'dvc-output-buffer-split-handler))
-           (lisp-path-list (mapcar '(lambda(arg) (split-string arg " = " arg)) path-list))
+           (lisp-path-list (mapcar '(lambda(arg) (dvc-split-string arg " = " arg)) path-list))
            (result-list))
       (cond ((eq type 'alias)
              (setq result-list (mapcar 'car lisp-path-list)))

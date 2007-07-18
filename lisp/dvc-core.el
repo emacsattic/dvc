@@ -289,7 +289,9 @@ These function bypasses the used revision control system."
   "Pop to dvc-partner-buffer, if available."
   (interactive)
   (if (and (boundp 'dvc-partner-buffer) dvc-partner-buffer)
-      (pop-to-buffer dvc-partner-buffer)
+      (if (buffer-live-p dvc-partner-buffer)
+          (pop-to-buffer dvc-partner-buffer)
+        (message "Partner buffer has been killed"))
     (message "No partner buffer set for this buffer.")))
 
 
