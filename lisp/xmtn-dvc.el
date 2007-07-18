@@ -854,7 +854,7 @@ the file before saving."
                    (with-current-buffer buffer
                      (ewoc-enter-last ewoc `(message "Parsing inventory..."))
                      (ewoc-refresh ewoc)
-                     (redisplay t)
+                     (xmtn--redisplay t)
                      (dvc-diff-delete-messages)
                      (lexical-let ((changesp nil))
                        (xmtn-basic-io-with-stanza-parser (parser output)
