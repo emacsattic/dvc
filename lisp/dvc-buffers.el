@@ -366,7 +366,7 @@ See `dvc-switch-to-buffer-mode' for possible settings."
 Depends on the value of `dvc-switch-to-buffer-first'.
 
 When SETUP-AS-PARTNER, set the `dvc-partner-buffer' variable in BUFFER to current-buffer and vice versa."
-  (message "dvc-switch-to-buffer-maybe, curr-buff: %s switch-to: %s" (current-buffer) buffer)
+  ;; (message "dvc-switch-to-buffer-maybe, curr-buff: %s switch-to: %s" (current-buffer) buffer)
   (when setup-as-partner
     (set (make-local-variable 'dvc-partner-buffer) buffer)
     (let ((cur-buff (current-buffer)))

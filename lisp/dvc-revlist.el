@@ -54,14 +54,14 @@
 ;;    `kind' is: one of
 ;;    partner: ???
 ;;    bookmark: ???
-;;    
+;;
 ;; ('entry-patch struct)
 ;;    `struct' is a dvc-revlist-entry-patch struct type.
 ;;
 ;; ('entry-change "changes")
 ;;
 ;; ('message "message")
-;; 
+;;
 ;; The second element tells if the element is marked or not.
 
 (defun dvc-revlist-printer (elem)
@@ -347,9 +347,7 @@ build the revision list."
       (dvc-revlist-mode)
       ;; dvc-buffer-current-active-dvc is killed by dvc-revlist-mode, so reset it
       (setq dvc-buffer-current-active-dvc back-end))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer t)
     (dvc-run-dvc-async
      back-end arglist
      :finished
