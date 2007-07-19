@@ -854,7 +854,7 @@ the file before saving."
                    (with-current-buffer buffer
                      (ewoc-enter-last ewoc `(message "Parsing inventory..."))
                      (ewoc-refresh ewoc)
-                     (redisplay t)
+                     (xmtn--redisplay t)
                      (dvc-diff-delete-messages)
                      (lexical-let ((changesp nil))
                        (xmtn-basic-io-with-stanza-parser (parser output)
@@ -906,6 +906,8 @@ the file before saving."
 (defun xmtn-dvc-status (&optional root)
   "Display status of monotone tree ROOT (default current tree)."
   (let ((root (or root (dvc-tree-root))))
+    ;; FIXME: We should prompt to save buffers that visit files inside
+    ;; ROOT.
     (if (xmtn--mtn-has-basic-io-inventory)
         (xmtn--status-using-inventory root)
       (xmtn--status-without-inventory root))))

@@ -85,6 +85,7 @@ This function may be useful to find \{arch\} and/or _darcs directories."
       (setq pwd (if (string= new-pwd pwd) "/" new-pwd)))
     (unless (string= pwd "/")
       (setq pwd (replace-regexp-in-string "\\([^:]\\)/*$" "\\1" pwd))
+      (setq pwd (file-name-as-directory pwd))
       (if (memq system-type '(ms-dos windows-nt))
           (expand-file-name pwd)
         pwd))))

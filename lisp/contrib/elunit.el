@@ -81,7 +81,7 @@
 
 Prompt for a suite if FORCE-PROMPT is non-nil, or if both SUITE
 and `*elunit-default-suite*' are nil."
-  (interactive "iP")
+  (interactive "i\nP")
   (unless suite (setq suite *elunit-default-suite*))
   (cond ((null suite)
          (setq suite
@@ -95,31 +95,32 @@ and `*elunit-default-suite*' are nil."
          (setq suite
                (completing-read
                 (format "Run test suite (default %s): " suite)
-                (mapcar (lambda (suite) (symbol-name (car suite))) 
+                (mapcar (lambda (suite) (cons (symbol-name (car suite))
+                                              (symbol-name (car suite)))) 
                         *elunit-suites*)
                 nil t nil nil suite)))
         (t (progn)))
- (setq *elunit-default-suite* suite)
- (setq *elunit-fail-count* 0)
- (run-hooks (intern (concat suite "-setup-hook")))
- (with-output-to-temp-buffer "*elunit*"
-   (princ (concat "Loaded suite: " suite "\n\n"))
-   (let* ((tests (elunit-suite (intern suite)))
-          (start-time (cadr (current-time)))
-          (total (length tests)))
-     (let ((results (loop for test-id from 1
-                          for test in (reverse tests)
-                          ;; This used to be `with-temp-message', but
-                          ;; writing the boundaries between test cases
-                          ;; into the *Messages* buffer can be
-                          ;; helpful.
-                          do (message "Running test \"%s\" (%s of %s)..."
-                                      (first test) test-id total)
-                          collect (apply #'elunit-run-test test))))
-       (message "Ran %s tests; %s failed" total *elunit-fail-count*)
-       (elunit-report-results results))
-     (princ (format " in %d seconds." (- (cadr (current-time)) start-time)))))
- (run-hooks (intern (concat suite "-teardown-hook"))))
+  (setq *elunit-default-suite* suite)
+  (setq *elunit-fail-count* 0)
+  (run-hooks (intern (concat suite "-setup-hook")))
+  (with-output-to-temp-buffer "*elunit*"
+    (princ (concat "Loaded suite: " suite "\n\n"))
+    (let* ((tests (elunit-suite (intern suite)))
+           (start-time (cadr (current-time)))
+           (total (length tests)))
+      (let ((results (loop for test-id from 1
+                           for test in (reverse tests)
+                           ;; This used to be `with-temp-message', but
+                           ;; writing the boundaries between test cases
+                           ;; into the *Messages* buffer can be
+                           ;; helpful.
+                           do (message "Running test \"%s\" (%s of %s)..."
+                                       (first test) test-id total)
+                           collect (apply #'elunit-run-test test))))
+        (message "Ran %s tests; %s failed" total *elunit-fail-count*)
+        (elunit-report-results results))
+      (princ (format " in %d seconds." (- (cadr (current-time)) start-time)))))
+  (run-hooks (intern (concat suite "-teardown-hook"))))
 
 (defun elunit-run-test (name body file-name line-number)
   (let* ((passed nil)
@@ -146,8 +147,8 @@ and `*elunit-default-suite*' are nil."
 (defun elunit-report-results (tests) 
   "For when the tests are finished and we want details"
   (dolist (test tests)
-      (unless (eq t test)
-	(apply 'elunit-report-result test)))
+    (unless (eq t test)
+      (apply 'elunit-report-result test)))
   (princ (format "\n\n\n%d tests total, %d failures" (length tests) *elunit-fail-count*)))
     
 (defun elunit-report-result (name docstring result body file-name line-number index)

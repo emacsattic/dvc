@@ -157,18 +157,6 @@ Modifies the match data; use `save-match-data' if necessary."
 		    list)))
     (nreverse list)))
 
-(defun dvc-any-to-string (arg)
-  "Tries to convert anything passed to args to a string.
-Args can be list, number or string."
-  (cond ((null arg)
-	  "")
-	((listp arg)
-	 (reduce (lambda (s1 s2) (format "%s %s" s1 s2)) arg))
-	((numberp arg)
-	 (number-to-string arg))
-	((stringp arg)
-	 arg)))
-
 (eval-and-compile
   (unless (fboundp 'dired-delete-file)
     ;; NOTE: Cut-and-past from CVS Emacs
