@@ -83,6 +83,7 @@
     (define-key map [return] 'dvc-bookmarks-goto)
     (define-key map "\C-m"   'dvc-bookmarks-goto)
     (define-key map "g"      'dvc-bookmarks)
+    (define-key map "h"      'dvc-buffer-pop-to-partner-buffer)
     (define-key map "j"      'dvc-bookmarks-jump)
     (define-key map "n"      'dvc-bookmarks-next)
     (define-key map "p"      'dvc-bookmarks-previous)
@@ -94,6 +95,7 @@
     (define-key map "L"      'dvc-bookmarks-log)
     (define-key map "Mm"     'dvc-bookmarks-missing)
     (define-key map "Mf"     'dvc-bookmarks-pull)
+    (define-key map "Mx"     'dvc-bookmarks-merge)
     (define-key map "."      'dvc-bookmarks-show-info-at-point)
     (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
     (define-key map "Ap"     'dvc-bookmarks-add-partner)
@@ -112,6 +114,7 @@
     ["DVC log" dvc-bookmarks-log t]
     ["DVC missing" dvc-bookmarks-missing t]
     ["DVC pull" dvc-bookmarks-pull t]
+    ["DVC merge" dvc-bookmarks-merge t]
    "--"
     ["Add new bookmark" dvc-bookmarks-add t]
     ["Add partner" dvc-bookmarks-add-partner t]
@@ -173,6 +176,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
          (ewoc-create (dvc-ewoc-create-api-select
                        #'dvc-bookmarks-printer)))
     (put 'dvc-bookmarks-cookie 'permanent-local t)
+    (put 'dvc-partner-buffer 'permanent-local t)
     (dolist (entry dvc-bookmark-alist)
       (dvc-bookmarks-add-to-cookie entry 0))
     (if (eq major-mode 'dvc-bookmarks-mode)
@@ -266,6 +270,22 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (if local-tree
         (let ((default-directory local-tree))
           (dvc-pull))
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defvar dvc-bookmarks-merge-template "Merged from %s: ")
+(defun dvc-bookmarks-merge ()
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (let ((default-directory local-tree)
+              (partner (dvc-bookmarks-partner-at-point))
+              (nickname (dvc-bookmarks-nickname-at-point)))
+          (setq dvc-memorized-log-header (when nickname (format dvc-bookmarks-merge-template nickname)))
+          (setq dvc-memorized-log-message nil)
+          (message (if nickname
+                       (format "Merged from %s, using URL %s" nickname partner)
+                     (format "Merged from %s" partner)))
+          (dvc-merge partner))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-yank ()
@@ -376,6 +396,14 @@ If FORCE is non-nil, reload the file even if it was loaded before."
       (when (looking-at "  Partner \\(.+?\\)\\(  \\[.+\\)?$")
         (setq partner-url (match-string 1)))
       partner-url)))
+
+(defun dvc-bookmarks-nickname-at-point ()
+  (save-excursion
+    (let ((nickname))
+      (goto-char (line-beginning-position))
+      (when (looking-at "  Partner \\(.+?\\)  \\[\\(.+\\)?\\]$")
+        (setq nickname (match-string 2)))
+      nickname)))
 
 (defun dvc-bookmarks-add-nickname ()
   (interactive)
