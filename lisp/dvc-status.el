@@ -137,6 +137,19 @@ point is not on a file element line."
   (let ((fileinfo (dvc-status-current-fileinfo)))
     (dvc-status-fileinfo-dir-file fileinfo)))
 
+(defun dvc-offer-choices (comment choices)
+  "Present user with a choice of actions, labeled by COMMENT. CHOICES is a list of pairs
+containing (symbol description)."
+  (let ((msg "use ")
+        choice)
+    (dolist (choice choices)
+      (setq msg (concat msg
+                        (key-description (car (where-is-internal (car choice))))
+                        " (" (cadr choice) ") ")))
+    (error (if comment
+               (concat comment "; " msg)
+             msg))))
+
 (defun dvc-status-dtrt ()
   "Do The Right Thing in a status buffer; update, commit, resolve
 conflicts, and/or ediff current files."
@@ -173,9 +186,9 @@ conflicts, and/or ediff current files."
       (missing
        ;; File is in database, but not in workspace
        (ding)
-       (dvc-offer-choices (concat file " does not exist in working directory")
-                          '((dvc-mode-update "update")
-                            (dvc-mode-remove "remove"))))
+       (dvc-offer-choices (concat (dvc-status-current-file) " does not exist in working directory")
+                          '((dvc-update "update") ;; FIXME: does this restore just one file?
+                            (dvc-status-remove-files "remove"))))
 
       (modified
        ;; Don't offer undo here; not a common action
@@ -533,7 +546,8 @@ but not recursively."
   ;; avoids the need to run the backend again.
   (if (= 0 (length dvc-buffer-marked-file-list))
       ;; no marked files
-      (ewoc-delete dvc-status-ewoc (ewoc-locate dvc-status-ewoc))
+      (let ((inhibit-read-only t))
+        (ewoc-delete dvc-status-ewoc (ewoc-locate dvc-status-ewoc)))
     ;; marked files
     (setq dvc-buffer-marked-file-list nil)
     (ewoc-filter dvc-status-ewoc

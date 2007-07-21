@@ -705,14 +705,16 @@ the file before saving."
 (defun xmtn--status-process-entry (ewoc path status changes old-path-or-null
                                         old-type new-type fs-type)
   "Create a file entry in ewoc."
-  ;; FIXME: fix monotone to not return root in inventory.
-  ;; For now, just don't display it (it has path "").
+  ;; Don't display root directory ("."); if requested, don't
+  ;; display known or ignored files.
   (if (and (or (not (equal '(known) status))
                (member 'content changes)
                dvc-status-display-known)
            (or (not (equal '(ignored) status))
                dvc-status-display-ignored)
-           (not (equal path "")))
+           (or (not (equal path "")) ; FIXME: published version
+               (not (equal path ".")) ; my version
+               ))
       (let ((status (or
                      ;;  special case
                      (if (and (member 'known status)
@@ -747,7 +749,8 @@ the file before saving."
                                    :file (file-name-nondirectory path)
                                    :status status
                                    :more-status more-status))))
-          (file
+          ((file none)
+           ;; 'none' indicates a dropped file
            (ewoc-enter-last ewoc
                             (list 'file
                                   (make-dvc-status-fileinfo
@@ -756,9 +759,6 @@ the file before saving."
                                    :file (file-name-nondirectory path)
                                    :status status
                                    :more-status more-status))))
-          (none
-           (error "fs-type 'none'"))
-
           (t
            (error "path %s fs-type %s old-type %s new-type %s" path fs-type old-type new-type))
           ))))
