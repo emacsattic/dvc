@@ -10,18 +10,18 @@
 ;; add your name to this file.  The entry format is as follows:
 ;;
 ;; (contributor :name "yourname"
-;;              :signed done--or--not-yet--or--patch-is-enough-tiny-for-sign
+;;              :signed done--or--not-yet--or--tiny-change
 ;;              :mail-addresses "addr1@example1.com")
 ;;
 ;; or
 ;;
 ;; (contributor :name "yourname"
-;;              :signed done--or--not-yet--or--patch-is-enough-tiny-for-sign
+;;              :signed done--or--not-yet--or--tiny-change
 ;;              :mail-addresses ("addr1@example1.com" "addr2@example2.com" ...))
 ;;
 ;; You can use # instead of @ for circumventing the email-gathering
 ;; web spiders that spammers use.  If you use a list for the
-;; :mail-addresses field, the car is used for contacting FSF.
+;; :mail-addresses field, the car is used for contacting the FSF.
 ;;
 ;; The first time :signed field may be `not-yet'. Then we will contact
 ;; you via email and send a copyright assignment templalte, which is
@@ -72,43 +72,44 @@
     (contributor :name "Stephen Leake"
                  :signed done
                  :mail-addresses "stephen_leake#stephe-leake.org")
+    (contributor :name "Sam Steingold"
+                 :signed done
+                 :mail-addresses "sds#gnu.org")
+
+    (contributor :name "Alan Shutko"
+                 :signed done-emacs-only
+                 :mail-addresses "ats#acm.org")
+    (contributor :name "Sascha Wilde"
+                 :signed done-emacs-only
+                 :mail-addresses "wilde#sha-bang.de")
+    (contributor :signed "Steve Youngs"
+                 :signed done-emacs-only
+                 :mail-addresses "steve#sxemacs.org")
+
+    (contributor :name "Daniel Dehennin"
+                 :contacted yes
+                 :changed-elisp no
+                 :signed not-yet
+                 :mail-addresses "nebuchadnezzar#asgardr.info")
+
     ;;
     ;; Needs inquiries
     ;;
-    (contributor :name "Alan Shutko"
-                 :signed emacs-only-needs-confirm
-                 :mail-addresses "ats#acm.org")
-    (contributor :name "Sam Steingold"
-                 :contacted yes
-                 :signed emacs-only-needs-confirm
-                 :mail-addresses "sds#gnu.org")
-    (contributor :name "Sascha Wilde"
-                 :signed emacs-only-needs-confirm
-                 :mail-addresses "wilde#sha-bang.de")
-
-    (contributor :name "Daniel Dehennin"
-                 :signed maybe-not-yet
-                 :mail-addresses "nebuchadnezzar#asgardr.info")
     (contributor :name "Takuzo O'hara"
-                 :signed maybe-not-yet
+                 :signed not-yet
                  :mail-addresses "takuzo.ohara#gmail.com")
     (contributor :name "Christian Ohler"
-                 :signed maybe-not-yet
+                 :signed not-yet
                  :mail-addresses "ohler+mtn#fastmail.net")
     (contributor :name "Andre Kuehne"
-                 :signed maybe-not-yet
+                 :signed not-yet
                  :mail-addresses "andre.kuehne#gmx.net")
     (contributor :name "Andrea Russo"
-                 :signed maybe-not-yet
+                 :signed not-yet
                  :mail-addresses "rast4ndy#gmail.com")
-
     (contributor :signed "Chris Gray"
-                 :signed maybe-not-yet
+                 :signed not-yet
                  :mail-addresses "christopher.grayb#mail.mcgill.ca")
-
-    (contributor :signed "Steve Youngs"
-                 :signed maybe-not-yet
-                 :mail-addresses "steve#sxemacs.org")
     ;;
     ;; ADD YOUR NAME HERE.
     ;;
