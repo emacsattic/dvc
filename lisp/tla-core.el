@@ -85,6 +85,9 @@ Computation is done from withing Emacs, by looking at an {arch}
 directory in a parent buffer of LOCATION.  This is therefore very
 fast.
 
+If LOCATION is nil, the tree root is returned, and it is
+guaranteed to end in a \"/\" character.
+
 If NO-ERROR is non-nil, don't raise an error if LOCATION is not an
 arch managed tree (but return nil)."
   (interactive)
