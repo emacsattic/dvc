@@ -91,6 +91,7 @@
     (define-key map "\C-y"   'dvc-bookmarks-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "s"      'dvc-bookmarks-status)
+    (define-key map "c"      'dvc-bookmarks-log-edit)
     (define-key map "l"      'dvc-bookmarks-changelog)
     (define-key map "L"      'dvc-bookmarks-log)
     (define-key map "Mm"     'dvc-bookmarks-missing)
@@ -238,6 +239,14 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (if local-tree
         (let ((default-directory local-tree))
           (dvc-status))
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-log-edit ()
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (let ((default-directory local-tree))
+          (dvc-log-edit))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-changelog ()
