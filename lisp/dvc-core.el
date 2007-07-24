@@ -70,6 +70,8 @@ A directory which holds FILE-OR-DIR is returned. If no such directory
 `nil' is returned. `default-directory' is used instead if LOCATION is not
 given,
 
+The resulting directory is guaranteed to end in a \"/\" character.
+
 This function may be useful to find \{arch\} and/or _darcs directories."
   (let ((pwd (or location default-directory))
         (pwd-stack nil)
@@ -96,6 +98,9 @@ This function may be useful to find \{arch\} and/or _darcs directories."
 
 Calls `dvc-find-tree-root-file-first', shows a message when
 called interactively, and manages no-error.
+
+If LOCATION is nil, the tree root is returned, and it is
+guaranteed to end in a \"/\" character.
 
 MSG must be of the form \"%S is not a ...-managed tree\"."
   (let ((pwd (dvc-find-tree-root-file-first
