@@ -173,9 +173,16 @@ When `last-command' was `dvc-pull', run `xhg-missing'."
   (interactive)
   (xhg-update))
 
+(defvar xhg-dvc-pull-runs-update t
+  "Whether `xhg-dvc-pull' should call hg pull with the --update flag.")
+
 (defun xhg-dvc-pull ()
+  "Run hg pull, when `xhg-dvc-pull-runs-update' is t, use the --update flag."
   (interactive)
-  (call-interactively 'xhg-pull))
+  (let* ((completions (xhg-paths 'both))
+         (initial-input (car (member "default" completions)))
+         (source-path (if (string= initial-input "default") initial-input (completing-read "Pull from hg repository: " completions nil nil initial-input))))
+    (xhg-pull source-path xhg-dvc-pull-runs-update)))
 
 (provide 'xhg-dvc)
 ;;; xhg-dvc.el ends here
