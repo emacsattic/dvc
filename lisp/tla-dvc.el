@@ -99,7 +99,7 @@
   (interactive)
   (tla-inventory))
 
-(defun tla-dvc-missing ()
+(defun tla-dvc-missing (&optional other)
   (interactive)
   ;; eventually move the user input logic from tla-missing to this function...
   (tla-missing (tla-tree-root nil t) (tla-tree-version)))

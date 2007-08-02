@@ -279,12 +279,12 @@ If DONT-SWITCH, don't switch to the diff buffer"
       (dvc-switch-to-buffer buffer))))
 
 ;;;###autoload
-(defun xhg-pull (src)
+(defun xhg-pull (src &optional update-after-pull)
   "Run hg pull."
   (interactive (list (let* ((completions (xhg-paths 'both))
                             (initial-input (car (member "default" completions))))
                        (completing-read "Pull from hg repository: " completions nil nil initial-input))))
-  (dvc-run-dvc-async 'xhg (list "pull" src)
+  (dvc-run-dvc-async 'xhg (list "pull" (when update-after-pull "--update") src)
                      :error 'xhg-pull-finish-function
                      :finished 'xhg-pull-finish-function))
 
