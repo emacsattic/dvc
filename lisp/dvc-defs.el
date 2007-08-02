@@ -57,10 +57,11 @@ Otherwise, return ARG2. ARG1 must be a variable."
   "A list that defines the priority of the available dvc's.
 If a project uses more than one dvc, use this list to select the primary dvc.
 
-Possible values include: 'tla, 'baz, 'xhg, 'bzr, 'xmtn"
+Possible values include: 'tla, 'baz, 'xhg, 'xgit, 'bzr, 'xmtn"
   :type '(repeat (choice (const :tag "tla" tla)
                          (const :tag "baz" baz)
                          (const :tag "xhg" xhg)
+                         (const :tag "xgit" xgit)
                          (const :tag "bzr" bzr)
                          (const :tag "xmtn" xmtn)
                          (symbol :tag "Other")))
