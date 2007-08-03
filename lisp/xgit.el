@@ -108,8 +108,9 @@ The first match is the original file, and the second match is the
 new file.")
 
 (defun xgit-parse-status-sort (status-list)
-  "Sort STATUS-LIST in the order A, M, R, D, ?."
-  (let ((order '(("A" . 1) ("M" . 2) ("R" . 3) ("D" . 4) ("?" . 5))))
+  "Sort STATUS-LIST in the order A, M, R, C, D, ?."
+  (let ((order '(("A" . 1) ("M" . 2) ("R" . 3) ("C" . 4) ("D" . 5)
+                 ("?" . 6))))
     (sort status-list
           #'(lambda (a b)
               (let ((ao (cdr (assoc (car (cddr a)) order)))
@@ -164,6 +165,12 @@ new file.")
                      (setq modif "?")))
                   ((string= status-string "renamed")
                    (setq status "R")
+                   (when (string-match xgit-status-renamed-regexp file)
+                     (setq orig (match-string 1 file)
+                           file (match-string 2 file)
+                           dir " ")))
+                  ((string= status-string "copied")
+                   (setq status "C")
                    (when (string-match xgit-status-renamed-regexp file)
                      (setq orig (match-string 1 file)
                            file (match-string 2 file)
