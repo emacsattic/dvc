@@ -62,6 +62,9 @@
 ;; Avoid free-vars
 (setq package-maint-compile-warnings '(unresolved callargs redefine))
 
+;; Avoid interference from VC.el
+(setq vc-handled-backends nil)
+
 ;; List of files to compile: default to $(srcdir)/*.el
 (setq package-maint-files (directory-files srcdir nil "^[^=].*\\.el$"))
 
