@@ -1318,8 +1318,8 @@ finished."
   (error "not implemented"))
 
 ;;;###autoload
-(defun xmtn-revision-get-previous-revision (file stuff)
-  (xmtn--revision-get-file-helper file `(previous-revision ,@stuff)))
+(defun xmtn-revision-get-previous-revision (file revision-id)
+  (xmtn--revision-get-file-helper file (list 'previous-revision (cadr revision-id))))
 
 ;;;###autoload
 (defun xmtn-revision-get-last-revision (file stuff)
@@ -1330,6 +1330,7 @@ finished."
   (xmtn--revision-get-file-helper file `(revision ,@stuff)))
 
 (defun xmtn--revision-get-file-helper (file backend-id)
+  "Fill current buffer with the contents of FILE revision BACKEND-ID."
   (let ((root (dvc-tree-root)))
     (xmtn-automate-with-session (nil root)
       (let* ((normalized-file (xmtn--normalize-file-name root file))
