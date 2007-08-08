@@ -237,15 +237,17 @@ Inserts the entry in the arch log file instead of the ChangeLog."
       (goto-char (point-min)))
     (re-search-forward "\n\n\\|\\'")
     (setq beg (point))
-    (setq bound
-          (progn
-            (if (looking-at "\n*[^\n* \t]")
-                (skip-chars-forward "\n")
-              (if (and (boundp 'add-log-keep-changes-together)
-                       add-log-keep-changes-together)
-                  (goto-char (point-max))
-                (forward-paragraph))) ; paragraph delimits entries for file
-            (point)))
+    (if (looking-at "\n*[^\n* \t]")
+        (progn
+          (skip-chars-forward "\n")
+          (setq bound (point)))
+      (goto-char (point-max))
+      (setq bound (point))
+      (unless (and (boundp 'add-log-keep-changes-together)
+                   add-log-keep-changes-together)
+        (backward-paragraph) ; paragraph delimits entries for file
+        (forward-line 1)
+        (setq beg (point))))
     (goto-char beg)
     (forward-line -1)
     ;; Now insert the new line for this entry.
@@ -315,6 +317,13 @@ Inserts the entry in the arch log file instead of the ChangeLog."
               (goto-char pos)
               (insert "("))
             (set-marker pos nil))
+          ;; Check for previous function name using re-search-backward
+          ;; instead of looking-back, because looking-back is not
+          ;; implemented in all variants of (X)Emacs.  We could create
+          ;; a compatibility function for it, but nobody else seems to
+          ;; use it yet, so there is no point.
+          (when (re-search-backward (concat defun ",\\s *\\=") nil t)
+            (replace-match ""))
           (insert defun "): "))
       ;; No function name, so put in a colon unless we have just a star.
       (unless (save-excursion

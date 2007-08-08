@@ -108,8 +108,9 @@ The first match is the original file, and the second match is the
 new file.")
 
 (defun xgit-parse-status-sort (status-list)
-  "Sort STATUS-LIST in the order A, M, R, D, ?."
-  (let ((order '(("A" . 1) ("M" . 2) ("R" . 3) ("D" . 4) ("?" . 5))))
+  "Sort STATUS-LIST in the order A, M, R, C, D, ?."
+  (let ((order '(("A" . 1) ("M" . 2) ("R" . 3) ("C" . 4) ("D" . 5)
+                 ("?" . 6))))
     (sort status-list
           #'(lambda (a b)
               (let ((ao (cdr (assoc (car (cddr a)) order)))
@@ -164,6 +165,12 @@ new file.")
                      (setq modif "?")))
                   ((string= status-string "renamed")
                    (setq status "R")
+                   (when (string-match xgit-status-renamed-regexp file)
+                     (setq orig (match-string 1 file)
+                           file (match-string 2 file)
+                           dir " ")))
+                  ((string= status-string "copied")
+                   (setq status "C")
                    (when (string-match xgit-status-renamed-regexp file)
                      (setq orig (match-string 1 file)
                            file (match-string 2 file)
@@ -241,30 +248,33 @@ REV is revision to show.
 FILE is filename in repostory to filter logs by matching filename.
 "
   (interactive)
-  (let* ((buffer (dvc-get-buffer-create 'xgit 'log))
+  (let* ((buffer (dvc-get-buffer-create 'xgit 'log dir))
          (repo (xgit-git-dir dir))
          (cmd "log")
          (count (format "--max-count=%s" (if cnt cnt git-log-max-count)))
          (grep (if log-regexp (format "--grep=%s" log-regexp)))
          (diff (if diff-match (format "-S%s" diff-match)))
-         (pretty (if (not (string= "" git-log-pretty)) (format "--pretty=%s" git-log-pretty)))
+         (pretty (if (not (string= "" git-log-pretty))
+                     (format "--pretty=%s" git-log-pretty)))
          (fname (if file (file-relative-name file (xgit-tree-root dir))))
          (args (list repo cmd pretty count grep diff rev "--" fname)))
     (dvc-switch-to-buffer-maybe buffer)
-    (dvc-run-dvc-sync 'xgit args
-                      :finished
-                      (dvc-capturing-lambda (output error status arguments)
-                        (progn
-                          (with-current-buffer (capture buffer)
-                            (let ((inhibit-read-only t))
-                              (erase-buffer)
-                              (insert-buffer-substring output)
-                              (goto-char (point-min))
-                              (insert (format "git %s\n\n" (mapconcat #'identity
-                                                                      args " ")))
-                              (xgit-log-mode))))))))
+    (let ((default-directory dir))
+      (dvc-run-dvc-sync 'xgit args
+                        :finished
+                        (dvc-capturing-lambda (output error status arguments)
+                          (progn
+                            (with-current-buffer (capture buffer)
+                              (let ((inhibit-read-only t))
+                                (erase-buffer)
+                                (insert-buffer-substring output)
+                                (goto-char (point-min))
+                                (insert (format "git %s\n\n"
+                                                (mapconcat #'identity
+                                                           (delq nil args)
+                                                           " ")))
+                                (xgit-log-mode)))))))))
 
-;; TODO: update for git
 (defun xgit-log ()
   "Run git log."
   (interactive)

@@ -71,7 +71,13 @@ It will be nil before the initial commit."
 
 (defun xgit-git-dir (&optional location)
   "Utility function to add --git-dir option to git command."
-  (concat "--git-dir=" (xgit-tree-root location) "/.git"))
+  ;; git barfs when "~/" is in the --git-dir argument, so we cannot
+  ;; just concat the result of xgit-tree-root as-is
+  (concat "--git-dir="
+          (file-relative-name
+           (xgit-tree-root location)
+           (file-name-as-directory (or location default-directory)))
+          ".git"))
 
 (provide 'xgit-core)
 ;;; xgit-core.el ends here

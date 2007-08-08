@@ -2540,7 +2540,7 @@ REVISION may have one of the values described in the docstring of
                ")")))
     ;; replace / by -- to work around uniquify
     (setq name (replace-regexp-in-string "\\/" "--" name))
-    (get-buffer-create (create-file-buffer name))))
+    (generate-new-buffer name)))
 
 ;; TODO being ported to DVC. See below
 (defun tla-file-get-revision-in-buffer (file &optional revision)
