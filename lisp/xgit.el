@@ -248,30 +248,33 @@ REV is revision to show.
 FILE is filename in repostory to filter logs by matching filename.
 "
   (interactive)
-  (let* ((buffer (dvc-get-buffer-create 'xgit 'log))
+  (let* ((buffer (dvc-get-buffer-create 'xgit 'log dir))
          (repo (xgit-git-dir dir))
          (cmd "log")
          (count (format "--max-count=%s" (if cnt cnt git-log-max-count)))
          (grep (if log-regexp (format "--grep=%s" log-regexp)))
          (diff (if diff-match (format "-S%s" diff-match)))
-         (pretty (if (not (string= "" git-log-pretty)) (format "--pretty=%s" git-log-pretty)))
+         (pretty (if (not (string= "" git-log-pretty))
+                     (format "--pretty=%s" git-log-pretty)))
          (fname (if file (file-relative-name file (xgit-tree-root dir))))
          (args (list repo cmd pretty count grep diff rev "--" fname)))
     (dvc-switch-to-buffer-maybe buffer)
-    (dvc-run-dvc-sync 'xgit args
-                      :finished
-                      (dvc-capturing-lambda (output error status arguments)
-                        (progn
-                          (with-current-buffer (capture buffer)
-                            (let ((inhibit-read-only t))
-                              (erase-buffer)
-                              (insert-buffer-substring output)
-                              (goto-char (point-min))
-                              (insert (format "git %s\n\n" (mapconcat #'identity
-                                                                      args " ")))
-                              (xgit-log-mode))))))))
+    (let ((default-directory dir))
+      (dvc-run-dvc-sync 'xgit args
+                        :finished
+                        (dvc-capturing-lambda (output error status arguments)
+                          (progn
+                            (with-current-buffer (capture buffer)
+                              (let ((inhibit-read-only t))
+                                (erase-buffer)
+                                (insert-buffer-substring output)
+                                (goto-char (point-min))
+                                (insert (format "git %s\n\n"
+                                                (mapconcat #'identity
+                                                           (delq nil args)
+                                                           " ")))
+                                (xgit-log-mode)))))))))
 
-;; TODO: update for git
 (defun xgit-log ()
   "Run git log."
   (interactive)
