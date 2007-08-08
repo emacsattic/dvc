@@ -326,6 +326,7 @@ BODY is evaluated."
                       ,default))))
          ,@body))))
 (put 'dvc-with-keywords 'lisp-indent-function 1)
+(put 'dvc-with-keywords 'edebug-form-spec '(sexp sexp body))
 
 
 ;; ----------------------------------------------------------------------------
@@ -565,6 +566,7 @@ Example:
            (global-arg (funcall (dvc-function dvc "default-global-argument")))
            (command (dvc-build-dvc-command
                      dvc (append global-arg arguments)))
+           (arguments (remq nil arguments))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory))
@@ -642,6 +644,7 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
            (global-arg (funcall (dvc-function dvc "default-global-argument")))
            (command (dvc-build-dvc-command
                      dvc (append global-arg arguments)))
+           (arguments (remq nil arguments))
            (error-file (dvc-make-temp-name "arch-errors"))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
@@ -1004,7 +1007,7 @@ REVISION-ID may have the values described in docs/DVC-API."
                 "(" (dvc-revision-to-string revision-id) ")")))
     ;; replace / by | to work around uniquify
     (setq name (replace-regexp-in-string "\\/" "|" name))
-    (let ((buffer (get-buffer-create (create-file-buffer name))))
+    (let ((buffer (generate-new-buffer name)))
       (with-current-buffer buffer
         (let ((buffer-file-name file))
           (set-auto-mode t)))
