@@ -60,13 +60,12 @@
 (defun xgit-add (file)
   "Add FILE to the current git project."
   (interactive "fAdd file or directory: ")
-  (message "%s"
-           (let ((default-directory (xgit-tree-root)))
-             (dvc-run-dvc-sync
-              'xgit (list "add" (file-relative-name file))
-              :finished (dvc-capturing-lambda
-                            (output error status arguments)
-                          (message "git add finished"))))))
+  (let ((default-directory (xgit-tree-root)))
+    (dvc-run-dvc-sync
+     'xgit (list "add" (file-relative-name file))
+     :finished (dvc-capturing-lambda
+                   (output error status arguments)
+                 (message "git add finished")))))
 
 (defun xgit-add-files (&rest files)
   "Run git add."
