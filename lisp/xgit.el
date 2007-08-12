@@ -37,22 +37,7 @@
 (eval-when-compile (require 'cl))
 (require 'xgit-annotate)
 
-;; There must be something like these in standard emacs distributions
-;; but I couldn't find them.
-;; I don't know where to put these things so I put it here temporarily.
-;; -- takuzo
-(defun any-to-string (arg)
-  "Tries to convert anything passed to args to a string.
-Args can be list, number or string."
-  (cond ((null arg)
-	  "")
-	((listp arg)
-	 (reduce (lambda (s1 s2) (format "%s %s" s1 s2)) arg))
-	((numberp arg)
-	 (number-to-string arg))
-	((stringp arg)
-	 arg)))
-
+;;;###autoload
 (defun xgit-init (&optional dir)
   "Run git init."
   (interactive
@@ -64,6 +49,12 @@ Args can be list, number or string."
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
                                   (message "git init finished")))))
+
+;;;###autoload
+(defun xgit-clone (src)
+  "Run git clone."
+  (interactive (list (read-string "git clone from: ")))
+  (dvc-run-dvc-async 'xgit (list "clone" src)))
 
 (defun xgit-add-files (&rest files)
   "Run git add."
@@ -91,6 +82,14 @@ Args can be list, number or string."
       (message "Git Version: %s" version))
     version))
 
+;;;###autoload
+(defun xgit-add-all-files (arg)
+  "Run 'git add .' to add all files to git.
+Normally run 'git add -n .' to simulate the operation to see which files will be added.
+Only when called with a prefix argument, add the files."
+  (interactive "P")
+  (dvc-run-dvc-sync 'xgit (list "add" (unless arg "-n") ".")))
+
 (defvar xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
   "Regexp that matches a line of status output.
@@ -109,8 +108,9 @@ The first match is the original file, and the second match is the
 new file.")
 
 (defun xgit-parse-status-sort (status-list)
-  "Sort STATUS-LIST in the order A, M, R, D, ?."
-  (let ((order '(("A" . 1) ("M" . 2) ("R" . 3) ("D" . 4) ("?" . 5))))
+  "Sort STATUS-LIST in the order A, M, R, C, D, ?."
+  (let ((order '(("A" . 1) ("M" . 2) ("R" . 3) ("C" . 4) ("D" . 5)
+                 ("?" . 6))))
     (sort status-list
           #'(lambda (a b)
               (let ((ao (cdr (assoc (car (cddr a)) order)))
@@ -154,7 +154,9 @@ new file.")
                    (setq grouping status-string
                          status nil))
                   ((string= status-string "modified")
-                   (setq status "M"))
+                   (setq status "M")
+                   (when (string= grouping "Changed but not updated")
+                     (setq modif "?")))
                   ((string= status-string "new file")
                    (setq status "A"))
                   ((string= status-string "deleted")
@@ -163,6 +165,12 @@ new file.")
                      (setq modif "?")))
                   ((string= status-string "renamed")
                    (setq status "R")
+                   (when (string-match xgit-status-renamed-regexp file)
+                     (setq orig (match-string 1 file)
+                           file (match-string 2 file)
+                           dir " ")))
+                  ((string= status-string "copied")
+                   (setq status "C")
                    (when (string-match xgit-status-renamed-regexp file)
                      (setq orig (match-string 1 file)
                            file (match-string 2 file)
@@ -176,7 +184,7 @@ new file.")
             (dolist (elem (xgit-parse-status-sort (nreverse status-list)))
               (ewoc-enter-last dvc-diff-cookie elem))))))))
 
-(defun xgit-status (&optional against path)
+(defun xgit-status (&optional against path verbose)
   "Run git status."
   (interactive (list nil default-directory))
   (let* ((dir (or path default-directory))
@@ -189,7 +197,7 @@ new file.")
     (setq dvc-buffer-refresh-function 'xgit-status)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync
-     'xgit '("status")
+     'xgit `("status" ,(when verbose "-v"))
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (with-current-buffer (capture buffer)
@@ -208,6 +216,10 @@ new file.")
            (dvc-diff-no-changes (capture buffer)
                                 "No changes in %s"
                                 (capture root))))))))
+
+(defun xgit-status-verbose (&optional against path)
+  (interactive (list nil default-directory))
+  (xgit-status against path t))
 
 (defcustom git-log-max-count -1
   "Number of logs to print.  Specify negative value for all logs.
@@ -236,31 +248,33 @@ REV is revision to show.
 FILE is filename in repostory to filter logs by matching filename.
 "
   (interactive)
-  (let* ((buffer (dvc-get-buffer-create 'xgit 'log))
+  (let* ((buffer (dvc-get-buffer-create 'xgit 'log dir))
          (repo (xgit-git-dir dir))
          (cmd "log")
          (count (format "--max-count=%s" (if cnt cnt git-log-max-count)))
          (grep (if log-regexp (format "--grep=%s" log-regexp)))
          (diff (if diff-match (format "-S%s" diff-match)))
-         (pretty (if (not (string= "" git-log-pretty)) (format "--pretty=%s" git-log-pretty)))
+         (pretty (if (not (string= "" git-log-pretty))
+                     (format "--pretty=%s" git-log-pretty)))
          (fname (if file (file-relative-name file (xgit-tree-root dir))))
          (args (list repo cmd pretty count grep diff rev "--" fname)))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
-    (dvc-run-dvc-sync 'xgit args
-                      :finished
-                      (dvc-capturing-lambda (output error status arguments)
-                        (progn
-                          (with-current-buffer (capture buffer)
-                            (let ((inhibit-read-only t))
-                              (erase-buffer)
-                              (insert-buffer-substring output)
-                              (goto-char (point-min))
-                              (insert (format "git %s\n\n" (any-to-string args)))
-                              (xgit-log-mode))))))))
+    (dvc-switch-to-buffer-maybe buffer)
+    (let ((default-directory dir))
+      (dvc-run-dvc-sync 'xgit args
+                        :finished
+                        (dvc-capturing-lambda (output error status arguments)
+                          (progn
+                            (with-current-buffer (capture buffer)
+                              (let ((inhibit-read-only t))
+                                (erase-buffer)
+                                (insert-buffer-substring output)
+                                (goto-char (point-min))
+                                (insert (format "git %s\n\n"
+                                                (mapconcat #'identity
+                                                           (delq nil args)
+                                                           " ")))
+                                (xgit-log-mode)))))))))
 
-;; TODO: update for git
 (defun xgit-log ()
   "Run git log."
   (interactive)
@@ -321,9 +335,7 @@ FILE is filename in repostory to filter logs by matching filename.
                   `(git (local-tree ,root))
                   'diff root 'xgit))
          (command-list '("diff" "HEAD")))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xgit command-list
@@ -388,9 +400,7 @@ files changed in the revision is passed to git-show-filter-filename-func and res
          (args (list repo cmd rev "--")))
     (if files
         (setq args (append args (if (stringp files) (list files) files))))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (dvc-run-dvc-sync 'xgit args
                       :finished
                       (dvc-capturing-lambda (output error status arguments)
@@ -400,7 +410,8 @@ files changed in the revision is passed to git-show-filter-filename-func and res
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))
-                              (insert (format "git %s\n\n" (any-to-string args)))
+                              (insert (format "git %s\n\n" (mapconcat #'identity
+                                                                      args " ")))
                               (diff-mode)
                               (toggle-read-only 1))))))))
 
@@ -440,9 +451,7 @@ FILE is filename in repostory.
 	 (cmd "blame")
 	 (fname (file-relative-name file (xgit-tree-root dir)))
 	 (args (list repo cmd "--" fname)))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (dvc-run-dvc-sync 'xgit args
                       :finished
                       (dvc-capturing-lambda (output error status arguments)

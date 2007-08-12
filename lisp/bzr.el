@@ -278,15 +278,16 @@ revid:foobar, ...).
 
 TODO: DONT-SWITCH is currently ignored."
   (interactive (list nil nil current-prefix-arg))
-  (let* ((dir (or path default-directory))
+  (let* ((window-conf (current-window-configuration))
+         (dir (or path default-directory))
          (root (bzr-tree-root dir))
          (against (or against `(bzr (last-revision ,root 1))))
          (buffer (dvc-prepare-changes-buffer
                   against
                   `(bzr (local-tree ,root))
                   'diff root 'bzr)))
-    (when dvc-switch-to-buffer-first
-      (dvc-switch-to-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
+    (dvc-buffer-push-previous-window-config window-conf)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-async
      'bzr `("diff" ,@(when against
@@ -351,6 +352,12 @@ TODO: dont-switch is currently ignored."
       (with-current-buffer buffer (goto-char (point-min)))
       buffer)))
 
+(defun bzr-revision-at-point-localp ()
+  "Decide whether the revision at point is in the local tree.
+This is done by looking at the 'You are missing ... revision(s):' string in the current buffer."
+  (save-excursion
+    (not (re-search-backward "^You are missing [0-9]+ revision(s):" nil t))))
+
 ;;TODO: should be integrated in dvc-revlist-get-rev-at-point
 (defun bzr-get-revision-at-point ()
   (int-to-string
@@ -372,19 +379,21 @@ of the commit. Additionally the destination email address can be specified."
          (branch-location (nth 2 dest-specs))
          (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
          (summary (car (split-string log-message "\n"))))
-    (message "Preparing commit email for revision %s" rev)
-    (compose-mail (if dest-specs (cadr dest-specs) "")
-                  (concat (if dest-specs (car dest-specs) "") "rev " rev ": " summary))
-    (message-goto-body)
-    (while (looking-at "<#part[^>]*>")
-      (forward-line 1))
-    (insert (concat "Committed revision " rev
-                    (if branch-location (concat " to " branch-location) "")
-                    "\n\n"))
-    (insert log-message)
-    (unless (and (bolp) (looking-at "^$"))
-      (insert "\n"))
-    (message-goto-body)))
+    (if (not (bzr-revision-at-point-localp))
+        (message "Not a local revision: %s - no commit notification prepared." rev)
+      (message "Preparing commit email for revision %s" rev)
+      (compose-mail (if dest-specs (cadr dest-specs) "")
+                    (concat (if dest-specs (car dest-specs) "") "rev " rev ": " summary))
+      (message-goto-body)
+      (while (looking-at "<#part[^>]*>")
+        (forward-line 1))
+      (insert (concat "Committed revision " rev
+                      (if branch-location (concat " to " branch-location) "")
+                      "\n\n"))
+      (insert log-message)
+      (unless (and (bolp) (looking-at "^$"))
+        (insert "\n"))
+      (message-goto-body))))
 
 
 (defun bzr-unknowns ()
@@ -425,13 +434,15 @@ of the commit. Additionally the destination email address can be specified."
 (defun bzr-status (&optional path)
   "Run \"bzr status\"."
   (interactive (list default-directory))
-  (let* ((dir (or path default-directory))
+  (let* ((window-conf (current-window-configuration))
+         (dir (or path default-directory))
          (root (bzr-tree-root dir))
          (buffer (dvc-prepare-changes-buffer
                   `(bzr (last-revision ,root 1))
                   `(bzr (local-tree ,root))
                   'status root 'bzr)))
     (dvc-switch-to-buffer-maybe buffer)
+    (dvc-buffer-push-previous-window-config window-conf)
     (setq dvc-buffer-refresh-function 'bzr-status)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-async

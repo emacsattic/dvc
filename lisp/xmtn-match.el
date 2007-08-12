@@ -166,6 +166,10 @@
 ;; Without this, DVC fails to build (in my configuration), since it
 ;; initially loads the elisp file as source.
 (byte-compile 'xmtn-match--generate-branch)
+;; I think the same may hold for this function (see message from Sam
+;; Steingold on the dvc-dev list, 2007-07-09), although I haven't
+;; tried very hard to reproduce it.
+(byte-compile 'xmtn-match--contains-match-variable-p)
 
 
 ;; Factored out for profiling.

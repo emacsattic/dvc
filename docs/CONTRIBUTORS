@@ -2,98 +2,114 @@
 #| -*- scheme -*- |#
 :; exec gosh -- $0 "$@"
 ;;
-;; We want to merge dvc tree to GNU Emacs. So any contributor must sign
-;; for copyright assignment to FSF. This file tracks the contributors
-;; and copyright assignment status.
+;; We want to merge dvc tree to GNU Emacs.  Thus, every contributor
+;; must assign copyright for this changes to the FSF.  This file
+;; tracks contributors and their copyright assignment status.
 ;;
 ;; Before reporting your patch for merging DVC official source tree,
-;; add your name first. The entry format is following:
+;; add your name to this file.  The entry format is as follows:
 ;;
 ;; (contributor :name "yourname"
-;;              :signed done--or--not-yet--or--patch-is-enough-tiny-for-sign
+;;              :signed done--or--not-yet--or--tiny-change
 ;;              :mail-addresses "addr1@example1.com")
+;;
 ;; or
+;;
 ;; (contributor :name "yourname"
-;;              :signed done--or--not-yet--or--patch-is-enough-tiny-for-sign
+;;              :signed done--or--not-yet--or--tiny-change
 ;;              :mail-addresses ("addr1@example1.com" "addr2@example2.com" ...))
 ;;
-;; You can use # instead of @ for avoiding spammer gathering your mail addresses.
-;; If you use a list for the :mail-addresses field, the car is used for contacting
-;; FSF.
+;; You can use # instead of @ for circumventing the email-gathering
+;; web spiders that spammers use.  If you use a list for the
+;; :mail-addresses field, the car is used for contacting the FSF.
 ;;
-;; The first time :signed field may be `not-yet'. Then we or fsf will contact
-;; with you for the copyright assignment. After completing a paper work for it
-;; and getting the notification from FSF, change the :signed field to `done'.
+;; The first time :signed field may be `not-yet'. Then we will contact
+;; you via email and send a copyright assignment templalte, which is
+;; to be emailed to the FSF (at this point, :signed is changed to
+;; `in-progress').  They will then send you the papers to sign.  After
+;; completing a paper work for it and getting the notification from
+;; FSF, the :signed field will be changed to `done'.
 
 ;;
 ;; *The order is not meaningful.*
 ;;
 (define contributors
   '(
-    (contributor :name "Stefan Reichoer"     :signed done
+    (contributor :name "Stefan Reichoer"
+                 :signed done
                  :mail-addresses ("stefan#xsteve.at"
                                   "stefan#pyramide"
                                   "xsteve#nit.at"))
-    (contributor :name "Matthieu MOY"        :signed done
+    (contributor :name "Matthieu MOY"
+                 :signed done
                  :mail-addresses ("Matthieu.Moy#imag.fr"
                                   "matthieu.moy#imag.fr"
                                   "moy#ecrins"
                                   "moy#moy"))
-    (contributor :name "Masatake YAMATO"     :signed done
+    (contributor :name "Masatake YAMATO"
+                 :signed done
                  :mail-addresses "jet#gyve.org")
-    (contributor :name "Martin Brett Pool"   :signed done)
-    (contributor :name "Robert Widhopf-Fenk" :signed done
+    (contributor :name "Martin Brett Pool"
+                 :signed done)
+    (contributor :name "Robert Widhopf-Fenk"
+                 :signed done
                  :mail-addresses "hack#robf.de")
-    (contributor :name "Vincent LADEUIL"     :signed done)
-    (contributor :name "Milan Zamazal"       :signed done
+    (contributor :name "Vincent LADEUIL"
+                 :signed done)
+    (contributor :name "Milan Zamazal"
+                 :signed done
                  :mail-addresses ("pdm#zamazal.org" "pdm#debian.org"))
-    (contributor :name "Mark Triggs"         :signed done
+    (contributor :name "Mark Triggs"
+                 :signed done
                  :mail-addresses "mark#dishevelled.net")
-    (contributor :name "Miles Bader"         :signed done
+    (contributor :name "Miles Bader"
+                 :signed done
                  :mail-addresses "miles#gnu.org")
-    ;;
-    ;; Needs inquiries
-    ;;
     (contributor :name "Michael Olson"
-                 :signed maybe-emacs-only-needs-confirm
+                 :signed done
                  :mail-addresses ("mwolson#member.fsf.org"
                                   "mwolson#gnu.org"))
-    (contributor :name "Sam Steingold"
-                 :signed maybe-emacs-only-needs-confirm
-                 :mail-addresses "sds#gnu.org")
-    (contributor :name "Daniel Dehennin"
-                 :signed maybe-not-yet
-                 :mail-addresses "nebuchadnezzar#asgardr.info")
-
-    (contributor :name "Takuzo O'hara"
-                 :signed maybe-not-yet
-                 :mail-addresses "takuzo.ohara#gmail.com")
-    (contributor :name "Christian Ohler"
-                 :signed maybe-not-yet
-                 :mail-addresses "ohler+mtn#fastmail.net")
     (contributor :name "Stephen Leake"
                  :signed done
                  :mail-addresses "stephen_leake#stephe-leake.org")
+    (contributor :name "Sam Steingold"
+                 :signed done
+                 :mail-addresses "sds#gnu.org")
+
     (contributor :name "Alan Shutko"
-                 :signed maybe-not-yet
+                 :signed done-emacs-only
                  :mail-addresses "ats#acm.org")
+    (contributor :name "Sascha Wilde"
+                 :signed done-emacs-only
+                 :mail-addresses "wilde#sha-bang.de")
+    (contributor :signed "Steve Youngs"
+                 :signed done-emacs-only
+                 :mail-addresses "steve#sxemacs.org")
+
+    (contributor :name "Daniel Dehennin"
+                 :contacted yes
+                 :changed-elisp no
+                 :signed not-yet
+                 :mail-addresses "nebuchadnezzar#asgardr.info")
+
+    ;;
+    ;; Needs inquiries
+    ;;
+    (contributor :name "Takuzo O'hara"
+                 :signed not-yet
+                 :mail-addresses "takuzo.ohara#gmail.com")
+    (contributor :name "Christian Ohler"
+                 :signed not-yet
+                 :mail-addresses "ohler+mtn#fastmail.net")
     (contributor :name "Andre Kuehne"
-                 :signed maybe-not-yet
+                 :signed not-yet
                  :mail-addresses "andre.kuehne#gmx.net")
     (contributor :name "Andrea Russo"
-                 :signed maybe-not-yet
+                 :signed not-yet
                  :mail-addresses "rast4ndy#gmail.com")
-    (contributor :name "Sascha Wilde"
-                 :signed maybe-not-yet
-                 :mail-addresses "wilde#sha-bang.de")
-
     (contributor :signed "Chris Gray"
-                 :signed maybe-not-yet
+                 :signed not-yet
                  :mail-addresses "christopher.grayb#mail.mcgill.ca")
-
-    (contributor :signed "Steve Youngs"
-                 :signed maybe-not-yet
-                 :mail-addresses "steve#sxemacs.org")
     ;;
     ;; ADD YOUR NAME HERE.
     ;;

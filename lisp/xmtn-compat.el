@@ -114,6 +114,14 @@
   (when (fboundp 'set-buffer-multibyte)
     (set-buffer-multibyte flag)))
 
+;;; This should probably use `redisplay' if available, but that's not
+;;; important.
+(defun xmtn--redisplay (&optional force)
+  (if force
+      (let ((redisplay-dont-pause t))
+        (sit-for 0))
+    (sit-for 0)))
+
 (provide 'xmtn-compat)
 
 ;;; xmtn-compat.el ends here

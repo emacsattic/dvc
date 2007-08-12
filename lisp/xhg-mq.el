@@ -106,6 +106,7 @@ When called without a prefix argument run hg qinit -c, otherwise hg qinit."
                                     (output error status arguments)
                                   (message "hg qinit finished")))))
 
+;;;###autoload
 (defun xhg-qnew (patch-name &optional commit-description force)
   "Run hg qnew.
 Asks for the patch name and an optional commit description.
@@ -123,6 +124,7 @@ When called with a prefix argument run hg qnew -f."
                                (when commit-description (concat "\"" commit-description "\""))
                                patch-name)))
 
+;;;###autoload
 (defun xhg-qrefresh ()
   "Run hg qrefresh."
   (interactive)
@@ -130,6 +132,7 @@ When called with a prefix argument run hg qnew -f."
     (dvc-run-dvc-sync 'xhg (list "qrefresh"))
     (message (format "hg qrefresh for %s finished" top))))
 
+;;;###autoload
 (defun xhg-qpop (&optional all)
   "Run hg qpop.
 When called with a prefix argument run hg qpop -a."
@@ -146,6 +149,7 @@ When called with a prefix argument run hg qpop -a."
     (xhg-mq-maybe-refresh-patch-buffer)
     (pop-to-buffer curbuf)))
 
+;;;###autoload
 (defun xhg-qpush (&optional all)
   "Run hg qpush.
 When called with a prefix argument run hg qpush -a."
@@ -193,21 +197,25 @@ When called with a prefix argument run hg qpush -a."
         (pop-to-buffer curbuf)))
     patches))
 
+;;;###autoload
 (defun xhg-qapplied ()
   "Run hg qapplied."
   (interactive)
   (xhg-process-mq-patches '("qapplied") "hg qapplied:" 'xhg-qapplied (interactive-p)))
 
+;;;###autoload
 (defun xhg-qunapplied ()
   "Run hg qunapplied."
   (interactive)
   (xhg-process-mq-patches '("qunapplied") "hg qunapplied:" 'xhg-qunapplied (interactive-p)))
 
+;;;###autoload
 (defun xhg-qseries ()
   "Run hg qseries."
   (interactive)
   (xhg-process-mq-patches '("qseries") "hg series:" 'xhg-qseries (interactive-p)))
 
+;;;###autoload
 (defun xhg-qdiff (&optional file)
   "Run hg qdiff."
   (interactive)
@@ -217,6 +225,7 @@ When called with a prefix argument run hg qpush -a."
       (diff-mode))
     (pop-to-buffer curbuf)))
 
+;;;###autoload
 (defun xhg-qdelete (patch)
   "Run hg qdelete"
   (interactive (list
@@ -230,6 +239,7 @@ When called with a prefix argument run hg qpush -a."
     (dvc-run-dvc-sync 'xhg (list "qdelete" patch))
     (xhg-mq-maybe-refresh-patch-buffer)))
 
+;;;###autoload
 (defun xhg-qrename (from to)
   "Run hg qrename"
   (interactive (let ((old-name (or (xhg-mq-patch-name-at-point) (xhg-qtop))))
@@ -243,6 +253,7 @@ When called with a prefix argument run hg qpush -a."
   (when (and from to)
     (dvc-run-dvc-sync 'xhg (list "qrename" from to))))
 
+;;;###autoload
 (defun xhg-qversion ()
   "Run hg qversion."
   (interactive)
@@ -255,6 +266,7 @@ When called with a prefix argument run hg qpush -a."
       (message "Mercurial mq version: %s" version-string))
     version-string))
 
+;;;###autoload
 (defun xhg-qtop ()
   "Run hg qtop."
   (interactive)
@@ -268,6 +280,7 @@ When called with a prefix argument run hg qpush -a."
         (message "Mercurial qtop: no patches applied")))
     top))
 
+;;;###autoload
 (defun xhg-qnext ()
   "Run hg qnext."
   (interactive)
@@ -277,6 +290,7 @@ When called with a prefix argument run hg qpush -a."
       (message "Mercurial qnext: %s" next))
     next))
 
+;;;###autoload
 (defun xhg-qprev ()
   "Run hg qprev."
   (interactive)
@@ -286,6 +300,7 @@ When called with a prefix argument run hg qpush -a."
       (message "Mercurial qprev: %s" prev))
     prev))
 
+;;;###autoload
 (defun xhg-qheader (patch)
   "Run hg qheader."
   (interactive
@@ -304,6 +319,7 @@ When called with a prefix argument run hg qpush -a."
 ;; Higher level functions
 ;; --------------------------------------------------------------------------------
 
+;;;###autoload
 (defun xhg-mq-export-via-mail (patch)
   "Prepare an email that contains a mq patch.
 `xhg-submit-patch-mapping' is honored for the destination email address and the project name
@@ -348,6 +364,7 @@ that is used in the generated email."
     (find-file-other-window file-name)
     (other-window -1)))
 
+;;;###autoload
 (defun xhg-mq-show-stack ()
   "Show the mq stack."
   (interactive)

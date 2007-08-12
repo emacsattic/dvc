@@ -35,6 +35,9 @@
 
 (setq loaddir (and load-file-name (file-name-directory load-file-name)))
 
+;; Increase the max-specpdl-size size to avoid an error on some platforms
+(setq max-specpdl-size (max 1000 max-specpdl-size))
+
 (add-to-list 'load-path srcdir)
 (when (file-exists-p contribdir)
   (add-to-list 'load-path contribdir))
@@ -58,6 +61,9 @@
 
 ;; Avoid free-vars
 (setq package-maint-compile-warnings '(unresolved callargs redefine))
+
+;; Avoid interference from VC.el
+(setq vc-handled-backends nil)
 
 ;; List of files to compile: default to $(srcdir)/*.el
 (setq package-maint-files (directory-files srcdir nil "^[^=].*\\.el$"))

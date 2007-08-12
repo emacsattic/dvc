@@ -636,7 +636,9 @@ empty."
   (let* ((file (dvc-uniquify-file-name file))
          (tree-root (tla-tree-root file)))
     (replace-regexp-in-string
-     (concat "^" (regexp-quote tree-root) "/*")
+     ;; note: tree-root always ends with a slash, so the effect of "*"
+     ;; is to match one or more trailing slashes
+     (concat "^" (regexp-quote tree-root) "*")
      ""
      file)))
 
@@ -786,7 +788,7 @@ created by the function specified by `tla-make-log-function', which,
 by default, calls \"tla make-log\"."
   (interactive)
   (let* ((version (tla-tree-version-list))
-         (file (concat (tla-tree-root) "/++log."
+         (file (concat (tla-tree-root) "++log."
                        (tla--name-category version) "--"
                        (tla--name-branch   version) "--"
                        (tla--name-version  version) "--"
@@ -2538,7 +2540,7 @@ REVISION may have one of the values described in the docstring of
                ")")))
     ;; replace / by -- to work around uniquify
     (setq name (replace-regexp-in-string "\\/" "--" name))
-    (get-buffer-create (create-file-buffer name))))
+    (generate-new-buffer name)))
 
 ;; TODO being ported to DVC. See below
 (defun tla-file-get-revision-in-buffer (file &optional revision)
@@ -5990,12 +5992,12 @@ If ONLY-ID is non-nil, move only the ID file."
 ;; ----------------------------------------------------------------------------
 ;; Xtla partner stuff
 ;; ----------------------------------------------------------------------------
-(defvar tla-partner-file-precious "/{arch}/+partner-versions"
+(defvar tla-partner-file-precious "{arch}/+partner-versions"
   "Precious version of the partner file.
 We strongly suggest keeping the default value since this is a
 convention used by other tla front-ends like Aba.")
 
-(defvar tla-partner-file-source "/{arch}/=partner-versions"
+(defvar tla-partner-file-source "{arch}/=partner-versions"
   "Source version of the partner file.
 We strongly suggest keeping the default value since this is
 a convention used by other tla front-ends like Aba.")

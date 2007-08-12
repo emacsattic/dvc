@@ -84,9 +84,6 @@ to (dvc-current-file-list)."
      ,@(when interactive (list interactive))
      (dvc-apply ,(symbol-name name) ,@(remove '&optional args))))
 
-(put 'dvc-create-unified-command
-     'lisp-indent-function 'defun)
-
 ;;;###autoload
 (define-dvc-unified-command dvc-diff (&optional against path dont-switch)
   "Display the changes in this tree for the actual dvc."
@@ -252,8 +249,8 @@ directories containing the files, and recursively below them."
           (apply 'dvc-apply "dvc-backend-ignore-file-extensions-in-dir" (list file-list)))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-missing ()
-  "Show the missing changesets for this working copy."
+(define-dvc-unified-command dvc-missing (&optional other)
+  "Show the missing changesets for this working copy in regard to other."
   (interactive))
 
 ;;;###autoload
@@ -275,6 +272,11 @@ directories containing the files, and recursively below them."
 (define-dvc-unified-command dvc-pull ()
   "Pull changes from the remote source to the working copy or
 local database, as appropriate for the current back-end."
+  (interactive))
+
+;;;###autoload
+(define-dvc-unified-command dvc-merge (&optional other)
+  "Merge with other"
   (interactive))
 
 ;;;###autoload

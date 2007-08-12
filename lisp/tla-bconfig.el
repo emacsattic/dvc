@@ -65,16 +65,12 @@
   "Read a directory relative from tla's tree root, and insert it."
   (interactive)
   (let* ((base-dir (tla-tree-root))
-         (dir (dvc-read-directory-name
-               "Directory: "
-               (file-name-as-directory base-dir))))
-  (when dir
-    (insert "./"
-            (directory-file-name
-             (substring (expand-file-name
-                         dir)
-                        (length (file-name-as-directory
-                                 base-dir))))))))
+         (dir (dvc-read-directory-name "Directory: " base-dir)))
+    (when dir
+      (insert "./"
+              (directory-file-name
+               (substring (expand-file-name dir)
+                          (length (expand-file-name base-dir))))))))
 
 (defun tla-bconfig-insert-contents (n)
   "Insert a directory or tla name depending on the point position."

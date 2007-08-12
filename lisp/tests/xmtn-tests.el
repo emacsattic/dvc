@@ -94,9 +94,9 @@ YPFoLxe1V5oOyoe3ap0H
                 (xmtn--run-command-sync nil '("setup"
                                               "--branch" "invalid.xmtn-tests"
                                               "workspace"))
-                (let ((default-directory (concat temp-dir "workspace")))
+                (let ((default-directory (concat temp-dir "workspace/")))
                   (funcall body
-                           :root (directory-file-name default-directory))))))
+                           :root default-directory)))))
         (when temp-dir
           (dired-delete-file temp-dir 'always))))))
 
@@ -484,7 +484,13 @@ YPFoLxe1V5oOyoe3ap0H
      ;; me, this doesn't actually fail even without the appropriate
      ;; changes to `xmtn--call-with-environment-for-subprocess'.
      (xmtn-check-command-version)))
-    (dvc-status-add
+
+  (xmtn--file-registered-p
+   (xmtn-tests--with-test-history (&key root file-name &allow-other-keys)
+     (assert (xmtn--file-registered-p root file-name))
+     (assert (not (xmtn--file-registered-p root "nonexistent-file")))))
+
+  (dvc-status-add
      (save-window-excursion
        (xmtn-tests--with-test-environment
         (&key &allow-other-keys)

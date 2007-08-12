@@ -155,17 +155,28 @@ ARG is passed as prefix argument"
       (insert (format "\\.%s$\n" (regexp-quote ext-name))))
     (save-buffer)))
 
-(defun xhg-dvc-missing ()
+(defun xhg-dvc-missing (&optional other)
+  "Run hg incoming to show the missing patches for this tree.
+When `last-command' was `dvc-pull', run `xhg-missing'."
   (interactive)
-  (xhg-missing))
+  (if (eq last-command 'dvc-pull)
+      (xhg-missing)
+    (xhg-incoming other t)))
 
 (defun xhg-dvc-update ()
   (interactive)
   (xhg-update))
 
+(defvar xhg-dvc-pull-runs-update t
+  "Whether `xhg-dvc-pull' should call hg pull with the --update flag.")
+
 (defun xhg-dvc-pull ()
+  "Run hg pull, when `xhg-dvc-pull-runs-update' is t, use the --update flag."
   (interactive)
-  (call-interactively 'xhg-pull))
+  (let* ((completions (xhg-paths 'both))
+         (initial-input (car (member "default" completions)))
+         (source-path (if (string= initial-input "default") initial-input (completing-read "Pull from hg repository: " completions nil nil initial-input))))
+    (xhg-pull source-path xhg-dvc-pull-runs-update)))
 
 (provide 'xhg-dvc)
 ;;; xhg-dvc.el ends here

@@ -161,9 +161,7 @@
                   `(xdarcs (local-tree ,root))
                   'diff root 'xdarcs))
          (command-list '("diff" "--unified")))
-    (if dvc-switch-to-buffer-first
-        (dvc-switch-to-buffer buffer)
-      (set-buffer buffer))
+    (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xdarcs command-list

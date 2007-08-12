@@ -35,10 +35,13 @@
   (let ((map (copy-keymap diff-mode-shared-map)))
     (define-key map dvc-keyvec-help 'describe-mode)
     (define-key map [?g] 'xhg-log)
+    (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
     (define-key map [?e] 'xhg-export)
     (define-key map [?E] 'xhg-export-via-mail)
     (define-key map [?s] 'xhg-status)
     (define-key map [?=] 'xhg-log-toggle-diff-for-changeset)
+    (define-key map [?v] 'xhg-log-review-next-diff)
+    (define-key map [?V] 'xhg-log-review-previous-diff)
     (define-key map dvc-keyvec-next 'xhg-log-next)
     (define-key map dvc-keyvec-previous 'xhg-log-previous)
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
@@ -72,6 +75,8 @@
    diff-font-lock-keywords)
   "Keywords in `xhg-log-mode' mode.")
 
+(defvar xhg-log-review-current-diff-revision nil)
+(defvar xhg-log-review-recenter-position-on-next-diff 5)
 
 (define-derived-mode xhg-log-mode fundamental-mode "xhg-log"
   "Major mode to display hg log output with embedded diffs. Derives from `diff-mode'.
@@ -83,7 +88,8 @@ Commands:
         major-mode mode-name)
     (diff-mode))
   (set (make-local-variable 'font-lock-defaults)
-       (list 'xhg-log-font-lock-keywords t nil nil)))
+       (list 'xhg-log-font-lock-keywords t nil nil))
+  (set (make-local-variable 'xhg-log-review-current-diff-revision) nil))
 
 (defconst xhg-log-start-regexp "^changeset: +\\([0-9]+:[0-9a-f]+\\)")
 (defun xhg-log-next (n)
@@ -107,6 +113,14 @@ Commands:
     (end-of-line)
     (re-search-backward xhg-log-start-regexp)
     (match-string-no-properties 1)))
+
+(defun xhg-log-inline-diff-opened-here ()
+  (save-excursion
+    (end-of-line)
+    (re-search-backward xhg-log-start-regexp)
+    (re-search-forward "^$")
+    (forward-line 1)
+    (looking-at "diff")))
 
 (defun xhg-log-toggle-diff-for-changeset ()
   "Toggle displaying the diff for the current changeset."
@@ -132,6 +146,44 @@ Commands:
                            (or (and (re-search-forward xhg-log-start-regexp nil t) (line-beginning-position))
                                (goto-char (point-max))))))))))
 
+(defun xhg-log-goto-revision (rev)
+  "Move point to the revision REV. If REV is not found in the log buffer, do nothing."
+  (let ((rev-pos))
+    (save-excursion
+      (when
+          (re-search-forward (concat "^changeset: +" rev) nil t)
+        (setq rev-pos (point))))
+    (when rev-pos
+      (goto-char rev-pos))))
+
+(defun xhg-log-review-next-diff (n)
+  "Close the previous viewed inline diff and open the next one for reviewing.
+When invoked the first time, just open the diff at point via `xhg-log-toggle-diff-for-changeset'.
+For every further invocation close the previously opened diff and open the next one.
+N is the number of revisions to skip. Per default advance 1 revision."
+  (interactive "p")
+  (when (and (numberp n) (< n 0))
+    (setq n (- n 1)))
+  (let ((cur-pos (point)))
+    (when xhg-log-review-current-diff-revision
+      ;; close the previous diff
+      (xhg-log-goto-revision xhg-log-review-current-diff-revision)
+      (when (xhg-log-inline-diff-opened-here)
+        (xhg-log-toggle-diff-for-changeset))
+      (if (eq n 0)
+          (goto-char cur-pos)
+        (xhg-log-next n)))
+    (setq xhg-log-review-current-diff-revision (xhg-log-revision-at-point))
+    (unless (xhg-log-inline-diff-opened-here)
+      (xhg-log-toggle-diff-for-changeset))
+    (when xhg-log-review-recenter-position-on-next-diff
+      (recenter xhg-log-review-recenter-position-on-next-diff))))
+
+(defun xhg-log-review-previous-diff (n)
+  "Close the previous viewed inline diff and open the previous one for reviewing.
+See `xhg-log-review-next-diff' for details."
+  (interactive "p")
+  (xhg-log-review-next-diff (- n)))
 
 (provide 'xhg-log)
 ;;; xhg-log.el ends here

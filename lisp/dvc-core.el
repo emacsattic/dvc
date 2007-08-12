@@ -70,6 +70,8 @@ A directory which holds FILE-OR-DIR is returned. If no such directory
 `nil' is returned. `default-directory' is used instead if LOCATION is not
 given,
 
+The resulting directory is guaranteed to end in a \"/\" character.
+
 This function may be useful to find \{arch\} and/or _darcs directories."
   (let ((pwd (or location default-directory))
         (pwd-stack nil)
@@ -85,6 +87,7 @@ This function may be useful to find \{arch\} and/or _darcs directories."
       (setq pwd (if (string= new-pwd pwd) "/" new-pwd)))
     (unless (string= pwd "/")
       (setq pwd (replace-regexp-in-string "\\([^:]\\)/*$" "\\1" pwd))
+      (setq pwd (file-name-as-directory pwd))
       (if (memq system-type '(ms-dos windows-nt))
           (expand-file-name pwd)
         pwd))))
@@ -95,6 +98,9 @@ This function may be useful to find \{arch\} and/or _darcs directories."
 
 Calls `dvc-find-tree-root-file-first', shows a message when
 called interactively, and manages no-error.
+
+If LOCATION is nil, the tree root is returned, and it is
+guaranteed to end in a \"/\" character.
 
 MSG must be of the form \"%S is not a ...-managed tree\"."
   (let ((pwd (dvc-find-tree-root-file-first
@@ -295,7 +301,9 @@ These function bypasses the used revision control system."
   "Pop to dvc-partner-buffer, if available."
   (interactive)
   (if (and (boundp 'dvc-partner-buffer) dvc-partner-buffer)
-      (pop-to-buffer dvc-partner-buffer)
+      (if (buffer-live-p dvc-partner-buffer)
+          (pop-to-buffer dvc-partner-buffer)
+        (message "Partner buffer has been killed"))
     (message "No partner buffer set for this buffer.")))
 
 
@@ -324,6 +332,7 @@ BODY is evaluated."
                       ,default))))
          ,@body))))
 (put 'dvc-with-keywords 'lisp-indent-function 1)
+(put 'dvc-with-keywords 'edebug-form-spec '(sexp sexp body))
 
 
 ;; ----------------------------------------------------------------------------
@@ -563,6 +572,7 @@ Example:
            (global-arg (funcall (dvc-function dvc "default-global-argument")))
            (command (dvc-build-dvc-command
                      dvc (append global-arg arguments)))
+           (arguments (remq nil arguments))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory))
@@ -640,6 +650,7 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
            (global-arg (funcall (dvc-function dvc "default-global-argument")))
            (command (dvc-build-dvc-command
                      dvc (append global-arg arguments)))
+           (arguments (remq nil arguments))
            (error-file (dvc-make-temp-name "arch-errors"))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
@@ -1011,7 +1022,7 @@ REVISION-ID may have the values described in docs/DVC-API."
                 "(" (dvc-revision-to-string revision-id) ")")))
     ;; replace / by | to work around uniquify
     (setq name (replace-regexp-in-string "\\/" "|" name))
-    (let ((buffer (get-buffer-create (create-file-buffer name))))
+    (let ((buffer (generate-new-buffer name)))
       (with-current-buffer buffer
         (let ((buffer-file-name file))
           (set-auto-mode t)))
