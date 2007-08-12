@@ -840,7 +840,7 @@ the file before saving."
         (let ((inhibit-read-only t))
           (erase-buffer))
         (dvc-diff-mode)
-        (set (make-local-variable 'dvc-buffer-refresh-function) 'xmtn-dvc-status)
+        (setq dvc-buffer-refresh-function 'xmtn-dvc-status)
         (setq ewoc dvc-diff-cookie)
         (ewoc-set-hf ewoc header footer)
         (ewoc-enter-last ewoc `(message "Running monotone..."))

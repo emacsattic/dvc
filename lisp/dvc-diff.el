@@ -274,8 +274,7 @@ Commands:
        (list 'tla-changes-font-lock-keywords t nil nil))
   (set (make-local-variable 'dvc-get-file-info-at-point-function)
        'dvc-diff-get-file-at-point)
-  (set (make-local-variable 'dvc-buffer-refresh-function)
-       'dvc-diff-generic-refresh)
+  (setq dvc-buffer-refresh-function 'dvc-diff-generic-refresh)
   (set (make-local-variable 'dvc-diff-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
 		     #'dvc-diff-printer)))
