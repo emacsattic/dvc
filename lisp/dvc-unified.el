@@ -41,14 +41,18 @@
 
 ;;;###autoload
 (defun dvc-add-files (&rest files)
-  "Add FILES to the currently active dvc."
+  "Add FILES to the currently active dvc. FILES is a list of
+strings including path from root; interactive defaults
+to (dvc-current-file-list)."
   (interactive (dvc-current-file-list))
-  (let* ((dvc (dvc-current-active-dvc))
-         (multiprompt (format "Add %%d files to %s? " dvc))
-         (singleprompt (format "Add file to %s: " dvc)))
-    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
-                                                       singleprompt t))
-      (apply 'dvc-apply "dvc-add-files" files))))
+  (if dvc-confirm-add
+      (let* ((dvc (dvc-current-active-dvc))
+             (multiprompt (format "Add %%d files to %s? " dvc))
+             (singleprompt (format "Add file to %s: " dvc)))
+        (when (setq files (dvc-confirm-read-file-name-list multiprompt files
+                                                           singleprompt t))
+          (apply 'dvc-apply "dvc-add-files" files)))
+    (apply 'dvc-apply "dvc-add-files" files)))
 
 ;;;###autoload
 (defun dvc-revert-files (&rest files)
@@ -96,16 +100,21 @@ If DONT-SWITCH is nil, switch to the newly created buffer.")
 ;;;###autoload
 (define-dvc-unified-command dvc-file-diff (file &optional base modified
                                                 dont-switch)
-  "Display the changes in FILE for the actual dvc."
+  "Display the changes in FILE (default current buffer file) for
+the actual dvc."
+  ;; FIXME: other operations default to (dvc-current-file-list); this
+  ;; should default to (dvc-get-file-info-at-point)
   (interactive (list buffer-file-name)))
 
 ;;;###autoload
 (defun dvc-status (&optional path)
   "Display the status in optional PATH tree."
   (interactive)
+  (save-some-buffers (not dvc-confirm-save-buffers))
   (if path
-      (let ((default-directory path))
-        (dvc-apply "dvc-status" path))
+      (let* ((abs-path (expand-file-name path))
+             (default-directory abs-path))
+        (dvc-apply "dvc-status" abs-path))
     (dvc-apply "dvc-status" nil)))
 
 (define-dvc-unified-command dvc-name-construct (back-end-revision)
@@ -203,9 +212,41 @@ edit buffer in a separate frame."
   (interactive (list (dvc-current-file-list))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-ignore-file-extensions (file-list)
-  "Ignore the file extensions of the marked files."
-  (interactive (list (dvc-current-file-list))))
+(defun dvc-ignore-file-extensions (file-list)
+  "Ignore the file extensions of the marked files, in all
+directories of the workspace."
+  (interactive (list (dvc-current-file-list)))
+  (let* ((extensions (delete nil (mapcar 'file-name-extension file-list)))
+         ;; FIXME: should also filter duplicates. use delete-duplicates
+         (root (dvc-tree-root))
+         (msg (case (length extensions)
+                (1 (format "extension *.%s" (first extensions)))
+                (t (format "%d extensions" (length extensions))))))
+    (if extensions
+        (when (y-or-n-p (format "Ignore %s in workspace %s? " msg root))
+          (apply 'dvc-apply "dvc-backend-ignore-file-extensions" (list extensions)))
+      (error "No files with an extension selected"))))
+
+;;;###autoload
+(defun dvc-ignore-file-extensions-in-dir (file-list)
+  "Ignore the file extensions of the marked files, only in the
+directories containing the files, and recursively below them."
+  (interactive (list (dvc-current-file-list)))
+  ;; We have to match the extensions to the directories, so reject
+  ;; command if either is nil.
+  (let* ((extensions (mapcar 'file-name-extension file-list))
+         (dirs (mapcar 'file-name-directory file-list))
+         (msg (case (length extensions)
+                (1 (format "extension *.%s in directory `%s'" (first extensions) (first dirs)))
+                (t (format "%d extensions in directories" (length extensions))))))
+    (dolist (extension extensions)
+      (if (not extension)
+          (error "A file with no extension selected")))
+    (dolist (dir dirs)
+      (if (not dir)
+          (error "A file with no directory selected")))
+    (when (y-or-n-p (format "Ignore %s? " msg))
+          (apply 'dvc-apply "dvc-backend-ignore-file-extensions-in-dir" (list file-list)))))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-missing (&optional other)

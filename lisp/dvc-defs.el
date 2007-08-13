@@ -1,6 +1,6 @@
 ;;; dvc-defs.el --- Common definitions for DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributors: Matthieu Moy, <Matthieu.Moy@imag.fr>
@@ -69,6 +69,21 @@ Possible values include: 'tla, 'baz, 'xhg, 'xgit, 'bzr, 'xmtn"
 
 (defcustom dvc-highlight t
   "*Use highlighting for DVC buffers."
+  :type 'boolean
+  :group 'dvc)
+
+(defcustom dvc-confirm-add t
+  "*If non-nil, prompt for confirmation in dvc-add-files."
+  :type 'boolean
+  :group 'dvc)
+
+(defcustom dvc-confirm-ignore t
+  "*If non-nil, prompt for confirmation in dvc-ignore-files."
+  :type 'boolean
+  :group 'dvc)
+
+(defcustom dvc-confirm-save-buffers t
+  "*If non-nil, prompt for confirmation when saving buffers."
   :type 'boolean
   :group 'dvc)
 
@@ -356,6 +371,9 @@ bury them."
   "*If non-nil, insert changelog entries at the end of the log file."
   :type 'boolean
   :group 'dvc)
+
+(defvar dvc-test-mode nil
+  "Set non-nil in unit tests; bypasses confirmation prompts.")
 
 (defvar dvc-buffer-marked-file-list nil
   "List of marked and not hidden files in the current buffer.

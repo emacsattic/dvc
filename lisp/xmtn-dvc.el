@@ -200,7 +200,7 @@
             (insert-line "Committing on branch:")
             (insert-line branch)
             (insert-line)
-            (unless 
+            (unless
               (let* ((parents (xmtn--revision-old-revision-hash-ids revision))
                      (all-parents-are-heads-p
                       (subsetp parents heads :test #'equal))
@@ -701,7 +701,6 @@ the file before saving."
             :finished (xmtn--simple-finished-notification buffer)))))
       (xmtn--display-buffer-maybe buffer nil))))
 
-
 (defun xmtn--status-process-entry (ewoc path status changes old-path-or-null
                                         old-type new-type fs-type)
   "Returns true if this entry indicates changes."
@@ -906,8 +905,6 @@ the file before saving."
 (defun xmtn-dvc-status (&optional root)
   "Display status of monotone tree ROOT (default current tree)."
   (let ((root (or root (dvc-tree-root))))
-    ;; FIXME: We should prompt to save buffers that visit files inside
-    ;; ROOT.
     (if (xmtn--mtn-has-basic-io-inventory)
         (xmtn--status-using-inventory root)
       (xmtn--status-without-inventory root))))
@@ -962,6 +959,13 @@ the file before saving."
   (format "^%s" (xmtn--quote-string-as-partial-perl-regexp
                  (file-name-as-directory directory-file-name))))
 
+(defun xmtn--perl-regexp-for-extension-in-dir (file-name)
+  (format "^%s.*\\.%s$"
+          (xmtn--quote-string-as-partial-perl-regexp
+           (file-name-directory file-name))
+          (xmtn--quote-string-as-partial-perl-regexp
+           (file-name-extension file-name))))
+
 (defun xmtn--add-patterns-to-mtnignore (root patterns interactive-p)
   (let ((mtnignore-file-name (xmtn--mtnignore-file-name root)))
     (save-window-excursion
@@ -979,17 +983,12 @@ the file before saving."
                   (insert pattern "\n")
                   (setq modified-p t)))
           (when modified-p
-            (if interactive-p
+            (if (and interactive-p
+                    dvc-confirm-ignore)
                 (lexical-let ((buffer (current-buffer)))
                   (save-some-buffers nil (lambda ()
                                            (eql (current-buffer) buffer))))
-              (save-buffer))
-            (when (not (xmtn--file-registered-p root mtnignore-file-name))
-              (when (if interactive-p
-                        (y-or-n-p (format "Add file %s to workspace manifest? "
-                                          mtnignore-file-name))
-                      t)
-                (xmtn--add-files root (list mtnignore-file-name)))))))))
+              (save-buffer)))))))
   nil)
 
 ;;;###autoload
@@ -1001,7 +1000,9 @@ the file before saving."
                 (1 (format "%s" (first normalized-file-names)))
                 (t (format "%s files/directories"
                            (length normalized-file-names))))))
-    (when (y-or-n-p (format "Ignore %s in monotone tree %s? " msg root))
+    ;; FIXME: confirm should be in upper level DVC code.
+    (when (or (not dvc-confirm-ignore)
+              (y-or-n-p (format "Ignore %s in monotone tree %s? " msg root)))
       (xmtn--add-patterns-to-mtnignore
        root
        (let ((default-directory root))
@@ -1021,24 +1022,23 @@ the file before saving."
        t))))
 
 ;;;###autoload
-(defun xmtn-dvc-ignore-file-extensions (file-names)
-  (let* ((extensions (delete nil (mapcar #'file-name-extension file-names)))
-         (root (dvc-tree-root))
-         (msg (case (length extensions)
-                (1 (format "extension *.%s" (first extensions)))
-                (t (format "%s extensions" (length extensions))))))
-    ;; This UI stuff shouldn't have to be part of the backend.
-    (if extensions
-        (when (y-or-n-p (format "Ignore %s in monotone tree %s? " msg root))
-          (xmtn--add-patterns-to-mtnignore
-           root
-           (mapcar #'xmtn--perl-regexp-for-extension extensions)
-           t))
-      (error "No files with an extension selected"))))
+(defun xmtn-dvc-backend-ignore-file-extensions (extensions)
+  (xmtn--add-patterns-to-mtnignore
+   (dvc-tree-root)
+   (mapcar #'xmtn--perl-regexp-for-extension extensions)
+   t))
+
+;;;###autoload
+(defun xmtn-dvc-backend-ignore-file-extensions-in-dir (file-list)
+  (xmtn--add-patterns-to-mtnignore
+   (dvc-tree-root)
+   (mapcar #'xmtn--perl-regexp-for-extension-in-dir file-list)
+   t))
 
 (defun xmtn--add-files (root file-names)
   (dolist (file-name file-names)
     ;; On directories, mtn add will recurse, which isn't what we want.
+    ;; FIXME: was true for older mtn versions; not true in current, unless we specify --recursive
     (assert (not (file-directory-p file-name)))
     ;; I don't know how mtn handles symlinks (and symlinks to
     ;; directories), so forbid them for now.
@@ -1077,7 +1077,11 @@ the file before saving."
 (defun xmtn--do-remove (root file-names do-not-execute)
   (xmtn--run-command-sync
    root `("drop"
-          ,@(if do-not-execute `() `("--execute"))
+          ,@(xmtn--version-case
+              ((>= 0 34)
+               (if do-not-execute `("--bookkeep-only") `()))
+              (t
+               (if do-not-execute `() `("--execute"))))
           "--" ,@(xmtn--normalize-file-names root file-names)))
   nil)
 
@@ -1334,8 +1338,8 @@ finished."
   (error "not implemented"))
 
 ;;;###autoload
-(defun xmtn-revision-get-previous-revision (file stuff)
-  (xmtn--revision-get-file-helper file `(previous-revision ,@stuff)))
+(defun xmtn-revision-get-previous-revision (file revision-id)
+  (xmtn--revision-get-file-helper file (list 'previous-revision (cadr revision-id))))
 
 ;;;###autoload
 (defun xmtn-revision-get-last-revision (file stuff)
@@ -1346,6 +1350,7 @@ finished."
   (xmtn--revision-get-file-helper file `(revision ,@stuff)))
 
 (defun xmtn--revision-get-file-helper (file backend-id)
+  "Fill current buffer with the contents of FILE revision BACKEND-ID."
   (let ((root (dvc-tree-root)))
     (xmtn-automate-with-session (nil root)
       (let* ((normalized-file (xmtn--normalize-file-name root file))
@@ -1606,7 +1611,6 @@ finished."
   (check-type content-hash-id xmtn--hash-id)
   (xmtn-automate-simple-command-output-insert-into-buffer
    root buffer `("get_file" ,content-hash-id)))
-
 
 (defun xmtn--same-tree-p (a b)
   (equal (file-truename a) (file-truename b)))

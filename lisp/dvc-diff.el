@@ -46,7 +46,10 @@ Must be buffer-local.")
 Must be buffer-local.")
 
 (defvar dvc-buffer-search-file nil
-  "Function to search a file inside a diff")
+  "Function to find a file in a diff display. Function is passed
+  one argument FILE; it should place point on the first line of
+  the diff for that file. Each backend can customize this for its
+  diff format. Buffer-local in diff buffers.")
 
 (defun dvc-dvc-search-file-in-diff (file)
   (re-search-forward (concat "^\\+\\+\\+ \\(a\\|mod\\)/" file "$")))
@@ -55,7 +58,7 @@ Must be buffer-local.")
   "Create and return a buffer to run command showing diffs.
 
 Sets the local-variables `dvc-diff-base' and
-`dvc-diff-modified' are set according to BASE and MODIFIED.
+`dvc-diff-modified' to BASE and MODIFIED.
 
 TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
@@ -180,7 +183,8 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-previous  'dvc-diff-prev)
     (define-key map dvc-keyvec-revert    'dvc-revert-files)
     (define-key map dvc-keyvec-quit      'dvc-buffer-quit)
-    (define-key map dvc-keyvec-remove 'dvc-remove-files)
+    (define-key map dvc-keyvec-remove    'dvc-remove-files)
+    (define-key map [?d]                 'dvc-remove-files); as in dired
     (define-key map dvc-keyvec-mark   'dvc-diff-mark-file)
     (define-key map dvc-keyvec-unmark 'dvc-diff-unmark-file)
     (define-key map [backspace] 'dvc-diff-unmark-file-up)
@@ -696,6 +700,7 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-file-ediff (file)
+  "Run ediff of FILE (defaut current buffer file) against last revision."
   (interactive (list (buffer-file-name)))
   (let ((file-buffer (find-file-noselect file))
         (pristine-buffer
@@ -721,7 +726,8 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-dvc-file-diff (file &optional base modified dont-switch)
-  "View changes in FILE between BASE and MODIFIED."
+  "View changes in FILE between BASE (default last-revision) and
+MODIFIED (default workspace version)."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
          (modified (or modified `(,dvc (local-tree ,file)))))
