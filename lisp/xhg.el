@@ -266,7 +266,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
   (easy-menu-add xhg-mode-menu)
   (when (boundp 'xhg-mq-sub-mode-map)
     (local-set-key [?Q] xhg-mq-sub-mode-map))
-  (set (make-local-variable 'dvc-buffer-refresh-function) 'xhg-status))
+  (setq dvc-buffer-refresh-function 'xhg-status))
 
 (defun xhg-pull-finish-function (output error status arguments)
   (let ((buffer (dvc-get-buffer-create 'xhg 'pull)))
