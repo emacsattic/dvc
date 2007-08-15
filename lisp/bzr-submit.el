@@ -41,7 +41,7 @@
 An alist of rules to map branch nicknames to target directories.
 
 This is used by the `bzr-gnus-apply-patch' function.
-Example setting: '((\"dvc-dev-bzr\" \"~/work/bzr/dvc\")))"
+Example setting: '((\"dvc-dev-bzr\" \"~/work/bzr/dvc\"))"
   :type '(repeat (list :tag "Rule"
                        (string :tag "Branch nickname")
                        (string :tag "Target directory")))
