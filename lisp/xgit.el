@@ -483,6 +483,21 @@ FILE is filename in repostory.
     (git-annotate default-directory filename)
     (goto-line line)))
 
+;;;###autoload
+(defun xgit-apply-mbox (mbox &optional force)
+  "Run git am to apply the contents of MBOX as one or more patches."
+  (interactive (list (read-file-name "Apply mbox containing patch(es): "
+                                     nil nil t)))
+  (dvc-run-dvc-sync 'xgit
+                    (delq nil (list "am" (when force "-3")
+                                    (expand-file-name mbox)))
+                    :finished
+                    (lambda (output error status arguments)
+                      (message "Imported git mbox from %s" mbox))
+                    :error
+                    (lambda (output error status arguments)
+                      (dvc-show-error-buffer error)
+                      (error "Error occurred while applying patch(es)"))))
 
 ;; --------------------------------------------------------------------------------
 ;; dvc revision support
