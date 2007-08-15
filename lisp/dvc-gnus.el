@@ -123,17 +123,20 @@ Otherwise `dvc-gnus-apply-patch' is called."
     (save-window-excursion
       (gnus-summary-select-article-buffer)
       (goto-char (point-min))
-      (if (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
-          (setq patch-type 'tla)
-        (goto-char (point-min))
-        (if (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t)
-            (setq patch-type 'xhg)
-          (goto-char (point-min))
-          (if (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
-                  (re-search-forward "^Committed revision [0-9]+ to \\(.+\\)$" nil t))
-              (setq patch-type 'bzr-merge-or-pull
-                    bzr-merge-or-pull-url (match-string-no-properties 1))
-            (setq patch-type 'dvc)))))
+      (cond ((re-search-forward (concat "\\[VERSION\\] "
+                                        (tla-make-name-regexp 4 t t))
+                                nil t)
+             (setq patch-type 'tla))
+            ((progn (goto-char (point-min))
+                    (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t))
+             (setq patch-type 'xhg))
+            ((progn (goto-char (point-min))
+                    (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
+                        (re-search-forward
+                         "^Committed revision [0-9]+ to \\(.+\\)$" nil t)))
+             (setq patch-type 'bzr-merge-or-pull
+                   bzr-merge-or-pull-url (match-string-no-properties 1)))
+            (t (setq patch-type 'dvc))))
     (cond ((eq patch-type 'tla)
            (tla-gnus-article-apply-patch n))
           ((eq patch-type 'xhg)
