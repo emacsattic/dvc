@@ -25,3 +25,5 @@ www/dvc.png
 patches/
 .pc/
 .tmp-dvc/
+./.mtn-ignore
+./_MTN

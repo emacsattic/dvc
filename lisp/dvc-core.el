@@ -218,15 +218,20 @@ The following sources are tried (in that order) and used if they are non nil:
                   (file-name-nondirectory (or file-name ""))))
 
 (defun dvc-confirm-read-file-name-list (prompt &optional files single-prompt mustmatch)
-  (let ((num-files (length files)))
-    (if (= num-files 1)
-        (let ((confirmed-file-name
-               (dvc-confirm-read-file-name single-prompt mustmatch (car files))))
-          ;; I don't think `dvc-confirm-read-file-name' can return nil.
-          (assert confirmed-file-name)
-          (list confirmed-file-name))
-      (and (y-or-n-p (format prompt num-files))
-           files))))
+  (or
+   ;; FIXME: is there a way to respond to this prompt from a unit
+   ;; test? See tests/xmtn-tests.el dvc-status-add. For now, bypassing
+   ;; confirmation with `dvc-test-mode'.
+   (if dvc-test-mode files)
+   (let ((num-files (length files)))
+     (if (= num-files 1)
+         (let ((confirmed-file-name
+                (dvc-confirm-read-file-name single-prompt mustmatch (car files))))
+           ;; I don't think `dvc-confirm-read-file-name' can return nil.
+           (assert confirmed-file-name)
+           (list confirmed-file-name))
+       (and (y-or-n-p (format prompt num-files))
+            files)))))
 
 ;(dvc-confirm-read-file-name "Add file ")
 ;(dvc-confirm-read-file-name-list "Add %d files? " (dvc-current-file-list) "Add file " t)
@@ -289,7 +294,8 @@ These function bypasses the used revision control system."
 
 ;; partner buffer stuff
 (defvar dvc-partner-buffer nil
-  "DVC Partner buffer. Must be local to each buffer.")
+  "DVC Partner buffer; stores diff buffer for log-edit, etc. Must
+  be local to each buffer.")
 
 (defun dvc-buffer-pop-to-partner-buffer ()
   "Pop to dvc-partner-buffer, if available."
@@ -326,6 +332,7 @@ BODY is evaluated."
                       ,default))))
          ,@body))))
 (put 'dvc-with-keywords 'lisp-indent-function 1)
+(put 'dvc-with-keywords 'edebug-form-spec '(sexp sexp body))
 
 
 ;; ----------------------------------------------------------------------------
@@ -565,6 +572,7 @@ Example:
            (global-arg (funcall (dvc-function dvc "default-global-argument")))
            (command (dvc-build-dvc-command
                      dvc (append global-arg arguments)))
+           (arguments (remq nil arguments))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory))
@@ -642,6 +650,7 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
            (global-arg (funcall (dvc-function dvc "default-global-argument")))
            (command (dvc-build-dvc-command
                      dvc (append global-arg arguments)))
+           (arguments (remq nil arguments))
            (error-file (dvc-make-temp-name "arch-errors"))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
@@ -686,6 +695,9 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
 
 (defun dvc-kill-process-maybe (buffer)
   "Prompts and possibly kill process whose related buffer is BUFFER."
+  ;; FIXME: It would be reasonable to run this here, to give any
+;;  process one last chance to run. But somehow this screws up
+;;  package-maint-clean-some-elc. (accept-process-output)
   (let* ((processes (dvc-processes-related-to-buffer buffer))
          (l (length processes)))
     (when (and processes
@@ -696,7 +708,11 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
       (dolist (process processes)
         (when (eq (process-status process) 'run)
           (incf dvc-default-killed-function-noerror)
-          (kill-process process))))))
+          (kill-process process)))))
+  ;; make sure it worked
+  (let ((processes (dvc-processes-related-to-buffer buffer)))
+    (when processes
+      (error "Process still running in buffer %s" buffer))))
 
 (add-hook 'kill-buffer-hook 'dvc-kill-buffer-function)
 
@@ -988,7 +1004,9 @@ Strips the final newline if there is one."
       (local-tree (car data))
       (last-revision "original")
       (previous-revision
-       (concat (dvc-revision-to-string (nth 0 data)) ":-"
+       (concat (dvc-revision-to-string
+                (list (dvc-revision-get-dvc revision-id) (nth 0 data)))
+               ":-"
                (int-to-string (nth 1 data))))
       (t "UNKNOWN"))))
 
@@ -1004,7 +1022,7 @@ REVISION-ID may have the values described in docs/DVC-API."
                 "(" (dvc-revision-to-string revision-id) ")")))
     ;; replace / by | to work around uniquify
     (setq name (replace-regexp-in-string "\\/" "|" name))
-    (let ((buffer (get-buffer-create (create-file-buffer name))))
+    (let ((buffer (generate-new-buffer name)))
       (with-current-buffer buffer
         (let ((buffer-file-name file))
           (set-auto-mode t)))
@@ -1018,34 +1036,40 @@ REVISION-ID is as specified in docs/DVC-API."
   (dvc-trace "dvc-revision-get-file-in-buffer. revision-id=%S" revision-id)
   (let ((type (dvc-revision-get-type revision-id))
         (inhibit-read-only t))
-    (if (eq type 'previous-revision)
-        (let* ((dvc (dvc-revision-get-dvc revision-id))
-              (data (nth 0 (dvc-revision-get-data revision-id)))
-              (rev-id (list dvc data)))
-          (funcall (dvc-function dvc "revision-get-previous-revision")
-                   file rev-id))
-      (let ((buffer (dvc-revision-get-buffer file revision-id)))
-        (with-current-buffer buffer
-          (case type
-            (local-tree (find-file-noselect file))
-            (revision
-             (funcall (dvc-function
-                       (dvc-revision-get-dvc revision-id)
-                       "revision-get-file-revision")
-                      file (dvc-revision-get-data revision-id))
-             buffer)
-            (last-revision
-             (funcall (dvc-function
-                       (dvc-revision-get-dvc revision-id)
-                       "revision-get-last-revision")
-                      file (dvc-revision-get-data revision-id))
-             buffer)
-            (t (error "TODO: type %S" type))))))))
+    (let ((buffer (dvc-revision-get-buffer file revision-id)))
+      (with-current-buffer buffer
+        (case type
+          (local-tree (find-file-noselect file))
 
-(defun dvc-revision-get-previous-revision (file revision)
-  "Default function to get the previous revision of a FILE.
+          (revision
+           (funcall (dvc-function
+                     (dvc-revision-get-dvc revision-id)
+                     "revision-get-file-revision")
+                    file (dvc-revision-get-data revision-id))
+           buffer)
 
-REVISION is documented in docs/DVC-API."
+          (previous-revision
+           (let* ((dvc (dvc-revision-get-dvc revision-id))
+                  (data (nth 0 (dvc-revision-get-data revision-id)))
+                  (rev-id (list dvc data)))
+             (funcall (dvc-function dvc "revision-get-previous-revision")
+                      file rev-id))
+           buffer)
+
+          (last-revision
+           (funcall (dvc-function
+                     (dvc-revision-get-dvc revision-id)
+                     "revision-get-last-revision")
+                    file (dvc-revision-get-data revision-id))
+           buffer)
+
+          (t (error "TODO: type %S" type)))))))
+
+(defun dvc-revision-get-previous-revision (file revision-id)
+"Default function to fill the current buffer with the content of
+the revision of a FILE previous to REVISION-ID.
+
+REVISION-ID is documented in docs/DVC-API."
   (dvc-trace "get-prev-rev. revision=%S" revision)
   (dvc-revision-get-file-in-buffer
    file

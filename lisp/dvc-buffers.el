@@ -141,7 +141,7 @@ BUFFER should be the buffer to add."
 
 Maybe reuse one if it exists, according to the value of
 `dvc-buffer-type-alist' (see its docstring), or, call
-`create-file-buffer' to create the buffer.
+`generate-new-buffer' to create the buffer.
 
 See also `dvc-get-buffer'"
   ;; Inspired from `cvs-get-buffer-create'
@@ -168,7 +168,7 @@ See also `dvc-get-buffer'"
                           (let ((default-directory
                                   (or (file-name-directory path)
                                       default-directory)))
-                            (create-file-buffer
+                            (generate-new-buffer
                              (or name (concat "*" (symbol-name dvc)
                                               "-buffer*")))))))
                    (with-current-buffer buffer
@@ -298,7 +298,7 @@ It will eventually be killed when the number of buffers in
   "Create a new process buffer.
 If TO-BE-DELETED is non-nil, make this buffer a candidate for eventually
 being deleted."
-  (let ((buffer (create-file-buffer
+  (let ((buffer (generate-new-buffer
                  (format dvc-process-buffer
                          back-end))))
     (setq dvc-last-process-buffer buffer)
@@ -309,7 +309,7 @@ being deleted."
   "Create a new error buffer.
 If TO-BE-DELETED is non-nil, make this buffer a candidate for eventually
 being deleted."
-  (let ((buffer (create-file-buffer
+  (let ((buffer (generate-new-buffer
                  (format dvc-error-buffer
                          back-end))))
     (setq dvc-last-error-buffer buffer)

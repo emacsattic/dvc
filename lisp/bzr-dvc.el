@@ -99,15 +99,9 @@ Usually that file is placed in the tree-root of the working tree.")
     (dolist (f-name file-list)
       (bzr-ignore (format "./%s" f-name)))))
 
-(defun bzr-dvc-ignore-file-extensions (file-list)
-  (interactive (list (dvc-current-file-list)))
-  (let* ((extension-list (delete nil (mapcar 'file-name-extension file-list)))
-         (msg-list (mapconcat '(lambda (ext) (concat "*." ext)) extension-list " ")))
-    (if extension-list
-        (when (y-or-n-p (format "Ignore %s for %s? " msg-list (bzr-tree-root)))
-          (dolist (ext-name extension-list)
-            (bzr-ignore (format "*.%s" ext-name))))
-      (message "No files with an extension selected."))))
+(defun bzr-dvc-backend-ignore-file-extensions (extension-list)
+  (dolist (ext-name extension-list)
+    (bzr-ignore (format "*.%s" ext-name))))
 
 (autoload 'bzr-revlog-get-revision "bzr-revlog")
 (defalias 'bzr-dvc-revlog-get-revision

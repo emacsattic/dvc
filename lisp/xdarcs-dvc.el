@@ -68,21 +68,13 @@
         (insert (format "^%s$\n" (regexp-quote f-name))))
       (save-buffer))))
 
-(defun xdarcs-dvc-ignore-file-extensions (file-list)
-  (interactive (list (dvc-current-file-list)))
-  (let* ((extension-list (delete nil (mapcar 'file-name-extension file-list)))
-         (msg-list (mapconcat '(lambda (ext) (concat "*." ext)) extension-list " ")))
-    (if extension-list
-        (when (y-or-n-p (format "Ignore %s for %s? " msg-list (xdarcs-tree-root)))
-          (with-current-buffer
-              (find-file-noselect (concat (xdarcs-tree-root) xdarcs-ignore-file))
-            (goto-char (point-max))
-            (dolist (ext-name extension-list)
-              (insert (format "\\.%s$\n" (regexp-quote ext-name))))
-            (save-buffer)))
-      (message "No files with an extension selected."))))
-
-
+(defun xdarcs-dvc-backend-ignore-file-extensions (extension-list)
+  (with-current-buffer
+      (find-file-noselect (concat (xdarcs-tree-root) xdarcs-ignore-file))
+    (goto-char (point-max))
+    (dolist (ext-name extension-list)
+      (insert (format "\\.%s$\n" (regexp-quote ext-name))))
+    (save-buffer)))
 
 (provide 'xdarcs-dvc)
 ;;; xdarcs-dvc.el ends here

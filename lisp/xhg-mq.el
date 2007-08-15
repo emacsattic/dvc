@@ -191,7 +191,7 @@ When called with a prefix argument run hg qpush -a."
           (dolist (patch patches)
             (ewoc-enter-last xhg-mq-cookie (list patch nil))))
         (xhg-mq-mode)
-        (set (make-local-variable 'dvc-buffer-refresh-function) refresh-function)
+        (setq dvc-buffer-refresh-function refresh-function)
         (goto-char (point-min))
         (forward-line 1)
         (pop-to-buffer curbuf)))
