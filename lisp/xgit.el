@@ -201,7 +201,7 @@ new file.")
   (let* ((dir (or path default-directory))
          (root (xgit-tree-root dir))
          (buffer (dvc-prepare-changes-buffer
-                  `(git (last-revision ,root 1))
+                  `(xgit (last-revision ,root 1))
                   `(git (local-tree ,root))
                   'status root 'xgit)))
     (dvc-switch-to-buffer-maybe buffer)
@@ -374,11 +374,13 @@ xgit-restore
   "See `xgit-restore'"
   (apply 'xgit-restore t files))
 
-(defcustom git-show-filter-filename-func (function (lambda (files) nil))
-  "Function to filter filenames in git-show.
+(defcustom git-show-filter-filename-func nil
+  "Function to filter filenames in xgit-show.
 Function is passed a list of files as a parameter.
 Function should return list of filenames that is passed to git-show or nil for all files."
-  :type 'function
+  :type '(choice (const git-show-filter-filename-not-quilt)
+                 (function)
+                 (const :tag "None" nil))
   :group 'dvc-xgit)
 
 (defun git-show-filter-filename-not-quilt (files)
@@ -483,11 +485,26 @@ FILE is filename in repostory.
     (git-annotate default-directory filename)
     (goto-line line)))
 
+;;;###autoload
+(defun xgit-apply-mbox (mbox &optional force)
+  "Run git am to apply the contents of MBOX as one or more patches."
+  (interactive (list (read-file-name "Apply mbox containing patch(es): "
+                                     nil nil t)))
+  (dvc-run-dvc-sync 'xgit
+                    (delq nil (list "am" (when force "-3")
+                                    (expand-file-name mbox)))
+                    :finished
+                    (lambda (output error status arguments)
+                      (message "Imported git mbox from %s" mbox))
+                    :error
+                    (lambda (output error status arguments)
+                      (dvc-show-error-buffer error)
+                      (error "Error occurred while applying patch(es)"))))
 
 ;; --------------------------------------------------------------------------------
 ;; dvc revision support
 ;; --------------------------------------------------------------------------------
-;; TODO: update for git
+
 ;;;###autoload
 (defun xgit-revision-get-last-revision (file last-revision)
   "Insert the content of FILE in LAST-REVISION, in current buffer.
@@ -495,12 +512,12 @@ FILE is filename in repostory.
 LAST-REVISION looks like
 \(\"path\" NUM)"
   (dvc-trace "xgit-revision-get-last-revision file:%S last-revision:%S" file last-revision)
-  (let (;;(xgit-rev (int-to-string (nth 1 last-revision)))
+  (let ((xgit-rev (int-to-string (1- (nth 1 last-revision))))
         (default-directory (car last-revision)))
-    ;; TODO: support the last-revision parameter??
     (insert (dvc-run-dvc-sync
-             'xgit (list "admin-cat" file)
-             :finished 'dvc-output-buffer-handler))))
+             'xgit (list "cat-file" "blob"
+                         (format "HEAD~%s:%s" xgit-rev file))
+             :finished 'dvc-output-buffer-handler-withnewline))))
 
 (provide 'xgit)
 ;;; xgit.el ends here
