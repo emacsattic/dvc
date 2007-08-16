@@ -57,7 +57,7 @@ this function.
 
 Additionally the following key binding is defined for the gnus summary mode map:
 K t l `dvc-gnus-article-extract-log-message'
-K t v `tla-gnus-article-view-patch'
+K t v `dvc-gnus-article-view-patch'
 K t m `dvc-gnus-article-view-missing'
 K t a `dvc-gnus-article-apply-patch'"
   (interactive)
@@ -110,10 +110,18 @@ Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
 (defun dvc-gnus-article-apply-patch (n)
   "Apply MIME part N, as patchset.
 When called with no prefix arg, set N := 2.
-First is checked, if it is a tla changeset created with DVC.
+
+DVC will try to figure out which VCS to use when applying the patch.
+
+First we check to see if it is a tla changeset created with DVC.
 If that is the case, `tla-gnus-apply-patch' is called.
-The next check is whether it is a patch suitable for xhg. In that case
+
+The next check is whether it is a patch suitable for xhg.  In that case
 `xhg-gnus-article-import-patch' is called.
+
+Then we check to see whether the patch was prepared with git
+format-patch.  If so, then call `xgit-gnus-article-apply-patch'.
+
 Otherwise `dvc-gnus-apply-patch' is called."
   (interactive "p")
   (unless current-prefix-arg
@@ -123,21 +131,30 @@ Otherwise `dvc-gnus-apply-patch' is called."
     (save-window-excursion
       (gnus-summary-select-article-buffer)
       (goto-char (point-min))
-      (if (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
-          (setq patch-type 'tla)
-        (goto-char (point-min))
-        (if (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t)
-            (setq patch-type 'xhg)
-          (goto-char (point-min))
-          (if (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
-                  (re-search-forward "^Committed revision [0-9]+ to \\(.+\\)$" nil t))
-              (setq patch-type 'bzr-merge-or-pull
-                    bzr-merge-or-pull-url (match-string-no-properties 1))
-            (setq patch-type 'dvc)))))
+      (cond ((re-search-forward (concat "\\[VERSION\\] "
+                                        (tla-make-name-regexp 4 t t))
+                                nil t)
+             (setq patch-type 'tla))
+            ((progn (goto-char (point-min))
+                    (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t))
+             (setq patch-type 'xhg))
+            ((progn (goto-char (point-min))
+                    (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
+                        (re-search-forward
+                         "^Committed revision [0-9]+ to \\(.+\\)$" nil t)))
+             (setq patch-type 'bzr-merge-or-pull
+                   bzr-merge-or-pull-url (match-string-no-properties 1)))
+            ((progn (goto-char (point-min))
+                    (and (re-search-forward "^---$" nil t)
+                         (re-search-forward "^diff --git" nil t)))
+             (setq patch-type 'xgit))
+            (t (setq patch-type 'dvc))))
     (cond ((eq patch-type 'tla)
            (tla-gnus-article-apply-patch n))
           ((eq patch-type 'xhg)
            (xhg-gnus-article-import-patch n))
+          ((eq patch-type 'xgit)
+           (xgit-gnus-article-apply-patch n))
           ((eq patch-type 'bzr-merge-or-pull)
            (bzr-merge-or-pull-from-url bzr-merge-or-pull-url))
           (t
