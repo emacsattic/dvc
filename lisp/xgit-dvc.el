@@ -96,5 +96,7 @@ ARG is passed as prefix argument"
 ARG is passed as prefix argument"
   (call-interactively 'xgit-log))
 
+(defalias 'xgit-dvc-prepare-environment 'xgit-prepare-environment)
+
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here

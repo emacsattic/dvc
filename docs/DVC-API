@@ -96,6 +96,7 @@ Example
 (bzr (revision (local "/path/to/archive" 3)))
 (baz (last-revision "/path/to/project" 1))
 (baz (revision ("archive" "category" "branch" "version" "revision")))
+(xgit (revision "c576304d512df18fa30b91bb3ac15478d5d4dfb1"))
 
 Functions
 =========
