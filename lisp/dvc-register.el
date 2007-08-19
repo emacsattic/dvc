@@ -76,8 +76,10 @@ POSTFIX is a string."
         (if (fboundp second-try) second-try
           (let ((fall-back (dvc-intern-symbol-name 'dvc postfix)))
             (if (not fall-back) second-try
-              ;;(dvc-trace "dvc-function: fall back to DVC for %s %s" dvc postfix)
-              (dvc-intern-symbol-name 'dvc postfix))))))))
+              (let ((result (dvc-intern-symbol-name 'dvc postfix)))
+                (if (fboundp result) result
+                  (error "No definition and no fallback for %s-\"%s\""
+                         (symbol-name dvc) postfix))))))))))
 
 (defun dvc-variable (dvc postfix &optional nodefault)
   "Get the value of a variable in a DVC backend.
