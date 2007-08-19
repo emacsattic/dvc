@@ -122,14 +122,17 @@ Overrides the search for a control directory in `dvc-current-active-dvc'.")
 Overrides the search for a control directory in
 `dvc-current-active-dvc'. This is meant to be set in a let statement.")
 
-(defun dvc-current-active-dvc ()
+(defun dvc-current-active-dvc (&optional nocache)
   "Get the currently active dvc for the current `default-directory'.
 
 Currently supported dvc's can be found in `dvc-registered-backends'.
 `dvc-select-priority' specifies the priority, if more than one
 backend is in use for the `default-directory'.
-The values are cached in `dvc-current-active-dvc-cache'."
-  (interactive)
+The values are cached in `dvc-current-active-dvc-cache'.
+
+If NOCACHE is provided, ignore the cache for this call, but still
+cache the result (usefull to correct an incorrect cache entry)."
+  (interactive "p")
   (or dvc-buffer-current-active-dvc
       dvc-temp-current-active-dvc
       (let ((dvc (gethash (dvc-uniquify-file-name default-directory) dvc-current-active-dvc-cache)))
