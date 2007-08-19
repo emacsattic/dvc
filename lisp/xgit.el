@@ -499,7 +499,10 @@ LAST-REVISION looks like
         (default-directory (car last-revision)))
     ;; TODO: support the last-revision parameter??
     (insert (dvc-run-dvc-sync
-             'xgit (list "admin-cat" file)
+             'xgit (list "show"
+                         (concat "HEAD:"
+                                 (dired-make-relative
+                                  file (xgit-tree-root file))))
              :finished 'dvc-output-buffer-handler))))
 
 (provide 'xgit)
