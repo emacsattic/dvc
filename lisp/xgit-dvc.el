@@ -101,5 +101,7 @@ ARG is passed as prefix argument"
 
 (defalias 'xgit-dvc-prepare-environment 'xgit-prepare-environment)
 
+(defalias 'xgit-dvc-revision-get-last-revision 'xgit-revision-get-last-revision)
+
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here
