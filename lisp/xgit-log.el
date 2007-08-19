@@ -151,6 +151,10 @@
     (dvc-run-dvc-sync 'xgit `("show" ,rev)
      :finished 'dvc-output-buffer-handler)))
 
+(defun xgit-revlog-mode ()
+  (interactive)
+  (dvc-diff-mode))
+
 (defun xgit-name-construct (revision)
   revision)
 
