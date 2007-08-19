@@ -85,11 +85,14 @@
                  (message "git commit finished")))
     (dvc-tips-popup-maybe)))
 
-;;TODO: Use the dvc log system
 (defun xgit-dvc-log (arg)
   "Shows the changelog in the current git tree.
 ARG is passed as prefix argument"
   (call-interactively 'xgit-log))
+
+(defalias 'xgit-dvc-revlog-get-revision 'xgit-revlog-get-revision)
+
+(defalias 'xgit-dvc-name-construct 'xgit-name-construct)
 
 (defun xgit-dvc-changelog (arg)
   "Shows the changelog in the current git tree.

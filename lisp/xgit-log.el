@@ -115,8 +115,8 @@
              ,(make-dvc-revlist-entry-patch
                :dvc 'xgit
                :struct elem
-               :rev-id `(xgit (revision (xgit-revision-st-hash
-                                         elem))))))
+               :rev-id `(xgit (revision ,(xgit-revision-st-hash
+                                          elem))))))
           (goto-char (point-min))
           (dvc-revision-prev))))))
 
@@ -145,6 +145,14 @@
       (newline)
     ))
   )
+
+(defun xgit-revlog-get-revision (rev-id)
+  (let ((rev (car (dvc-revision-get-data rev-id))))
+    (dvc-run-dvc-sync 'xgit `("show" ,rev)
+     :finished 'dvc-output-buffer-handler)))
+
+(defun xgit-name-construct (revision)
+  revision)
 
 ;; copied and adapted from bzr-log
 ;;;###autoload
