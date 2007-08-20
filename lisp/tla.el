@@ -1841,10 +1841,10 @@ The changeset is stored in DIRECTORY."
   (tla--run-tla-sync (list (if (tla-has-diff-command)
                                "diff" "changes") "-o" directory)
                      :finished (lambda (output error status arguments)
-                                 (message "tla-changes-save: 0"))
+                                 (dvc-trace "tla-changes-save: 0"))
                      :error (dvc-capturing-lambda (output error status arguments)
                                (case status
-                                 (1 (message (format "tla-changes-save to %s finished" (capture directory))))
+                                 (1 (message "tla-changes-save to %s finished" (capture directory)))
                                  (otherwise (dvc-default-error-function
                                              output error status arguments))))))
 

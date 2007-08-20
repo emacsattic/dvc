@@ -69,7 +69,7 @@
 
 (defun xgit-add-files (&rest files)
   "Run git add."
-  (message "xgit-add-files: %s" files)
+  (dvc-trace "xgit-add-files: %s" files)
   (let ((default-directory (xgit-tree-root)))
     (dvc-run-dvc-sync 'xgit (append '("add") (mapcar #'file-relative-name files))
                       :finished (dvc-capturing-lambda
@@ -78,7 +78,7 @@
 
 (defun xgit-remove-files (&rest files)
   "Run git rm."
-  (message "xgit-remove-files: %s" files)
+  (dvc-trace "xgit-remove-files: %s" files)
   (dvc-run-dvc-sync 'xgit (append '("rm") (mapcar #'file-relative-name files))
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
@@ -283,7 +283,7 @@ new file.")
 xgit-restore
  -r REVISION: Not supported yet
  -f: FORCE"
-  (message "xgit-restore: %s" files)
+  (dvc-trace "xgit-restore: %s" files)
   (let ((args (cons "restore"
                     (if force '("-f") '()))))
     (dvc-run-dvc-sync 'xgit (append args files)
@@ -436,11 +436,9 @@ LAST-REVISION looks like
   (let ((xgit-rev (int-to-string (1- (nth 1 last-revision))))
         (default-directory (car last-revision)))
     (insert (dvc-run-dvc-sync
-             'xgit (list "show"
-                         (concat "HEAD:"
-                                 (dired-make-relative
-                                  file (xgit-tree-root file))))
-             :finished 'dvc-output-buffer-handler))))
+             'xgit (list "cat-file" "blob"
+                         (format "HEAD~%s:%s" xgit-rev file))
+             :finished 'dvc-output-buffer-handler-withnewline))))
 
 (provide 'xgit)
 ;;; xgit.el ends here
