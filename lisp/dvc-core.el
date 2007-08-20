@@ -971,13 +971,12 @@ Strips the final newline if there is one."
 
 (defun dvc-log-edit-file-name ()
   "Return a suitable file name to edit the commit message"
-  (let ((func (dvc-function (dvc-current-active-dvc)
-                             "dvc-log-edit-file-name-func")))
-    (if (fboundp func)
-        (funcall func)
-      (concat (file-name-as-directory (dvc-tree-root))
-              (dvc-variable (dvc-current-active-dvc)
-                             "log-edit-file-name")))))
+  (dvc-apply "dvc-log-edit-file-name-func"))
+
+(defun dvc-dvc-log-edit-file-name-func ()
+  (concat (file-name-as-directory (dvc-tree-root))
+          (dvc-variable (dvc-current-active-dvc)
+                        "log-edit-file-name")))
 
 ;;
 ;; Revision manipulation
