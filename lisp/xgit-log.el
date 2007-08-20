@@ -123,19 +123,23 @@
 (defun xgit-revision-list-entry-patch-printer (elem)
   (insert (if (dvc-revlist-entry-patch-marked elem)
               (concat " " dvc-mark " ") "   "))
-  (let ((struct (dvc-revlist-entry-patch-struct elem)))
-    (insert (dvc-face-add "commit" 'dvc-header)
-            " " (xgit-revision-st-hash struct) "\n")
+  (let* ((struct (dvc-revlist-entry-patch-struct elem))
+         (hash       (xgit-revision-st-hash struct))
+         (commit (or (xgit-revision-st-commit struct) "?"))
+         (author (or (xgit-revision-st-author struct) "?"))
+         (commit-date (or (xgit-revision-st-commit-date struct) "?"))
+         (author-date (or (xgit-revision-st-author-date struct) "?")))
+    (insert (dvc-face-add "commit" 'dvc-header) " " hash "\n")
     (when dvc-revisions-shows-creator
-      (insert "   " (dvc-face-add "Commit:" 'dvc-header) " "
-              (or (xgit-revision-st-commit struct) "?") "\n")
-      (insert "   " (dvc-face-add "Author:" 'dvc-header) " "
-              (or (xgit-revision-st-author struct) "?") "\n"))
+      (insert "   " (dvc-face-add "Commit:" 'dvc-header) " " commit "\n")
+      (unless (string= commit author)
+        (insert "   " (dvc-face-add "Author:" 'dvc-header) " " author "\n")))
     (when dvc-revisions-shows-date
       (insert "   " (dvc-face-add "CommitDate:" 'dvc-header) " "
-              (or (xgit-revision-st-commit-date struct) "?") "\n")
-      (insert "   " (dvc-face-add "AuthorDate:" 'dvc-header) " "
-              (or (xgit-revision-st-author-date struct) "?") "\n"))
+              commit-date "\n")
+      (unless (string= commit-date author-date)
+        (insert "   " (dvc-face-add "AuthorDate:" 'dvc-header) " "
+                author-date "\n")))
     (when dvc-revisions-shows-summary
       (newline)
       (insert (replace-regexp-in-string
