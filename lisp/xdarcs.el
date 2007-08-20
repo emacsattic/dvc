@@ -47,7 +47,7 @@
 
 (defun xdarcs-add-files (&rest files)
   "Run darcs add."
-  (message "xdarcs-add-files: %s" files)
+  (dvc-trace "xdarcs-add-files: %s" files)
   (dvc-run-dvc-sync 'xdarcs (append '("add") files)
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
@@ -220,7 +220,7 @@ LAST-REVISION looks like
 
 (defun xdarcs-revert-files (&rest files)
   "Run darcs revert."
-  (message "xdarcs-revert-files: %s" files)
+  (dvc-trace "xdarcs-revert-files: %s" files)
   (let ((default-directory (xdarcs-tree-root)))
     (dvc-run-dvc-sync 'xdarcs (append '("revert" "-a") (mapcar #'file-relative-name files))
 		      :finished (dvc-capturing-lambda
@@ -229,7 +229,7 @@ LAST-REVISION looks like
 
 (defun xdarcs-remove-files (&rest files)
   "Run darcs remove."
-  (message "xdarcs-remove-files: %s" files)
+  (dvc-trace "xdarcs-remove-files: %s" files)
   (dvc-run-dvc-sync 'xdarcs (append '("remove" "-a") files)
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)

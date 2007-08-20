@@ -69,7 +69,7 @@
 
 (defun xgit-add-files (&rest files)
   "Run git add."
-  (message "xgit-add-files: %s" files)
+  (dvc-trace "xgit-add-files: %s" files)
   (let ((default-directory (xgit-tree-root)))
     (dvc-run-dvc-sync 'xgit (append '("add") (mapcar #'file-relative-name files))
                       :finished (dvc-capturing-lambda
@@ -78,7 +78,7 @@
 
 (defun xgit-remove-files (&rest files)
   "Run git rm."
-  (message "xgit-remove-files: %s" files)
+  (dvc-trace "xgit-remove-files: %s" files)
   (dvc-run-dvc-sync 'xgit (append '("rm") (mapcar #'file-relative-name files))
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
@@ -362,7 +362,7 @@ FILE is filename in repostory to filter logs by matching filename.
 xgit-restore
  -r REVISION: Not supported yet
  -f: FORCE"
-  (message "xgit-restore: %s" files)
+  (dvc-trace "xgit-restore: %s" files)
   (let ((args (cons "restore"
                     (if force '("-f") '()))))
     (dvc-run-dvc-sync 'xgit (append args files)

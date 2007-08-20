@@ -50,7 +50,7 @@
 
 (defun xhg-add-files (&rest files)
   "Run hg add."
-  (message "xhg-add-files: %s" files)
+  (dvc-trace "xhg-add-files: %s" files)
   (let ((default-directory (xhg-tree-root)))
     (dvc-run-dvc-sync 'xhg (append '("add") (mapcar #'file-relative-name files))
                       :finished (dvc-capturing-lambda
@@ -59,7 +59,7 @@
 
 (defun xhg-revert-files (&rest files)
   "Run hg revert."
-  (message "xhg-revert-files: %s" files)
+  (dvc-trace "xhg-revert-files: %s" files)
   (let ((default-directory (xhg-tree-root)))
     (dvc-run-dvc-sync 'xhg (append '("revert") (mapcar #'file-relative-name files))
                       :finished (dvc-capturing-lambda
@@ -68,7 +68,7 @@
 
 (defun xhg-remove-files (&rest files)
   "Run hg remove."
-  (message "xhg-remove-files: %s" files)
+  (dvc-trace "xhg-remove-files: %s" files)
   (let ((default-directory (xhg-tree-root)))
     (dvc-run-dvc-sync 'xhg (append '("remove") (mapcar #'file-relative-name files))
                       :finished (dvc-capturing-lambda
@@ -262,7 +262,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
 
 (defun xhg-status-extra-mode-setup ()
   "Do some additonal setup for xhg status buffers."
-  (message "xhg-status-extra-mode-setup called.")
+  (dvc-trace "xhg-status-extra-mode-setup called.")
   (easy-menu-add xhg-mode-menu)
   (when (boundp 'xhg-mq-sub-mode-map)
     (local-set-key [?Q] xhg-mq-sub-mode-map))
@@ -585,7 +585,7 @@ LAST-REVISION looks like
 (defun xhg-save-diff (filename)
   "Save the current hg diff to a file named FILENAME."
   (interactive (list (read-file-name "Save the hg diff to: ")))
-  (message "xhg-save-diff %s" filename)
+  (dvc-trace "xhg-save-diff %s" filename)
   (with-current-buffer
       (find-file-noselect filename)
     (let ((inhibit-read-only t))
