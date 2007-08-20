@@ -134,7 +134,7 @@ positive : Don't show patches, ask for revisions."
     (when r1
       (setq r1 (read-string "hg log, R1:"))
       (setq r2 (read-string "hg log, R2:"))))
-  (let ((buffer (dvc-get-buffer-create 'xhg 'logs))
+  (let ((buffer (dvc-get-buffer-create 'xhg 'log))
         (command-list '("log"))
         (cur-dir default-directory))
     (when r1
@@ -308,7 +308,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; show-patch
                      nil ;; no-merges
                      ))
-  (let ((buffer (dvc-get-buffer-create 'xhg 'logs)))
+  (let ((buffer (dvc-get-buffer-create 'xhg 'log)))
     (dvc-switch-to-buffer-maybe buffer t)
     (let ((inhibit-read-only t))
       (erase-buffer))

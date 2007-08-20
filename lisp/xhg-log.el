@@ -97,7 +97,9 @@ Commands:
   (interactive "p")
   (end-of-line)
   (re-search-forward xhg-log-start-regexp nil t n)
-  (beginning-of-line))
+  (beginning-of-line)
+  (when xhg-log-review-recenter-position-on-next-diff
+    (recenter xhg-log-review-recenter-position-on-next-diff)))
 ;; TODO: add (diff-hunk-next)
 
 (defun xhg-log-previous (n)
@@ -105,7 +107,9 @@ Commands:
   (interactive "p")
   (end-of-line)
   (re-search-backward xhg-log-start-regexp)
-  (re-search-backward xhg-log-start-regexp nil t n))
+  (re-search-backward xhg-log-start-regexp nil t n)
+  (when xhg-log-review-recenter-position-on-next-diff
+    (recenter xhg-log-review-recenter-position-on-next-diff)))
 ;; TODO: add (diff-hunk-prev)
 
 (defun xhg-log-revision-at-point ()
