@@ -1,6 +1,6 @@
 ;;; dvc-lisp.el --- DVC lisp helper functions
 
-;; Copyright (C) 2003-2005 by all contributors
+;; Copyright (C) 2003-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -10,6 +10,7 @@
 ;;    Martin Pool <mbp@sourcefrog.net>
 ;;    Robert Widhopf-Fenk <hack@robf.de>
 ;;    Mark Triggs <mst@dishevelled.net>
+;;    Michael Olson <mwolson@gnu.org>
 
 ;; DVC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
