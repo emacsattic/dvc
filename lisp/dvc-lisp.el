@@ -73,18 +73,20 @@ environment.
                   (list x (capture y) arg))))
         (let ((y 'dynamic-y)
               (x 'dynamic-x))
-          (funcall l 'arg)))
+          (funcall l 'dummy-arg)))
 
-    => (dynamic-x lexical-y 'arg)
-    "
-    (let ((captured-values '()))
-      (let ((body (dvc-capturing-lambda-helper body)))
-        (` (` (lambda (, (quote (, args)))
-                (let ( (, (,@ (mapcar (lambda (var)
-                                        (` (list '(, (car var))
-                                                 (list 'quote (, (cadr var))))))
-                                      captured-values))))
-                  (funcall (, (lambda () . (, body)))))))))))
+    => (dynamic-x lexical-y dummy-arg)"
+    (let* ((captured-values nil)
+           (body (dvc-capturing-lambda-helper body)))
+      `(list 'lambda ',args
+             (list 'let (list
+                         ,@(mapcar (lambda (var)
+                                     `(list ',(car var)
+                                            (list 'quote ,(cadr var))))
+                                   captured-values))
+                   (list 'funcall (lambda () . ,body))))))
+  (put 'dvc-capturing-lambda 'lisp-indent-function 1)
+  (put 'dvc-capturing-lambda 'edebug-form-spec '(sexp body))
 
   )
 
