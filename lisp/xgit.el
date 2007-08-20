@@ -342,8 +342,8 @@ FILE is filename in repostory to filter logs by matching filename.
          (orig-buffer (current-buffer))
          (root (xgit-tree-root cur-dir))
          (buffer (dvc-prepare-changes-buffer
-                  `(git (last-revision ,root 1))
-                  `(git (local-tree ,root))
+                  `(xgit (last-revision ,root 1))
+                  `(xgit (local-tree ,root))
                   'diff root 'xgit))
          (command-list '("diff" "HEAD")))
     (dvc-switch-to-buffer-maybe buffer)
