@@ -158,16 +158,73 @@
 (defun xgit-name-construct (revision)
   revision)
 
+
+(defcustom xgit-log-max-count 400
+  "Number of logs to print.  Specify negative value for all logs.
+Limiting this to low number will shorten time for log retrieval
+for large projects like Linux kernel on slow machines (Linux
+kernel has >50000 logs).
+
+See also `xgit-log-since'."
+  :type 'integer
+  :group 'dvc-xgit)
+
+(defcustom xgit-log-since nil
+  "Time duration for which the log should be displayed.
+
+For example, \"1.month.ago\", \"last.week\", ...
+
+Use nil if you don't want a limit.
+
+See also `xgit-log-max-count'."
+  :type 'integer
+  :group 'dvc-xgit)
+
+(defun xgit-log-grep (regexp)
+  "Limit the log output to ones with log message that matches the specified pattern."
+  (interactive "MGrep pattern for Commit Log: ")
+  (xgit-log default-directory :log-regexp regexp))
+
+(defun xgit-log-file (filename)
+  "Limit the log output to ones that changes the specified file."
+  (interactive "FFile name: ")
+  (xgit-log default-directory :file filename))
+
+(defun xgit-log-diff-grep (string)
+  "Limit the logs that contain the change in given string."
+  (interactive "MGrep pattern for Commit Diff: ")
+  (xgit-log default-directory :diff-match string))
+
+(defun xgit-log-revision (rev)
+  "Show log for a given hash id."
+  (interactive "MID: ")
+  (xgit-log default-directory :cnt 1 :rev rev))
+
+
 ;; copied and adapted from bzr-log
 ;;;###autoload
-(defun xgit-log (path)
-  "Run git log."
+(defun* xgit-log (dir &key cnt log-regexp diff-match rev file since)
+  "Run git log for DIR.
+DIR is a directory controlled by Git/Cogito.
+CNT is max number of log to print.  If not specified, uses git-log-max-count.
+LOG-REGEXP is regexp to filter logs by matching commit logs.
+DIFF-MATCH is string to filter logs by matching commit diffs.
+REV is revision to show.
+FILE is filename in repostory to filter logs by matching filename.
+"
   (interactive (list default-directory))
-  (let ((path (or path (xgit-tree-root))))
+  (let* ((repo (xgit-git-dir dir))
+         (count (format "--max-count=%s" (or cnt xgit-log-max-count)))
+         (since-date (or since xgit-log-since))
+         (since (when since-date (format "--since=%s" since-date)))
+         (grep  (when log-regexp (format "--grep=%s" log-regexp)))
+         (diff  (when diff-match (format "-S%s" diff-match)))
+         (fname (when file (dired-make-relative
+                            (expand-file-name file) (xgit-tree-root dir))))
+         (args  (list repo "log" "--pretty=fuller" count
+                      since grep diff rev "--" fname)))
     ;;(setq bzr-log-show-only-short-message t)
-    (dvc-build-revision-list 'xgit 'log path '("log"
-                                               "--pretty=fuller"
-                                               "--since=2.day.ago")
+    (dvc-build-revision-list 'xgit 'log dir args
                              'xgit-log-parse)
     (goto-char (point-min))))
 
