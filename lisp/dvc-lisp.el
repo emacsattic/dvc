@@ -128,10 +128,9 @@ environment.
         (goto-char (point-min))
         (search-forward "(lexical-let ")
         (insert "(" letlist ")")
-        (newline-and-indent)
-        ))))
+        (newline-and-indent)))))
 
-(defun dvc-capturing-lambda-performe-replacement-in-source ()
+(defun dvc-capturing-lambda-perform-replacement-in-source ()
   (interactive)
   (goto-char (point-min))
   (while (search-forward "`(lambda" nil t)
@@ -149,5 +148,4 @@ environment.
           (forward-sexp 1)
           (insert ")"))))))
 
-(put 'dvc-capturing-lambda 'lisp-indent-function 1)
 (provide 'dvc-lisp)
