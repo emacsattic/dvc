@@ -52,7 +52,7 @@ Must be buffer-local.")
   diff format. Buffer-local in diff buffers.")
 
 (defun dvc-dvc-search-file-in-diff (file)
-  (re-search-forward (concat "^\\+\\+\\+ \\(a\\|mod\\)/" file "$")))
+  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "$")))
 
 (defun dvc-prepare-changes-buffer (base modified type path dvc)
   "Create and return a buffer to run command showing diffs.
@@ -278,8 +278,7 @@ Commands:
        (list 'tla-changes-font-lock-keywords t nil nil))
   (set (make-local-variable 'dvc-get-file-info-at-point-function)
        'dvc-diff-get-file-at-point)
-  (set (make-local-variable 'dvc-buffer-refresh-function)
-       'dvc-diff-generic-refresh)
+  (setq dvc-buffer-refresh-function 'dvc-diff-generic-refresh)
   (set (make-local-variable 'dvc-diff-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
 		     #'dvc-diff-printer)))
@@ -538,7 +537,7 @@ file is visited."
 
 (defun dvc-diff-find-file-name ()
   "Same as `diff-find-file-name', but works in more cases."
-  (cond ((re-search-backward "^\\+\\+\\+ \\(mod/\\)?\\([^\n]*?\\)\\([ \t].*\\)?$" nil t)
+  (cond ((re-search-backward "^\\+\\+\\+ \\(mod/\\|b/\\)?\\([^\n]*?\\)\\([ \t].*\\)?$" nil t)
          (match-string-no-properties 2))
         ((not (ewoc-locate dvc-diff-cookie (point))) ;; the buffer contains no diff
          "")

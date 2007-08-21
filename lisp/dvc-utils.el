@@ -401,7 +401,8 @@ If HELP is nil and if MENU is non nil, the MENU title is used as HELP."
 ;; ----------------------------------------------------------------------------
 ;; Debugging facilities
 ;; ----------------------------------------------------------------------------
-(defvar dvc-debug t)
+(defvar dvc-debug nil
+  "Indicate whether debugging messages should be printed by `dvc-trace'.")
 
 ;;;###autoload
 (defun dvc-trace (&rest msg)
@@ -534,13 +535,16 @@ Arch."
 (defvar dvc-buffer-refresh-function nil
   "Variable should be local to each buffer.
 Function used to refresh the current buffer")
+(make-variable-buffer-local 'dvc-buffer-refresh-function)
 
 (defun dvc-generic-refresh ()
   "Call the function specified by `dvc-buffer-refresh-function'."
   (interactive)
   (let ((dvc-read-directory-mode 'never)
         (dvc-read-project-tree-mode 'never))
-    (funcall dvc-buffer-refresh-function)))
+    (if dvc-buffer-refresh-function
+        (funcall dvc-buffer-refresh-function)
+      (message "I don't know how to refresh this buffer"))))
 
 (defmacro dvc-make-move-fn (ewoc-direction function cookie
                                            &optional only-unmerged)

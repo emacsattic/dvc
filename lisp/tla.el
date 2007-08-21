@@ -1841,10 +1841,10 @@ The changeset is stored in DIRECTORY."
   (tla--run-tla-sync (list (if (tla-has-diff-command)
                                "diff" "changes") "-o" directory)
                      :finished (lambda (output error status arguments)
-                                 (message "tla-changes-save: 0"))
+                                 (dvc-trace "tla-changes-save: 0"))
                      :error (dvc-capturing-lambda (output error status arguments)
                                (case status
-                                 (1 (message (format "tla-changes-save to %s finished" (capture directory))))
+                                 (1 (message "tla-changes-save to %s finished" (capture directory)))
                                  (otherwise (dvc-default-error-function
                                              output error status arguments))))))
 
@@ -2935,8 +2935,7 @@ as the place where changelog is got."
                                      nil ;; TODO (merges)
                                      output nil
                                      dvc-revlist-cookie)
-          (set (make-local-variable 'dvc-buffer-refresh-function)
-               'tla-logs))
+          (setq dvc-buffer-refresh-function 'tla-logs))
         (goto-char (point-min))
         (dvc-revision-prev)
         (recenter -4)))))
@@ -3756,8 +3755,7 @@ if already set in the bookmarks."
             list)))
       (set-buffer (dvc-get-buffer-create tla-arch-branch 'missing))
       (tla-revision-list-mode)
-      (set (make-local-variable 'dvc-buffer-refresh-function)
-           'tla-missing-refresh)
+      (setq dvc-buffer-refresh-function 'tla-missing-refresh)
       (set (make-local-variable 'tla-missing-buffer-todolist)
            (reverse
             (apply 'append
@@ -5622,8 +5620,7 @@ UNUSED is left here to keep the position of FROM-REVLIB"
     (with-current-buffer output-buf
       (tla-revision-list-mode)
       (toggle-read-only -1)
-      (set (make-local-variable 'dvc-buffer-refresh-function)
-           'tla-revision-refresh)
+      (setq dvc-buffer-refresh-function 'tla-revision-refresh)
       (set (make-local-variable 'tla-buffer-archive-name) archive)
       (set (make-local-variable 'tla-buffer-category-name) category)
       (set (make-local-variable 'tla-buffer-branch-name) branch)
@@ -5749,8 +5746,7 @@ tree and the location."
     (pop-to-buffer (dvc-get-buffer-create tla-arch-branch 'missing))
     (cd dir))
   (tla-revision-list-mode)
-  (set (make-local-variable 'dvc-buffer-refresh-function)
-       'tla-missing-refresh)
+  (setq dvc-buffer-refresh-function 'tla-missing-refresh)
   (set (make-local-variable 'tla-missing-buffer-todolist)
        `((missing ,local-tree ,(tla--name-construct location) nil)))
   (tla-missing-refresh))
@@ -6134,8 +6130,7 @@ Commands:
   ;;  tla-inventory-display-*, and refresh wouldn't work well anymore.
   ;;  (kill-all-local-variables)
   (use-local-map tla-inventory-mode-map)
-  (set (make-local-variable 'dvc-buffer-refresh-function)
-       'tla-inventory)
+  (setq dvc-buffer-refresh-function 'tla-inventory)
   (make-local-variable 'dvc-buffer-marked-file-list)
   (easy-menu-add tla-inventory-mode-menu)
   (dvc-install-buffer-menu)
@@ -9150,9 +9145,9 @@ Commands:
   (dvc-install-buffer-menu)
   (let ((inhibit-read-only t))
     (erase-buffer))
-  (set (make-local-variable 'dvc-buffer-refresh-function)
-       (lexical-let ((lex-default-directory default-directory))
-         (lambda () (interactive) (tla-tree-lint default-directory))))
+  (setq dvc-buffer-refresh-function
+        (lexical-let ((lex-default-directory default-directory))
+          (lambda () (interactive) (tla-tree-lint default-directory))))
   (set (make-local-variable 'tla--tree-lint-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
 		     #'tla--tree-lint-printer)))
