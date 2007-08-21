@@ -178,5 +178,11 @@ When `last-command' was `dvc-pull', run `xhg-missing'."
          (source-path (if (string= initial-input "default") initial-input (completing-read "Pull from hg repository: " completions nil nil initial-input))))
     (xhg-pull source-path xhg-dvc-pull-runs-update)))
 
+(defalias 'xhg-dvc-revlog-get-revision 'xhg-revlog-get-revision)
+
+(defalias 'xhg-dvc-name-construct 'xhg-name-construct)
+
+(defalias 'xhg-dvc-delta 'xhg-delta)
+
 (provide 'xhg-dvc)
 ;;; xhg-dvc.el ends here

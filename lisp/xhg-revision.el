@@ -60,9 +60,9 @@
 
 ;;; xhg dvc log
 
-(defun xhg-dvc-log-parse (log-buffer)
+(defun xhg-dvc-log-parse (log-buffer location)
   (goto-char (point-min))
-  (let ((root (xhg-tree-root))
+  (let ((root location)
         (elem (make-xhg-revision-st))
         (field)
         (field-value))
@@ -105,6 +105,18 @@
   (interactive (list default-directory))
   (dvc-build-revision-list 'xhg 'log path '("log") 'xhg-dvc-log-parse))
 
+(defun xhg-revlog-get-revision (rev-id)
+  (let ((rev (car (dvc-revision-get-data rev-id))))
+    (case (car rev)
+      (local
+       (dvc-run-dvc-sync 'xhg `("log" "-r" ,(nth 2 rev))
+                         :finished 'dvc-output-buffer-handler))
+      (t (error "Not implemented (rev=%s)" rev)))))
+
+(defun xhg-name-construct (rev-id)
+  (case (car rev-id)
+    (local (nth 1 rev-id))
+      (t (error "Not implemented (rev-id=%s)" rev-id))))
 
 (provide 'xhg-revision)
 ;;; xhg-revision.el ends here

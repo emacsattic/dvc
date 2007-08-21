@@ -237,6 +237,12 @@ If DONT-SWITCH, don't switch to the diff buffer"
                          (dvc-show-changes-buffer output 'xhg-parse-diff
                                                   (capture buffer))))))
 
+(defun xhg-delta (base-rev against &optional path dont-switch)
+  ;; TODO: dvc-revision-to-string doesn't work for me.
+  (interactive (list nil nil nil current-prefix-arg))
+  (xhg-diff (dvc-revision-to-string against) path dont-switch
+            (dvc-revision-to-string base-rev)))
+
 ;;;###autoload
 (defun xhg-status ()
   "Run hg status."
