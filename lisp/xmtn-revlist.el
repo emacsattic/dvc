@@ -342,7 +342,8 @@
        difference))))
 
 ;;;###autoload
-(defun xmtn-dvc-missing ()
+(defun xmtn-dvc-missing (&optional other)
+  ;; FIXME: use `other'
   (let ((root (dvc-tree-root)))
     (xmtn--setup-revlist
      root
