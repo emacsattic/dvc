@@ -123,15 +123,17 @@ Only when called with a prefix argument, add the files."
 When run interactively, the prefix argument decides, which parameters are queried from the user.
 C-u      : Show patches also, use all revisions
 C-u C-u  : Show patches also, ask for revisions
-positive : Don't show patches, ask for revisions."
+positive : Don't show patches, ask for revisions.
+negative : Don't show patches, limit to n revisions."
   (interactive "P")
   (when (interactive-p)
     (cond ((equal current-prefix-arg '(4))
            (setq show-patch t)
            (setq r1 nil))
           ((equal current-prefix-arg '(16))
-           (setq show-patch t)))
-    (when r1
+           (setq show-patch t)
+	   (setq r1 1)))
+    (when (> r1 0)
       (setq r1 (read-string "hg log, R1:"))
       (setq r2 (read-string "hg log, R2:"))))
   (let ((buffer (dvc-get-buffer-create 'xhg 'log))
@@ -139,14 +141,20 @@ positive : Don't show patches, ask for revisions."
         (cur-dir default-directory))
     (when r1
       (when (numberp r1)
-        (setq r1 (number-to-string r1)))
-      (when (> (length r1) 0)
-        (setq command-list (append command-list (list "-r" r1)))))
+        (setq r1 (number-to-string r1))))
     (when r2
       (when (numberp r2)
-        (setq r2 (number-to-string r2)))
-      (when (> (length r2) 0)
-        (setq command-list (append command-list (list "-r" r2)))))
+        (setq r2 (number-to-string r2))))
+    (if (and (> (length r2) 0) (> (length r1) 0))
+	(setq command-list (append command-list (list "-r" (concat r2 ":" r1))))
+      (when (> (length r1) 0)
+ 	(let ((r1-num (string-to-number r1)))
+ 	  (if (> r1-num 0)
+ 	      (setq command-list (append command-list (list "-r" r1)))
+ 	    (setq command-list
+ 		  (append command-list
+ 			  (list "-l"
+ 				(number-to-string (abs r1-num)))))))))
     (when show-patch
       (setq command-list (append command-list (list "-p"))))
     (dvc-switch-to-buffer-maybe buffer)
