@@ -517,7 +517,7 @@ of the commit. Additionally the destination email address can be specified."
 
 (defun bzr-add-files (&rest files)
   "Run bzr add."
-  (message "bzr-add-files: %s" files)
+  (dvc-trace "bzr-add-files: %s" files)
   (let ((default-directory (bzr-tree-root)))
     (dvc-run-dvc-sync 'bzr (append '("add" "--no-recurse") (mapcar #'file-relative-name
                                                     files))
@@ -527,7 +527,7 @@ of the commit. Additionally the destination email address can be specified."
 
 (defun bzr-revert-files (&rest files)
   "Run bzr revert."
-  (message "bzr-revert-files: %s" files)
+  (dvc-trace "bzr-revert-files: %s" files)
   (let ((default-directory (bzr-tree-root)))
     (dvc-run-dvc-sync 'bzr (append '("revert") (mapcar #'file-relative-name files))
                     :finished (dvc-capturing-lambda
@@ -536,7 +536,7 @@ of the commit. Additionally the destination email address can be specified."
 
 (defun bzr-remove-files (&rest files)
   "Run bzr remove."
-  (message "bzr-remove-files: %s" files)
+  (dvc-trace "bzr-remove-files: %s" files)
   (dvc-run-dvc-sync 'bzr (append '("remove") files)
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)

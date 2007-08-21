@@ -372,7 +372,7 @@ If FORCE is non-nil, reload the file even if it was loaded before."
     (if (not (member partner-url (dvc-bookmarks-get-partners)))
         (progn
           (setcdr cur-data (append (cdr cur-data) (list (list 'partner partner-url))))
-          (message "dvc-bookmarks-add-partner %s" cur-data))
+          (dvc-trace "dvc-bookmarks-add-partner %s" cur-data))
       (message "%s is already a partner for %s" partner-url (car cur-data)))))
 
 (defun dvc-bookmarks-remove-partner ()

@@ -79,5 +79,12 @@ It will be nil before the initial commit."
            (file-name-as-directory (or location default-directory)))
           ".git"))
 
+(defconst xgit-hash-regexp "[0-9a-f]\\{40\\}")
+
+;;;###autoload
+(defun xgit-prepare-environment (env)
+  "Prepare the environment to run git."
+  (cons "GIT_PAGER=cat" env))
+
 (provide 'xgit-core)
 ;;; xgit-core.el ends here

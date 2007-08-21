@@ -69,7 +69,7 @@
 
 (defun xgit-add-files (&rest files)
   "Run git add."
-  (message "xgit-add-files: %s" files)
+  (dvc-trace "xgit-add-files: %s" files)
   (let ((default-directory (xgit-tree-root)))
     (dvc-run-dvc-sync 'xgit (append '("add") (mapcar #'file-relative-name files))
                       :finished (dvc-capturing-lambda
@@ -78,7 +78,7 @@
 
 (defun xgit-remove-files (&rest files)
   "Run git rm."
-  (message "xgit-remove-files: %s" files)
+  (dvc-trace "xgit-remove-files: %s" files)
   (dvc-run-dvc-sync 'xgit (append '("rm") (mapcar #'file-relative-name files))
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
@@ -232,85 +232,6 @@ new file.")
   (interactive (list nil default-directory))
   (xgit-status against path t))
 
-(defcustom git-log-max-count -1
-  "Number of logs to print.  Specify negative value for all logs.
-Limiting this to low number will shorten time for log retrieval
-for large projects like Linux kernel on slow machines (Linux
-kernel has >50000 logs)."
-  :type 'integer
-  :group 'dvc-xgit)
-
-(defcustom git-log-pretty ""
-  "Specify '--pretty=' option to pass to git-log.
-You can choose from 'oneline', 'short', 'medium', 'full',
-'fuller', 'email' or 'raw' or other options supported in your
-version of git.
-If string is empty, will not pass '--pretty=' option."
-  :type 'string
-  :group 'dvc-xgit)
-
-(defun* git-log (dir &key cnt log-regexp diff-match rev file)
-  "Run git log for DIR.
-DIR is a directory controlled by Git/Cogito.
-CNT is max number of log to print.  If not specified, uses git-log-max-count.
-LOG-REGEXP is regexp to filter logs by matching commit logs.
-DIFF-MATCH is string to filter logs by matching commit diffs.
-REV is revision to show.
-FILE is filename in repostory to filter logs by matching filename.
-"
-  (interactive)
-  (let* ((buffer (dvc-get-buffer-create 'xgit 'log dir))
-         (repo (xgit-git-dir dir))
-         (cmd "log")
-         (count (format "--max-count=%s" (if cnt cnt git-log-max-count)))
-         (grep (if log-regexp (format "--grep=%s" log-regexp)))
-         (diff (if diff-match (format "-S%s" diff-match)))
-         (pretty (if (not (string= "" git-log-pretty))
-                     (format "--pretty=%s" git-log-pretty)))
-         (fname (if file (file-relative-name file (xgit-tree-root dir))))
-         (args (list repo cmd pretty count grep diff rev "--" fname)))
-    (dvc-switch-to-buffer-maybe buffer)
-    (let ((default-directory dir))
-      (dvc-run-dvc-sync 'xgit args
-                        :finished
-                        (dvc-capturing-lambda (output error status arguments)
-                          (progn
-                            (with-current-buffer (capture buffer)
-                              (let ((inhibit-read-only t))
-                                (erase-buffer)
-                                (insert-buffer-substring output)
-                                (goto-char (point-min))
-                                (insert (format "git %s\n\n"
-                                                (mapconcat #'identity
-                                                           (delq nil args)
-                                                           " ")))
-                                (xgit-log-mode)))))))))
-
-(defun xgit-log ()
-  "Run git log."
-  (interactive)
-  (git-log default-directory))
-
-(defun xgit-log-grep (regexp)
-  "Limit the log output to ones with log message that matches the specified pattern."
-  (interactive "MGrep pattern for Commit Log: ")
-  (git-log default-directory :log-regexp regexp))
-
-(defun xgit-log-file (filename)
-  "Limit the log output to ones that changes the specified file."
-  (interactive "FFile name: ")
-  (git-log default-directory :file filename))
-
-(defun xgit-log-diff-grep (string)
-  "Limit the logs that contain the change in given string."
-  (interactive "MGrep pattern for Commit Diff: ")
-  (git-log default-directory :diff-match string))
-
-(defun xgit-log-revision (rev)
-  "Show log for a given hash id."
-  (interactive "MID: ")
-  (git-log default-directory :cnt 1 :rev rev))
-
 ;; TODO: update for git
 ;; copied from xhg-parse-diff: not yet fully working
 (defun xgit-parse-diff (changes-buffer)
@@ -342,10 +263,10 @@ FILE is filename in repostory to filter logs by matching filename.
          (orig-buffer (current-buffer))
          (root (xgit-tree-root cur-dir))
          (buffer (dvc-prepare-changes-buffer
-                  `(git (last-revision ,root 1))
-                  `(git (local-tree ,root))
+                  `(xgit (last-revision ,root 1))
+                  `(xgit (local-tree ,root))
                   'diff root 'xgit))
-         (command-list '("diff" "HEAD")))
+         (command-list '("diff" "-M" "HEAD")))
     (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
@@ -362,7 +283,7 @@ FILE is filename in repostory to filter logs by matching filename.
 xgit-restore
  -r REVISION: Not supported yet
  -f: FORCE"
-  (message "xgit-restore: %s" files)
+  (dvc-trace "xgit-restore: %s" files)
   (let ((args (cons "restore"
                     (if force '("-f") '()))))
     (dvc-run-dvc-sync 'xgit (append args files)

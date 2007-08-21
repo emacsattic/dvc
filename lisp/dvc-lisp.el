@@ -1,6 +1,6 @@
 ;;; dvc-lisp.el --- DVC lisp helper functions
 
-;; Copyright (C) 2003-2005 by all contributors
+;; Copyright (C) 2003-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -10,6 +10,7 @@
 ;;    Martin Pool <mbp@sourcefrog.net>
 ;;    Robert Widhopf-Fenk <hack@robf.de>
 ;;    Mark Triggs <mst@dishevelled.net>
+;;    Michael Olson <mwolson@gnu.org>
 
 ;; DVC is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -73,18 +74,20 @@ environment.
                   (list x (capture y) arg))))
         (let ((y 'dynamic-y)
               (x 'dynamic-x))
-          (funcall l 'arg)))
+          (funcall l 'dummy-arg)))
 
-    => (dynamic-x lexical-y 'arg)
-    "
-    (let ((captured-values '()))
-      (let ((body (dvc-capturing-lambda-helper body)))
-        (` (` (lambda (, (quote (, args)))
-                (let ( (, (,@ (mapcar (lambda (var)
-                                        (` (list '(, (car var))
-                                                 (list 'quote (, (cadr var))))))
-                                      captured-values))))
-                  (funcall (, (lambda () . (, body)))))))))))
+    => (dynamic-x lexical-y dummy-arg)"
+    (let* ((captured-values nil)
+           (body (dvc-capturing-lambda-helper body)))
+      `(list 'lambda ',args
+             (list 'let (list
+                         ,@(mapcar (lambda (var)
+                                     `(list ',(car var)
+                                            (list 'quote ,(cadr var))))
+                                   captured-values))
+                   (list 'funcall (lambda () . ,body))))))
+  (put 'dvc-capturing-lambda 'lisp-indent-function 1)
+  (put 'dvc-capturing-lambda 'edebug-form-spec '(sexp body))
 
   )
 
@@ -126,10 +129,9 @@ environment.
         (goto-char (point-min))
         (search-forward "(lexical-let ")
         (insert "(" letlist ")")
-        (newline-and-indent)
-        ))))
+        (newline-and-indent)))))
 
-(defun dvc-capturing-lambda-performe-replacement-in-source ()
+(defun dvc-capturing-lambda-perform-replacement-in-source ()
   (interactive)
   (goto-char (point-min))
   (while (search-forward "`(lambda" nil t)
@@ -147,5 +149,4 @@ environment.
           (forward-sexp 1)
           (insert ")"))))))
 
-(put 'dvc-capturing-lambda 'lisp-indent-function 1)
 (provide 'dvc-lisp)

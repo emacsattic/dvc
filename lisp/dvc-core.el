@@ -106,7 +106,7 @@ MSG must be of the form \"%S is not a ...-managed tree\"."
   (let ((pwd (dvc-find-tree-root-file-first
               file-or-dir location)))
     (when (and interactivep pwd)
-      (message pwd))
+      (dvc-trace "%s" pwd))
     (or pwd
         (if no-error
             nil
@@ -461,9 +461,8 @@ ARGUMENTS is a list of the arguments that the process was called
     (with-current-buffer output
       (setq dvc-name (or (progn (string-match " \\*\\(.+\\)-process" (buffer-name))
                                 (match-string 1 (buffer-name))) "DVC")))
-    (when dvc-debug
-      (message "Process `%s %s' finished"
-               dvc-name (mapconcat 'identity arguments " ")))
+    (dvc-trace "Process `%s %s' finished"
+               dvc-name (mapconcat 'identity arguments " "))
     status))
 
 (defvar dvc-process-running nil
@@ -572,7 +571,6 @@ Example:
            (global-arg (funcall (dvc-function dvc "default-global-argument")))
            (command (dvc-build-dvc-command
                      dvc (append global-arg arguments)))
-           (arguments (remq nil arguments))
            ;; Make the `default-directory' unique. The trailing slash
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory))
@@ -597,8 +595,7 @@ Example:
                                  command
                                  default-directory "started"))))
       (with-current-buffer (or related-buffer (current-buffer))
-        (when dvc-debug
-          (message "Running process `%s' in `%s'" command default-directory))
+        (dvc-trace "Running process `%s' in `%s'" command default-directory)
         (add-to-list 'dvc-process-running process-event)
         (set-process-filter process 'dvc-process-filter)
         (set-process-sentinel
@@ -834,7 +831,7 @@ Else return t."
 (defmacro dvc-switch-to-buffer-macro (function accessor)
   "Define a FUNCTION for switching to the buffer associated with some event.
 ACCESSOR is a function for retrieving the appropriate buffer from a
-`dvc-event'structure."
+`dvc-event' structure."
   `(defun ,function ()
      "In a log buffer, pops to the output or error buffer corresponding to the
 process at point"
@@ -971,13 +968,12 @@ Strips the final newline if there is one."
 
 (defun dvc-log-edit-file-name ()
   "Return a suitable file name to edit the commit message"
-  (let ((func (dvc-function (dvc-current-active-dvc)
-                             "dvc-log-edit-file-name-func")))
-    (if (fboundp func)
-        (funcall func)
-      (concat (file-name-as-directory (dvc-tree-root))
-              (dvc-variable (dvc-current-active-dvc)
-                             "log-edit-file-name")))))
+  (dvc-apply "dvc-log-edit-file-name-func"))
+
+(defun dvc-dvc-log-edit-file-name-func ()
+  (concat (file-name-as-directory (dvc-tree-root))
+          (dvc-variable (dvc-current-active-dvc)
+                        "log-edit-file-name")))
 
 ;;
 ;; Revision manipulation
