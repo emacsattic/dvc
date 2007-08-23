@@ -67,7 +67,7 @@ git managed tree (but return nil)."
 (defun xgit-tree-has-head ()
   "Return t, if the git repository has a valid HEAD entry.
 It will be nil before the initial commit."
-  (file-readable-p (concat (xgit-tree-root) "/.git/HEAD")))
+  (file-readable-p (concat (xgit-tree-root) ".git/HEAD")))
 
 (defun xgit-git-dir (&optional location)
   "Utility function to add --git-dir option to git command."
