@@ -274,6 +274,8 @@ Commands:
         major-mode mode-name)
     (diff-mode))
 
+  (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc))
+
   (set (make-local-variable 'font-lock-defaults)
        (list 'tla-changes-font-lock-keywords t nil nil))
   (set (make-local-variable 'dvc-get-file-info-at-point-function)
