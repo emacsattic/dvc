@@ -62,6 +62,8 @@ functions that provide the initial content for a commit.")
 Commands:
 \\{dvc-log-edit-mode-map}
 "
+  (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc))
+
   (use-local-map dvc-log-edit-mode-map)
   (easy-menu-add dvc-log-edit-mode-menu)
   (dvc-install-buffer-menu)

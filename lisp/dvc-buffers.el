@@ -177,13 +177,11 @@ See also `dvc-get-buffer'"
                      (dvc-buffers-tree-add dvc type path buffer)
                      buffer)))))))
     (with-current-buffer return-buffer
-      (setq dvc-buffer-current-active-dvc dvc)
+      ;; We do not set dvc-buffer-current-active-dvc here, because any
+      ;; subsequent mode function will call kill-all-local-variables.
       (dvc-trace "create buffer %S with back-end %S in %S"
-                 return-buffer dvc-buffer-current-active-dvc
-                 default-directory)
+                 return-buffer dvc default-directory)
       return-buffer)))
-
-
 
 (defun dvc-get-buffer (dvc type &optional path mode)
   "Get a buffer of type TYPE for the path PATH.

@@ -323,6 +323,8 @@ revision list."
 
 Commands are:
 \\{dvc-revlist-mode-map}"
+  (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc))
+
   (dvc-install-buffer-menu)
   (let ((inhibit-read-only t))
     (erase-buffer))
@@ -344,9 +346,7 @@ caller has to provide the function PARSER which will actually
 build the revision list."
   (let ((buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
-      (dvc-revlist-mode)
-      ;; dvc-buffer-current-active-dvc is killed by dvc-revlist-mode, so reset it
-      (setq dvc-buffer-current-active-dvc back-end))
+      (dvc-revlist-mode))
     (dvc-switch-to-buffer-maybe buffer t)
     (dvc-run-dvc-async
      back-end arglist
