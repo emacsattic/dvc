@@ -131,6 +131,20 @@ via bzr init-repository."
                                 (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
 ;;;###autoload
+(defun bzr-push (&optional repo-path)
+  "Run bzr push.
+When called with a prefix argument, add the --remember option"
+  (interactive (list (read-string (format "Push %sto bzr repository: " (if current-prefix-arg "--remember " "")))))
+  (when (string= repo-path "")
+    (setq repo-path nil))
+  (dvc-run-dvc-async 'bzr (list "push" repo-path (when current-prefix-arg "--remember"))
+                     :finished
+                     (dvc-capturing-lambda
+                         (output error status arguments)
+                       (message "bzr push finished => %s"
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
+
+;;;###autoload
 (defun bzr-merge (&optional repo-path)
   "Run bzr merge."
   (interactive "sMerge from bzr repository: ")

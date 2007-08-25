@@ -134,10 +134,12 @@ The values are cached in `dvc-current-active-dvc-cache'.
 
 If NOCACHE is provided, ignore the cache for this call, but still
 cache the result (usefull to correct an incorrect cache entry)."
-  (interactive "p")
+  (interactive "P")
   (or dvc-buffer-current-active-dvc
       dvc-temp-current-active-dvc
-      (let ((dvc (gethash (dvc-uniquify-file-name default-directory) dvc-current-active-dvc-cache)))
+      (let ((dvc (unless nocache
+                   (gethash (dvc-uniquify-file-name default-directory)
+                            dvc-current-active-dvc-cache))))
         (unless dvc
           (let ((dvc-list (append dvc-select-priority dvc-registered-backends))
                 (root "/")
