@@ -601,9 +601,10 @@ LOCAL is ignored on non-bound branches."
                 "--local"))
         ;; Get marked  files to  do  a selected  file commit.  Nil
         ;; otherwise (which means commit all files).
-        (with-current-buffer dvc-partner-buffer
-          (mapcar #'dvc-uniquify-file-name
-                  (dvc-current-file-list 'nil-if-none-marked))))
+        (when (buffer-live-p dvc-partner-buffer)
+          (with-current-buffer dvc-partner-buffer
+            (mapcar #'dvc-uniquify-file-name
+                    (dvc-current-file-list 'nil-if-none-marked)))))
        :finished (dvc-capturing-lambda (output error status arguments)
                    (dvc-show-error-buffer output 'commit)
                    (let ((inhibit-read-only t))
