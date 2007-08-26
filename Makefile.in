@@ -59,7 +59,7 @@ install: dvc-load.el
 	@for i in $(SUBDIRS) ; do               \
           $(MAKE) -C $$i install;               \
         done
-	sed 's|$$(prefix)|$(prefix)|' dvc-load-install.el \
+	sed 's|$$(prefix)|$(prefix)|;s!$${datarootdir}!$(datarootdir)!' dvc-load-install.el \
 	> ${lispdir}/dvc-load.el
 
 uninstall:
