@@ -245,7 +245,8 @@
 
 (defun xmtn--setup-revlist (root info-generator-fn first-line-only-p)
   (xmtn-automate-with-session (nil root)
-    (let ((buffer (dvc-get-buffer-create 'xmtn 'log root)))
+    (let ((dvc-temp-current-active-dvc 'xmtn)
+          (buffer (dvc-get-buffer-create 'xmtn 'log root)))
       ;; Adapted from `dvc-build-revision-list'.
       (with-current-buffer buffer
         (dvc-revlist-mode)

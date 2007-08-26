@@ -2928,7 +2928,8 @@ as the place where changelog is got."
            )
      :finished
      (dvc-capturing-lambda (output error status arguments)
-        (let ((buffer (dvc-get-buffer-create tla-arch-branch 'log (tla-tree-root))))
+        (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+              (buffer (dvc-get-buffer-create tla-arch-branch 'log (tla-tree-root))))
           (dvc-switch-to-buffer buffer)
           (tla-revision-list-mode)
           (tla--revisions-parse-list 'log nil ;;(capture details)
@@ -3746,7 +3747,8 @@ if already set in the bookmarks."
   (let ((list (or tla-bookmarks-marked-list
                   (list (ewoc-data (ewoc-locate
                                     tla-bookmarks-cookie))))))
-    (let ((tla-bookmarks-missing-buffer-list-elem
+    (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+          (tla-bookmarks-missing-buffer-list-elem
            (mapcar
             (lambda (elem)
               (cons
@@ -5612,7 +5614,8 @@ UNUSED is left here to keep the position of FROM-REVLIB"
                   (tla--name-category l)
                   (tla--name-branch l)
                   (tla--name-version l))))
-  (let ((output-buf (dvc-get-buffer-create tla-arch-branch
+  (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+        (output-buf (dvc-get-buffer-create tla-arch-branch
                      'revisions
                      (tla--name-construct
                       archive category branch version)))
@@ -5745,7 +5748,8 @@ tree and the location."
   (let ((dir (tla-tree-root)))
     (pop-to-buffer (dvc-get-buffer-create tla-arch-branch 'missing))
     (cd dir))
-  (tla-revision-list-mode)
+  (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc)))
+    (tla-revision-list-mode))
   (setq dvc-buffer-refresh-function 'tla-missing-refresh)
   (set (make-local-variable 'tla-missing-buffer-todolist)
        `((missing ,local-tree ,(tla--name-construct location) nil)))

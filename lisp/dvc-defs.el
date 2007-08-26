@@ -379,12 +379,17 @@ bury them."
   "List of marked and not hidden files in the current buffer.
 
 This variable is buffer-local.")
+(make-variable-buffer-local 'dvc-buffer-marked-file-list)
+
 (defvar dvc-buffer-all-marked-file-list nil
   "List of marked files, including hidden ones, in the current buffer.
 
 `dvc-buffer-marked-file-list' is a subset of this one.
 
 This variable is buffer-local.")
+(make-variable-buffer-local 'dvc-buffer-all-marked-file-list)
+;; FIXME: dvc-buffer-all-marked-file-list is only used by tla, and it
+;; never actually differs from dvc-buffer-marked-file-list
 
 (defvar dvc-patch-email-message-body-template
   (concat

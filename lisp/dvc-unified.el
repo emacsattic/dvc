@@ -167,6 +167,10 @@ the actual dvc."
 When called interactively, print a message including the tree root and
 the current active back-end."
   (interactive)
+  ;; FIXME: this ignores dvc-buffer-current-active-dvc and
+  ;; dvc-temp-current-active-dvc; should use dvc-current-active-dvc
+  ;; (or parts of it). This only matters when one directory is under
+  ;; more than one CM tool, and they have different roots.
   (let ((dvc-list (append dvc-select-priority dvc-registered-backends))
         (root "/")
         (dvc)
@@ -190,11 +194,13 @@ the current active back-end."
     root))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-log-edit (&optional other-frame)
-  ;; FIXME: added other-frame; fix uses. xmtn done.
+(defun dvc-log-edit (&optional other-frame)
   "Edit the log before commiting. Optional user prefix puts log
 edit buffer in a separate frame."
-  (interactive "P"))
+  ;; FIXME: added other-frame; fix uses. xmtn done.
+  (interactive "P")
+  (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc)))
+    (apply 'dvc-apply "dvc-log-edit" other-frame)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-log-edit-done ()
