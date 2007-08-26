@@ -563,7 +563,8 @@ Example:
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys
-    (let* ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
+    (let* ((output-buf (or (and output-buffer
+                                (get-buffer-create output-buffer))
                            (dvc-new-process-buffer nil dvc)))
            (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
                            (dvc-new-error-buffer nil dvc)))
@@ -602,9 +603,10 @@ Example:
          process
          (dvc-capturing-lambda (process event)
             (let ((default-directory (capture default-directory)))
-              (dvc-log-event (capture output-buf) (capture error-buf) (capture command)
-                              (capture default-directory)
-                              (dvc-strip-final-newline event))
+              (dvc-log-event (capture output-buf) (capture error-buf)
+                             (capture command)
+                             (capture default-directory)
+                             (dvc-strip-final-newline event))
               (setq dvc-process-running
                     (delq (capture process-event) dvc-process-running))
               (when (file-exists-p (capture error-file))
@@ -622,16 +624,18 @@ Example:
                           ((eq state 'signal)
                            (funcall (or (capture killed)
                                         'dvc-default-killed-function)
-                                    (capture output-buf) (capture error-buf) status
-                                    (capture arguments)))
+                                    (capture output-buf) (capture error-buf)
+                                    status (capture arguments)))
                           ((eq state 'exit) ;; status != 0
                            (funcall (or (capture error)
                                         'dvc-default-error-function)
-                                    (capture output-buf) (capture error-buf) status
-                                    (capture arguments)))))
+                                    (capture output-buf) (capture error-buf)
+                                    status (capture arguments)))))
                 ;; Schedule any buffers we created for killing
-                (unless (capture output-buffer) (dvc-kill-process-buffer (capture output-buf)))
-                (unless (capture error-buffer) (dvc-kill-process-buffer (capture error-buf)))))))
+                (unless (capture output-buffer)
+                  (dvc-kill-process-buffer (capture output-buf)))
+                (unless (capture error-buffer)
+                  (dvc-kill-process-buffer (capture error-buf)))))))
         process))))
 
 (defun dvc-run-dvc-sync (dvc arguments &rest keys)
@@ -640,7 +644,8 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys
-    (let* ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
+    (let* ((output-buf (or (and output-buffer
+                                (get-buffer-create output-buffer))
                            (dvc-new-process-buffer t dvc)))
            (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
                            (dvc-new-error-buffer t dvc)))
@@ -653,7 +658,8 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory)))
       (with-current-buffer (or related-buffer (current-buffer))
-        (dvc-log-event output-buf error-buf command default-directory "started")
+        (dvc-log-event output-buf error-buf command default-directory
+                       "started")
         (let ((status (let ((process-environment
                              (funcall (dvc-function dvc "prepare-environment")
                                       process-environment)))
