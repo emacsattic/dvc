@@ -491,16 +491,25 @@ DVC can be one of 'baz, 'xhg, ..."
   :type 'regexp
   :group 'dvc)
 
-(defun dvc-process-filter (proc string)
+(defun dvc-process-filter (proc string &optional no-insert)
   "Filter PROC's STRING.
 Prompt for password with `read-passwd' if the output of PROC matches
-`dvc-password-prompt-regexp'."
+`dvc-password-prompt-regexp'.
+
+If NO-INSERT is non-nil, do not insert the string.
+
+In all cases, a new string is returned after normalizing newlines."
   (with-current-buffer (process-buffer proc)
-    (insert (replace-regexp-in-string "\015" "\n" string))
+    (setq string (replace-regexp-in-string "\015" "\n" string))
+    (unless no-insert
+      (goto-char (process-mark proc))
+      (insert string)
+      (set-marker (process-mark proc) (point)))
     (when (string-match dvc-password-prompt-regexp string)
       (string-match "^\\([^\n]+\\)\n*\\'" string)
       (let ((passwd (read-passwd (match-string 1 string))))
-        (process-send-string proc (concat passwd "\n"))))))
+        (process-send-string proc (concat passwd "\n"))))
+    string))
 
 (defun dvc-prepare-environment (env)
   "By default, do not touch the environment"
@@ -536,6 +545,12 @@ arguments.
 
    `dvc-null-handler' can be used here if there's nothing to do.
 
+ :filter           Function to call every time we receive output from
+                   the process.  It should take arguments proc and string.
+                   The string will have been run through
+                   `dvc-process-filter' to deal with password prompts and
+                   newlines.
+
  :output-buffer .. Buffer where the output of the process should be
                    redirected.  If none specified, a new one is
                    created, and will be entered in
@@ -561,9 +576,11 @@ Example:
                       (lambda (output error status arguments)
                         (dvc-show-changes-buffer 'tla--parse-changes output)))"
   (dvc-with-keywords
-      (:finished :killed :error :output-buffer :error-buffer :related-buffer)
+      (:finished :killed :error :filter
+       :output-buffer :error-buffer :related-buffer)
     keys
-    (let* ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
+    (let* ((output-buf (or (and output-buffer
+                                (get-buffer-create output-buffer))
                            (dvc-new-process-buffer nil dvc)))
            (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
                            (dvc-new-error-buffer nil dvc)))
@@ -597,14 +614,22 @@ Example:
       (with-current-buffer (or related-buffer (current-buffer))
         (dvc-trace "Running process `%s' in `%s'" command default-directory)
         (add-to-list 'dvc-process-running process-event)
-        (set-process-filter process 'dvc-process-filter)
+        (set-process-filter
+         process
+         (if (not filter)
+             'dvc-process-filter
+           (dvc-capturing-lambda (proc string)
+             (funcall (capture filter)
+                      proc
+                      (dvc-process-filter proc string t)))))
         (set-process-sentinel
          process
          (dvc-capturing-lambda (process event)
             (let ((default-directory (capture default-directory)))
-              (dvc-log-event (capture output-buf) (capture error-buf) (capture command)
-                              (capture default-directory)
-                              (dvc-strip-final-newline event))
+              (dvc-log-event (capture output-buf) (capture error-buf)
+                             (capture command)
+                             (capture default-directory)
+                             (dvc-strip-final-newline event))
               (setq dvc-process-running
                     (delq (capture process-event) dvc-process-running))
               (when (file-exists-p (capture error-file))
@@ -622,16 +647,18 @@ Example:
                           ((eq state 'signal)
                            (funcall (or (capture killed)
                                         'dvc-default-killed-function)
-                                    (capture output-buf) (capture error-buf) status
-                                    (capture arguments)))
+                                    (capture output-buf) (capture error-buf)
+                                    status (capture arguments)))
                           ((eq state 'exit) ;; status != 0
                            (funcall (or (capture error)
                                         'dvc-default-error-function)
-                                    (capture output-buf) (capture error-buf) status
-                                    (capture arguments)))))
+                                    (capture output-buf) (capture error-buf)
+                                    status (capture arguments)))))
                 ;; Schedule any buffers we created for killing
-                (unless (capture output-buffer) (dvc-kill-process-buffer (capture output-buf)))
-                (unless (capture error-buffer) (dvc-kill-process-buffer (capture error-buf)))))))
+                (unless (capture output-buffer)
+                  (dvc-kill-process-buffer (capture output-buf)))
+                (unless (capture error-buffer)
+                  (dvc-kill-process-buffer (capture error-buf)))))))
         process))))
 
 (defun dvc-run-dvc-sync (dvc arguments &rest keys)
@@ -640,7 +667,8 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
   (dvc-with-keywords
       (:finished :killed :error :output-buffer :error-buffer :related-buffer)
     keys
-    (let* ((output-buf (or (and output-buffer (get-buffer-create output-buffer))
+    (let* ((output-buf (or (and output-buffer
+                                (get-buffer-create output-buffer))
                            (dvc-new-process-buffer t dvc)))
            (error-buf  (or (and error-buffer (get-buffer-create error-buffer))
                            (dvc-new-error-buffer t dvc)))
@@ -653,7 +681,8 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
            ;; may be necessary in some cases.
            (default-directory (dvc-uniquify-file-name default-directory)))
       (with-current-buffer (or related-buffer (current-buffer))
-        (dvc-log-event output-buf error-buf command default-directory "started")
+        (dvc-log-event output-buf error-buf command default-directory
+                       "started")
         (let ((status (let ((process-environment
                              (funcall (dvc-function dvc "prepare-environment")
                                       process-environment)))

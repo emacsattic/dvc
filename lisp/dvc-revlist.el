@@ -287,8 +287,12 @@ revision list."
 (defvar dvc-revlist-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?g] 'dvc-generic-refresh)
-    (define-key map [down] 'dvc-revision-next)
-    (define-key map [up] 'dvc-revision-prev)
+    (define-key map [tab] 'dvc-revision-next)
+    (define-key map [(control ?i)] 'dvc-revision-next)
+    (define-key map [(shift tab)] 'dvc-revision-prev)
+    (unless (featurep 'xemacs)
+      (define-key map [(shift iso-lefttab)] 'dvc-revision-prev)
+      (define-key map [(shift control ?i)] 'dvc-revision-prev))
     (define-key map [?n] 'dvc-revision-next)
     (define-key map [?p] 'dvc-revision-prev)
     (define-key map [?N] 'dvc-revision-next-unmerged)
@@ -323,6 +327,8 @@ revision list."
 
 Commands are:
 \\{dvc-revlist-mode-map}"
+  (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc))
+
   (dvc-install-buffer-menu)
   (let ((inhibit-read-only t))
     (erase-buffer))
@@ -344,9 +350,7 @@ caller has to provide the function PARSER which will actually
 build the revision list."
   (let ((buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
-      (dvc-revlist-mode)
-      ;; dvc-buffer-current-active-dvc is killed by dvc-revlist-mode, so reset it
-      (setq dvc-buffer-current-active-dvc back-end))
+      (dvc-revlist-mode))
     (dvc-switch-to-buffer-maybe buffer t)
     (dvc-run-dvc-async
      back-end arglist

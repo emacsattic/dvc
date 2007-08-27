@@ -16,7 +16,7 @@
 (add-to-list 'load-path "@lispdir@/")
 (unless (locate-library "ewoc")
   (add-to-list 'load-path "@lispdir@/contrib"))
-(add-to-list 'Info-default-directory-list "@info_dir@/info")
+(add-to-list 'Info-default-directory-list "@info_dir@")
 
 (if (featurep 'dvc-core)
     (dvc-reload)
