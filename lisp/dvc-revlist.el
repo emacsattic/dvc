@@ -348,7 +348,8 @@ A buffer of type TYPE with location LOCATION is created or reused.
 The back-end is launched with the arguments ARGLIST, and the
 caller has to provide the function PARSER which will actually
 build the revision list."
-  (let ((buffer (dvc-get-buffer-create back-end type location)))
+  (let ((dvc-temp-current-active-dvc back-end)
+        (buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
       (dvc-revlist-mode))
     (dvc-switch-to-buffer-maybe buffer t)
