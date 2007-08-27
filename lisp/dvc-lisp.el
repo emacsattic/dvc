@@ -68,9 +68,9 @@
           (t (mapcar 'dvc-capturing-lambda-helper l))))
 
   (defmacro dvc-capturing-lambda (args &rest body)
-    "A `lambda' capable of capturing values from its defining
-environment.
-    Values to be captured should be surrounded by (capture ...).
+    "A `lambda' macro which is capable of capturing symbol values from its
+defining environment.
+    Symbols to be captured should be surrounded by (capture ...).
     For example:
 
       (let* ((x 'lexical-x)
