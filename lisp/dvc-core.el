@@ -491,16 +491,25 @@ DVC can be one of 'baz, 'xhg, ..."
   :type 'regexp
   :group 'dvc)
 
-(defun dvc-process-filter (proc string)
+(defun dvc-process-filter (proc string &optional no-insert)
   "Filter PROC's STRING.
 Prompt for password with `read-passwd' if the output of PROC matches
-`dvc-password-prompt-regexp'."
+`dvc-password-prompt-regexp'.
+
+If NO-INSERT is non-nil, do not insert the string.
+
+In all cases, a new string is returned after normalizing newlines."
   (with-current-buffer (process-buffer proc)
-    (insert (replace-regexp-in-string "\015" "\n" string))
+    (setq string (replace-regexp-in-string "\015" "\n" string))
+    (unless no-insert
+      (goto-char (process-mark proc))
+      (insert string)
+      (set-marker (process-mark proc) (point)))
     (when (string-match dvc-password-prompt-regexp string)
       (string-match "^\\([^\n]+\\)\n*\\'" string)
       (let ((passwd (read-passwd (match-string 1 string))))
-        (process-send-string proc (concat passwd "\n"))))))
+        (process-send-string proc (concat passwd "\n"))))
+    string))
 
 (defun dvc-prepare-environment (env)
   "By default, do not touch the environment"
@@ -536,6 +545,12 @@ arguments.
 
    `dvc-null-handler' can be used here if there's nothing to do.
 
+ :filter           Function to call every time we receive output from
+                   the process.  It should take arguments proc and string.
+                   The string will have been run through
+                   `dvc-process-filter' to deal with password prompts and
+                   newlines.
+
  :output-buffer .. Buffer where the output of the process should be
                    redirected.  If none specified, a new one is
                    created, and will be entered in
@@ -561,7 +576,8 @@ Example:
                       (lambda (output error status arguments)
                         (dvc-show-changes-buffer 'tla--parse-changes output)))"
   (dvc-with-keywords
-      (:finished :killed :error :output-buffer :error-buffer :related-buffer)
+      (:finished :killed :error :filter
+       :output-buffer :error-buffer :related-buffer)
     keys
     (let* ((output-buf (or (and output-buffer
                                 (get-buffer-create output-buffer))
@@ -598,7 +614,14 @@ Example:
       (with-current-buffer (or related-buffer (current-buffer))
         (dvc-trace "Running process `%s' in `%s'" command default-directory)
         (add-to-list 'dvc-process-running process-event)
-        (set-process-filter process 'dvc-process-filter)
+        (set-process-filter
+         process
+         (if (not filter)
+             'dvc-process-filter
+           (dvc-capturing-lambda (proc string)
+             (funcall (capture filter)
+                      proc
+                      (dvc-process-filter proc string t)))))
         (set-process-sentinel
          process
          (dvc-capturing-lambda (process event)
