@@ -252,7 +252,7 @@ also `dvc-get-buffer-create'."
   :type 'string
   :group 'dvc-internal)
 
-(defcustom dvc-number-of-dead-process-buffer 20
+(defcustom dvc-number-of-dead-process-buffer 0
   "*Number of process buffers to keep after process termination.
 When the number of process buffers exceeds this number, the most ancient
 is killed.  This includes both the process buffer and the error
