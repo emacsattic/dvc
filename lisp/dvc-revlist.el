@@ -280,6 +280,18 @@ revision list."
       (pop-to-buffer log-buf)
       (set (make-local-variable 'dvc-partner-buffer) buffer))))
 
+(defun dvc-revlist-diff-to-current-tree (&optional scroll-down)
+  "Show the diff between the revision at point and the local tree."
+  (interactive)
+  (let ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie))))
+    (unless (eq (car elem) 'entry-patch)
+      (error "Cursor is not on a revision."))
+    (let ((rev-id (dvc-revlist-entry-patch-rev-id (nth 1 elem)))
+          (root (dvc-tree-root)))
+      ;; we use dvc-diff, not dvc-delta, because the xmtn backend supports 'local-tree in diff but not delta.
+      ;; FIXME: only need one of those!
+      (dvc-diff rev-id root nil (list (dvc-current-active-dvc) (list 'local-tree root))))))
+
 (defun dvc-revlist-diff-scroll-down ()
   (interactive)
   (dvc-revlist-diff t))
@@ -302,6 +314,7 @@ revision list."
     (define-key map [return] 'dvc-revlist-show-item)
     (define-key map [(meta return)] 'dvc-revlist-show-item-scroll-down)
     (define-key map [?=]              'dvc-revlist-diff)
+    (define-key map [(control ?=)]    'dvc-revlist-diff-to-current-tree)
     (define-key map [(meta ?=)]       'dvc-revlist-diff-scroll-down)
     (define-key map (dvc-prefix-toggle ?d) 'dvc-revlist-toggle-date)
     (define-key map (dvc-prefix-toggle ?c) 'dvc-revlist-toggle-creator)

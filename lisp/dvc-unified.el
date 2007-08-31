@@ -85,8 +85,11 @@ to (dvc-current-file-list)."
      (dvc-apply ,(symbol-name name) ,@(remove '&optional args))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-diff (&optional against path dont-switch)
-  "Display the changes in this tree for the actual dvc."
+(define-dvc-unified-command dvc-diff (&optional against path dont-switch base-rev)
+  "Display the changes from BASE-REV to AGAINST.
+BASE-REV (a revision-id) defaults to base revision of current
+tree; AGAINST (a revision-id) defaults to current tree."
+  ;; FIXME: doc difference between this and dvc-delta
   (interactive (list nil nil current-prefix-arg)))
 
 ;;;###autoload
@@ -264,7 +267,7 @@ directories containing the files, and recursively below them."
   "Show the inventory for this working copy."
   (interactive))
 
-;;###autoload
+;;;###autoload
 (define-dvc-unified-command dvc-save-diff (file)
   "Store the diff from the working copy against the repository in a file."
   (interactive (list (read-file-name "Save the diff to: "))))

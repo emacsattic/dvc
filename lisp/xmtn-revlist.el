@@ -493,9 +493,11 @@ to the base revision of the current tree."
 
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id dont-switch)
+  ;; FIXME: very similar to xmtn-dvc-diff, but that handles to-revision-id = local-tree
   (let ((root (dvc-tree-root))
         (buffer (dvc-prepare-changes-buffer from-revision-id to-revision-id
                                             'diff nil 'xmtn)))
+    (debug)
     (let ((from-backend-id (xmtn--resolve-revision-id root from-revision-id))
           (to-backend-id (xmtn--resolve-revision-id root to-revision-id)))
       (xmtn--command-append-to-buffer-async
@@ -503,12 +505,14 @@ to the base revision of the current tree."
        `("diff"
          ,(concat "--revision="
                   (xmtn-match from-backend-id
-                    ((local-tree (error "Not implemented")))
+                    ((local-tree $path)
+                     (error "Not implemented"))
                     ((revision $revision-hash-id)
                      revision-hash-id)))
          ,(concat "--revision="
                   (xmtn-match to-backend-id
-                    ((local-tree (error "Not implemented")))
+                    ((local-tree $path)
+                     (error "Not implemented"))
                     ((revision $revision-hash-id)
                      revision-hash-id))))
        :finished
