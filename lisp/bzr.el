@@ -284,7 +284,7 @@ Same as `bzr-diff', but the interactive prompt is different."
   (bzr-diff against path dont-switch))
 
 ;;;###autoload
-(defun bzr-diff (&optional against path dont-switch)
+(defun bzr-diff (&optional against path dont-switch base-rev)
   "Run \"bzr diff\".
 
 AGAINST must be a revision specifier (number, last:N,

@@ -260,8 +260,7 @@ new file.")
                                  " " ; dir. Nothing is a directory in hg.
                                  nil)))))))
 
-;; TODO: update for git
-(defun xgit-diff (&optional against path dont-switch)
+(defun xgit-diff (&optional against path dont-switch base-rev)
     (interactive (list nil nil current-prefix-arg))
   (let* ((cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
@@ -443,11 +442,12 @@ LAST-REVISION looks like
 \(\"path\" NUM)"
   (dvc-trace "xgit-revision-get-last-revision file:%S last-revision:%S"
              file last-revision)
-  (let ((xgit-rev (int-to-string (1- (nth 1 last-revision))))
-        (default-directory (car last-revision)))
+  (let* ((xgit-rev (int-to-string (1- (nth 1 last-revision))))
+         (default-directory (car last-revision))
+         (fname (file-relative-name file (xgit-tree-root))))
     (insert (dvc-run-dvc-sync
              'xgit (list "cat-file" "blob"
-                         (format "HEAD~%s:%s" xgit-rev file))
+                         (format "HEAD~%s:%s" xgit-rev fname))
              :finished 'dvc-output-buffer-handler-withnewline))))
 
 (provide 'xgit)

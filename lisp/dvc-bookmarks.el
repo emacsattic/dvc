@@ -30,6 +30,7 @@
 ;;; Code:
 (require 'dvc-core)
 (require 'dvc-state)
+(require 'ewoc)
 
 ;; this were the settings used for tla
 ;; ;; Generated file. Do not edit!!!
