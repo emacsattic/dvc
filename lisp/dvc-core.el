@@ -595,6 +595,11 @@ Example:
             (let ((process-environment
                    (funcall (dvc-function dvc "prepare-environment")
                             process-environment)))
+              (with-current-buffer output-buf
+                ;; process filter will need to know which dvc to run
+                ;; if there is a choice
+                (setq dvc-buffer-current-active-dvc dvc))
+
               ;; `start-process' sends both stderr and stdout to
               ;; `output-buf'. But we want to keep stderr separate. So
               ;; we use a shell to redirect stderr before Emacs sees

@@ -124,9 +124,11 @@ the actual dvc."
   "Returns a string representation of BACK-END-REVISION.")
 
 ;;;###autoload
-(define-dvc-unified-command dvc-log (&optional arg)
-  "Display the log in this tree for the actual dvc."
-  (interactive))
+(defun dvc-log (&optional path last-n)
+  "Display the log for PATH (default entire tree), LAST-N
+entries (default `dvc-log-last-n'; all if nil)."
+  (interactive)
+  (dvc-apply "dvc-log" path (if last-n last-n dvc-log-last-n)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-changelog (&optional arg)
