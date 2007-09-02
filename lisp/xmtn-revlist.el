@@ -373,8 +373,8 @@
               (error "Branch %s is unmerged (%s heads)"
                      branch
                      (length heads)))))))
-     ;; Passing nil as first-line-only-p is arbitrary here.
-     nil))
+     ;; Passing nil as first-line-only-p, last-n is arbitrary here.
+     nil nil))
   nil)
 
 ;;;###autoload
@@ -399,8 +399,8 @@
                     (t (format "%s head revisions: " head-count))))
             '()
             head-revision-hash-ids))))
-     ;; Passing nil as first-line-only-p is arbitrary here.
-     nil))
+     ;; Passing nil as first-line-only-p, last-n is arbitrary here.
+     nil nil))
   nil)
 
 ;;;###autoload
@@ -435,6 +435,8 @@ to the base revision of the current tree."
               '()
               revision-hash-ids))))
        ;; Passing nil as first-line-only-p is arbitrary here.
+       nil
+       ;; FIXME: it might be useful to specify last-n here
        nil)))
   nil)
 
@@ -473,6 +475,8 @@ to the base revision of the current tree."
               '()
               revision-hash-ids))))
        ;; Passing nil as first-line-only-p is arbitrary here.
+       nil
+       ;; FIXME: it might be useful to specify last-n here
        nil)))
   nil)
 
@@ -622,8 +626,8 @@ To be invoked from an xmtn revlist buffer.  Brings up an xmtn revlist buffer."
          (xmtn-automate-with-session (nil root)
            (let* ((branch (xmtn--tree-default-branch root)))
              (xmtn--revlist--missing-get-info root branch new-revisions))))
-       ;; Passing nil as first-line-only-p is arbitrary here.
-       nil)))
+       ;; Passing nil as first-line-only-p and last-n is arbitrary here.
+       nil nil)))
   nil)
 
 (defun xmtn-revlist-diff-to-current-tree (&optional dont-switch)
