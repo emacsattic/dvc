@@ -105,10 +105,11 @@
   (when (locate-library "dvc-version")
     (require 'dvc-version)))
 
-;; runtime use of 'cl package is discourraged. Please keep this
+;; runtime use of 'cl package is discouraged. Please keep this
 ;; "eval-when-compile"
 ;;       ^^^^
 (eval-when-compile (require 'cl))
+(eval-and-compile (require 'dvc-about))
 (eval-and-compile (require 'dvc-utils))
 (eval-and-compile (require 'dvc-cmenu))
 (eval-and-compile (require 'dvc-core))
@@ -309,8 +310,7 @@ minibuffer:
                                           func)
                             (match-string 1 func)))
           (setq line (concat line (format "%s => `%s'" keys1 func) "    "))))
-    ;; FIXME: tla--message-with-rolling is not defined anywhere
-    (tla--message-with-rolling line)
+    (dvc-about-message-with-rolling line)
     ))
 
 
