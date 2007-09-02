@@ -26,6 +26,7 @@
 
 
 (require 'dvc-defs)
+(require 'ewoc)
 
 ;; Load compatibility code
 (if (featurep 'xemacs)

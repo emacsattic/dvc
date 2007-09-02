@@ -40,7 +40,7 @@
 
 (add-to-list 'load-path srcdir)
 (when (file-exists-p contribdir)
-  (add-to-list 'load-path contribdir))
+  (add-to-list 'load-path contribdir t))
 (add-to-list 'load-path loaddir)
 
 ;; Add otherdirs to load-path
@@ -85,15 +85,15 @@
     (push "dvc-emacs.el" no-compile-files)
 
     (autoload 'setenv (if (emacs-version>= 21 5) "process" "env") nil t)
-    ;; Xtla things
+    ;; DVC things
     (autoload 'replace-regexp-in-string "dvc-xemacs.el")
     (autoload 'line-number-at-pos       "dvc-xemacs.el")
     (autoload 'line-beginning-position  "dvc-xemacs.el")
     (autoload 'line-end-position        "dvc-xemacs.el")
     (autoload 'match-string-no-properties "dvc-xemacs.el")
     (autoload 'tla--run-tla-sync        "tla-core.el")
-    (autoload 'dvc-switch-to-buffer     "tla-core.el")
-    (autoload 'dvc-trace                "tla-core.el")
+    (autoload 'dvc-switch-to-buffer     "dvc-buffers.el")
+    (autoload 'dvc-trace                "dvc-utils.el")
     (autoload 'dvc-flash-line           "tla")
     (autoload 'tla-tree-root            "tla")
     (autoload 'tla--name-construct      "tla-core")
