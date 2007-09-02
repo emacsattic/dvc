@@ -1384,16 +1384,16 @@ finished."
                     (with-temp-file temp-file
                       (set-buffer-multibyte nil)
                       (setq buffer-file-coding-system 'binary)
-                      ;; This could be simplified slightly with the
-                      ;; new automate get_file_of operation.  Not
-                      ;; worth any effort right now, though.  And it
-                      ;; would break compatibility with 0.30 for no
-                      ;; good reason.
-                      (let ((contents-hash
-                             (xmtn--revision-file-contents-hash
-                              root backend-id corresponding-file)))
-                        (xmtn--insert-file-contents root contents-hash
-                                                    (current-buffer))))
+                      (xmtn--version-case
+                       (t; (<= 0 30)
+                        (let ((contents-hash
+                               (xmtn--revision-file-contents-hash
+                                root backend-id corresponding-file)))
+                          (xmtn--insert-file-contents root contents-hash
+                                                      (current-buffer))))
+                       (nil; t
+                        ;; FIXME: this is currently broken
+                        (xmtn--insert-file-contents-by-name root backend-id corresponding-file buffer))))
                     (let ((output-buffer (current-buffer)))
                       (with-temp-buffer
                         (insert-file-contents temp-file)
@@ -1612,6 +1612,18 @@ finished."
   (xmtn-automate-simple-command-output-insert-into-buffer
    root buffer `("get_file" ,content-hash-id)))
 
+(defun xmtn--insert-file-contents-by-name (root backend-id normalized-file-name buffer)
+  (let* ((resolved-id (xmtn--resolve-backend-id root backend-id))
+         (hash-id (case (car resolved-id)
+                        (local-tree nil)
+                        (revision (cadr resolved-id)))))
+    (if hash-id
+        ;; FIXME: mtn says this is the wrong number of arguments!?
+        (xmtn-automate-simple-command-output-insert-into-buffer
+         root buffer (list "get_file_of" normalized-file-name (concat "--revision=" hash-id)))
+      (xmtn-automate-simple-command-output-insert-into-buffer
+       root buffer (list "get_file_of" normalized-file-name)))))
+
 (defun xmtn--same-tree-p (a b)
   (equal (file-truename a) (file-truename b)))
 
@@ -1782,6 +1794,8 @@ finished."
   ;; can't do any better than linear-time anyway, since we have to
   ;; chase the ancestry links (and check the uniqueness at each step).
   (apply #'dvc-dvc-revision-nth-ancestor args))
+
+(defalias 'xmtn-dvc-revlist 'xmtn-view-heads-revlist)
 
 (provide 'xmtn-dvc)
 

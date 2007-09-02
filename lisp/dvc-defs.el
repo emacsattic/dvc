@@ -87,6 +87,11 @@ Possible values include: 'tla, 'baz, 'xhg, 'xgit, 'bzr, 'xmtn"
   :type 'boolean
   :group 'dvc)
 
+(defcustom dvc-log-last-n nil
+  "*If non-nil, limit log listings to last n entries."
+  :type 'integer
+  :group 'dvc)
+
 ;; --------------------------------------------------------------------------------
 ;; Keybindings
 ;; --------------------------------------------------------------------------------

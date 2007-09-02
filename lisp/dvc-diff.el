@@ -36,12 +36,12 @@
 
 
 (defvar dvc-diff-base nil
-  "BASE revision for the changes currently displayed.
+  "BASE revision-id for the changes currently displayed.
 
 Must be buffer-local.")
 
 (defvar dvc-diff-modified nil
-  "MODIFIED revision for the changes currently displayed.
+  "MODIFIED revision-id for the changes currently displayed.
 
 Must be buffer-local.")
 
@@ -514,14 +514,16 @@ The prefix argument OTHER-FILE controls whether the original or new
 file is visited."
   (interactive "P")
   (unless (and (car dvc-diff-base)
-               (car dvc-diff-base))
+               (car dvc-diff-modified))
     (error "No revision information to base ediff on"))
   (let ((on-modified-file (dvc-get-file-info-at-point))
         (loc (point)))
     (if (and on-modified-file (not (tla--changes-in-diff)))
+        ;; on ewoc item; just ediff
         (dvc-file-ediff-revisions on-modified-file
                                   dvc-diff-modified
                                   dvc-diff-base)
+      ;; in diff section; find hunk index, so we can jump to it in the ediff.
       (end-of-line)
       (dvc-trace "loc=%S" loc)
       (let ((hunk 1))
@@ -533,7 +535,8 @@ file is visited."
           (setq hunk (1+ hunk)))
         (goto-char loc)
         (with-current-buffer
-            (dvc-file-ediff-revisions on-modified-file dvc-diff-modified
+            (dvc-file-ediff-revisions on-modified-file
+                                      dvc-diff-modified
                                       dvc-diff-base)
           (ediff-jump-to-difference hunk))))))
 
