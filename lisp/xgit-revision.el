@@ -104,8 +104,9 @@
              ,(make-dvc-revlist-entry-patch
                :dvc 'xgit
                :struct elem
-               :rev-id `(cg (revision (local ,root ,(xgit-revision-st-changeset elem))))))))
-        ;; FIXME: xgit-revision-st-changeset is not defined anywhere
+               :rev-id `(xgit (revision
+                               (local ,root ,
+                                      (xgit-revision-st-commit elem))))))))
         (setq elem (make-xgit-revision-st)))))
   (with-current-buffer log-buffer
       (goto-char (point-min))))
