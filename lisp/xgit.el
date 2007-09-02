@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2006-2007 by all contributors
 
-;; Author: Stefan Reichoer, <stefan@xsteve.at>
+;; Author: Stefan Reichoer <stefan@xsteve.at>
 ;; Contributions from:
 ;;    Takuzo O'hara <takuzo.ohara@gmail.com>
 
@@ -71,7 +71,8 @@
   "Run git add."
   (dvc-trace "xgit-add-files: %s" files)
   (let ((default-directory (xgit-tree-root)))
-    (dvc-run-dvc-sync 'xgit (append '("add") (mapcar #'file-relative-name files))
+    (dvc-run-dvc-sync 'xgit (append '("add")
+                                    (mapcar #'file-relative-name files))
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
                                   (message "git add finished")))))
@@ -96,7 +97,10 @@
 ;;;###autoload
 (defun xgit-add-all-files (arg)
   "Run 'git add .' to add all files to git.
-Normally run 'git add -n .' to simulate the operation to see which files will be added.
+
+Normally run 'git add -n .' to simulate the operation to see
+which files will be added.
+
 Only when called with a prefix argument, add the files."
   (interactive "P")
   (dvc-run-dvc-sync 'xgit (list "add" (unless arg "-n") ".")))
@@ -298,7 +302,9 @@ xgit-restore
 (defcustom git-show-filter-filename-func nil
   "Function to filter filenames in xgit-show.
 Function is passed a list of files as a parameter.
-Function should return list of filenames that is passed to git-show or nil for all files."
+
+Function should return list of filenames that is passed to
+git-show or nil for all files."
   :type '(choice (const git-show-filter-filename-not-quilt)
                  (function)
                  (const :tag "None" nil))
@@ -315,19 +321,24 @@ Function should return list of filenames that is passed to git-show or nil for a
   (let* ((repo (xgit-git-dir dir))
          (cmd "diff-tree")
          (args (list repo cmd "--numstat" rev))
-         (result (dvc-run-dvc-sync 'xgit args
-                                   :finished 'dvc-output-buffer-split-handler)))
+         (result (dvc-run-dvc-sync
+                  'xgit args
+                  :finished 'dvc-output-buffer-split-handler)))
     (mapcar (lambda (x) (nth 2 (split-string x)))
             (cdr result ))))
 
 (defun xgit-show (dir rev &optional files)
   "Shows diff for a given revision.
-Optional argument FILES is a string of filename or list of filenames of to pass to git-show.
-If FILES is nil and git-show-filter-filename-func is non-nil,
-files changed in the revision is passed to git-show-filter-filename-func and result is used."
+Optional argument FILES is a string of filename or list of
+filenames of to pass to git-show.
+
+If FILES is nil and `git-show-filter-filename-func' is non-nil,
+files changed in the revision is passed to
+`git-show-filter-filename-func' and result is used."
   (interactive)
   (if (and (null files) git-show-filter-filename-func)
-      (setq files (funcall git-show-filter-filename-func (git-changed-files dir rev))))
+      (setq files (funcall git-show-filter-filename-func
+                           (git-changed-files dir rev))))
   (let* ((buffer (dvc-get-buffer-create 'xgit 'diff))
          (repo (xgit-git-dir dir))
          (cmd "show")
@@ -344,8 +355,8 @@ files changed in the revision is passed to git-show-filter-filename-func and res
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))
-                              (insert (format "git %s\n\n" (mapconcat #'identity
-                                                                      args " ")))
+                              (insert (format "git %s\n\n"
+                                              (mapconcat #'identity args " ")))
                               (diff-mode)
                               (toggle-read-only 1))))))))
 
@@ -361,19 +372,19 @@ if revision is a tag, return tag in a string,
 else returns list of '(tag offset all-described-string)."
   (interactive)
   (let* ((repo (xgit-git-dir dir))
-	 (cmd "describe")
-	 (args (list repo cmd rev))
-	 (info (dvc-run-dvc-sync 'xgit args
-				 :finished 'dvc-output-buffer-handler
-				 :error 'dvc-output-buffer-handler)))
+         (cmd "describe")
+         (args (list repo cmd rev))
+         (info (dvc-run-dvc-sync 'xgit args
+                                 :finished 'dvc-output-buffer-handler
+                                 :error 'dvc-output-buffer-handler)))
     (if (string= "" info)
-	nil				;no tag yet
+        nil                             ;no tag yet
       (if (git-describe-tag? info)
-	   info
-	(progn
-	  (list (match-string 1 info)
-		(match-string 2 info)
-		info))))))
+          info
+        (progn
+          (list (match-string 1 info)
+                (match-string 2 info)
+                info))))))
 
 (defun git-annotate (dir file)
   "Run git annotate for file in DIR.
@@ -381,10 +392,10 @@ DIR is a directory controlled by Git/Cogito.
 FILE is filename in repostory.
 "
   (let* ((buffer (dvc-get-buffer-create 'xgit 'annotate))
-	 (repo (xgit-git-dir dir))
-	 (cmd "blame")
-	 (fname (file-relative-name file (xgit-tree-root dir)))
-	 (args (list repo cmd "--" fname)))
+         (repo (xgit-git-dir dir))
+         (cmd "blame")
+         (fname (file-relative-name file (xgit-tree-root dir)))
+         (args (list repo cmd "--" fname)))
     (dvc-switch-to-buffer-maybe buffer)
     (dvc-run-dvc-sync 'xgit args
                       :finished
@@ -401,8 +412,8 @@ FILE is filename in repostory.
   "Run git annotate"
   (interactive)
   (let* ((line (dvc-line-number-at-pos))
-	 (filename (dvc-confirm-read-file-name "Filename to annotate: "))
-	 (default-directory (xgit-tree-root filename)))
+         (filename (dvc-confirm-read-file-name "Filename to annotate: "))
+         (default-directory (xgit-tree-root filename)))
     (git-annotate default-directory filename)
     (goto-line line)))
 
@@ -422,9 +433,7 @@ FILE is filename in repostory.
                       (dvc-show-error-buffer error)
                       (error "Error occurred while applying patch(es)"))))
 
-;; --------------------------------------------------------------------------------
-;; dvc revision support
-;; --------------------------------------------------------------------------------
+;;; DVC revision support
 
 ;;;###autoload
 (defun xgit-revision-get-last-revision (file last-revision)
@@ -432,7 +441,8 @@ FILE is filename in repostory.
 
 LAST-REVISION looks like
 \(\"path\" NUM)"
-  (dvc-trace "xgit-revision-get-last-revision file:%S last-revision:%S" file last-revision)
+  (dvc-trace "xgit-revision-get-last-revision file:%S last-revision:%S"
+             file last-revision)
   (let ((xgit-rev (int-to-string (1- (nth 1 last-revision))))
         (default-directory (car last-revision)))
     (insert (dvc-run-dvc-sync

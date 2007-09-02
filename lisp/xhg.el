@@ -132,8 +132,8 @@ negative : Don't show patches, limit to n revisions."
            (setq r1 nil))
           ((equal current-prefix-arg '(16))
            (setq show-patch t)
-	   (setq r1 1)))
-    (when (> r1 0)
+           (setq r1 1)))
+    (when (and (numberp r1) (> r1 0))
       (setq r1 (read-string "hg log, R1:"))
       (setq r2 (read-string "hg log, R2:"))))
   (let ((buffer (dvc-get-buffer-create 'xhg 'log))
@@ -146,15 +146,14 @@ negative : Don't show patches, limit to n revisions."
       (when (numberp r2)
         (setq r2 (number-to-string r2))))
     (if (and (> (length r2) 0) (> (length r1) 0))
-	(setq command-list (append command-list (list "-r" (concat r2 ":" r1))))
+        (setq command-list (append command-list (list "-r" (concat r2 ":" r1))))
       (when (> (length r1) 0)
- 	(let ((r1-num (string-to-number r1)))
- 	  (if (> r1-num 0)
- 	      (setq command-list (append command-list (list "-r" r1)))
- 	    (setq command-list
- 		  (append command-list
- 			  (list "-l"
- 				(number-to-string (abs r1-num)))))))))
+        (let ((r1-num (string-to-number r1)))
+          (if (> r1-num 0)
+              (setq command-list (append command-list (list "-r" r1)))
+            (setq command-list
+                  (append command-list
+                          (list "-l" (number-to-string (abs r1-num)))))))))
     (when show-patch
       (setq command-list (append command-list (list "-p"))))
     (dvc-switch-to-buffer-maybe buffer)

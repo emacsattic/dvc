@@ -177,13 +177,11 @@ See also `dvc-get-buffer'"
                      (dvc-buffers-tree-add dvc type path buffer)
                      buffer)))))))
     (with-current-buffer return-buffer
-      (setq dvc-buffer-current-active-dvc dvc)
+      ;; We do not set dvc-buffer-current-active-dvc here, because any
+      ;; subsequent mode function will call kill-all-local-variables.
       (dvc-trace "create buffer %S with back-end %S in %S"
-                 return-buffer dvc-buffer-current-active-dvc
-                 default-directory)
+                 return-buffer dvc default-directory)
       return-buffer)))
-
-
 
 (defun dvc-get-buffer (dvc type &optional path mode)
   "Get a buffer of type TYPE for the path PATH.
@@ -254,7 +252,7 @@ also `dvc-get-buffer-create'."
   :type 'string
   :group 'dvc-internal)
 
-(defcustom dvc-number-of-dead-process-buffer 20
+(defcustom dvc-number-of-dead-process-buffer 0
   "*Number of process buffers to keep after process termination.
 When the number of process buffers exceeds this number, the most ancient
 is killed.  This includes both the process buffer and the error

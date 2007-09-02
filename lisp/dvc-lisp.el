@@ -57,15 +57,20 @@
   (defun dvc-capturing-lambda-helper (l)
     (cond ((atom l) l)
           ((eq (car l) 'capture)
-           (let ((g (dvc-gensym)))
-             (push (list g (cadr l)) captured-values)
-             g))
+           (let ((sym (cadr l)))
+             (unless (symbolp sym)
+               (error "Expected a symbol in capture statement: %S" sym))
+             (let ((g (car (rassq sym captured-values))))
+               (unless g
+                 (setq g (dvc-gensym))
+                 (push (cons g sym) captured-values))
+               g)))
           (t (mapcar 'dvc-capturing-lambda-helper l))))
 
   (defmacro dvc-capturing-lambda (args &rest body)
-    "A `lambda' capable of capturing values from its defining
-environment.
-    Values to be captured should be surrounded by (capture ...).
+    "A `lambda' macro which is capable of capturing symbol values from its
+defining environment.
+    Symbols to be captured should be surrounded by (capture ...).
     For example:
 
       (let* ((x 'lexical-x)
@@ -83,7 +88,7 @@ environment.
              (list 'let (list
                          ,@(mapcar (lambda (var)
                                      `(list ',(car var)
-                                            (list 'quote ,(cadr var))))
+                                            (list 'quote ,(cdr var))))
                                    captured-values))
                    (list 'funcall (lambda () . ,body))))))
   (put 'dvc-capturing-lambda 'lisp-indent-function 1)

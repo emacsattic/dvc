@@ -1,6 +1,6 @@
 ;;; dvc-ui.el --- User interface (keybinding, menus) for DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -427,6 +427,7 @@
 ;; Show the selected DVC in the modeline: M-x dvc-show-active-dvc
 (defvar dvc-show-active-dvc nil)
 (defvar dvc-show-active-dvc-string "")
+(make-variable-buffer-local 'dvc-show-active-dvc-string)
 
 (add-to-list 'minor-mode-alist '(dvc-show-active-dvc dvc-show-active-dvc-string))
 
@@ -467,7 +468,6 @@ turn off visualization."
 (defun dvc-actualize-modeline ()
   (let ((dvc (dvc-current-active-dvc)))
     ;;(when dvc-show-active-dvc (dvc-trace "dvc-actualize-modeline: %S %S" default-directory dvc))
-    (make-variable-buffer-local 'dvc-show-active-dvc-string)
     (setq dvc-show-active-dvc-string (if dvc (concat " DVC:" (symbol-name dvc))
                                        ""))))
 

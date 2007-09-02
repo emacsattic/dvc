@@ -1,6 +1,6 @@
 ;;; dvc-revlog.el --- View a single log entry in DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -44,6 +44,8 @@ it to something more specific.
 
 Commands are:
 \\{dvc-revlog-mode-map}"
+  (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc))
+
   (dvc-install-buffer-menu)
   (toggle-read-only 1))
 

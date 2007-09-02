@@ -61,8 +61,9 @@
 (defun xgit-dvc-log-edit-done ()
   "Finish a commit for git, using git commit -a"
   (let ((buffer (find-file-noselect (dvc-log-edit-file-name)))
-        (files-to-commit (with-current-buffer dvc-partner-buffer
-                           (dvc-current-file-list 'nil-if-none-marked))))
+        (files-to-commit (when (buffer-live-p dvc-partner-buffer)
+                           (with-current-buffer dvc-partner-buffer
+                             (dvc-current-file-list 'nil-if-none-marked)))))
     (dvc-log-flush-commit-file-list)
     (save-buffer buffer)
     (message "committing %S in %s" (or files-to-commit "all files") (dvc-tree-root))

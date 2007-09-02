@@ -1389,7 +1389,7 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
                        (progn
                          (setq tla--changes-summary (capture summary))
                          (tla--changes-internal
-                          (capture (not summary))
+                          (not (capture summary))
                           nil ;; TODO "against" what for a nested tree?
                           subtree
                           buffer-sub
@@ -1447,7 +1447,8 @@ Value is chosen depending on user configuration and arch branch."
                                  (not (re-search-forward
                                        "^\\* \\(tree is already up to date\\|skipping (empty delta)\\)"
                                        nil t)))))
-                   (with-current-buffer (capture (or master-buffer buffer))
+                   (with-current-buffer (or (capture master-buffer)
+                                            (capture buffer))
                      ;; (dvc-trace "buf=%S modifs=%S" (capture buffer) modifs)
                      (ewoc-map (lambda (x)
                                  (when (and (eq (car x) 'subtree)
@@ -1559,7 +1560,7 @@ the root of the projects is displayed."
         (if (capture master-buffer)
             (message "No changes in subtree %s" (capture root))
           (message "No changes in %s" (capture root)))
-        (with-current-buffer (capture (current-buffer))
+        (with-current-buffer (capture buffer)
           (let ((inhibit-read-only t))
             (dvc-diff-delete-messages)
             (ewoc-enter-last dvc-diff-cookie
@@ -1607,7 +1608,7 @@ the root of the projects is displayed."
                                  (dvc-get-buffer
                                   tla-arch-branch 'diff
                                   ,(capture root))))))))
-                (with-current-buffer (capture (current-buffer))
+                (with-current-buffer (capture buffer)
                   (dvc-diff-delete-messages)
                   (ewoc-enter-last
                    dvc-diff-cookie
@@ -2928,7 +2929,8 @@ as the place where changelog is got."
            )
      :finished
      (dvc-capturing-lambda (output error status arguments)
-        (let ((buffer (dvc-get-buffer-create tla-arch-branch 'log (tla-tree-root))))
+        (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+              (buffer (dvc-get-buffer-create tla-arch-branch 'log (tla-tree-root))))
           (dvc-switch-to-buffer buffer)
           (tla-revision-list-mode)
           (tla--revisions-parse-list 'log nil ;;(capture details)
@@ -2992,14 +2994,15 @@ not reported; just return nil."
 (defun tla-tree-root-tla ()
   "Run tla tree-root."
   (interactive)
-  (tla--run-tla-sync '("tree-root")
-                     :finished
-                     (dvc-capturing-lambda (output error status arguments)
-                        (let ((result (dvc-buffer-content output)))
-                          (when (capture (interactive-p))
-                            (message "tla tree-root is: %s"
-                                     result))
-                          result))))
+  (let ((i-p (interactive-p)))
+    (tla--run-tla-sync '("tree-root")
+                       :finished
+                       (dvc-capturing-lambda (output error status arguments)
+                         (let ((result (dvc-buffer-content output)))
+                           (when (capture i-p)
+                             (message "tla tree-root is: %s"
+                                      result))
+                           result)))))
 
 ;;;###autoload
 (defun tla-tree-version (&optional location no-error)
@@ -3746,7 +3749,8 @@ if already set in the bookmarks."
   (let ((list (or tla-bookmarks-marked-list
                   (list (ewoc-data (ewoc-locate
                                     tla-bookmarks-cookie))))))
-    (let ((tla-bookmarks-missing-buffer-list-elem
+    (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+          (tla-bookmarks-missing-buffer-list-elem
            (mapcar
             (lambda (elem)
               (cons
@@ -3883,12 +3887,14 @@ tla processes with the appropriate handlers to fill in the ewoc."
          ;; (changes <local tree>)
          (let ((to-delete
                 (ewoc-enter-last dvc-revlist-cookie
-                                 '(message "Checking for local changes..."))))
+                                 '(message "Checking for local changes...")))
+               (cur-buf (current-buffer))
+               (parent-node (ewoc-nth dvc-revlist-cookie -1)))
            (setq default-directory (nth 1 item))
            (tla--run-tla-async
             '("changes")
             :error (dvc-capturing-lambda (output error status arguments)
-                      (with-current-buffer (capture (current-buffer))
+                      (with-current-buffer (capture cur-buf)
                         (let* ((prev (ewoc-prev
                                       dvc-revlist-cookie
                                       (capture to-delete)))
@@ -3896,8 +3902,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                                      dvc-revlist-cookie))
                                (deleted (eq cur (capture to-delete))))
                           (tla-bookmarks-missing-parse-changes
-                           output (capture (ewoc-nth dvc-revlist-cookie
-                                             -1)))
+                           output (capture parent-node))
                           (tla--ewoc-delete dvc-revlist-cookie (capture to-delete))
                           (ewoc-refresh dvc-revlist-cookie)
                           (let ((loc (if deleted
@@ -3908,7 +3913,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                             (when loc
                               (goto-char (ewoc-location loc)))))))
             :finished (dvc-capturing-lambda (output error status arguments)
-                         (with-current-buffer (capture (current-buffer))
+                         (with-current-buffer (capture cur-buf)
                            (let* ((prev (ewoc-prev
                                          dvc-revlist-cookie
                                          (capture to-delete)))
@@ -4087,6 +4092,7 @@ parsed."
   (let ((last-node parent-node)
         (buffer-to-parse (with-current-buffer buffer
                            (clone-buffer)))
+        (parent-buffer (ewoc-buffer cookie))
         revision)
     (with-current-buffer buffer-to-parse
       (goto-char (point-min))
@@ -4108,7 +4114,7 @@ parsed."
                     dvc-revisions-shows-date
                     tla-revisions-shows-merges
                     tla-revisions-shows-merged-by)
-            (with-current-buffer (ewoc-buffer cookie)
+            (with-current-buffer parent-buffer
               (if (tla-revisions-has-complete-log-option)
                   (let* ((rev-list (tla--name-split revision))
                          (tree-str (apply 'tla--archive-tree-get-revision-struct
@@ -4149,7 +4155,7 @@ parsed."
                                                    "New-patches")))))
                     (dvc-trace "rev-struct=%s" (capture rev-struct))
                     (dvc-trace "elem=%s" (capture elem))
-                    (with-current-buffer (capture (ewoc-buffer cookie))
+                    (with-current-buffer (capture parent-buffer)
                       (setq tla--nb-active-processes
                             (- tla--nb-active-processes 1))
                       (when (and (capture callback)
@@ -5050,27 +5056,28 @@ When called interactively, with no argument: Show the name of the default archiv
   (interactive "P")
   (when (or (numberp new-default) (and (listp new-default) (> (length new-default) 0)))
     (setq new-default (car (tla-name-read nil 'prompt))))
-  (cond ((stringp new-default)
-         (message "Setting arch default archive to: %s" new-default)
-         (tla--run-tla-sync (list "my-default-archive" new-default)
-                            :finished 'dvc-null-handler))
-        (t
-         (tla--run-tla-sync '("my-default-archive")
-                            :finished
-                            (dvc-capturing-lambda (output error status arguments)
-                               (let ((result (dvc-buffer-content output)))
-                                 (when (capture (interactive-p))
-                                   (message "Default arch archive: %s"
-                                            result))
-                                 result))
-                            :error
-                            (dvc-capturing-lambda (output error status arguments)
-                               (if (eq status 1)
-                                   (if (capture (interactive-p))
-                                       (message "default archive not set")
-                                     "")
-                                 (dvc-default-error-function
-                                  output error status arguments)))))))
+  (let ((i-p (interactive-p)))
+    (cond ((stringp new-default)
+           (message "Setting arch default archive to: %s" new-default)
+           (tla--run-tla-sync (list "my-default-archive" new-default)
+                              :finished 'dvc-null-handler))
+          (t
+           (tla--run-tla-sync '("my-default-archive")
+                              :finished
+                              (dvc-capturing-lambda (output error status arguments)
+                                (let ((result (dvc-buffer-content output)))
+                                  (when (capture i-p)
+                                    (message "Default arch archive: %s"
+                                             result))
+                                  result))
+                              :error
+                              (dvc-capturing-lambda (output error status arguments)
+                                (if (eq status 1)
+                                    (if (capture i-p)
+                                        (message "default archive not set")
+                                      "")
+                                  (dvc-default-error-function
+                                   output error status arguments))))))))
 
 (defun tla-whereis-archive (&optional archive)
   "Call tla whereis-archive on ARCHIVE."
@@ -5612,7 +5619,8 @@ UNUSED is left here to keep the position of FROM-REVLIB"
                   (tla--name-category l)
                   (tla--name-branch l)
                   (tla--name-version l))))
-  (let ((output-buf (dvc-get-buffer-create tla-arch-branch
+  (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+        (output-buf (dvc-get-buffer-create tla-arch-branch
                      'revisions
                      (tla--name-construct
                       archive category branch version)))
@@ -5745,7 +5753,8 @@ tree and the location."
   (let ((dir (tla-tree-root)))
     (pop-to-buffer (dvc-get-buffer-create tla-arch-branch 'missing))
     (cd dir))
-  (tla-revision-list-mode)
+  (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc)))
+    (tla-revision-list-mode))
   (setq dvc-buffer-refresh-function 'tla-missing-refresh)
   (set (make-local-variable 'tla-missing-buffer-todolist)
        `((missing ,local-tree ,(tla--name-construct location) nil)))
@@ -7335,31 +7344,32 @@ calls (format summary-format S)."
 When called with a prefix argument ARG, create a standard Merged from
 line as Summary with `tla-merge-summary-line-for-log'."
   (interactive "P")
-  (tla--run-tla-sync '("log-for-merge")
-                     :finished
-                     (dvc-capturing-lambda (output error status arguments)
-                        (let ((content (dvc-buffer-content
-                                        output)))
-                          (if (= 0 (length content))
-                              (error "There was no merge!"))
-                          (with-current-buffer (capture (current-buffer))
-                            (let ((on-summary-line
-                                   (= 1 (count-lines (point-min) (point))))
-                                  (old-pos (point)))
-                              (if on-summary-line
-                                  (tla-log-goto-body)
-                                (goto-char old-pos))
-                              (insert content)))
-                          (when arg
-                            (tla-log-goto-summary)
-                            (delete-region (point) (line-end-position))
-                            (insert
-                             (with-current-buffer output
-                               (tla-merge-summary-line-for-log)))
-                            (tla-log-goto-keywords)
-                            (delete-region (point) (line-end-position))
-                            (insert "merge")
-                            (tla-log-goto-summary))))))
+  (let ((cur-buf (current-buffer)))
+    (tla--run-tla-sync '("log-for-merge")
+                       :finished
+                       (dvc-capturing-lambda (output error status arguments)
+                         (let ((content (dvc-buffer-content
+                                         output)))
+                           (if (= 0 (length content))
+                               (error "There was no merge!"))
+                           (with-current-buffer (capture cur-buf)
+                             (let ((on-summary-line
+                                    (= 1 (count-lines (point-min) (point))))
+                                   (old-pos (point)))
+                               (if on-summary-line
+                                   (tla-log-goto-body)
+                                 (goto-char old-pos))
+                               (insert content)))
+                           (when arg
+                             (tla-log-goto-summary)
+                             (delete-region (point) (line-end-position))
+                             (insert
+                              (with-current-buffer output
+                                (tla-merge-summary-line-for-log)))
+                             (tla-log-goto-keywords)
+                             (delete-region (point) (line-end-position))
+                             (insert "merge")
+                             (tla-log-goto-summary)))))))
 
 
 (defun tla-log-edit-insert-memorized-log ()
