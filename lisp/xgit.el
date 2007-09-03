@@ -269,7 +269,7 @@ new file.")
                   `(xgit (last-revision ,root 1))
                   `(xgit (local-tree ,root))
                   'diff root 'xgit))
-         (command-list '("diff" "-M" "HEAD")))
+         (command-list `("diff" "-M" ,base-rev ,(or against "HEAD"))))
     (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
@@ -278,6 +278,26 @@ new file.")
                        (dvc-capturing-lambda (output error status arguments)
                          (dvc-show-changes-buffer output 'xgit-parse-diff
                                                   (capture buffer))))))
+
+(defvar xgit-prev-format-string "%s~%s"
+  "This is a format string which is used by `dvc-revision-to-string'
+when encountering a (previous ...) component of a revision indicator.
+.
+The first argument is a commit ID, and the second specifies how
+many generations back we want to go from the given commit ID.")
+
+(defun xgit-delta (base-rev against &optional dont-switch)
+  (interactive (list nil nil current-prefix-arg))
+  (let* ((root (xgit-tree-root))
+         (buffer (dvc-prepare-changes-buffer
+                  `(xgit (last-revision ,root 1))
+                  `(xgit (local-tree ,root))
+                  'diff root 'xgit)))
+    (xgit-diff (dvc-revision-to-string against xgit-prev-format-string)
+               root dont-switch
+               (dvc-revision-to-string base-rev xgit-prev-format-string))
+    (with-current-buffer buffer (goto-char (point-min)))
+    buffer))
 
 ;; TODO: update for git
 (defun xgit-restore (force &rest files)

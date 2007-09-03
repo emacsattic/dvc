@@ -52,6 +52,8 @@
 
 (defalias 'xgit-dvc-diff 'xgit-diff)
 
+(defalias 'xgit-dvc-delta 'xgit-delta)
+
 (defun xgit-dvc-log-edit-file-name-func ()
   (concat (xgit-tree-root) xgit-log-edit-file-name))
 
