@@ -260,17 +260,25 @@ new file.")
                                  " " ; dir. Nothing is a directory in hg.
                                  nil)))))))
 
-;; TODO: update for git
-(defun xgit-diff (&optional against path dont-switch)
-    (interactive (list nil nil current-prefix-arg))
+(defun xgit-diff (&optional against-rev path dont-switch base-rev)
+  (interactive (list nil nil current-prefix-arg))
   (let* ((cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
          (root (xgit-tree-root cur-dir))
+         (against (if against-rev
+                      (dvc-revision-to-string against-rev
+                                              xgit-prev-format-string "HEAD")
+                    "HEAD"))
+         (against-rev (or against-rev `(xgit (last-revision ,root 1))))
+         (base (if base-rev
+                   (dvc-revision-to-string base-rev xgit-prev-format-string
+                                           "HEAD")
+                 nil))
+         (base-rev (or base-rev `(xgit (local-tree ,root))))
          (buffer (dvc-prepare-changes-buffer
-                  `(xgit (last-revision ,root 1))
-                  `(xgit (local-tree ,root))
+                  against-rev base-rev
                   'diff root 'xgit))
-         (command-list '("diff" "-M" "HEAD")))
+         (command-list `("diff" "-M" ,base ,against)))
     (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
@@ -279,6 +287,24 @@ new file.")
                        (dvc-capturing-lambda (output error status arguments)
                          (dvc-show-changes-buffer output 'xgit-parse-diff
                                                   (capture buffer))))))
+
+(defvar xgit-prev-format-string "%s~%s"
+  "This is a format string which is used by `dvc-revision-to-string'
+when encountering a (previous ...) component of a revision indicator.
+.
+The first argument is a commit ID, and the second specifies how
+many generations back we want to go from the given commit ID.")
+
+(defun xgit-delta (base-rev against &optional dont-switch)
+  (interactive (list nil nil current-prefix-arg))
+  (let* ((root (xgit-tree-root))
+         (buffer (dvc-prepare-changes-buffer
+                  `(xgit (last-revision ,root 1))
+                  `(xgit (local-tree ,root))
+                  'diff root 'xgit)))
+    (xgit-diff against root dont-switch base-rev)
+    (with-current-buffer buffer (goto-char (point-min)))
+    buffer))
 
 ;; TODO: update for git
 (defun xgit-restore (force &rest files)
@@ -443,11 +469,12 @@ LAST-REVISION looks like
 \(\"path\" NUM)"
   (dvc-trace "xgit-revision-get-last-revision file:%S last-revision:%S"
              file last-revision)
-  (let ((xgit-rev (int-to-string (1- (nth 1 last-revision))))
-        (default-directory (car last-revision)))
+  (let* ((xgit-rev (int-to-string (1- (nth 1 last-revision))))
+         (default-directory (car last-revision))
+         (fname (file-relative-name file (xgit-tree-root))))
     (insert (dvc-run-dvc-sync
              'xgit (list "cat-file" "blob"
-                         (format "HEAD~%s:%s" xgit-rev file))
+                         (format "HEAD~%s:%s" xgit-rev fname))
              :finished 'dvc-output-buffer-handler-withnewline))))
 
 (provide 'xgit)

@@ -26,6 +26,7 @@
 
 
 (require 'dvc-defs)
+(require 'ewoc)
 
 ;; Load compatibility code
 (if (featurep 'xemacs)
@@ -469,8 +470,16 @@ It's a macro so that it remains available after (unload-feature ...)."
            bzr-dvc
            bzr-revlist
            bzr-revision
-           bzr)
-         ))
+           bzr
+           ;; xgit
+           xgit-annotate
+           xgit-dvc
+           xgit-gnus
+           xgit-log
+           xgit-revision
+           xgit-core
+           xgit
+           )))
 
 (defun dvc-unload ()
   "Unloads DVC.

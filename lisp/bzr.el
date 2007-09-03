@@ -284,7 +284,7 @@ Same as `bzr-diff', but the interactive prompt is different."
   (bzr-diff against path dont-switch))
 
 ;;;###autoload
-(defun bzr-diff (&optional against path dont-switch)
+(defun bzr-diff (&optional against path dont-switch base-rev)
   "Run \"bzr diff\".
 
 AGAINST must be a revision specifier (number, last:N,
@@ -396,8 +396,10 @@ of the commit. Additionally the destination email address can be specified."
     (if (not (bzr-revision-at-point-localp))
         (message "Not a local revision: %s - no commit notification prepared." rev)
       (message "Preparing commit email for revision %s" rev)
-      (compose-mail (if dest-specs (cadr dest-specs) "")
-                    (concat (if dest-specs (car dest-specs) "") "rev " rev ": " summary))
+      (let ((gnus-newsgroup-name nil))
+        (compose-mail (if dest-specs (cadr dest-specs) "")
+                      (concat (if dest-specs (car dest-specs) "")
+                              "rev " rev ": " summary)))
       (message-goto-body)
       (while (looking-at "<#part[^>]*>")
         (forward-line 1))

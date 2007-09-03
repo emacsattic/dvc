@@ -52,6 +52,8 @@
 
 (defalias 'xgit-dvc-diff 'xgit-diff)
 
+(defalias 'xgit-dvc-delta 'xgit-delta)
+
 (defun xgit-dvc-log-edit-file-name-func ()
   (concat (xgit-tree-root) xgit-log-edit-file-name))
 
@@ -86,7 +88,8 @@
                  (message "git commit finished")))
     (dvc-tips-popup-maybe)))
 
-(defun xgit-dvc-log (arg)
+;;;###autoload
+(defun xgit-dvc-log (arg last-n)
   "Shows the changelog in the current git tree.
 ARG is passed as prefix argument"
   (call-interactively 'xgit-log))

@@ -42,7 +42,7 @@
 
 (defalias 'tla-dvc-tree-root 'tla-tree-root)
 
-(defun tla-dvc-diff (against path dont-switch)
+(defun tla-dvc-diff (against path dont-switch base-rev)
   (tla-changes nil against))
 
 (defun tla-dvc-file-diff (file &optional base modified dont-switch)
@@ -76,7 +76,7 @@
   (interactive)
   (call-interactively 'tla-move))
 
-(defun tla-dvc-log (arg)
+(defun tla-dvc-log (arg last-n)
   "Show the log for the current Arch tree."
   (tla-logs))
 

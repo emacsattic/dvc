@@ -30,7 +30,7 @@
 ;;;###autoload
 (dvc-register-dvc 'baz "Bazaar 1")
 (defalias 'baz-dvc-tree-root 'baz-tree-root)
-(defun baz-dvc-diff (against path dont-switch)
+(defun baz-dvc-diff (against path dont-switch base-rev)
   (baz-changes nil against))
 (defalias 'baz-dvc-file-diff 'baz-file-diff)
 (defun baz-dvc-status (&optional path)
@@ -39,7 +39,7 @@
   (tla-edit-log nil nil other-frame))
 (defun baz-dvc-add (file)
   (baz-add nil file))
-(defun baz-dvc-log (arg)
+(defun baz-dvc-log (arg last-n)
   "Shows the changelog in the current Arch tree."
   (baz-logs))
 (defun baz-dvc-search-file-in-diff (file)
