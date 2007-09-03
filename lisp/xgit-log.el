@@ -216,14 +216,13 @@ DIFF-MATCH is string to filter logs by matching commit diffs.
 REV is revision to show.
 FILE is filename in repostory to filter logs by matching filename."
   (interactive (list default-directory))
-  (let* ((repo (xgit-git-dir dir))
-         (count (format "--max-count=%s" (or cnt xgit-log-max-count)))
+  (let* ((count (format "--max-count=%s" (or cnt xgit-log-max-count)))
          (since-date (or since xgit-log-since))
          (since (when since-date (format "--since=%s" since-date)))
          (grep  (when log-regexp (format "--grep=%s" log-regexp)))
          (diff  (when diff-match (format "-S%s" diff-match)))
          (fname (when file (file-relative-name file (xgit-tree-root dir))))
-         (args  (list repo "log" "--pretty=fuller" count
+         (args  (list "log" "--pretty=fuller" count
                       since grep diff rev "--" fname)))
     ;;(setq bzr-log-show-only-short-message t)
     (dvc-build-revision-list 'xgit 'log dir args
