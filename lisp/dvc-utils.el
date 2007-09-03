@@ -552,7 +552,7 @@ Function used to refresh the current buffer")
   (let ((dvc-read-directory-mode 'never)
         (dvc-read-project-tree-mode 'never))
     (if dvc-buffer-refresh-function
-        (let (dvc-temp-current-active-dvc dvc-buffer-current-active-dvc)
+        (let ((dvc-temp-current-active-dvc dvc-buffer-current-active-dvc))
           (funcall dvc-buffer-refresh-function))
       (message "I don't know how to refresh this buffer"))))
 
