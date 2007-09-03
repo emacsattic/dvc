@@ -207,7 +207,7 @@ See also `xgit-log-max-count'."
 
 ;; copied and adapted from bzr-log
 ;;;###autoload
-(defun* xgit-log (dir &key cnt log-regexp diff-match rev file since)
+(defun* xgit-log (dir cnt &key log-regexp diff-match rev file since)
   "Run git log for DIR.
 DIR is a directory controlled by Git/Cogito.
 CNT is max number of log to print.  If not specified, uses git-log-max-count.
@@ -215,7 +215,7 @@ LOG-REGEXP is regexp to filter logs by matching commit logs.
 DIFF-MATCH is string to filter logs by matching commit diffs.
 REV is revision to show.
 FILE is filename in repostory to filter logs by matching filename."
-  (interactive (list default-directory))
+  (interactive (list default-directory nil))
   (let* ((count (format "--max-count=%s" (or cnt xgit-log-max-count)))
          (since-date (or since xgit-log-since))
          (since (when since-date (format "--since=%s" since-date)))
@@ -223,10 +223,20 @@ FILE is filename in repostory to filter logs by matching filename."
          (diff  (when diff-match (format "-S%s" diff-match)))
          (fname (when file (file-relative-name file (xgit-tree-root dir))))
          (args  (list "log" "--pretty=fuller" count
-                      since grep diff rev "--" fname)))
-    ;;(setq bzr-log-show-only-short-message t)
+                      since grep diff rev "--" fname))
+         ;; git pipes the result of "git log" to the PAGER, so set PAGER=cat
+         ;; to work around that feature
+         (process-environment (append '("PAGER=cat") process-environment)))
     (dvc-build-revision-list 'xgit 'log dir args
-                             'xgit-log-parse)
+                             'xgit-log-parse
+                             (dvc-capturing-lambda ()
+                               (xgit-log (capture dir)
+                                         (capture cnt)
+                                         :log-regexp (capture log-regexp)
+                                         :diff-match (capture diff-match)
+                                         :rev (capture rev)
+                                         :file (capture file)
+                                         :since (capture since))))
     (goto-char (point-min))))
 
 

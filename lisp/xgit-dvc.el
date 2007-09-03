@@ -88,7 +88,8 @@
                  (message "git commit finished")))
     (dvc-tips-popup-maybe)))
 
-(defun xgit-dvc-log (arg)
+;;;###autoload
+(defun xgit-dvc-log (arg last-n)
   "Shows the changelog in the current git tree.
 ARG is passed as prefix argument"
   (call-interactively 'xgit-log))

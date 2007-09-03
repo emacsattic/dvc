@@ -111,15 +111,6 @@
   (with-current-buffer log-buffer
       (goto-char (point-min))))
 
-;;;###autoload
-(defun xgit-dvc-log (path)
-  "Show a dvc formatted log for git."
-  (interactive (list default-directory))
-  ;; cogito pipes the result of cg log to the PAGER, set PAGER to cat to work around that feature
-  (let ((process-environment
-         (append '("PAGER=cat") process-environment)))
-    (dvc-build-revision-list 'xgit 'log path '("log") 'xgit-dvc-log-parse)))
-
 
 (provide 'xgit-revision)
 ;;; xgit-revision.el ends here

@@ -113,7 +113,7 @@ patches from the entire message."
           (set-window-configuration window-conf)
           (when (and working-dir
                      (y-or-n-p "Run git log in working directory? "))
-            (xgit-log working-dir)
+            (xgit-log working-dir nil)
             (delete-other-windows)))
       ;; clean up temporary file
       (delete-file patch-file-name)

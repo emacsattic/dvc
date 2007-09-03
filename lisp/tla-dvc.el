@@ -76,7 +76,7 @@
   (interactive)
   (call-interactively 'tla-move))
 
-(defun tla-dvc-log (arg)
+(defun tla-dvc-log (arg last-n)
   "Show the log for the current Arch tree."
   (tla-logs))
 

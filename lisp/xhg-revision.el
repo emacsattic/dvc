@@ -100,10 +100,12 @@
       (goto-char (point-min))))
 
 ;;;###autoload
-(defun xhg-dvc-log (path)
+(defun xhg-dvc-log (path last-n)
   "Show a dvc formatted log for xhg."
-  (interactive (list default-directory))
-  (dvc-build-revision-list 'xhg 'log path '("log") 'xhg-dvc-log-parse))
+  (interactive (list default-directory nil))
+  (dvc-build-revision-list 'xhg 'log path '("log") 'xhg-dvc-log-parse
+                           (dvc-capturing-lambda ()
+                             (xhg-dvc-log (capture path) (capture last-n)))))
 
 (defun xhg-revlog-get-revision (rev-id)
   (let ((rev (car (dvc-revision-get-data rev-id))))

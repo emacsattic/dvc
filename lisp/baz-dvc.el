@@ -39,7 +39,7 @@
   (tla-edit-log nil nil other-frame))
 (defun baz-dvc-add (file)
   (baz-add nil file))
-(defun baz-dvc-log (arg)
+(defun baz-dvc-log (arg last-n)
   "Shows the changelog in the current Arch tree."
   (baz-logs))
 (defun baz-dvc-search-file-in-diff (file)
