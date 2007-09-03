@@ -223,10 +223,7 @@ FILE is filename in repostory to filter logs by matching filename."
          (diff  (when diff-match (format "-S%s" diff-match)))
          (fname (when file (file-relative-name file (xgit-tree-root dir))))
          (args  (list "log" "--pretty=fuller" count
-                      since grep diff rev "--" fname))
-         ;; git pipes the result of "git log" to the PAGER, so set PAGER=cat
-         ;; to work around that feature
-         (process-environment (append '("PAGER=cat") process-environment)))
+                      since grep diff rev "--" fname)))
     (dvc-build-revision-list 'xgit 'log dir args
                              'xgit-log-parse
                              (dvc-capturing-lambda ()

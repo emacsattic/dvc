@@ -84,6 +84,8 @@ It will be nil before the initial commit."
 ;;;###autoload
 (defun xgit-prepare-environment (env)
   "Prepare the environment to run git."
+  ;; git pipes the result of "git log" to the PAGER, so set
+  ;; GIT_PAGER=cat to work around that feature
   (cons "GIT_PAGER=cat" env))
 
 (provide 'xgit-core)
