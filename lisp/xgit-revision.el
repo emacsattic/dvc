@@ -104,20 +104,12 @@
              ,(make-dvc-revlist-entry-patch
                :dvc 'xgit
                :struct elem
-               :rev-id `(cg (revision (local ,root ,(xgit-revision-st-changeset elem))))))))
-        ;; FIXME: xgit-revision-st-changeset is not defined anywhere
+               :rev-id `(xgit (revision
+                               (local ,root ,
+                                      (xgit-revision-st-commit elem))))))))
         (setq elem (make-xgit-revision-st)))))
   (with-current-buffer log-buffer
       (goto-char (point-min))))
-
-;;;###autoload
-(defun xgit-dvc-log (path)
-  "Show a dvc formatted log for git."
-  (interactive (list default-directory))
-  ;; cogito pipes the result of cg log to the PAGER, set PAGER to cat to work around that feature
-  (let ((process-environment
-         (append '("PAGER=cat") process-environment)))
-    (dvc-build-revision-list 'xgit 'log path '("log") 'xgit-dvc-log-parse)))
 
 
 (provide 'xgit-revision)

@@ -1025,18 +1025,27 @@ Strips the final newline if there is one."
 (defun dvc-revision-get-data (revision-id)
   (cdr (nth 1 revision-id)))
 
-(defun dvc-revision-to-string (revision-id)
-  "Return a string representation for REVISION-ID."
+(defun dvc-revision-to-string (revision-id &optional prev-format orig-str)
+  "Return a string representation for REVISION-ID.
+
+If PREV-FORMAT is specified, it is the format string to use for
+entries that are before the given revision ID.  The format string
+should take two parameters.  The first is the revision ID, and
+the second is a number which indicates how many generations back
+to travel.
+
+If ORIG-STR is specified, it is the string that indicates the
+current revision of the working tree."
   (let* ((type (dvc-revision-get-type revision-id))
          (data (dvc-revision-get-data revision-id)))
     (case type
       (revision (dvc-name-construct (nth 0 data)))
       (local-tree (car data))
-      (last-revision "original")
+      (last-revision (or orig-str "original"))
       (previous-revision
-       (concat (dvc-revision-to-string
+       (format (or prev-format "%s:-%s")
+               (dvc-revision-to-string
                 (list (dvc-revision-get-dvc revision-id) (nth 0 data)))
-               ":-"
                (int-to-string (nth 1 data))))
       (t "UNKNOWN"))))
 

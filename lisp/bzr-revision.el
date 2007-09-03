@@ -153,12 +153,14 @@
           (dvc-revision-prev))))))
 
 ;;;###autoload
-(defun bzr-log (path)
+(defun bzr-log (path last-n)
   "Run bzr log and show only the first line of the log message."
-  (interactive (list default-directory))
+  (interactive (list default-directory nil))
   (let ((path (or path (bzr-tree-root))))
     (setq bzr-log-show-only-short-message t)
-    (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
+    (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse
+                             (dvc-capturing-lambda ()
+                               (bzr-log (capture path) (capture last-n))))
     (goto-char (point-min))))
 
 ;;;###autoload
@@ -166,7 +168,10 @@
   "Run bzr log against a remote location."
   (interactive (list (read-string "Location of the branch: ")))
   (setq bzr-log-show-only-short-message t)
-  (dvc-build-revision-list 'bzr 'remote-log location `("log" ,location) 'bzr-log-parse-remote)
+  (dvc-build-revision-list 'bzr 'remote-log location `("log" ,location)
+                           'bzr-log-parse-remote
+                           (dvc-capturing-lambda ()
+                             (bzr-log-remote (capture location))))
   (goto-char (point-min)))
 
 ;;;###autoload
@@ -175,7 +180,9 @@
   (interactive (list default-directory))
   (let ((path (or path (bzr-tree-root))))
     (setq bzr-log-show-only-short-message nil)
-    (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse)
+    (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse
+                             (dvc-capturing-lambda ()
+                               (bzr-changelog (capture path))))
     (goto-char (point-min))))
 
 ;;;###autoload
@@ -186,7 +193,11 @@
     (setq other nil))
   ;;(message "bzr-missing %S" other)
   (setq bzr-log-show-only-short-message nil)
-  (dvc-build-revision-list 'bzr 'missing (bzr-tree-root) `("missing" ,other) 'bzr-missing-parse)
+  (dvc-build-revision-list 'bzr 'missing (bzr-tree-root)
+                           `("missing" ,other)
+                           'bzr-missing-parse
+                           (dvc-capturing-lambda ()
+                             (bzr-missing (capture other))))
   (goto-char (point-min)))
 
 (provide 'bzr-revision)
