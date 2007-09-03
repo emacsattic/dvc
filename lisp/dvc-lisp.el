@@ -56,8 +56,11 @@ The name is made by appending a number to PREFIX, default is
 
 (defun dvc-capturing-lambda-helper (l)
   "Traverse list L, replacing captured symbols with newly generated
-symbols, and binding those new symbols to the value of each captured
-counterpart.
+symbols.
+
+A pair is added to `captured-values' for each new symbol,
+containing the name of the new symbol and the name of the old
+symbol.
 
 This is used by `dvc-capturing-lambda'."
   (cond ((atom l) l)
@@ -133,12 +136,11 @@ An example for the well-read Lisp fan:
   (let* ((captured-values nil)
          (body (dvc-capturing-lambda-helper body)))
     `(list 'lambda ',args
-           (list 'let (list
-                       ,@(mapcar (lambda (var)
-                                   `(list ',(car var)
-                                          (list 'quote ,(cdr var))))
-                                 captured-values))
-                 (list 'funcall (lambda () . ,body)))))))
+           (list 'apply
+                 (lambda ,(append args (mapcar #'car captured-values))
+                   . ,body)
+                 ,@(mapcar #'(lambda (arg) (list 'quote arg)) args)
+                 (list 'quote (list ,@(mapcar #'cdr captured-values))))))))
 (put 'dvc-capturing-lambda 'lisp-indent-function 1)
 (put 'dvc-capturing-lambda 'edebug-form-spec '(sexp body))
 
