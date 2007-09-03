@@ -260,16 +260,25 @@ new file.")
                                  " " ; dir. Nothing is a directory in hg.
                                  nil)))))))
 
-(defun xgit-diff (&optional against path dont-switch base-rev)
-    (interactive (list nil nil current-prefix-arg))
+(defun xgit-diff (&optional against-rev path dont-switch base-rev)
+  (interactive (list nil nil current-prefix-arg))
   (let* ((cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
          (root (xgit-tree-root cur-dir))
+         (against (if against-rev
+                      (dvc-revision-to-string against-rev
+                                              xgit-prev-format-string "HEAD")
+                    "HEAD"))
+         (against-rev (or against-rev `(xgit (last-revision ,root 1))))
+         (base (if base-rev
+                   (dvc-revision-to-string base-rev xgit-prev-format-string
+                                           "HEAD")
+                 nil))
+         (base-rev (or base-rev `(xgit (local-tree ,root))))
          (buffer (dvc-prepare-changes-buffer
-                  `(xgit (last-revision ,root 1))
-                  `(xgit (local-tree ,root))
+                  against-rev base-rev
                   'diff root 'xgit))
-         (command-list `("diff" "-M" ,base-rev ,(or against "HEAD"))))
+         (command-list `("diff" "-M" ,base ,against)))
     (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
@@ -293,9 +302,7 @@ many generations back we want to go from the given commit ID.")
                   `(xgit (last-revision ,root 1))
                   `(xgit (local-tree ,root))
                   'diff root 'xgit)))
-    (xgit-diff (dvc-revision-to-string against xgit-prev-format-string)
-               root dont-switch
-               (dvc-revision-to-string base-rev xgit-prev-format-string))
+    (xgit-diff against root dont-switch base-rev)
     (with-current-buffer buffer (goto-char (point-min)))
     buffer))
 
