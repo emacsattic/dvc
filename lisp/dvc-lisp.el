@@ -47,8 +47,8 @@ number to PREFIX.  The default is to use \"dvc\".
 
 If PREFIX is a number, then use that number at the end of the
 symbol name."
-  (let* ((prefix (if (stringp arg) arg "dvc-gensym-uniq-"))
-         (num (if (integerp arg) arg
+  (let* ((prefix (if (stringp prefix) prefix "dvc-gensym-uniq-"))
+         (num (if (integerp prefix) prefix
                 (prog1
                     dvc-gensym-counter
                   (setq dvc-gensym-counter (1+ dvc-gensym-counter)))))
