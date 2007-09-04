@@ -35,68 +35,120 @@
 ;;
 ;; Created in May 2005 by Matthieu Moy
 ;;
+;; Overhauled in Aug 2007 by Michael Olson
+
+(defvar dvc-gensym-counter 0)
+
+(defun dvc-gensym (&optional prefix)
+  "Generate a new uninterned symbol.
+
+If PREFIX is a string, then the name is made by appending a
+number to PREFIX.  The default is to use \"dvc\".
+
+If PREFIX is a number, then use that number at the end of the
+symbol name."
+  (let* ((prefix (if (stringp prefix) prefix "dvc-gensym-uniq-"))
+         (num (if (integerp prefix) prefix
+                (prog1
+                    dvc-gensym-counter
+                  (setq dvc-gensym-counter (1+ dvc-gensym-counter)))))
+         (symbol (make-symbol (format "%s%d" prefix num))))
+    (eval `(defvar ,symbol nil "lint trap"))
+    symbol))
+
+(defun dvc-capturing-lambda-helper (l)
+  "Traverse list L, replacing captured symbols with newly generated
+symbols.
+
+A pair is added to `captured-values' for each new symbol,
+containing the name of the new symbol and the name of the old
+symbol.
+
+This is used by `dvc-capturing-lambda'."
+  (cond ((atom l) l)
+        ((eq (car l) 'capture)
+         (let ((sym (cadr l)))
+           (unless (symbolp sym)
+             (error "Expected a symbol in capture statement: %S" sym))
+           (let ((g (car (rassq sym captured-values))))
+             (unless g
+               (setq g (dvc-gensym))
+               (push (cons g sym) captured-values))
+             g)))
+        (t (mapcar 'dvc-capturing-lambda-helper l))))
 
 (eval-and-compile
-  (defvar dvc-gensym-counter 0)
+  ;; NOTE: We keep the contents of this block flush against the left
+  ;; margin, so that C-M-x continues to work.
+(defmacro dvc-capturing-lambda (args &rest body)
+  "Return a `lambda' form with ARGS, containing BODY, after capturing
+symbol values in BODY from the defining context.
 
-  (defun dvc-gensym (&optional arg)
-    "Generate a new uninterned symbol.
-    The name is made by appending a number to PREFIX, default
-\"dvc\"."
-    (let* ((prefix (if (stringp arg) arg "dvc-gensym-uniq-"))
-           (num (if (integerp arg) arg
-                  (prog1
-                      dvc-gensym-counter
-                    (setq dvc-gensym-counter (1+
-                                               dvc-gensym-counter)))))
-           (symbol (make-symbol (format "%s%d" prefix num))))
-      (eval `(defvar ,symbol nil "lint trap"))
-      symbol))
+Symbols to be captured should be surrounded by (capture ...).
+The remainder of BODY's forms are left as-is.
 
+For development on DVC, using either `dvc-capturing-lambda' or
+`lexical-let' is acceptable, with the condition that you must use
+one consistently within a particular source file.
 
-  (defun dvc-capturing-lambda-helper (l)
-    (cond ((atom l) l)
-          ((eq (car l) 'capture)
-           (let ((sym (cadr l)))
-             (unless (symbolp sym)
-               (error "Expected a symbol in capture statement: %S" sym))
-             (let ((g (car (rassq sym captured-values))))
-               (unless g
-                 (setq g (dvc-gensym))
-                 (push (cons g sym) captured-values))
-               g)))
-          (t (mapcar 'dvc-capturing-lambda-helper l))))
+A practical example:
 
-  (defmacro dvc-capturing-lambda (args &rest body)
-    "A `lambda' macro which is capable of capturing symbol values from its
-defining environment.
-    Symbols to be captured should be surrounded by (capture ...).
-    For example:
+  ;; Using dvc-capturing-lambda
+  (defun sort-by-nearness-1 (values middle)
+    \"Sort VALUES in order of how close they are to MIDDLE.\"
+    (sort values (dvc-capturing-lambda (a b)
+                   (< (abs (- a (capture middle)))
+                      (abs (- b (capture middle)))))))
 
-      (let* ((x 'lexical-x)
-             (y 'lexical-y)
-             (l (dvc-capturing-lambda (arg)
-                  (list x (capture y) arg))))
-        (let ((y 'dynamic-y)
-              (x 'dynamic-x))
-          (funcall l 'dummy-arg)))
+  (sort-by-nearness-1 '(1 2 3 4 8 5 9) 6)
+  => (5 4 8 3 9 2 1)
 
-    => (dynamic-x lexical-y dummy-arg)"
-    (let* ((captured-values nil)
-           (body (dvc-capturing-lambda-helper body)))
-      `(list 'lambda ',args
-             (list 'let (list
-                         ,@(mapcar (lambda (var)
-                                     `(list ',(car var)
-                                            (list 'quote ,(cdr var))))
-                                   captured-values))
-                   (list 'funcall (lambda () . ,body))))))
-  (put 'dvc-capturing-lambda 'lisp-indent-function 1)
-  (put 'dvc-capturing-lambda 'edebug-form-spec '(sexp body))
+  ;; Using backquote
+  (defun sort-by-nearness-2 (values middle)
+    \"Sort VALUES in order of how close they are to MIDDLE.\"
+    (sort values `(lambda (a b)
+                    (< (abs (- a ,middle))
+                       (abs (- b ,middle))))))
 
-  )
+  (sort-by-nearness-2 '(1 2 3 4 8 5 9) 6)
+  => (5 4 8 3 9 2 1)
+
+  ;; Using lexical-let
+  (defun sort-by-nearness-3 (values middle)
+    \"Sort VALUES in order of how close they are to MIDDLE.\"
+    (lexical-let ((middle middle))
+      (sort values (lambda (a b)
+                     (< (abs (- a middle))
+                        (abs (- b middle)))))))
+
+  (sort-by-nearness-3 '(1 2 3 4 8 5 9) 6)
+  => (5 4 8 3 9 2 1)
+
+An example for the well-read Lisp fan:
+
+  (let* ((x 'lexical-x)
+         (y 'lexical-y)
+         (l (dvc-capturing-lambda (arg)
+              (list x (capture y) arg))))
+    (let ((y 'dynamic-y)
+          (x 'dynamic-x))
+      (funcall l 'dummy-arg)))
+
+  => (dynamic-x lexical-y dummy-arg)"
+  (let* ((captured-values nil)
+         (body (dvc-capturing-lambda-helper body)))
+    `(list 'lambda ',args
+           (list 'apply
+                 (lambda ,(append args (mapcar #'car captured-values))
+                   . ,body)
+                 ,@(mapcar #'(lambda (arg) (list 'quote arg)) args)
+                 (list 'quote (list ,@(mapcar #'cdr captured-values))))))))
+(put 'dvc-capturing-lambda 'lisp-indent-function 1)
+(put 'dvc-capturing-lambda 'edebug-form-spec '(sexp body))
 
 (defun dvc-lexical-let-perform-replacement-in-source ()
+  "Replace instances of quoted lambda forms with `lexical-let'
+in the current buffer."
   (interactive)
   (goto-char (point-min))
   (while (search-forward "`(lambda" nil t)
@@ -137,6 +189,8 @@ defining environment.
         (newline-and-indent)))))
 
 (defun dvc-capturing-lambda-perform-replacement-in-source ()
+  "Replace instances of quoted lambda forms with `dvc-capturing-lambda'
+in the current buffer."
   (interactive)
   (goto-char (point-min))
   (while (search-forward "`(lambda" nil t)
@@ -155,3 +209,4 @@ defining environment.
           (insert ")"))))))
 
 (provide 'dvc-lisp)
+;;; dvc-lisp.el ends here
