@@ -39,17 +39,19 @@
 
 (defvar dvc-gensym-counter 0)
 
-(defun dvc-gensym (&optional arg)
+(defun dvc-gensym (&optional prefix)
   "Generate a new uninterned symbol.
 
-The name is made by appending a number to PREFIX, default is
-\"dvc\"."
+If PREFIX is a string, then the name is made by appending a
+number to PREFIX.  The default is to use \"dvc\".
+
+If PREFIX is a number, then use that number at the end of the
+symbol name."
   (let* ((prefix (if (stringp arg) arg "dvc-gensym-uniq-"))
          (num (if (integerp arg) arg
                 (prog1
                     dvc-gensym-counter
-                  (setq dvc-gensym-counter (1+
-                                            dvc-gensym-counter)))))
+                  (setq dvc-gensym-counter (1+ dvc-gensym-counter)))))
          (symbol (make-symbol (format "%s%d" prefix num))))
     (eval `(defvar ,symbol nil "lint trap"))
     symbol))
