@@ -49,6 +49,10 @@
 (defvar dvc-revlist-cookie nil
   "Ewoc cookie for dvc-revlist.")
 
+(defvar dvc-revlist-refresh-fn nil
+  "Function to use when regenerating the revision list buffer.")
+(make-variable-buffer-local 'dvc-revlist-refresh-fn)
+
 ;; elem of dvc-revlist-cookie should be one of:
 ;; ('separator "string" kind)
 ;;    `kind' is: one of
@@ -280,6 +284,18 @@ revision list."
       (pop-to-buffer log-buf)
       (set (make-local-variable 'dvc-partner-buffer) buffer))))
 
+(defun dvc-revlist-diff-to-current-tree (&optional scroll-down)
+  "Show the diff between the revision at point and the local tree."
+  (interactive)
+  (let ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie))))
+    (unless (eq (car elem) 'entry-patch)
+      (error "Cursor is not on a revision."))
+    (let ((rev-id (dvc-revlist-entry-patch-rev-id (nth 1 elem)))
+          (root (dvc-tree-root)))
+      ;; we use dvc-diff, not dvc-delta, because the xmtn backend supports 'local-tree in diff but not delta.
+      ;; FIXME: only need one of those!
+      (dvc-diff rev-id root nil (list (dvc-current-active-dvc) (list 'local-tree root))))))
+
 (defun dvc-revlist-diff-scroll-down ()
   (interactive)
   (dvc-revlist-diff t))
@@ -302,6 +318,7 @@ revision list."
     (define-key map [return] 'dvc-revlist-show-item)
     (define-key map [(meta return)] 'dvc-revlist-show-item-scroll-down)
     (define-key map [?=]              'dvc-revlist-diff)
+    (define-key map [(control ?=)]    'dvc-revlist-diff-to-current-tree)
     (define-key map [(meta ?=)]       'dvc-revlist-diff-scroll-down)
     (define-key map (dvc-prefix-toggle ?d) 'dvc-revlist-toggle-date)
     (define-key map (dvc-prefix-toggle ?c) 'dvc-revlist-toggle-creator)
@@ -338,20 +355,33 @@ Commands are:
   (toggle-read-only 1)
   (set-buffer-modified-p nil)
   (set (make-local-variable 'dvc-get-revision-info-at-point-function)
-       'dvc-revlist-get-rev-at-point))
+       'dvc-revlist-get-rev-at-point)
+  (setq dvc-buffer-refresh-function 'dvc-revlist-generic-refresh))
 
-(defun dvc-build-revision-list (back-end type location arglist parser)
+(defun dvc-revlist-generic-refresh ()
+  "Refresh the revision list buffer."
+  (interactive)
+  (if dvc-revlist-refresh-fn
+      (funcall dvc-revlist-refresh-fn)
+    (message "I don't know how to refresh this revision list buffer")))
+
+(defun dvc-build-revision-list (back-end type location arglist parser
+                                         refresh-fn)
   "Runs the back-end BACK-END to build a revision list.
 
 A buffer of type TYPE with location LOCATION is created or reused.
 
 The back-end is launched with the arguments ARGLIST, and the
 caller has to provide the function PARSER which will actually
-build the revision list."
+build the revision list.
+
+REFRESH-FN specifies the function to call when the user wants to
+refresh the revision list buffer.  It must take no arguments."
   (let ((dvc-temp-current-active-dvc back-end)
         (buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
-      (dvc-revlist-mode))
+      (dvc-revlist-mode)
+      (setq dvc-revlist-refresh-fn refresh-fn))
     (dvc-switch-to-buffer-maybe buffer t)
     (dvc-run-dvc-async
      back-end arglist

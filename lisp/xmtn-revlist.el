@@ -42,10 +42,19 @@
 
 
 (defvar xmtn--revlist-*root* nil)
+(make-variable-buffer-local 'xmtn--revlist-*root*)
+
 (defvar xmtn--revlist-*info-generator-fn* nil)
+(make-variable-buffer-local 'xmtn--revlist-*info-generator-fn*)
+
 (defvar xmtn--revlist-*first-line-only-p* nil)
+(make-variable-buffer-local 'xmtn--revlist-*first-line-only-p*)
 
 (defvar xmtn--revlist-*merge-destination-branch* nil)
+(make-variable-buffer-local 'xmtn--revlist-*merge-destination-branch*)
+
+(defvar xmtn--revlist-*last-n* nil)
+(make-variable-buffer-local 'xmtn--revlist-*last-n*)
 
 (defun xmtn--escape-branch-name-for-selector (branch-name)
   ;; FIXME.  The monotone manual refers to "shell wildcards" but
@@ -136,13 +145,16 @@
                              lines))
                (insert (format "     %s\n" line))))))))))
 
-(defun xmtn--revlist-setup-ewoc (root ewoc header footer
-                                      revision-hash-ids)
+(defun xmtn--revlist-setup-ewoc (root ewoc header footer revision-hash-ids last-n)
   (assert (every (lambda (x) (typep x 'xmtn--hash-id)) revision-hash-ids))
   (ewoc-set-hf ewoc header footer)
   (ewoc-filter ewoc (lambda (x) nil))   ; Clear it.
   (xmtn-automate-with-session (session root)
     (setq revision-hash-ids (xmtn--toposort root revision-hash-ids))
+    (if last-n
+        (let ((len (length revision-hash-ids)))
+          (if (> len last-n)
+              (setq revision-hash-ids (nthcdr (- len last-n) revision-hash-ids)))))
     (setq revision-hash-ids (coerce revision-hash-ids 'vector))
     (xmtn--dotimes-with-progress-reporter (i (length revision-hash-ids))
       (case (length revision-hash-ids)
@@ -237,13 +249,14 @@
                                           (insert ?\n)
                                         (insert line ?\n)))
                                     (buffer-string))
-                                  revision-hash-ids)
+                                  revision-hash-ids
+                                  xmtn--revlist-*last-n*)
         (if (null (ewoc-nth ewoc 0))
             (goto-char (point-max))
           (ewoc-goto-node ewoc (ewoc-nth ewoc 0))))))
   nil)
 
-(defun xmtn--setup-revlist (root info-generator-fn first-line-only-p)
+(defun xmtn--setup-revlist (root info-generator-fn first-line-only-p last-n)
   (xmtn-automate-with-session (nil root)
     (let ((dvc-temp-current-active-dvc 'xmtn)
           (buffer (dvc-get-buffer-create 'xmtn 'log root)))
@@ -252,11 +265,10 @@
         (dvc-revlist-mode)
         (buffer-disable-undo)
         (setq truncate-lines t)
-        (set (make-local-variable 'xmtn--revlist-*root*) root)
-        (set (make-local-variable 'xmtn--revlist-*info-generator-fn*)
-             info-generator-fn)
-        (set (make-local-variable 'xmtn--revlist-*first-line-only-p*)
-             first-line-only-p)
+        (setq xmtn--revlist-*root* root)
+        (setq xmtn--revlist-*info-generator-fn* info-generator-fn)
+        (setq xmtn--revlist-*first-line-only-p* first-line-only-p)
+        (setq xmtn--revlist-*last-n* last-n)
         (setq dvc-buffer-refresh-function 'xmtn--revlist-refresh)
         (xmtn--revlist-refresh))
       (xmtn--display-buffer-maybe buffer nil)))
@@ -268,11 +280,11 @@
 ;;; most useful interpretation (since it could be implemented as a
 ;;; simple toggle inside the revlist buffer), but we copy it here.
 ;;;###autoload
-(defun xmtn-dvc-log (path) (xmtn--log-helper path t))
+(defun xmtn-dvc-log (path last-n) (xmtn--log-helper path t last-n))
 ;;;###autoload
-(defun xmtn-dvc-changelog (path) (xmtn--log-helper path nil))
+(defun xmtn-dvc-changelog (path) (xmtn--log-helper path nil nil))
 
-(defun xmtn--log-helper (path first-line-only-p)
+(defun xmtn--log-helper (path first-line-only-p last-n)
   ;; FIXME: I don't know what the argument PATH means.  So assert this
   ;; for now.
   (assert (or (null path)
@@ -294,7 +306,8 @@
                                          "b:"
                                          (xmtn--escape-branch-name-for-selector
                                           branch)))))))
-     first-line-only-p))
+     first-line-only-p
+     last-n))
   nil)
 
 (defun xmtn--revlist--missing-get-info (root branch new-revision-hash-ids)
@@ -360,8 +373,8 @@
               (error "Branch %s is unmerged (%s heads)"
                      branch
                      (length heads)))))))
-     ;; Passing nil as first-line-only-p is arbitrary here.
-     nil))
+     ;; Passing nil as first-line-only-p, last-n is arbitrary here.
+     nil nil))
   nil)
 
 ;;;###autoload
@@ -386,8 +399,8 @@
                     (t (format "%s head revisions: " head-count))))
             '()
             head-revision-hash-ids))))
-     ;; Passing nil as first-line-only-p is arbitrary here.
-     nil))
+     ;; Passing nil as first-line-only-p, last-n is arbitrary here.
+     nil nil))
   nil)
 
 ;;;###autoload
@@ -422,6 +435,8 @@ to the base revision of the current tree."
               '()
               revision-hash-ids))))
        ;; Passing nil as first-line-only-p is arbitrary here.
+       nil
+       ;; FIXME: it might be useful to specify last-n here
        nil)))
   nil)
 
@@ -460,6 +475,8 @@ to the base revision of the current tree."
               '()
               revision-hash-ids))))
        ;; Passing nil as first-line-only-p is arbitrary here.
+       nil
+       ;; FIXME: it might be useful to specify last-n here
        nil)))
   nil)
 
@@ -493,6 +510,7 @@ to the base revision of the current tree."
 
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id dont-switch)
+  ;; FIXME: very similar to xmtn-dvc-diff, but that handles to-revision-id = local-tree
   (let ((root (dvc-tree-root))
         (buffer (dvc-prepare-changes-buffer from-revision-id to-revision-id
                                             'diff nil 'xmtn)))
@@ -503,12 +521,14 @@ to the base revision of the current tree."
        `("diff"
          ,(concat "--revision="
                   (xmtn-match from-backend-id
-                    ((local-tree (error "Not implemented")))
+                    ((local-tree $path)
+                     (error "Not implemented"))
                     ((revision $revision-hash-id)
                      revision-hash-id)))
          ,(concat "--revision="
                   (xmtn-match to-backend-id
-                    ((local-tree (error "Not implemented")))
+                    ((local-tree $path)
+                     (error "Not implemented"))
                     ((revision $revision-hash-id)
                      revision-hash-id))))
        :finished
@@ -606,8 +626,8 @@ To be invoked from an xmtn revlist buffer.  Brings up an xmtn revlist buffer."
          (xmtn-automate-with-session (nil root)
            (let* ((branch (xmtn--tree-default-branch root)))
              (xmtn--revlist--missing-get-info root branch new-revisions))))
-       ;; Passing nil as first-line-only-p is arbitrary here.
-       nil)))
+       ;; Passing nil as first-line-only-p and last-n is arbitrary here.
+       nil nil)))
   nil)
 
 (defun xmtn-revlist-diff-to-current-tree (&optional dont-switch)

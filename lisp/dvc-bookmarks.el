@@ -30,6 +30,7 @@
 ;;; Code:
 (require 'dvc-core)
 (require 'dvc-state)
+(require 'ewoc)
 
 ;; this were the settings used for tla
 ;; ;; Generated file. Do not edit!!!
@@ -292,8 +293,8 @@ With prefix argument ARG, reload the bookmarks file from disk."
           (setq dvc-memorized-log-header (when nickname (format dvc-bookmarks-merge-template nickname)))
           (setq dvc-memorized-log-message nil)
           (message (if nickname
-                       (format "Merged from %s, using URL %s" nickname partner)
-                     (format "Merged from %s" partner)))
+                       (format "Merging from %s, using URL %s" nickname partner)
+                     (format "Merging from %s" partner)))
           (dvc-merge partner))
       (message "No local-tree defined for this bookmark entry."))))
 

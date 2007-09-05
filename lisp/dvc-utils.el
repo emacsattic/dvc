@@ -26,6 +26,7 @@
 
 
 (require 'dvc-defs)
+(require 'ewoc)
 
 ;; Load compatibility code
 (if (featurep 'xemacs)
@@ -469,8 +470,16 @@ It's a macro so that it remains available after (unload-feature ...)."
            bzr-dvc
            bzr-revlist
            bzr-revision
-           bzr)
-         ))
+           bzr
+           ;; xgit
+           xgit-annotate
+           xgit-dvc
+           xgit-gnus
+           xgit-log
+           xgit-revision
+           xgit-core
+           xgit
+           )))
 
 (defun dvc-unload ()
   "Unloads DVC.
@@ -543,7 +552,8 @@ Function used to refresh the current buffer")
   (let ((dvc-read-directory-mode 'never)
         (dvc-read-project-tree-mode 'never))
     (if dvc-buffer-refresh-function
-        (funcall dvc-buffer-refresh-function)
+        (let ((dvc-temp-current-active-dvc dvc-buffer-current-active-dvc))
+          (funcall dvc-buffer-refresh-function))
       (message "I don't know how to refresh this buffer"))))
 
 (defmacro dvc-make-move-fn (ewoc-direction function cookie

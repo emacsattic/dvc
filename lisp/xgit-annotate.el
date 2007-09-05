@@ -86,9 +86,9 @@ Commands:
     (if (string-match xgit-annotate-revision-regexp rev)
 	;initial version might result too large for git-show, so use
 	;git-log.
-	(git-log default-directory :rev (match-string-no-properties 1 rev))
-	(xgit-show default-directory rev)))
-  (xgit-describe-revision-at-point))
+	(xgit-log default-directory :rev (match-string-no-properties 1 rev))
+	(xgit-show default-directory rev))
+    (xgit-describe default-directory rev)))
 
 (defun _xgit-annotate-hide-revinfo ()
   (let ((p_rev (xgit-annotate-get-rev))
