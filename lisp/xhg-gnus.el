@@ -93,7 +93,7 @@ outstanding uncommitted changes."
     (set-window-configuration window-conf)
     (when (and import-dir (y-or-n-p "Run hg log in patched directory? "))
       (let ((default-directory import-dir))
-        (xhg-log "tip:-10")
+        (xhg-log "tip" "-10")
         (delete-other-windows)))))
 
 (defvar xhg-gnus-status-window-configuration nil)
