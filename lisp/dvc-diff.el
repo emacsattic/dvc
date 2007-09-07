@@ -245,6 +245,7 @@ Pretty-print ELEM."
      ["Update" dvc-update t]
      ["Pull" dvc-pull t]
      ["Show missing" dvc-missing t]
+     ["Merge" dvc-merge t]
      )
     ("Ignore"
      ["Ignore Files" dvc-ignore-files t]
