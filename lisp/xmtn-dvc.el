@@ -577,50 +577,14 @@ the file before saving."
 ;;;###autoload
 (defun xmtn-dvc-diff (&optional against path dont-switch base-rev)
   (let ((root (dvc-tree-root path)))
+    ;; FIXME: base-rev and against are exactly swapped compared to
+    ;; their definitions in dvc-unified.
     (unless against (setq against
                           ;;`(xmtn (previous-revision (local-tree ,root) 1))
                           `(xmtn (last-revision ,root 1))))
     (unless base-rev (setq base-rev `(xmtn (local-tree ,root))))
-    (lexical-let ((buffer (dvc-prepare-changes-buffer against base-rev
-                                                      'diff root 'xmtn))
-                  (dont-switch dont-switch))
-      (buffer-disable-undo buffer)
-      (dvc-save-some-buffers root)
-      ;; Due to the possibility of race conditions, this check doesn't
-      ;; guarantee the operation will succeed.
-      ;;
-      ;; FIXME: Shouldn't we be doing this test only if the workspace
-      ;; is actually involved, i.e. if BASE-REV is the workspace?
-      (unless (funcall (xmtn--tree-consistent-p-future root))
-        (error "Tree inconsistent, unable to diff"))
-      (let ((against-resolved (xmtn--resolve-revision-id root against))
-            (base-rev-resolved (xmtn--resolve-revision-id root base-rev)))
-        (let ((rev-specs
-               `(,(xmtn-match against-resolved
-                    ((local-tree $path)
-                     ;; AGAINST is not a committed revision, but the
-                     ;; workspace.  mtn diff can't directly handle
-                     ;; this case.
-                     (error "not implemented"))
-                    ((revision $hash-id)
-                     (concat "--revision=" hash-id)))
-                 ,@(xmtn-match base-rev-resolved
-                     ((local-tree $path)
-                      (assert (xmtn--same-tree-p root path))
-                      `())
-                     ((revision $hash-id)
-                      `(,(concat "--revision=" hash-id)))))))
-          ;; FIXME: Use automate content_diff and get_revision.
-          (xmtn--run-command-async
-           root `("diff" ,@rev-specs)
-           :related-buffer buffer
-           :finished
-           (lambda (output error status arguments)
-             (with-current-buffer output
-               (xmtn--remove-content-hashes-from-diff))
-             (dvc-show-changes-buffer output 'xmtn--parse-diff-for-dvc
-                                      buffer dont-switch "^=")))))
-      (xmtn--display-buffer-maybe buffer dont-switch))))
+
+    (xmtn-dvc-delta against base-rev dont-switch)))
 
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id dont-switch)
@@ -647,6 +611,12 @@ the file before saving."
                  ,@(xmtn-match to-resolved
                      ((local-tree $path)
                       (assert (xmtn--same-tree-p root path))
+
+                      ;; mtn diff will abort if there are missing
+                      ;; files, so check for that first, and give a
+                      ;; nicer error message.
+                      (unless (funcall (xmtn--tree-consistent-p-future root))
+                        (error "There are missing files in local tree; unable to diff. Try dvc-status."))
                       `())
 
                      ((revision $hash-id)
@@ -662,6 +632,9 @@ the file before saving."
                (xmtn--remove-content-hashes-from-diff))
              (dvc-show-changes-buffer output 'xmtn--parse-diff-for-dvc
                                       buffer dont-switch "^=")))))
+
+      (xmtn--display-buffer-maybe buffer dont-switch)
+
       ;; The call site in `dvc-revlist-diff' needs this return value.
       buffer)))
 
