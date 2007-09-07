@@ -212,6 +212,7 @@ Pretty-print ELEM."
     (define-key map (dvc-prefix-merge ?u) 'dvc-update)
     (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
     (define-key map (dvc-prefix-merge ?m) 'dvc-missing)
+    (define-key map (dvc-prefix-merge ?M) 'dvc-merge)
     map)
   "Keymap used in `dvc-diff-mode'.")
 
