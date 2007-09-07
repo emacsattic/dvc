@@ -1287,6 +1287,23 @@ finished."
   nil)
 
 ;;;###autoload
+(defun xmtn-dvc-merge (other)
+  (if other
+   (error "xmtn-dvc-merge does not support OTHER argument"))
+
+  (let ((root (dvc-tree-root)))
+    (xmtn-automate-with-session (nil root)
+      (let* ((branch (xmtn--tree-default-branch root))
+             (heads (xmtn--heads root branch)))
+        (case (length heads)
+          (0 (assert nil))
+          (1
+           (message "already merged"))
+          (t
+           (xmtn--run-command-that-might-invoke-merger root '("merge")))))))
+  nil)
+
+;;;###autoload
 (defun xmtn-dvc-pull ()
   "Implement `dvc-pull' for xmtn."
   (lexical-let*

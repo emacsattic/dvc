@@ -89,7 +89,8 @@ to (dvc-current-file-list)."
   "Display the changes from BASE-REV to AGAINST.
 BASE-REV (a revision-id) defaults to base revision of current
 tree; AGAINST (a revision-id) defaults to current tree."
-  ;; FIXME: doc difference between this and dvc-delta
+  ;; FIXME: this should be a wrapper around dvc-delta, and _only_ diff
+  ;; working tree against its base revision; _not_ dispatching.
   (interactive (list nil nil current-prefix-arg)))
 
 ;;;###autoload
@@ -287,7 +288,10 @@ local database, as appropriate for the current back-end."
 
 ;;;###autoload
 (define-dvc-unified-command dvc-merge (&optional other)
-  "Merge with other"
+  "Merge with OTHER.
+If OTHER is nil, merge heads in current database.
+If OTHER is a string, it identifies a (local or remote)
+database to merge into the current database or workspace."
   (interactive))
 
 ;;;###autoload
