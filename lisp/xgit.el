@@ -361,30 +361,31 @@ filenames of to pass to git-show.
 If FILES is nil and `git-show-filter-filename-func' is non-nil,
 files changed in the revision is passed to
 `git-show-filter-filename-func' and result is used."
-  (interactive)
+  (interactive (list default-directory (read-string "Revision: ")))
   (if (and (null files) git-show-filter-filename-func)
       (setq files (funcall git-show-filter-filename-func
                            (git-changed-files dir rev))))
-  (let* ((buffer (dvc-get-buffer-create 'xgit 'diff))
-         (repo (xgit-git-dir dir))
+  (let* ((buffer (dvc-get-buffer-create 'xgit 'diff dir))
          (cmd "show")
-         (args (list repo cmd rev "--")))
+         (args (list cmd rev "--")))
     (if files
-        (setq args (append args (if (stringp files) (list files) files))))
+        (setq args (nconc args (if (stringp files) (list files) files))))
     (dvc-switch-to-buffer-maybe buffer)
-    (dvc-run-dvc-sync 'xgit args
-                      :finished
-                      (dvc-capturing-lambda (output error status arguments)
-                        (progn
-                          (with-current-buffer (capture buffer)
-                            (let ((inhibit-read-only t))
-                              (erase-buffer)
-                              (insert-buffer-substring output)
-                              (goto-char (point-min))
-                              (insert (format "git %s\n\n"
-                                              (mapconcat #'identity args " ")))
-                              (diff-mode)
-                              (toggle-read-only 1))))))))
+    (with-current-buffer buffer
+      (dvc-run-dvc-sync 'xgit args
+                        :finished
+                        (dvc-capturing-lambda (output error status arguments)
+                          (progn
+                            (with-current-buffer (capture buffer)
+                              (let ((inhibit-read-only t))
+                                (erase-buffer)
+                                (insert-buffer-substring output)
+                                (goto-char (point-min))
+                                (insert (format "git %s\n\n"
+                                                (mapconcat #'identity
+                                                           args " ")))
+                                (diff-mode)
+                                (toggle-read-only 1)))))))))
 
 (defvar git-describe-regexp "^\\(.*?\\)-\\([0-9]+\\)-g[[:xdigit:]]\\{7\\}")
 
@@ -396,7 +397,7 @@ files changed in the revision is passed to
 If there is no tag return nil,
 if revision is a tag, return tag in a string,
 else returns list of '(tag offset all-described-string)."
-  (interactive)
+  (interactive (list default-directory (read-string "Revision: ")))
   (let* ((repo (xgit-git-dir dir))
          (cmd "describe")
          (args (list repo cmd rev))
