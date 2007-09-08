@@ -133,7 +133,11 @@ backend is in use for the `default-directory'.
 The values are cached in `dvc-current-active-dvc-cache'.
 
 If NOCACHE is provided, ignore the cache for this call, but still
-cache the result (usefull to correct an incorrect cache entry)."
+cache the result (useful for correcting an incorrect cache entry).
+
+If either `dvc-buffer-current-active-dvc' (a buffer-local value)
+or `dvc-temp-current-active-dvc' (a let-bound value) is non-nil,
+then use that value instead of trying to figure it out."
   (interactive "P")
   (or dvc-buffer-current-active-dvc
       dvc-temp-current-active-dvc
