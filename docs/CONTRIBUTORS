@@ -93,22 +93,27 @@
                  :mail-addresses "nebuchadnezzar#asgardr.info")
 
     ;;
-    ;; Needs inquiries
+    ;; Needs assignment (or investigation into changes made)
     ;;
     (contributor :name "Takuzo O'hara"
                  :signed not-yet
+                 :contacted yes
                  :mail-addresses "takuzo.ohara#gmail.com")
     (contributor :name "Christian Ohler"
                  :signed not-yet
+                 :contacted yes
                  :mail-addresses "ohler+mtn#fastmail.net")
     (contributor :name "Andre Kuehne"
                  :signed not-yet
+                 :contacted yes
                  :mail-addresses "andre.kuehne#gmx.net")
     (contributor :name "Andrea Russo"
                  :signed not-yet
+                 :contacted yes
                  :mail-addresses "rast4ndy#gmail.com")
     (contributor :signed "Chris Gray"
                  :signed not-yet
+                 :contacted yes
                  :mail-addresses "christopher.grayb#mail.mcgill.ca")
     ;;
     ;; ADD YOUR NAME HERE.
