@@ -181,7 +181,8 @@ For example, \"1.month.ago\", \"last.week\", ...
 Use nil if you don't want a limit.
 
 See also `xgit-log-max-count'."
-  :type 'integer
+  :type '(choice (string :tag "Duration")
+                 (const :tag "No limit" nil))
   :group 'dvc-xgit)
 
 (defun xgit-log-grep (regexp)

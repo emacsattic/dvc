@@ -60,7 +60,7 @@
 ;;;###autoload
 (defun xgit-add (file)
   "Add FILE to the current git project."
-  (interactive "fAdd file or directory: ")
+  (interactive (list (dvc-confirm-read-file-name "Add file or directory: ")))
   (let ((default-directory (xgit-tree-root)))
     (dvc-run-dvc-sync
      'xgit (list "add" (file-relative-name file))
@@ -83,7 +83,7 @@
   "Remove FILE from the current git project.
 If FORCE is non-nil, then remove the file even if it has
 uncommitted changes."
-  (interactive (list (read-file-name "Remove file: ")
+  (interactive (list (dvc-confirm-read-file-name "Remove file: ")
                      current-prefix-arg))
   (let ((default-directory (xgit-tree-root)))
     (dvc-run-dvc-sync
@@ -252,8 +252,6 @@ new file.")
   (interactive (list nil default-directory))
   (xgit-status against path t))
 
-;; TODO: update for git
-;; copied from xhg-parse-diff: not yet fully working
 (defun xgit-parse-diff (changes-buffer)
   (save-excursion
     (while (re-search-forward
@@ -261,9 +259,8 @@ new file.")
       (let* ((name (match-string-no-properties 1))
               ;; added, removed are not yet working
              (added (progn (forward-line 1)
-                           (looking-at "^--- /dev/null")))
-             (removed (progn (forward-line 1)
-                             (looking-at "^\\+\\+\\+ /dev/null"))))
+                           (looking-at "^new file")))
+             (removed (looking-at "^deleted file")))
         (with-current-buffer changes-buffer
           (ewoc-enter-last dvc-diff-cookie
                            (list 'file
@@ -273,7 +270,8 @@ new file.")
                                        (t " "))
                                  (cond ((or added removed) " ")
                                        (t "M"))
-                                 " " ; dir. Nothing is a directory in hg.
+                                 " " ; dir. directories are not
+                                     ; tracked in git
                                  nil)))))))
 
 (defun xgit-diff (&optional against-rev path dont-switch base-rev)
@@ -343,24 +341,24 @@ many generations back we want to go from the given commit ID.")
                                     (output error status arguments)
                                   (message "git revert finished")))))
 
-(defcustom git-show-filter-filename-func nil
+(defcustom xgit-show-filter-filename-func nil
   "Function to filter filenames in xgit-show.
 Function is passed a list of files as a parameter.
 
 Function should return list of filenames that is passed to
 git-show or nil for all files."
-  :type '(choice (const git-show-filter-filename-not-quilt)
+  :type '(choice (const xgit-show-filter-filename-not-quilt)
                  (function)
                  (const :tag "None" nil))
   :group 'dvc-xgit)
 
-(defun git-show-filter-filename-not-quilt (files)
+(defun xgit-show-filter-filename-not-quilt (files)
   "Function to filter-out quilt managed files under .pc/ and patches/."
   (loop for f in files
         when (not (string-match "\.pc/\\|patches/" f))
         collect f))
 
-(defun git-changed-files (dir rev)
+(defun xgit-changed-files (dir rev)
   "Returns list of files changed in given revision"
   (let* ((repo (xgit-git-dir dir))
          (cmd "diff-tree")
@@ -376,13 +374,13 @@ git-show or nil for all files."
 Optional argument FILES is a string of filename or list of
 filenames of to pass to git-show.
 
-If FILES is nil and `git-show-filter-filename-func' is non-nil,
+If FILES is nil and `xgit-show-filter-filename-func' is non-nil,
 files changed in the revision is passed to
-`git-show-filter-filename-func' and result is used."
+`xgit-show-filter-filename-func' and result is used."
   (interactive (list default-directory (read-string "Revision: ")))
-  (if (and (null files) git-show-filter-filename-func)
-      (setq files (funcall git-show-filter-filename-func
-                           (git-changed-files dir rev))))
+  (if (and (null files) xgit-show-filter-filename-func)
+      (setq files (funcall xgit-show-filter-filename-func
+                           (xgit-changed-files dir rev))))
   (let* ((buffer (dvc-get-buffer-create 'xgit 'diff dir))
          (cmd "show")
          (args (list cmd rev "--")))
@@ -405,10 +403,10 @@ files changed in the revision is passed to
                                 (diff-mode)
                                 (toggle-read-only 1)))))))))
 
-(defvar git-describe-regexp "^\\(.*?\\)-\\([0-9]+\\)-g[[:xdigit:]]\\{7\\}")
+(defvar xgit-describe-regexp "^\\(.*?\\)-\\([0-9]+\\)-g[[:xdigit:]]\\{7\\}")
 
-(defun git-describe-tag? (abbrev)
-  (not (string-match git-describe-regexp abbrev)))
+(defun xgit-describe-tag? (abbrev)
+  (not (string-match xgit-describe-regexp abbrev)))
 
 (defun xgit-describe (dir rev)
   "Show the most recent tag that is reachable from a commit.
@@ -424,18 +422,17 @@ else returns list of '(tag offset all-described-string)."
                                  :error 'dvc-output-buffer-handler)))
     (if (string= "" info)
         nil                             ;no tag yet
-      (if (git-describe-tag? info)
+      (if (xgit-describe-tag? info)
           info
         (progn
           (list (match-string 1 info)
                 (match-string 2 info)
                 info))))))
 
-(defun git-annotate (dir file)
-  "Run git annotate for file in DIR.
-DIR is a directory controlled by Git/Cogito.
-FILE is filename in repostory.
-"
+(defun xgit-do-annotate (dir file)
+  "Run git annotate for FILE in DIR.
+DIR is a directory controlled by Git.
+FILE is filename in the repository at DIR."
   (let* ((buffer (dvc-get-buffer-create 'xgit 'annotate))
          (repo (xgit-git-dir dir))
          (cmd "blame")
@@ -459,14 +456,14 @@ FILE is filename in repostory.
   (let* ((line (dvc-line-number-at-pos))
          (filename (dvc-confirm-read-file-name "Filename to annotate: "))
          (default-directory (xgit-tree-root filename)))
-    (git-annotate default-directory filename)
+    (xgit-do-annotate default-directory filename)
     (goto-line line)))
 
 ;;;###autoload
 (defun xgit-apply-mbox (mbox &optional force)
   "Run git am to apply the contents of MBOX as one or more patches."
-  (interactive (list (read-file-name "Apply mbox containing patch(es): "
-                                     nil nil t)))
+  (interactive (list (dvc-confirm-read-file-name
+                      "Apply mbox containing patch(es): " t)))
   (dvc-run-dvc-sync 'xgit
                     (delq nil (list "am" (when force "-3")
                                     (expand-file-name mbox)))
