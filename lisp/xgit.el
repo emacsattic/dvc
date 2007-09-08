@@ -61,12 +61,7 @@
 (defun xgit-add (file)
   "Add FILE to the current git project."
   (interactive (list (dvc-confirm-read-file-name "Add file or directory: ")))
-  (let ((default-directory (xgit-tree-root)))
-    (dvc-run-dvc-sync
-     'xgit (list "add" (file-relative-name file))
-     :finished (dvc-capturing-lambda
-                   (output error status arguments)
-                 (message "git add finished")))))
+  (xgit-add-files (list file)))
 
 (defun xgit-add-files (&rest files)
   "Run git add."
@@ -227,26 +222,19 @@ new file.")
     (dvc-switch-to-buffer-maybe buffer)
     (setq dvc-buffer-refresh-function 'xgit-status)
     (dvc-save-some-buffers root)
-    (dvc-run-dvc-sync
-     'xgit `("status" ,(when verbose "-v"))
-     :finished
-     (dvc-capturing-lambda (output error status arguments)
-       (with-current-buffer (capture buffer)
-         (if (> (point-max) (point-min))
-             (dvc-show-changes-buffer output 'xgit-parse-status
-                                      (capture buffer))
-           (dvc-diff-no-changes (capture buffer)
-                                "No changes in %s"
-                                (capture root)))))
-     :error
-     (dvc-capturing-lambda (output error status arguments)
-       (with-current-buffer (capture buffer)
-         (if (> (point-max) (point-min))
-             (dvc-show-changes-buffer output 'xgit-parse-status
-                                      (capture buffer))
-           (dvc-diff-no-changes (capture buffer)
-                                "No changes in %s"
-                                (capture root))))))))
+    (let ((show-changes-buffer
+           (dvc-capturing-lambda (output error status arguments)
+             (with-current-buffer (capture buffer)
+               (if (> (point-max) (point-min))
+                   (dvc-show-changes-buffer output 'xgit-parse-status
+                                            (capture buffer))
+                 (dvc-diff-no-changes (capture buffer)
+                                      "No changes in %s"
+                                      (capture root)))))))
+      (dvc-run-dvc-sync
+       'xgit `("status" ,(when verbose "-v"))
+       :finished show-changes-buffer
+       :error show-changes-buffer))))
 
 (defun xgit-status-verbose (&optional against path)
   (interactive (list nil default-directory))
@@ -320,26 +308,61 @@ many generations back we want to go from the given commit ID.")
     (with-current-buffer buffer (goto-char (point-min)))
     buffer))
 
+(defun xgit-split-out-added-files (files)
+  "Remove any files that have been newly added to git from FILES.
+This returns a two-element list.
+
+The first element of the returned list is a list of the
+newly-added files from FILES.
+
+The second element is the remainder of FILES."
+  (let* ((tree-added nil)
+         (added nil)
+         (not-added nil))
+    ;; get list of files that have been added
+    (with-temp-buffer
+      (dvc-run-dvc-sync 'xgit (list "status")
+                        :output-buffer (current-buffer)
+                        :finished #'ignore :error #'ignore)
+      (goto-char (point-min))
+      (while (re-search-forward xgit-status-line-regexp nil t)
+        (when (string= (match-string 1) "new file")
+          (setq tree-added (cons (match-string 2) tree-added)))))
+    ;; filter FILES
+    (dolist (file files)
+      (if (member file tree-added)
+          (setq added (cons file added))
+        (setq not-added (cons file not-added))))
+    ;; `list' is the same as `values'
+    (list added not-added)))
+
 ;;;###autoload
 (defun xgit-revert (file)
   "Revert changes made to FILE in the current branch."
   (interactive "fRevert file: ")
-  (let* ((default-directory (xgit-tree-root))
-         (args (list "checkout" "HEAD" (file-relative-name file))))
-    (dvc-run-dvc-sync 'xgit args
-                      :finished (dvc-capturing-lambda
-                                    (output error status arguments)
-                                  (message "git revert finished")))))
+  (xgit-revert-files (list file)))
 
 (defun xgit-revert-files (&rest files)
   "Revert changes made to FILES in the current branch."
-  (let* ((default-directory (xgit-tree-root))
-         (args (nconc (list "checkout" "HEAD")
-                      (mapcar #'file-relative-name files))))
-    (dvc-run-dvc-sync 'xgit args
-                      :finished (dvc-capturing-lambda
-                                    (output error status arguments)
-                                  (message "git revert finished")))))
+  (let ((default-directory (xgit-tree-root)))
+    (setq files (mapcar #'file-relative-name files))
+    (multiple-value-bind (added not-added)
+        (xgit-split-out-added-files files)
+      ;; remove added files from the index
+      (when added
+        (let ((args (nconc (list "update-index" "--force-remove" "--")
+                           added)))
+          (dvc-run-dvc-sync 'xgit args
+                            :finished #'ignore)))
+      ;; revert other files using "git checkout HEAD ..."
+      (when not-added
+        (let ((args (nconc (list "checkout" "HEAD")
+                           not-added)))
+          (dvc-run-dvc-sync 'xgit args
+                            :finished #'ignore)))
+      (if (or added not-added)
+          (message "git revert finished")
+        (message "Nothing to do")))))
 
 (defcustom xgit-show-filter-filename-func nil
   "Function to filter filenames in xgit-show.
