@@ -23,7 +23,8 @@
 
 ;;; Commentary:
 
-;; The git interface for dvc
+;; This is the git backend for DVC.  It requires git version 1.5.0 or
+;; later.
 
 ;;; History:
 
@@ -77,10 +78,25 @@
                                     (output error status arguments)
                                   (message "git add finished")))))
 
+;;;###autoload
+(defun xgit-remove (file &optional force)
+  "Remove FILE from the current git project.
+If FORCE is non-nil, then remove the file even if it has
+uncommitted changes."
+  (interactive (list (read-file-name "Remove file: ")
+                     current-prefix-arg))
+  (let ((default-directory (xgit-tree-root)))
+    (dvc-run-dvc-sync
+     'xgit (list "rm" (when force "-f") "--" (file-relative-name file))
+     :finished (dvc-capturing-lambda
+                   (output error status arguments)
+                 (message "git remove finished")))))
+
 (defun xgit-remove-files (&rest files)
   "Run git rm."
   (dvc-trace "xgit-remove-files: %s" files)
-  (dvc-run-dvc-sync 'xgit (append '("rm") (mapcar #'file-relative-name files))
+  (dvc-run-dvc-sync 'xgit (nconc (list "rm" "--")
+                                 (mapcar #'file-relative-name files))
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
                                 (message "git rm finished"))))
@@ -306,24 +322,26 @@ many generations back we want to go from the given commit ID.")
     (with-current-buffer buffer (goto-char (point-min)))
     buffer))
 
-;; TODO: update for git
-(defun xgit-restore (force &rest files)
-  "Run git restore
-
-xgit-restore
- -r REVISION: Not supported yet
- -f: FORCE"
-  (dvc-trace "xgit-restore: %s" files)
-  (let ((args (cons "restore"
-                    (if force '("-f") '()))))
-    (dvc-run-dvc-sync 'xgit (append args files)
+;;;###autoload
+(defun xgit-revert (file)
+  "Revert changes made to FILE in the current branch."
+  (interactive "fRevert file: ")
+  (let* ((default-directory (xgit-tree-root))
+         (args (list "checkout" "HEAD" (file-relative-name file))))
+    (dvc-run-dvc-sync 'xgit args
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
-                                  (message "git restore finished")))))
-;; TODO: update for git
+                                  (message "git revert finished")))))
+
 (defun xgit-revert-files (&rest files)
-  "See `xgit-restore'"
-  (apply 'xgit-restore t files))
+  "Revert changes made to FILES in the current branch."
+  (let* ((default-directory (xgit-tree-root))
+         (args (nconc (list "checkout" "HEAD")
+                      (mapcar #'file-relative-name files))))
+    (dvc-run-dvc-sync 'xgit args
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "git revert finished")))))
 
 (defcustom git-show-filter-filename-func nil
   "Function to filter filenames in xgit-show.
