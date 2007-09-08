@@ -498,7 +498,7 @@ the file before saving."
                       (unchanged " "))
                     (if dir "/" " ") orig-path))))
          (likely-dir-p (path) (string-match "/\\'" path)))
-    ;; First parse the basic_io contained in dvc-header.
+    ;; First parse the basic_io contained in dvc-header, if any.
     (let ((revision
            (with-temp-buffer
              (insert dvc-header)
@@ -506,8 +506,7 @@ the file before saving."
              (while (re-search-forward "^# ?" nil t)
                (replace-match ""))
              (goto-char (point-min))
-             ;; Skip first line, it's empty.
-             (forward-line)
+             (xmtn-basic-io-skip-blank-lines)
              (delete-region (point-min) (point))
              (xmtn-basic-io-with-stanza-parser
               (parser (current-buffer))
@@ -578,40 +577,52 @@ the file before saving."
 ;;;###autoload
 (defun xmtn-dvc-diff (&optional against path dont-switch base-rev)
   (let ((root (dvc-tree-root path)))
+    ;; FIXME: base-rev and against are exactly swapped compared to
+    ;; their definitions in dvc-unified.
     (unless against (setq against
                           ;;`(xmtn (previous-revision (local-tree ,root) 1))
                           `(xmtn (last-revision ,root 1))))
     (unless base-rev (setq base-rev `(xmtn (local-tree ,root))))
-    (lexical-let ((buffer (dvc-prepare-changes-buffer against base-rev
+
+    (xmtn-dvc-delta against base-rev dont-switch)))
+
+;;;###autoload
+(defun xmtn-dvc-delta (from-revision-id to-revision-id dont-switch)
+  ;; See dvc-unified.el dvc-delta for doc string
+  (let ((root (dvc-tree-root)))
+    (lexical-let ((buffer (dvc-prepare-changes-buffer from-revision-id to-revision-id
                                                       'diff root 'xmtn))
                   (dont-switch dont-switch))
       (buffer-disable-undo buffer)
       (dvc-save-some-buffers root)
-      ;; Due to the possibility of race conditions, this check doesn't
-      ;; guarantee the operation will succeed.
-      ;;
-      ;; FIXME: Shouldn't we be doing this test only if the workspace
-      ;; is actually involved, i.e. if BASE-REV is the workspace?
-      (unless (funcall (xmtn--tree-consistent-p-future root))
-        (error "Tree inconsistent, unable to diff"))
-      (let ((against-resolved (xmtn--resolve-revision-id root against))
-            (base-rev-resolved (xmtn--resolve-revision-id root base-rev)))
+      (let ((from-resolved (xmtn--resolve-revision-id root from-revision-id))
+            (to-resolved (xmtn--resolve-revision-id root to-revision-id)))
         (let ((rev-specs
-               `(,(xmtn-match against-resolved
+               `(,(xmtn-match from-resolved
                     ((local-tree $path)
-                     ;; AGAINST is not a committed revision, but the
+                     ;; FROM-REVISION-ID is not a committed revision, but the
                      ;; workspace.  mtn diff can't directly handle
                      ;; this case.
                      (error "not implemented"))
+
                     ((revision $hash-id)
                      (concat "--revision=" hash-id)))
-                 ,@(xmtn-match base-rev-resolved
+
+                 ,@(xmtn-match to-resolved
                      ((local-tree $path)
                       (assert (xmtn--same-tree-p root path))
+
+                      ;; mtn diff will abort if there are missing
+                      ;; files, so check for that first, and give a
+                      ;; nicer error message.
+                      (unless (funcall (xmtn--tree-consistent-p-future root))
+                        (error "There are missing files in local tree; unable to diff. Try dvc-status."))
                       `())
+
                      ((revision $hash-id)
                       `(,(concat "--revision=" hash-id)))))))
-          ;; FIXME: Use automate content_diff and get_revision.
+
+          ;; IMPROVEME: Could use automate content_diff and get_revision.
           (xmtn--run-command-async
            root `("diff" ,@rev-specs)
            :related-buffer buffer
@@ -621,7 +632,11 @@ the file before saving."
                (xmtn--remove-content-hashes-from-diff))
              (dvc-show-changes-buffer output 'xmtn--parse-diff-for-dvc
                                       buffer dont-switch "^=")))))
-      (xmtn--display-buffer-maybe buffer dont-switch))))
+
+      (xmtn--display-buffer-maybe buffer dont-switch)
+
+      ;; The call site in `dvc-revlist-diff' needs this return value.
+      buffer)))
 
 (defun xmtn--remove-content-hashes-from-diff ()
   ;; Hack: Remove mtn's file content hashes from diff headings since
@@ -1284,6 +1299,23 @@ finished."
                            " \\[xmtn-revlist-update] or"
                            " \\[xmtn-revlist-explicit-merge]"))
                   branch (length heads)))))))
+  nil)
+
+;;;###autoload
+(defun xmtn-dvc-merge (other)
+  (if other
+   (error "xmtn-dvc-merge does not support OTHER argument"))
+
+  (let ((root (dvc-tree-root)))
+    (xmtn-automate-with-session (nil root)
+      (let* ((branch (xmtn--tree-default-branch root))
+             (heads (xmtn--heads root branch)))
+        (case (length heads)
+          (0 (assert nil))
+          (1
+           (message "already merged"))
+          (t
+           (xmtn--run-command-that-might-invoke-merger root '("merge")))))))
   nil)
 
 ;;;###autoload
