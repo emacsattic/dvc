@@ -30,8 +30,8 @@
 ;;;###autoload
 (dvc-register-dvc 'baz "Bazaar 1")
 (defalias 'baz-dvc-tree-root 'baz-tree-root)
-(defun baz-dvc-diff (against path dont-switch base-rev)
-  (baz-changes nil against))
+(defun baz-dvc-diff (base-rev path dont-switch)
+  (baz-changes nil base-rev))
 (defalias 'baz-dvc-file-diff 'baz-file-diff)
 (defun baz-dvc-status (&optional path)
   (baz-status path))

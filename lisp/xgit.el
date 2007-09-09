@@ -262,8 +262,7 @@ new file.")
                                      ; tracked in git
                                  nil)))))))
 
-(defun xgit-diff (&optional against-rev path dont-switch base-rev)
-  (interactive (list nil nil current-prefix-arg))
+(defun xgit-diff-1 (against-rev path dont-switch base-rev)
   (let* ((cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
          (root (xgit-tree-root cur-dir))
@@ -290,6 +289,10 @@ new file.")
                          (dvc-show-changes-buffer output 'xgit-parse-diff
                                                   (capture buffer))))))
 
+(defun xgit-diff (&optional against-rev path dont-switch)
+  (interactive (list nil nil current-prefix-arg))
+  (xgit-diff-1 against-rev path dont-switch nil))
+
 (defvar xgit-prev-format-string "%s~%s"
   "This is a format string which is used by `dvc-revision-to-string'
 when encountering a (previous ...) component of a revision indicator.
@@ -304,7 +307,7 @@ many generations back we want to go from the given commit ID.")
                   `(xgit (last-revision ,root 1))
                   `(xgit (local-tree ,root))
                   'diff root 'xgit)))
-    (xgit-diff against root dont-switch base-rev)
+    (xgit-diff-1 against root dont-switch base-rev)
     (with-current-buffer buffer (goto-char (point-min)))
     buffer))
 

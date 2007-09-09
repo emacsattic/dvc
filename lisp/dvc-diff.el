@@ -60,6 +60,10 @@ Must be buffer-local.")
 Sets the local-variables `dvc-diff-base' and
 `dvc-diff-modified' to BASE and MODIFIED.
 
+TYPE must be found in `dvc-buffer-type-alist'.
+
+PATH must match mode in `dvc-buffer-type-alist' for TYPE.
+
 TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
       (dvc-get-buffer-create dvc type path)
@@ -567,7 +571,8 @@ Throw an error when not on a file."
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
   `dvc-show-changes-buffer'.")
-;; FIXME: actually, dvc-show-changes-buffer doesn't use this
+;; FIXME: actually, dvc-show-changes-buffer doesn't use this. But
+;; functions that call dvc-show-changes-buffer do.
 
 (defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch header-end-regexp)

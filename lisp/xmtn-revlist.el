@@ -596,20 +596,6 @@ To be invoked from an xmtn revlist buffer.  Brings up an xmtn revlist buffer."
        nil nil)))
   nil)
 
-(defun xmtn-revlist-diff-to-current-tree (&optional dont-switch)
-  "Show diff from revision at point to current tree.
-
-To be invoked from an xmtn revlist buffer."
-  (interactive "P")
-  (let* ((root (dvc-tree-root))
-         (entry (dvc-revlist-current-patch-struct))
-         (target-hash-id (xmtn--revlist-entry-revision-hash-id entry)))
-    (xmtn-dvc-diff `(xmtn (revision ,target-hash-id))
-                   root
-                   dont-switch
-                   `(xmtn (local-tree ,root))))
-  nil)
-
 (provide 'xmtn-revlist)
 
 ;;; xmtn-revlist.el ends here
