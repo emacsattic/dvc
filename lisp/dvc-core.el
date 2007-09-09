@@ -292,6 +292,16 @@ These function bypasses the used revision control system."
       (mapcar #'delete-file files)
       (message "Purged %S" files))))
 
+(defun dvc-current-executable ()
+  "Return the name of the binary associated with the current dvc backend.
+This uses `dvc-current-active-dvc'.
+
+\"DVC\" is returned if `dvc-current-active-dvc' returns nil."
+  (let ((dvc (dvc-current-active-dvc)))
+    (if (not dvc)
+        "DVC"
+      (dvc-variable dvc "executable"))))
+
 ;; partner buffer stuff
 (defvar dvc-partner-buffer nil
   "DVC Partner buffer; stores diff buffer for log-edit, etc. Must
@@ -350,12 +360,12 @@ ARGUMENTS is a list of the arguments that the process was called with."
       (dvc-show-error-buffer error)
     (if (> (with-current-buffer output (point-max)) 1)
         (dvc-show-error-buffer output)
-      ;; TODO replace DVC by real process name.
-      (error "`DVC %s' failed with code %d and no output!"
+      (error "`%s %s' failed with code %d and no output!"
+             (dvc-current-executable)
              (mapconcat 'identity arguments " ")
              status)))
-  ;; TODO replace DVC by real process name.
-  (error "`DVC %s' failed with code %d"
+  (error "`%s %s' failed with code %d"
+         (dvc-current-executable)
          (mapconcat 'identity arguments " ")
          status))
 
@@ -374,8 +384,8 @@ ARGUMENTS is a list of the arguments that the process was called with."
       (setq dvc-default-killed-function-noerror
             (- dvc-default-killed-function-noerror 1))
     (dvc-switch-to-buffer error)
-    ;; TODO replace DVC by real process name.
-    (error "`DVC %s' process killed !"
+    (error "`%s %s' process killed !"
+           (dvc-current-executable)
            (mapconcat 'identity arguments " "))))
 
 (defun dvc-null-handler (output error status arguments)
@@ -436,18 +446,16 @@ OUTPUT is the buffer containing process standard output.
 ERROR is the buffer containing process error output.
 STATUS indicates the return status of the program.
 ARGUMENTS is a list of the arguments that the process was called with."
-  (let ((dvc-name)
-        (has-output))
+  (let ((has-output))
     (with-current-buffer output
       (dvc-process-buffer-mode)
-      (setq dvc-name (or (progn (string-match " \\*\\(.+\\)-process" (buffer-name))
-                                (match-string 1 (buffer-name))) "DVC"))
       (setq has-output (> (point-max) 1)))
     (when has-output
       (dvc-switch-to-buffer output))
     (when (or dvc-debug has-output)
       (message "Process `%s %s' finished"
-               dvc-name (mapconcat 'identity arguments " ")))
+               (dvc-current-executable)
+               (mapconcat 'identity arguments " ")))
     status))
 
 (defun dvc-finish-function-without-buffer-switch (output error status arguments)
@@ -457,12 +465,10 @@ ERROR is the buffer containing process error output.
 STATUS indicates the return status of the program.
 ARGUMENTS is a list of the arguments that the process was called
   with."
-  (let ((dvc-name))
-    (with-current-buffer output
-      (setq dvc-name (or (progn (string-match " \\*\\(.+\\)-process" (buffer-name))
-                                (match-string 1 (buffer-name))) "DVC")))
+  (with-current-buffer output
     (dvc-trace "Process `%s %s' finished"
-               dvc-name (mapconcat 'identity arguments " "))
+               (dvc-current-executable)
+               (mapconcat 'identity arguments " "))
     status))
 
 (defvar dvc-process-running nil
@@ -642,7 +648,8 @@ Example:
                   (insert-file-contents (capture error-file)))
                 (delete-file (capture error-file)))
               (let ((state (process-status process))
-                    (status (process-exit-status process)))
+                    (status (process-exit-status process))
+                    (dvc-temp-current-active-dvc (capture dvc)))
                 (unwind-protect
                     (cond ((and (eq state 'exit) (= status 0))
                            (funcall (or (capture finished)
@@ -700,17 +707,18 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
               (insert-file-contents error-file))
             (delete-file error-file))
           (unwind-protect
-              (cond ((stringp status)
-                     (when (string= status "Terminated")
-                       (funcall (or killed 'dvc-default-killed-function)
-                                output-buf error-buf status arguments)))
-                    ((numberp status)
-                     (if (zerop status)
-                         (funcall (or finished 'dvc-default-finish-function)
-                                  output-buf error-buf status arguments)
-                       (funcall (or error 'dvc-default-error-function)
-                                output-buf error-buf status arguments)))
-                    (t (message "Unknown status - %s" status)))
+              (let ((dvc-temp-current-active-dvc dvc))
+                (cond ((stringp status)
+                       (when (string= status "Terminated")
+                         (funcall (or killed 'dvc-default-killed-function)
+                                  output-buf error-buf status arguments)))
+                      ((numberp status)
+                       (if (zerop status)
+                           (funcall (or finished 'dvc-default-finish-function)
+                                    output-buf error-buf status arguments)
+                         (funcall (or error 'dvc-default-error-function)
+                                  output-buf error-buf status arguments)))
+                      (t (message "Unknown status - %s" status))))
             ;; Schedule any buffers we created for killing
             (unless output-buffer (dvc-kill-process-buffer output-buf))
             (unless error-buffer (dvc-kill-process-buffer error-buf))))))))
