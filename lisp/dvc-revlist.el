@@ -290,11 +290,7 @@ revision list."
   (let ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie))))
     (unless (eq (car elem) 'entry-patch)
       (error "Cursor is not on a revision."))
-    (let ((rev-id (dvc-revlist-entry-patch-rev-id (nth 1 elem)))
-          (root (dvc-tree-root)))
-      ;; we use dvc-diff, not dvc-delta, because the xmtn backend supports 'local-tree in diff but not delta.
-      ;; FIXME: only need one of those!
-      (dvc-diff rev-id root nil (list (dvc-current-active-dvc) (list 'local-tree root))))))
+    (dvc-diff (dvc-revlist-entry-patch-rev-id (nth 1 elem)) (dvc-tree-root) nil)))
 
 (defun dvc-revlist-diff-scroll-down ()
   (interactive)

@@ -284,7 +284,7 @@ Same as `bzr-diff', but the interactive prompt is different."
   (bzr-diff against path dont-switch))
 
 ;;;###autoload
-(defun bzr-diff (&optional against path dont-switch base-rev)
+(defun bzr-diff (&optional against path dont-switch)
   "Run \"bzr diff\".
 
 AGAINST must be a revision specifier (number, last:N,
@@ -791,7 +791,7 @@ In practice, check for the existance of \"FILE.BASE\"."
     (otherwise nil)))
 
 (defun bzr-revision-id-is-local (rev-id)
-  "Extract the location component from REV-ID."
+  "Non-nil if rev-id has the same path as the local tree."
   (case (dvc-revision-get-type rev-id)
     ((revision previous-revision)
      (let ((data (car (dvc-revision-get-data rev-id))))

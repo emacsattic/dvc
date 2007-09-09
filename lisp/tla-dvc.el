@@ -42,8 +42,8 @@
 
 (defalias 'tla-dvc-tree-root 'tla-tree-root)
 
-(defun tla-dvc-diff (against path dont-switch base-rev)
-  (tla-changes nil against))
+(defun tla-dvc-diff (base-rev path dont-switch)
+  (tla-changes nil base-rev))
 
 (defun tla-dvc-file-diff (file &optional base modified dont-switch)
   ;; FIXIME

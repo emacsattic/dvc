@@ -88,10 +88,6 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
   (xhg-status))
 
 
-;; (defun xhg-dvc-diff (&optional against path dont-switch)
-;;   "Shows the changes in the current Mercurial tree."
-;;   (xhg-diff ))
-
 ;;;###autoload
 (defalias 'xhg-dvc-command-version 'xhg-command-version)
 

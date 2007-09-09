@@ -569,27 +569,16 @@ the file before saving."
              "\\)\\)$"))))
 
 
-;; I don't know what the semantics of AGAINST and BASE-REV are.  I'll
-;; assume that AGAINST would be the first argument to diff ("old") and
-;; defaults to the revision the workspace is based on, and BASE-REV
-;; would be the second argument to diff ("new") and defaults to the
-;; workspace.
 ;;;###autoload
-(defun xmtn-dvc-diff (&optional against path dont-switch base-rev)
-  (let ((root (dvc-tree-root path)))
-    ;; FIXME: base-rev and against are exactly swapped compared to
-    ;; their definitions in dvc-unified.
-    (unless against (setq against
-                          ;;`(xmtn (previous-revision (local-tree ,root) 1))
-                          `(xmtn (last-revision ,root 1))))
-    (unless base-rev (setq base-rev `(xmtn (local-tree ,root))))
-
-    (xmtn-dvc-delta against base-rev dont-switch)))
+(defun xmtn-dvc-diff (&optional base-rev path dont-switch)
+  (xmtn-dvc-delta base-rev `(xmtn (local-tree ,path)) dont-switch))
 
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id dont-switch)
   ;; See dvc-unified.el dvc-delta for doc string
   (let ((root (dvc-tree-root)))
+    ;; FIXME: should specify 'revision-diff for type if to-revision-id is local-tree.
+    ;; Then need to bind default-directory (see bzr-delta; dvc-prepare-changes-buffer should do that).
     (lexical-let ((buffer (dvc-prepare-changes-buffer from-revision-id to-revision-id
                                                       'diff root 'xmtn))
                   (dont-switch dont-switch))
