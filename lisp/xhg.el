@@ -241,7 +241,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
 If DONT-SWITCH, don't switch to the diff buffer"
   (interactive (list nil nil current-prefix-arg))
   (xhg-diff-1 nil path dont-switch
-              (dvc-revision-to-string base-rev)))
+              (dvc-revision-to-string base-rev nil "tip")))
 
 (defun xhg-delta (base-rev modified &optional path dont-switch)
   ;; TODO: dvc-revision-to-string doesn't work for me.

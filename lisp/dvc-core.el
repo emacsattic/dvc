@@ -1046,6 +1046,7 @@ If ORIG-STR is specified, it is the string that indicates the
 current revision of the working tree."
   (let* ((type (dvc-revision-get-type revision-id))
          (data (dvc-revision-get-data revision-id)))
+    ;;(dvc-trace "dvc-revision-to-string: type: %s, data: %s, orig-str: %s" type data orig-str)
     (case type
       (revision (dvc-name-construct (nth 0 data)))
       (local-tree (car data))
