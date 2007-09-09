@@ -337,13 +337,13 @@ The second element is the remainder of FILES."
     (list added not-added)))
 
 ;;;###autoload
-(defun xgit-revert (file)
-  "Revert changes made to FILE in the current branch."
+(defun xgit-revert-file (file)
+  "Revert uncommitted changes made to FILE in the current branch."
   (interactive "fRevert file: ")
   (xgit-revert-files (list file)))
 
 (defun xgit-revert-files (&rest files)
-  "Revert changes made to FILES in the current branch."
+  "Revert uncommitted changes made to FILES in the current branch."
   (let ((default-directory (xgit-tree-root)))
     (setq files (mapcar #'file-relative-name files))
     (multiple-value-bind (added not-added)
