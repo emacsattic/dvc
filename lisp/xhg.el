@@ -208,8 +208,7 @@ negative : Don't show patches, limit to n revisions."
           (with-current-buffer changes-buffer
             (ewoc-enter-last dvc-diff-cookie (list 'file (substring elem 2) modif-char))))))))
 
-;;;###autoload
-(defun xhg-diff (&optional against path dont-switch base-rev)
+(defun xhg-diff-1 (modified path dont-switch base-rev)
   "Run hg diff.
 If DONT-SWITCH, don't switch to the diff buffer"
   (interactive (list nil nil current-prefix-arg))
@@ -228,19 +227,27 @@ If DONT-SWITCH, don't switch to the diff buffer"
     (dvc-save-some-buffers root)
     (when base-rev
       (setq command-list (append command-list (list "-r" base-rev)))
-      (when against
-        (setq command-list (append command-list (list "-r" against)))))
+      (when modified
+        (setq command-list (append command-list (list "-r" modified)))))
     (dvc-run-dvc-sync 'xhg command-list
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
                          (dvc-show-changes-buffer output 'xhg-parse-diff
                                                   (capture buffer))))))
 
-(defun xhg-delta (base-rev against &optional path dont-switch)
+;;;###autoload
+(defun xhg-diff (&optional base-rev path dont-switch)
+  "Run hg diff.
+If DONT-SWITCH, don't switch to the diff buffer"
+  (interactive (list nil nil current-prefix-arg))
+  (xhg-diff-1 nil path dont-switch
+              (dvc-revision-to-string base-rev)))
+
+(defun xhg-delta (base-rev modified &optional path dont-switch)
   ;; TODO: dvc-revision-to-string doesn't work for me.
   (interactive (list nil nil nil current-prefix-arg))
-  (xhg-diff (dvc-revision-to-string against) path dont-switch
-            (dvc-revision-to-string base-rev)))
+  (xhg-diff-1 (dvc-revision-to-string modified) path dont-switch
+              (dvc-revision-to-string base-rev)))
 
 ;;;###autoload
 (defun xhg-status ()

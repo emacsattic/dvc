@@ -85,20 +85,27 @@ to (dvc-current-file-list)."
      (dvc-apply ,(symbol-name name) ,@(remove '&optional args))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-diff (&optional against path dont-switch base-rev)
-  "Display the changes from BASE-REV to AGAINST.
-BASE-REV (a revision-id) defaults to base revision of current
-tree; AGAINST (a revision-id) defaults to current tree."
-  ;; FIXME: doc difference between this and dvc-delta
-  (interactive (list nil nil current-prefix-arg)))
+(defun dvc-diff (&optional base-rev path dont-switch)
+  "Display the changes from BASE-REV to the local tree in PATH.
+BASE-REV (a revision-id) defaults to base revision of the
+tree. Use `dvc-delta' for differencing two revisions.
+PATH defaults to `default-directory'.
+The new buffer is always displayed; if DONT-SWITCH is nil, select it."
+  ;; FIXME: this should _only_ diff
+  ;; working tree against its base revision; dvc-delta handles other diffs.
+  (interactive (list nil default-directory current-prefix-arg))
+  (setq base-rev (or base-rev
+                     (list (dvc-current-active-dvc)
+                           (list 'last-revision path 1))))
+  (dvc-apply "dvc-diff" base-rev path dont-switch))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-delta (&optional base modified dont-switch)
+(define-dvc-unified-command dvc-delta (base modified &optional dont-switch)
   "Display from revision BASE to MODIFIED.
 
 BASE and MODIFIED must be revision ID.
 
-If DONT-SWITCH is nil, switch to the newly created buffer.")
+The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
 
 ;;;###autoload
 (define-dvc-unified-command dvc-file-diff (file &optional base modified
@@ -287,7 +294,10 @@ local database, as appropriate for the current back-end."
 
 ;;;###autoload
 (define-dvc-unified-command dvc-merge (&optional other)
-  "Merge with other"
+  "Merge with OTHER.
+If OTHER is nil, merge heads in current database.
+If OTHER is a string, it identifies a (local or remote)
+database to merge into the current database or workspace."
   (interactive))
 
 ;;;###autoload
