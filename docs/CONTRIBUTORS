@@ -98,6 +98,10 @@
                  :contacted yes
                  :mail-addresses ("rastandy#inventati.org"
                                   "rast4ndy#gmail.com"))
+    (contributor :name "Andre Kuehne"
+                 :signed in-progress
+                 :contacted yes
+                 :mail-addresses "andre.kuehne#gmx.net")
 
     ;;
     ;; Does not need assignment yet
@@ -119,10 +123,6 @@
                  :signed not-yet
                  :contacted yes
                  :mail-addresses "ohler+mtn#fastmail.net")
-    (contributor :name "Andre Kuehne"
-                 :signed not-yet
-                 :contacted yes
-                 :mail-addresses "andre.kuehne#gmx.net")
     (contributor :signed "Chris Gray"
                  :signed not-yet
                  :contacted yes

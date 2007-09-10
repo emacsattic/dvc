@@ -61,7 +61,7 @@
 (defun xgit-add (file)
   "Add FILE to the current git project."
   (interactive (list (dvc-confirm-read-file-name "Add file or directory: ")))
-  (xgit-add-files (list file)))
+  (xgit-add-files file))
 
 (defun xgit-add-files (&rest files)
   "Run git add."
@@ -343,7 +343,7 @@ The second element is the remainder of FILES."
 (defun xgit-revert-file (file)
   "Revert uncommitted changes made to FILE in the current branch."
   (interactive "fRevert file: ")
-  (xgit-revert-files (list file)))
+  (xgit-revert-files file))
 
 (defun xgit-revert-files (&rest files)
   "Revert uncommitted changes made to FILES in the current branch."
