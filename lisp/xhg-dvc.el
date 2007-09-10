@@ -39,6 +39,9 @@
 ;;;###autoload
 (defalias 'xhg-dvc-tree-root 'xhg-tree-root)
 
+;;;###autoload
+(defalias 'xhg-dvc-merge 'xhg-merge)
+
 (defun xhg-dvc-log-edit (&optional other-frame)
   (dvc-dvc-log-edit))
 
