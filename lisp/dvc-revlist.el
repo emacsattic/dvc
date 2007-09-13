@@ -49,10 +49,6 @@
 (defvar dvc-revlist-cookie nil
   "Ewoc cookie for dvc-revlist.")
 
-(defvar dvc-revlist-refresh-fn nil
-  "Function to use when regenerating the revision list buffer.")
-(make-variable-buffer-local 'dvc-revlist-refresh-fn)
-
 ;; elem of dvc-revlist-cookie should be one of:
 ;; ('separator "string" kind)
 ;;    `kind' is: one of
@@ -290,11 +286,7 @@ revision list."
   (let ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie))))
     (unless (eq (car elem) 'entry-patch)
       (error "Cursor is not on a revision."))
-    (let ((rev-id (dvc-revlist-entry-patch-rev-id (nth 1 elem)))
-          (root (dvc-tree-root)))
-      ;; we use dvc-diff, not dvc-delta, because the xmtn backend supports 'local-tree in diff but not delta.
-      ;; FIXME: only need one of those!
-      (dvc-diff rev-id root nil (list (dvc-current-active-dvc) (list 'local-tree root))))))
+    (dvc-diff (dvc-revlist-entry-patch-rev-id (nth 1 elem)) (dvc-tree-root) nil)))
 
 (defun dvc-revlist-diff-scroll-down ()
   (interactive)
@@ -355,15 +347,7 @@ Commands are:
   (toggle-read-only 1)
   (set-buffer-modified-p nil)
   (set (make-local-variable 'dvc-get-revision-info-at-point-function)
-       'dvc-revlist-get-rev-at-point)
-  (setq dvc-buffer-refresh-function 'dvc-revlist-generic-refresh))
-
-(defun dvc-revlist-generic-refresh ()
-  "Refresh the revision list buffer."
-  (interactive)
-  (if dvc-revlist-refresh-fn
-      (funcall dvc-revlist-refresh-fn)
-    (message "I don't know how to refresh this revision list buffer")))
+       'dvc-revlist-get-rev-at-point))
 
 (defun dvc-build-revision-list (back-end type location arglist parser
                                          refresh-fn)
@@ -381,7 +365,7 @@ refresh the revision list buffer.  It must take no arguments."
         (buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
       (dvc-revlist-mode)
-      (setq dvc-revlist-refresh-fn refresh-fn))
+      (setq dvc-buffer-refresh-function refresh-fn))
     (dvc-switch-to-buffer-maybe buffer t)
     (dvc-run-dvc-async
      back-end arglist

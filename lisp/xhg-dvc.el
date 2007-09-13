@@ -39,10 +39,16 @@
 ;;;###autoload
 (defalias 'xhg-dvc-tree-root 'xhg-tree-root)
 
+;;;###autoload
+(defalias 'xhg-dvc-merge 'xhg-merge)
+
 (defun xhg-dvc-log-edit (&optional other-frame)
   (dvc-dvc-log-edit))
 
 (defvar xhg-dvc-commit-extra-parameters nil "A list of extra parameters for the next hg commit.")
+
+(defvar xhg-commit-done-hook '()
+  "*Hooks run after a successful commit via `xhg-dvc-log-edit-done'.")
 
 (defun xhg-select-committer-for-next-commit (committer)
   "Select the committer for the next hg commit.
@@ -73,8 +79,9 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
                  ;; (dvc-diff-clear-buffers 'xhg (capture default-directory)
                  ;;  "* Just committed! Please refresh buffer\n")
                  (setq xhg-dvc-commit-extra-parameters nil)
-                 (message "Mercurial commit finished")))
-    (dvc-tips-popup-maybe)))
+                 (message "Mercurial commit finished")
+                 (dvc-tips-popup-maybe)
+                 (run-hooks 'xhg-commit-done-hook)))))
 
 ;;;###autoload
 (defalias 'xhg-dvc-diff 'xhg-diff)
@@ -87,10 +94,6 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
   ;; Path is already set as default-directory in dvc-status so it can be ignored here
   (xhg-status))
 
-
-;; (defun xhg-dvc-diff (&optional against path dont-switch)
-;;   "Shows the changes in the current Mercurial tree."
-;;   (xhg-diff ))
 
 ;;;###autoload
 (defalias 'xhg-dvc-command-version 'xhg-command-version)

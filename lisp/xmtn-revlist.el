@@ -509,40 +509,6 @@ to the base revision of the current tree."
 
 
 ;;;###autoload
-(defun xmtn-dvc-delta (from-revision-id to-revision-id dont-switch)
-  ;; FIXME: very similar to xmtn-dvc-diff, but that handles to-revision-id = local-tree
-  (let ((root (dvc-tree-root))
-        (buffer (dvc-prepare-changes-buffer from-revision-id to-revision-id
-                                            'diff nil 'xmtn)))
-    (let ((from-backend-id (xmtn--resolve-revision-id root from-revision-id))
-          (to-backend-id (xmtn--resolve-revision-id root to-revision-id)))
-      (xmtn--command-append-to-buffer-async
-       buffer root
-       `("diff"
-         ,(concat "--revision="
-                  (xmtn-match from-backend-id
-                    ((local-tree $path)
-                     (error "Not implemented"))
-                    ((revision $revision-hash-id)
-                     revision-hash-id)))
-         ,(concat "--revision="
-                  (xmtn-match to-backend-id
-                    ((local-tree $path)
-                     (error "Not implemented"))
-                    ((revision $revision-hash-id)
-                     revision-hash-id))))
-       :finished
-       (lexical-let ((buffer buffer))
-         (lambda (output error status arguments)
-           (with-current-buffer buffer
-             (let ((inhibit-read-only t))
-               (xmtn--remove-content-hashes-from-diff))
-             (goto-char (point-min)))))))
-    (xmtn--display-buffer-maybe buffer dont-switch)
-    ;; The call site in `dvc-revlist-diff' needs this return value.
-    buffer))
-
-;;;###autoload
 (defun xmtn-dvc-revlog-mode (&rest args)
   ;; There is a reasonable default implementation to fall back on.
   (apply #'dvc-dvc-revlog-mode args))
@@ -628,20 +594,6 @@ To be invoked from an xmtn revlist buffer.  Brings up an xmtn revlist buffer."
              (xmtn--revlist--missing-get-info root branch new-revisions))))
        ;; Passing nil as first-line-only-p and last-n is arbitrary here.
        nil nil)))
-  nil)
-
-(defun xmtn-revlist-diff-to-current-tree (&optional dont-switch)
-  "Show diff from revision at point to current tree.
-
-To be invoked from an xmtn revlist buffer."
-  (interactive "P")
-  (let* ((root (dvc-tree-root))
-         (entry (dvc-revlist-current-patch-struct))
-         (target-hash-id (xmtn--revlist-entry-revision-hash-id entry)))
-    (xmtn-dvc-diff `(xmtn (revision ,target-hash-id))
-                   root
-                   dont-switch
-                   `(xmtn (local-tree ,root))))
   nil)
 
 (provide 'xmtn-revlist)

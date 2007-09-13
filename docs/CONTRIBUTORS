@@ -48,7 +48,8 @@
                                   "moy#moy"))
     (contributor :name "Masatake YAMATO"
                  :signed done
-                 :mail-addresses "jet#gyve.org")
+                 :mail-addresses ("jet#gyve.org"
+                                  "jet#gps06"))
     (contributor :name "Martin Brett Pool"
                  :signed done)
     (contributor :name "Robert Widhopf-Fenk"
@@ -68,10 +69,13 @@
     (contributor :name "Michael Olson"
                  :signed done
                  :mail-addresses ("mwolson#member.fsf.org"
-                                  "mwolson#gnu.org"))
+                                  "mwolson#gnu.org"
+                                  "mwolson#exabyte"))
     (contributor :name "Stephen Leake"
                  :signed done
-                 :mail-addresses "stephen_leake#stephe-leake.org")
+                 :mail-addresses ("stephen_leake#stephe-leake.org"
+                                  "stephe#ACS1100007992"
+                                  "stephe#LM000850872"))
     (contributor :name "Sam Steingold"
                  :signed done
                  :mail-addresses "sds#gnu.org")
@@ -82,10 +86,26 @@
     (contributor :name "Sascha Wilde"
                  :signed done-emacs-only
                  :mail-addresses "wilde#sha-bang.de")
-    (contributor :signed "Steve Youngs"
+    (contributor :name "Steve Youngs"
                  :signed done-emacs-only
                  :mail-addresses "steve#sxemacs.org")
 
+    ;;
+    ;; Assignment in progress
+    ;;
+    (contributor :name "Andrea Russo"
+                 :signed in-progress
+                 :contacted yes
+                 :mail-addresses ("rastandy#inventati.org"
+                                  "rast4ndy#gmail.com"))
+    (contributor :name "Andre Kuehne"
+                 :signed in-progress
+                 :contacted yes
+                 :mail-addresses "andre.kuehne#gmx.net")
+
+    ;;
+    ;; Does not need assignment yet
+    ;;
     (contributor :name "Daniel Dehennin"
                  :contacted yes
                  :changed-elisp no
@@ -93,22 +113,19 @@
                  :mail-addresses "nebuchadnezzar#asgardr.info")
 
     ;;
-    ;; Needs inquiries
+    ;; Needs assignment (or investigation into changes made)
     ;;
     (contributor :name "Takuzo O'hara"
                  :signed not-yet
+                 :contacted yes
                  :mail-addresses "takuzo.ohara#gmail.com")
     (contributor :name "Christian Ohler"
                  :signed not-yet
+                 :contacted yes
                  :mail-addresses "ohler+mtn#fastmail.net")
-    (contributor :name "Andre Kuehne"
-                 :signed not-yet
-                 :mail-addresses "andre.kuehne#gmx.net")
-    (contributor :name "Andrea Russo"
-                 :signed not-yet
-                 :mail-addresses "rast4ndy#gmail.com")
     (contributor :signed "Chris Gray"
                  :signed not-yet
+                 :contacted yes
                  :mail-addresses "christopher.grayb#mail.mcgill.ca")
     ;;
     ;; ADD YOUR NAME HERE.

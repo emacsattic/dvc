@@ -115,6 +115,21 @@
   ;; Calling `xmtn--debug-mark-text-processed' from here is way too slow.
   (skip-chars-forward " "))
 
+(defun xmtn-basic-io-skip-blank-lines ()
+  "Skip blank lines (if any), so parser starts on a stanza."
+  (beginning-of-line)
+  (while
+      (case (char-after)
+        ((?\n)
+         (forward-char 1)
+         t)
+        ((? )
+         (skip-chars-forward " ")
+         t)
+        (t
+         nil)))
+  (beginning-of-line))
+
 (defsubst xmtn-basic-io--parse-nonempty-line ()
   (xmtn-basic-io--skip-white-space)
   (prog1
