@@ -570,9 +570,10 @@ Throw an error when not on a file."
 
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
-  `dvc-show-changes-buffer'.")
-;; FIXME: actually, dvc-show-changes-buffer doesn't use this. But
-;; functions that call dvc-show-changes-buffer do.
+`dvc-show-changes-buffer' (defined with a (let ...) in
+dvc-show-changes-buffer, and altered by called functions).
+
+This is just a lint trap.")
 
 (defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch header-end-regexp)
