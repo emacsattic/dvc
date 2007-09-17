@@ -322,7 +322,8 @@ new file.")
 (defun xgit-diff-index (&optional against-rev path dont-switch)
   "Call \"git diff\" (diff between tree and index)."
   (interactive (list nil nil current-prefix-arg))
-  (let ((path (or path (xgit-tree-root))))
+  (let ((path (or path (xgit-tree-root)))
+        (against-rev (or against-rev '(xgit (index)))))
     (xgit-diff-1 against-rev path dont-switch
                  `(xgit (local-tree ,path)))))
 
