@@ -285,7 +285,8 @@ new file.")
          (command-list (if (equal against-rev '(xgit (index)))
                            (if (equal base-rev local-tree)
                              '("diff" "-M")
-                             (error "Can not diff the index with a revision"))
+                             (message "%S != %S" base-rev local-tree)
+                             `("diff" "-M" "--cached" ,against))
                          `("diff" "-M" ,base ,against))))
     (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
@@ -304,6 +305,28 @@ new file.")
 (defun xgit-diff (&optional against-rev path dont-switch)
   (interactive (list nil nil current-prefix-arg))
   (xgit-diff-1 against-rev path dont-switch nil))
+
+;;;###autoload
+(defun xgit-diff-cached (&optional against-rev path dont-switch)
+  "Call \"git diff --cached\"."
+  (interactive (list nil nil current-prefix-arg))
+  (xgit-diff-1 against-rev path dont-switch '(xgit (index))))
+
+;;;###autoload
+(defun xgit-diff-index (&optional against-rev path dont-switch)
+  "Call \"git diff\" (diff between tree and index)."
+  (interactive (list nil nil current-prefix-arg))
+  (let ((path (or path (xgit-tree-root))))
+    (xgit-diff-1 against-rev path dont-switch
+                 `(xgit (local-tree ,path)))))
+
+;;;###autoload
+(defun xgit-diff-head (&optional path dont-switch)
+  "Call \"git diff HEAD\"."
+  (interactive (list nil current-prefix-arg))
+  (xgit-diff-1 `(xgit (local-tree ,path))
+               path dont-switch
+               `(xgit (last-revision ,path 1))))
 
 (defvar xgit-prev-format-string "%s~%s"
   "This is a format string which is used by `dvc-revision-to-string'
