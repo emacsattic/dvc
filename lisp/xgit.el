@@ -294,13 +294,19 @@ new file.")
     (dvc-run-dvc-sync 'xgit command-list
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
-                         (dvc-show-changes-buffer output 'xgit-parse-diff
-                                                  (capture buffer))))))
+                         (dvc-show-changes-buffer output
+                                                  'xgit-parse-diff
+                                                  (capture buffer)
+                                                  nil nil
+                                                  (mapconcat
+                                                   (lambda (x) x)
+                                                   (cons "git" command-list)
+                                                   " "))))))
 
 (defun xgit-last-revision (path)
   (if (xgit-use-index-p)
       '(xgit (index))
-    `(xgit (last-revision ,root 1))))
+    `(xgit (last-revision ,path 1))))
 
 (defun xgit-diff (&optional against-rev path dont-switch)
   (interactive (list nil nil current-prefix-arg))
