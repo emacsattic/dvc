@@ -570,12 +570,14 @@ Throw an error when not on a file."
 
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
-  `dvc-show-changes-buffer'.")
-;; FIXME: actually, dvc-show-changes-buffer doesn't use this. But
-;; functions that call dvc-show-changes-buffer do.
+`dvc-show-changes-buffer' (defined with a (let ...) in
+dvc-show-changes-buffer, and altered by called functions).
+
+This is just a lint trap.")
 
 (defun dvc-show-changes-buffer (buffer parser &optional
-                                       output-buffer no-switch header-end-regexp)
+                                       output-buffer no-switch
+                                       header-end-regexp cmd)
   ;; FIXME: pass in dvc?
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
 
@@ -603,12 +605,19 @@ which is not part of the diff header."
         (dvc-diff-mode))
       (with-current-buffer buffer
         (goto-char (point-min))
+        (when cmd
+          (setq dvc-header
+                (concat dvc-header
+                        (dvc-face-add cmd 'dvc-header) "\n"
+                        (dvc-face-add (make-string  72 ?\ ) 'dvc-separator))))
         (when header-end-regexp
-          (setq dvc-header (buffer-substring-no-properties
-                            (goto-char (point-min))
-                            (progn (re-search-forward header-end-regexp nil t) ;; "^[^*\\.]"
-                                   (beginning-of-line)
-                                   (point)))))
+          (setq dvc-header
+                (concat dvc-header
+                        (buffer-substring-no-properties
+                         (goto-char (point-min))
+                         (progn (re-search-forward header-end-regexp nil t) ;; "^[^*\\.]"
+                                (beginning-of-line)
+                                (point))))))
         (beginning-of-line)
         (funcall parser changes-buffer)
         (let ((footer (concat

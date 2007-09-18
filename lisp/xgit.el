@@ -270,28 +270,70 @@ new file.")
                       (dvc-revision-to-string against-rev
                                               xgit-prev-format-string "HEAD")
                     "HEAD"))
-         (against-rev (or against-rev `(xgit (last-revision ,root 1))))
+         (against-rev (or against-rev (if (xgit-use-index-p)
+                                          '(xgit (index))
+                                        `(xgit (last-revision ,root 1)))))
          (base (if base-rev
                    (dvc-revision-to-string base-rev xgit-prev-format-string
                                            "HEAD")
                  nil))
-         (base-rev (or base-rev `(xgit (local-tree ,root))))
+         (local-tree `(xgit (local-tree ,root)))
+         (base-rev (or base-rev local-tree))
          (buffer (dvc-prepare-changes-buffer
                   against-rev base-rev
                   'diff root 'xgit))
-         (command-list `("diff" "-M" ,base ,against)))
+         (command-list (if (equal against-rev '(xgit (index)))
+                           (if (equal base-rev local-tree)
+                             '("diff" "-M")
+                             (message "%S != %S" base-rev local-tree)
+                             `("diff" "-M" "--cached" ,against))
+                         `("diff" "-M" ,base ,against))))
     (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xgit command-list
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
-                         (dvc-show-changes-buffer output 'xgit-parse-diff
-                                                  (capture buffer))))))
+                         (dvc-show-changes-buffer output
+                                                  'xgit-parse-diff
+                                                  (capture buffer)
+                                                  nil nil
+                                                  (mapconcat
+                                                   (lambda (x) x)
+                                                   (cons "git" command-list)
+                                                   " "))))))
+
+(defun xgit-last-revision (path)
+  (if (xgit-use-index-p)
+      '(xgit (index))
+    `(xgit (last-revision ,path 1))))
 
 (defun xgit-diff (&optional against-rev path dont-switch)
   (interactive (list nil nil current-prefix-arg))
   (xgit-diff-1 against-rev path dont-switch nil))
+
+;;;###autoload
+(defun xgit-diff-cached (&optional against-rev path dont-switch)
+  "Call \"git diff --cached\"."
+  (interactive (list nil nil current-prefix-arg))
+  (xgit-diff-1 against-rev path dont-switch '(xgit (index))))
+
+;;;###autoload
+(defun xgit-diff-index (&optional against-rev path dont-switch)
+  "Call \"git diff\" (diff between tree and index)."
+  (interactive (list nil nil current-prefix-arg))
+  (let ((path (or path (xgit-tree-root)))
+        (against-rev (or against-rev '(xgit (index)))))
+    (xgit-diff-1 against-rev path dont-switch
+                 `(xgit (local-tree ,path)))))
+
+;;;###autoload
+(defun xgit-diff-head (&optional path dont-switch)
+  "Call \"git diff HEAD\"."
+  (interactive (list nil current-prefix-arg))
+  (xgit-diff-1 `(xgit (local-tree ,path))
+               path dont-switch
+               `(xgit (last-revision ,path 1))))
 
 (defvar xgit-prev-format-string "%s~%s"
   "This is a format string which is used by `dvc-revision-to-string'
@@ -518,6 +560,76 @@ LAST-REVISION looks like
              'xgit (list "cat-file" "blob"
                          (format "HEAD~%s:%s" xgit-rev fname))
              :finished 'dvc-output-buffer-handler-withnewline))))
+
+(defcustom xgit-use-index 'ask
+  "Whether xgit should use the index (aka staging area).
+
+\"Use the index\" means commit the content of the index, not the
+content of the working tree. In practice, this means commit with
+\"git commit\" (without -a), and diff with \"git diff\".
+
+\"Not use the index\" means commit the content of the working tree,
+like most version control systems do. In practice, this means commit
+with \"git commit -a\", and diff with \"git diff HEAD\".
+
+This option can be set to
+
+ 'ask : ask whenever xgit needs the value,
+ 'always : always use the index,
+ 'never : never use the index.
+"
+  :type '(choice (const ask)
+                 (const always)
+                 (const never))
+  :group 'dvc-git)
+
+(defun xgit-use-index-p ()
+  "Whether xgit should use the index this time.
+
+The value is determined based on `xgit-use-index'."
+  (case xgit-use-index
+    (always t)
+    (never nil)
+    (ask (message "Use git index (y/n/a/e/c/?)? ")
+         (let ((answer 'undecided))
+           (while (eq answer 'undecided)
+             (case (progn
+                     (let* ((tem (downcase (let ((cursor-in-echo-area t))
+                                             (read-char-exclusive)))))
+                       (if (= tem help-char)
+                           'help
+                         (cdr (assoc tem '((?y . yes)
+                                           (?n . no)
+                                           (?a . always)
+                                           (?e . never)
+                                           (?c . customize)
+                                           (?? . help)))))))
+               (yes (setq answer t))
+               (no (setq answer nil))
+               (always
+                (setq xgit-use-index 'always)
+                (setq answer t))
+               (never
+                (setq xgit-use-index 'never)
+                (setq answer nil))
+               (customize
+                (customize-variable 'xgit-use-index)
+                (message "Use git index (y/n/a/e/c/?)? "))
+               (help (message
+"\"Use the index\" (aka staging areameans) means add file content
+explicitely before commiting. Concretely, this means run commit
+without -a, and run diff without option.
+
+Use git index?
+ y (Yes): yes, use the index this time
+ n (No) : no, not this time
+ a (Always) : always use the index from now
+ e (nEver) : never use the index from now
+ c (Customize) : customize the option so that you can save it for next
+    Emacs sessions. You'll still have to answer the question after.
+
+\(y/n/a/e/c/?)? "))))
+           answer))))
 
 (provide 'xgit)
 ;;; xgit.el ends here
