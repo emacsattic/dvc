@@ -51,8 +51,9 @@ Must be buffer-local.")
   the diff for that file. Each backend can customize this for its
   diff format. Buffer-local in diff buffers.")
 
+;; xhg: "+++ b/LinuxLanguageApps.muse   Tue Sep 18 20:43:04 2007 +0200"
 (defun dvc-dvc-search-file-in-diff (file)
-  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "$")))
+  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "\\(.+[0-9][0-9][0-9][0-9]\\)?$")))
 
 (defun dvc-prepare-changes-buffer (base modified type path dvc)
   "Create and return a buffer to run command showing diffs.
@@ -289,7 +290,7 @@ Commands:
   (setq dvc-buffer-refresh-function 'dvc-diff-generic-refresh)
   (set (make-local-variable 'dvc-diff-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
-		     #'dvc-diff-printer)))
+                     #'dvc-diff-printer)))
   (make-local-variable 'dvc-buffer-marked-file-list)
   (easy-menu-add dvc-diff-mode-menu)
   (dvc-install-buffer-menu)
