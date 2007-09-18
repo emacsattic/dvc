@@ -157,11 +157,11 @@ AC_DEFUN([DVC_BAZ_OR_TLA],
       ARCH=${TLA}
     fi
     if test "x${ARCH_BRANCH}" = "xnone"; then
-      ARCH="/bin/true"
+      ARCH="${TRUE_PROG}"
     fi
 
     if test "y${ARCH_BRANCH}" = "ytla" -a "y${TLA}" = "y"; then
-      ARCH="/bin/true"
+      ARCH="${TRUE_PROG}"
       ARCH_BRANCH=none
     fi
     if test "y${ARCH_BRANCH}" = "ytla" -a "y${TLA}" = "y"; then
@@ -329,7 +329,7 @@ AC_INIT([DVC], [DVC_VERSION], [dvc-dev@gna.org])
 # Clear the environment variable here.
 unset GREP_OPTIONS
 
-AC_COPYRIGHT([Copyright (C) 2004 Robert Widhopf-Fenk <hack@robf.de>])
+AC_COPYRIGHT([Copyright (C) 2004-2007 Robert Widhopf-Fenk <hack@robf.de> and the DVC team])
 
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_FILES([Makefile lisp/Makefile texinfo/Makefile dvc-load.el dvc-load-install.el lisp/dvc-site.el])
@@ -341,6 +341,7 @@ AC_PROG_LN_S
 AC_PATH_PROG(RM, rm, /bin/rm)
 AC_PATH_PROG(LS, ls, /bin/ls)
 AC_PATH_PROG(GREP, grep, /bin/grep)
+AC_PATH_PROG(TRUE_PROG, true, /bin/true)
 
 # External programs checking:
 DVC_PROG_EMACS
@@ -352,7 +353,7 @@ DVC_PROG(TLA, tla, tla program to use)
 DVC_PROG(BAZ, baz, baz program to use)
 DVC_PROG(BZR, bzr, Bazaar-NG)
 if test "x$BZR" = "x" ; then
-   BZR=/bin/true
+   BZR=${TRUE_PROG}
 fi
 DVC_BAZ_OR_TLA
 
