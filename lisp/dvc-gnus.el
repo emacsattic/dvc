@@ -242,6 +242,7 @@ the patch sould be applied."
         (patch-buff))
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
+    ;; [Matthieu Moy] this should probably be just diff-mode.
     (dvc-diff-mode)
     (dvc-buffer-push-previous-window-config window-conf)
     (toggle-read-only 1)
@@ -261,6 +262,7 @@ the patch sould be applied."
     (gnus-summary-select-article-buffer)
     (split-window-vertically)
     (find-file-other-window dvc-patch-name)
+    ;; [Matthieu Moy] this should probably be just diff-mode.
     (dvc-diff-mode)
     (dvc-buffer-push-previous-window-config window-conf)
     (toggle-read-only 1)

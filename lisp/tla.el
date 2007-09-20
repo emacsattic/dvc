@@ -8730,12 +8730,6 @@ file is visited."
       (dvc-flash-line)
       (select-window diff-window))))
 
-(defun dvc-diff-edit-log (&optional insert-changelog)
-  "Wrapper around `tla-edit-log', setting the source buffer to current
-buffer."
-  (interactive "P")
-  (tla-edit-log insert-changelog (current-buffer)))
-
 (defun dvc-diff-save-current-defun-as-kill ()
   "Copy the function name for the change at point to the kill-ring.
 That function uses `add-log-current-defun'"
