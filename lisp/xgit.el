@@ -160,7 +160,7 @@ new file.")
           (while (re-search-forward xgit-status-line-regexp nil t)
             (setq status-string (match-string 1)
                   file (match-string 2)
-                  modif nil
+                  modif " "
                   dir nil
                   orig nil)
             (cond ((or (null file) (string= "" file))
@@ -252,15 +252,30 @@ new file.")
                  (with-current-buffer buf
                    (dvc-generic-refresh))))))
 
+(defun xgit-status-reset-mixed ()
+  "Run \"git reset --mixed\" and refresh current buffer.
+
+This reset the index to HEAD, but doesn't touch files."
+  (interactive)
+  (lexical-let ((buf (current-buffer)))
+    (dvc-run-dvc-async
+     'xgit '("reset" "--mixed")
+     :finished (dvc-capturing-lambda
+                   (output error status arguments)
+                 (with-current-buffer buf
+                   (dvc-generic-refresh))))))
+
 (defvar xgit-diff-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?A] 'xgit-status-add-u)
+    (define-key map [?R] 'xgit-status-reset-mixed)
     map))
 
 (easy-menu-define xgit-diff-mode-menu xgit-diff-mode-map
   "`Git specific changes' menu."
   `("GIT-Diff"
-    ["Run \"git add -u\" (update index)" xgit-status-add-u]
+    ["Re-add modified files (add -u)" xgit-status-add-u t]
+    ["Reset index (reset --mixed)" xgit-status-reset-mixed t]
     ))
 
 (define-derived-mode xgit-diff-mode dvc-diff-mode "xgit-diff"
