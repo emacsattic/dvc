@@ -68,7 +68,7 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
       (dvc-get-buffer-create dvc type path)
     (let ((inhibit-read-only t)) (erase-buffer))
-    (dvc-diff-mode)
+    (funcall (dvc-function dvc "diff-mode"))
     (set (make-local-variable 'dvc-diff-base)     base)
     (set (make-local-variable 'dvc-diff-modified) modified)
     (set (make-local-variable 'dvc-buffer-search-file)
@@ -239,11 +239,9 @@ Pretty-print ELEM."
   "Menu used on a `dvc-diff' file"
   dvc-diff-file-menu-list)
 
-(easy-menu-define dvc-diff-mode-menu dvc-diff-mode-map
-  "`tla-changes' menu"
-  `("Changes"
-    ["Refresh Buffer" dvc-generic-refresh t]
-    ["Edit log before commit" dvc-diff-edit-log t]
+(defconst dvc-diff-mode-menu-list
+  `(["Refresh Buffer" dvc-generic-refresh t]
+    ["Edit log before commit" dvc-log-edit t]
     ["View other revisions" tla-tree-revisions t]
     ("Merge"
      ["Update" dvc-update t]
@@ -259,6 +257,11 @@ Pretty-print ELEM."
     ,dvc-diff-file-menu-list
     ))
 
+(easy-menu-define dvc-diff-mode-menu dvc-diff-mode-map
+  "`dvc-changes' menu"
+  `("DVC-Diff"
+    ,@dvc-diff-mode-menu-list))
+
 (defvar dvc-diff-file-map
   (let ((map (copy-keymap dvc-cmenu-map-template)))
     (define-key map dvc-mouse-2 'dvc-diff-jump-to-change-by-mouse)
@@ -269,7 +272,7 @@ Pretty-print ELEM."
   "Major mode to display changesets. Derives from `diff-mode'.
 
 Use '\\<dvc-diff-mode-map>\\[dvc-diff-mark-file]' to mark files, and '\\[dvc-diff-unmark-file]' to unmark.
-If you commit from this buffer (with '\\<dvc-diff-mode-map>\\[dvc-diff-edit-log]'), then,
+If you commit from this buffer (with '\\<dvc-diff-mode-map>\\[dvc-log-edit]'), then,
 the list of selected files (in this buffer) will be commited (with the text you
 entered as a comment) at the time you actually commit with \\<dvc-log-edit-mode-map>\\[tla-log-edit-done].
 
@@ -291,7 +294,6 @@ Commands:
        (ewoc-create (dvc-ewoc-create-api-select
 		     #'dvc-diff-printer)))
   (make-local-variable 'dvc-buffer-marked-file-list)
-  (easy-menu-add dvc-diff-mode-menu)
   (dvc-install-buffer-menu)
   (toggle-read-only 1)
   (set-buffer-modified-p nil))
@@ -592,8 +594,9 @@ If non-nil, HEADER-END-REGEXP is a regexp matching the first line
 which is not part of the diff header."
   (let* ((root (with-current-buffer buffer
                  (dvc-tree-root default-directory t)))
-         (changes-buffer (or output-buffer (dvc-get-buffer-create (dvc-current-active-dvc)
-                                            'diff root)))
+         (dvc (dvc-current-active-dvc))
+         (changes-buffer (or output-buffer
+                             (dvc-get-buffer-create dvc 'diff root)))
          (dvc-header ""))
     (if (or no-switch dvc-switch-to-buffer-first)
         (set-buffer changes-buffer)
@@ -602,7 +605,7 @@ which is not part of the diff header."
       (dvc-diff-delete-messages)
       (unless output-buffer
         (erase-buffer)
-        (dvc-diff-mode))
+        (funcall (dvc-function dvc "diff-mode")))
       (with-current-buffer buffer
         (goto-char (point-min))
         (when cmd

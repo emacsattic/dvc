@@ -33,6 +33,7 @@
 ;;; Code:
 
 (require 'dvc-core)
+(require 'dvc-diff)
 (require 'xgit-core)
 (require 'xgit-log)
 (eval-when-compile (require 'cl))
@@ -239,6 +240,32 @@ new file.")
 (defun xgit-status-verbose (&optional against path)
   (interactive (list nil default-directory))
   (xgit-status against path t))
+
+(defun xgit-status-add-u ()
+  "Run \"git add -u\" and refresh current buffer."
+  (interactive)
+  (lexical-let ((buf (current-buffer)))
+    (dvc-run-dvc-async
+     'xgit '("add" "-u")
+     :finished (dvc-capturing-lambda
+                   (output error status arguments)
+                 (with-current-buffer buf
+                   (dvc-generic-refresh))))))
+
+(defvar xgit-diff-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?A] 'xgit-status-add-u)
+    map))
+
+(easy-menu-define xgit-diff-mode-menu xgit-diff-mode-map
+  "`Git specific changes' menu."
+  `("GIT-Diff"
+    ["Run \"git add -u\" (update index)" xgit-status-add-u]
+    ))
+
+(define-derived-mode xgit-diff-mode dvc-diff-mode "xgit-diff"
+  "Mode redefining a few commands for diff."
+  )
 
 (defun xgit-parse-diff (changes-buffer)
   (save-excursion
