@@ -95,9 +95,15 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it."
   ;; working tree against its base revision; dvc-delta handles other diffs.
   (interactive (list nil default-directory current-prefix-arg))
   (setq base-rev (or base-rev
-                     (list (dvc-current-active-dvc)
-                           (list 'last-revision path 1))))
+                     ;; allow back-ends to override this for e.g. git,
+                     ;; which can return either the index or the last
+                     ;; revision.
+                     (dvc-apply "dvc-last-revision" path)))
   (dvc-apply "dvc-diff" base-rev path dont-switch))
+
+(defun dvc-dvc-last-revision (path)
+  (list (dvc-current-active-dvc)
+        (list 'last-revision path 1)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-delta (base modified &optional dont-switch)

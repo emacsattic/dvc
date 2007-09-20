@@ -71,9 +71,9 @@
     (message "committing %S in %s" (or files-to-commit "all files") (dvc-tree-root))
     (dvc-run-dvc-sync
      'xgit (append (list "commit"
-                         (unless files-to-commit "-a")
+                         (unless (xgit-use-index-p) "-a")
                          "-F" (dvc-log-edit-file-name))
-                   );;files-to-commit)    ;; TODO: specification of a file list does not yet work...
+                   files-to-commit)
      :finished (dvc-capturing-lambda
                    (output error status arguments)
                  (dvc-show-error-buffer output 'commit)
@@ -106,6 +106,8 @@ ARG is passed as prefix argument"
 (defalias 'xgit-dvc-prepare-environment 'xgit-prepare-environment)
 
 (defalias 'xgit-dvc-revision-get-last-revision 'xgit-revision-get-last-revision)
+
+(defalias 'xgit-dvc-last-revision 'xgit-last-revision)
 
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here

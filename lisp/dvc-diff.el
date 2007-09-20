@@ -51,8 +51,9 @@ Must be buffer-local.")
   the diff for that file. Each backend can customize this for its
   diff format. Buffer-local in diff buffers.")
 
+;; xhg: "+++ b/LinuxLanguageApps.muse   Tue Sep 18 20:43:04 2007 +0200"
 (defun dvc-dvc-search-file-in-diff (file)
-  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "$")))
+  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "\\(.+[0-9][0-9][0-9][0-9]\\)?$")))
 
 (defun dvc-prepare-changes-buffer (base modified type path dvc)
   "Create and return a buffer to run command showing diffs.
@@ -289,7 +290,7 @@ Commands:
   (setq dvc-buffer-refresh-function 'dvc-diff-generic-refresh)
   (set (make-local-variable 'dvc-diff-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
-		     #'dvc-diff-printer)))
+                     #'dvc-diff-printer)))
   (make-local-variable 'dvc-buffer-marked-file-list)
   (easy-menu-add dvc-diff-mode-menu)
   (dvc-install-buffer-menu)
@@ -570,12 +571,14 @@ Throw an error when not on a file."
 
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
-  `dvc-show-changes-buffer'.")
-;; FIXME: actually, dvc-show-changes-buffer doesn't use this. But
-;; functions that call dvc-show-changes-buffer do.
+`dvc-show-changes-buffer' (defined with a (let ...) in
+dvc-show-changes-buffer, and altered by called functions).
+
+This is just a lint trap.")
 
 (defun dvc-show-changes-buffer (buffer parser &optional
-                                       output-buffer no-switch header-end-regexp)
+                                       output-buffer no-switch
+                                       header-end-regexp cmd)
   ;; FIXME: pass in dvc?
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
 
@@ -603,12 +606,19 @@ which is not part of the diff header."
         (dvc-diff-mode))
       (with-current-buffer buffer
         (goto-char (point-min))
+        (when cmd
+          (setq dvc-header
+                (concat dvc-header
+                        (dvc-face-add cmd 'dvc-header) "\n"
+                        (dvc-face-add (make-string  72 ?\ ) 'dvc-separator))))
         (when header-end-regexp
-          (setq dvc-header (buffer-substring-no-properties
-                            (goto-char (point-min))
-                            (progn (re-search-forward header-end-regexp nil t) ;; "^[^*\\.]"
-                                   (beginning-of-line)
-                                   (point)))))
+          (setq dvc-header
+                (concat dvc-header
+                        (buffer-substring-no-properties
+                         (goto-char (point-min))
+                         (progn (re-search-forward header-end-regexp nil t) ;; "^[^*\\.]"
+                                (beginning-of-line)
+                                (point))))))
         (beginning-of-line)
         (funcall parser changes-buffer)
         (let ((footer (concat
