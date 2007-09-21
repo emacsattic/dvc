@@ -312,7 +312,8 @@
     (define-key map [(meta ?l)] 'tla-tree-lint)
     (define-key map dvc-keyvec-update        'dvc-update)
     (define-key map [?m]                     'dvc-missing)
-    (define-key map dvc-keyvec-show-bookmark 'tla-bookmarks)
+    (define-key map [?M]                     'dvc-merge)
+    (define-key map dvc-keyvec-show-bookmark 'dvc-bookmarks)
     (define-key map dvc-keyvec-help          'tla-help)
 
     ;; file specific functionality

@@ -33,6 +33,7 @@
 ;;; Code:
 
 (require 'dvc-core)
+(require 'dvc-diff)
 (require 'xgit-core)
 (require 'xgit-log)
 (eval-when-compile (require 'cl))
@@ -61,7 +62,7 @@
 (defun xgit-add (file)
   "Add FILE to the current git project."
   (interactive (list (dvc-confirm-read-file-name "Add file or directory: ")))
-  (xgit-add-files (list file)))
+  (xgit-add-files file))
 
 (defun xgit-add-files (&rest files)
   "Run git add."
@@ -159,7 +160,7 @@ new file.")
           (while (re-search-forward xgit-status-line-regexp nil t)
             (setq status-string (match-string 1)
                   file (match-string 2)
-                  modif nil
+                  modif " "
                   dir nil
                   orig nil)
             (cond ((or (null file) (string= "" file))
@@ -240,6 +241,47 @@ new file.")
   (interactive (list nil default-directory))
   (xgit-status against path t))
 
+(defun xgit-status-add-u ()
+  "Run \"git add -u\" and refresh current buffer."
+  (interactive)
+  (lexical-let ((buf (current-buffer)))
+    (dvc-run-dvc-async
+     'xgit '("add" "-u")
+     :finished (dvc-capturing-lambda
+                   (output error status arguments)
+                 (with-current-buffer buf
+                   (dvc-generic-refresh))))))
+
+(defun xgit-status-reset-mixed ()
+  "Run \"git reset --mixed\" and refresh current buffer.
+
+This reset the index to HEAD, but doesn't touch files."
+  (interactive)
+  (lexical-let ((buf (current-buffer)))
+    (dvc-run-dvc-async
+     'xgit '("reset" "--mixed")
+     :finished (dvc-capturing-lambda
+                   (output error status arguments)
+                 (with-current-buffer buf
+                   (dvc-generic-refresh))))))
+
+(defvar xgit-diff-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?A] 'xgit-status-add-u)
+    (define-key map [?R] 'xgit-status-reset-mixed)
+    map))
+
+(easy-menu-define xgit-diff-mode-menu xgit-diff-mode-map
+  "`Git specific changes' menu."
+  `("GIT-Diff"
+    ["Re-add modified files (add -u)" xgit-status-add-u t]
+    ["Reset index (reset --mixed)" xgit-status-reset-mixed t]
+    ))
+
+(define-derived-mode xgit-diff-mode dvc-diff-mode "xgit-diff"
+  "Mode redefining a few commands for diff."
+  )
+
 (defun xgit-parse-diff (changes-buffer)
   (save-excursion
     (while (re-search-forward
@@ -270,28 +312,70 @@ new file.")
                       (dvc-revision-to-string against-rev
                                               xgit-prev-format-string "HEAD")
                     "HEAD"))
-         (against-rev (or against-rev `(xgit (last-revision ,root 1))))
+         (against-rev (or against-rev (if (xgit-use-index-p)
+                                          '(xgit (index))
+                                        `(xgit (last-revision ,root 1)))))
          (base (if base-rev
                    (dvc-revision-to-string base-rev xgit-prev-format-string
                                            "HEAD")
                  nil))
-         (base-rev (or base-rev `(xgit (local-tree ,root))))
+         (local-tree `(xgit (local-tree ,root)))
+         (base-rev (or base-rev local-tree))
          (buffer (dvc-prepare-changes-buffer
                   against-rev base-rev
                   'diff root 'xgit))
-         (command-list `("diff" "-M" ,base ,against)))
+         (command-list (if (equal against-rev '(xgit (index)))
+                           (if (equal base-rev local-tree)
+                             '("diff" "-M")
+                             (message "%S != %S" base-rev local-tree)
+                             `("diff" "-M" "--cached" ,against))
+                         `("diff" "-M" ,base ,against))))
     (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xgit command-list
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
-                         (dvc-show-changes-buffer output 'xgit-parse-diff
-                                                  (capture buffer))))))
+                         (dvc-show-changes-buffer output
+                                                  'xgit-parse-diff
+                                                  (capture buffer)
+                                                  nil nil
+                                                  (mapconcat
+                                                   (lambda (x) x)
+                                                   (cons "git" command-list)
+                                                   " "))))))
+
+(defun xgit-last-revision (path)
+  (if (xgit-use-index-p)
+      '(xgit (index))
+    `(xgit (last-revision ,path 1))))
 
 (defun xgit-diff (&optional against-rev path dont-switch)
   (interactive (list nil nil current-prefix-arg))
   (xgit-diff-1 against-rev path dont-switch nil))
+
+;;;###autoload
+(defun xgit-diff-cached (&optional against-rev path dont-switch)
+  "Call \"git diff --cached\"."
+  (interactive (list nil nil current-prefix-arg))
+  (xgit-diff-1 against-rev path dont-switch '(xgit (index))))
+
+;;;###autoload
+(defun xgit-diff-index (&optional against-rev path dont-switch)
+  "Call \"git diff\" (diff between tree and index)."
+  (interactive (list nil nil current-prefix-arg))
+  (let ((path (or path (xgit-tree-root)))
+        (against-rev (or against-rev '(xgit (index)))))
+    (xgit-diff-1 against-rev path dont-switch
+                 `(xgit (local-tree ,path)))))
+
+;;;###autoload
+(defun xgit-diff-head (&optional path dont-switch)
+  "Call \"git diff HEAD\"."
+  (interactive (list nil current-prefix-arg))
+  (xgit-diff-1 `(xgit (local-tree ,path))
+               path dont-switch
+               `(xgit (last-revision ,path 1))))
 
 (defvar xgit-prev-format-string "%s~%s"
   "This is a format string which is used by `dvc-revision-to-string'
@@ -343,7 +427,7 @@ The second element is the remainder of FILES."
 (defun xgit-revert-file (file)
   "Revert uncommitted changes made to FILE in the current branch."
   (interactive "fRevert file: ")
-  (xgit-revert-files (list file)))
+  (xgit-revert-files file))
 
 (defun xgit-revert-files (&rest files)
   "Revert uncommitted changes made to FILES in the current branch."
@@ -518,6 +602,76 @@ LAST-REVISION looks like
              'xgit (list "cat-file" "blob"
                          (format "HEAD~%s:%s" xgit-rev fname))
              :finished 'dvc-output-buffer-handler-withnewline))))
+
+(defcustom xgit-use-index 'ask
+  "Whether xgit should use the index (aka staging area).
+
+\"Use the index\" means commit the content of the index, not the
+content of the working tree. In practice, this means commit with
+\"git commit\" (without -a), and diff with \"git diff\".
+
+\"Not use the index\" means commit the content of the working tree,
+like most version control systems do. In practice, this means commit
+with \"git commit -a\", and diff with \"git diff HEAD\".
+
+This option can be set to
+
+ 'ask : ask whenever xgit needs the value,
+ 'always : always use the index,
+ 'never : never use the index.
+"
+  :type '(choice (const ask)
+                 (const always)
+                 (const never))
+  :group 'dvc-git)
+
+(defun xgit-use-index-p ()
+  "Whether xgit should use the index this time.
+
+The value is determined based on `xgit-use-index'."
+  (case xgit-use-index
+    (always t)
+    (never nil)
+    (ask (message "Use git index (y/n/a/e/c/?)? ")
+         (let ((answer 'undecided))
+           (while (eq answer 'undecided)
+             (case (progn
+                     (let* ((tem (downcase (let ((cursor-in-echo-area t))
+                                             (read-char-exclusive)))))
+                       (if (= tem help-char)
+                           'help
+                         (cdr (assoc tem '((?y . yes)
+                                           (?n . no)
+                                           (?a . always)
+                                           (?e . never)
+                                           (?c . customize)
+                                           (?? . help)))))))
+               (yes (setq answer t))
+               (no (setq answer nil))
+               (always
+                (setq xgit-use-index 'always)
+                (setq answer t))
+               (never
+                (setq xgit-use-index 'never)
+                (setq answer nil))
+               (customize
+                (customize-variable 'xgit-use-index)
+                (message "Use git index (y/n/a/e/c/?)? "))
+               (help (message
+"\"Use the index\" (aka staging area) means add file content
+explicitly before commiting. Concretely, this means run commit
+without -a, and run diff without options.
+
+Use git index?
+ y (Yes): yes, use the index this time
+ n (No) : no, not this time
+ a (Always) : always use the index from now
+ e (nEver) : never use the index from now
+ c (Customize) : customize the option so that you can save it for next
+    Emacs sessions. You'll still have to answer the question after.
+
+\(y/n/a/e/c/?)? "))))
+           answer))))
 
 (provide 'xgit)
 ;;; xgit.el ends here

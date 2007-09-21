@@ -28,6 +28,7 @@
 ;;; Code:
 
 (require 'bzr-core)
+(require 'bzr)
 (require 'diff-mode)
 
 (defgroup dvc-bzr-submit nil

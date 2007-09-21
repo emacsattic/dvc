@@ -90,6 +90,12 @@ For xhg:
 
 TODO
 
+For xgit:
+
+BACK-END-REVISION :: (revision "sha1")
+                   | (index)
+  ;; content of the index (aka staging area).
+
 Example
 =======
 

@@ -231,10 +231,13 @@ revision list."
              (log-buf (current-buffer)))
          (if (and buffer (buffer-live-p buffer))
              (dvc-buffer-show-or-scroll buffer scroll-down)
-           (setf (dvc-revlist-entry-patch-log-buffer
-                  (nth 1 elem))
-                 (dvc-revlog-revision
-                  (dvc-revlist-entry-patch-rev-id (nth 1 elem)))))
+           (setq buffer (setf (dvc-revlist-entry-patch-log-buffer
+                               (nth 1 elem))
+                              (dvc-revlog-revision
+                               (dvc-revlist-entry-patch-rev-id (nth 1 elem)))))
+           (with-current-buffer buffer
+             ;; goto the beginning of the shown buffer
+             (goto-char (point-min))))
          (pop-to-buffer log-buf)))
       ;; TODO: untested.
       (entry-change (let ((default-directory (car (cddr elem))))
