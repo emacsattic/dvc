@@ -370,6 +370,10 @@ the file before saving."
                                                dvc-log-edit-flush-prefix
                                                normalized-files)
                   (set (make-local-variable 'xmtn--log--root) root)
+                  ;; FIXME: this caches the list of files to commit
+                  ;; before the user has a chance to review it for
+                  ;; correctness. Instead, get this list again in
+                  ;; log-edit-done.
                   (set (make-local-variable 'xmtn--log--normalized-files)
                        normalized-files)
                   (set (make-local-variable 'xmtn--log--branch) branch))
