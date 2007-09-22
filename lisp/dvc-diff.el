@@ -268,6 +268,11 @@ Pretty-print ELEM."
     map)
   "Keymap used on files in `dvc-diff-mode' buffers.")
 
+;; "<back-end>-diff-mode", if defined, will be used instead of this
+;; one. If so, it should be derived from dvc-diff-mode (via
+;; `define-derived-mode'), and rely on it for as many features as
+;; possible (one can, for example, extend the menu and keymap). See
+;; `xgit-diff-mode' in xgit.el for a good example.
 (define-derived-mode dvc-diff-mode fundamental-mode "dvc-diff"
   "Major mode to display changesets. Derives from `diff-mode'.
 
