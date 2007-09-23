@@ -159,7 +159,6 @@
     (setq accu (nreverse accu))
     accu))
 
-(defvar xmtn--log--normalized-files nil)
 (defvar xmtn--log--branch nil)
 (defvar xmtn--log--root nil)
 
@@ -370,12 +369,6 @@ the file before saving."
                                                dvc-log-edit-flush-prefix
                                                normalized-files)
                   (set (make-local-variable 'xmtn--log--root) root)
-                  ;; FIXME: this caches the list of files to commit
-                  ;; before the user has a chance to review it for
-                  ;; correctness. Instead, get this list again in
-                  ;; log-edit-done.
-                  (set (make-local-variable 'xmtn--log--normalized-files)
-                       normalized-files)
                   (set (make-local-variable 'xmtn--log--branch) branch))
               (set-buffer-modified-p previously-modified-p))))
         ;; This allows using `find-file-at-point' on file names in our
@@ -385,7 +378,18 @@ the file before saving."
 ;;;###autoload
 (defun xmtn-dvc-log-edit-done ()
   (let* ((root xmtn--log--root)
-         (normalized-files xmtn--log--normalized-files)
+         (files (or (with-current-buffer dvc-partner-buffer
+                      (dvc-current-file-list 'nil-if-none-marked))
+                    'all))
+         (normalized-files
+          (case files
+            (all 'all)
+            (t
+             ;; Need to normalize in original buffer, since
+             ;; switching buffers changes default-directory and
+             ;; therefore the semantics of relative file names.
+             (with-current-buffer dvc-partner-buffer
+               (xmtn--normalize-file-names root files)))))
          (branch xmtn--log--branch))
     ;; Saving the buffer will automatically flush the log edit hints.
     (save-buffer)
@@ -900,14 +904,10 @@ the file before saving."
                     root (current-buffer) error)))))))
 
 (defun xmtn--mtn-has-basic-io-inventory ()
-  ;; FIXME: This is a hack.  It should look like
-  ;;
-  ;; (xmtn--version-case
-  ;;   ((>= 0 37) t)
-  ;;   (t nil))
-  (let ((version-string (xmtn--command-output-line nil `("automate"
-                                                         "interface_version"))))
-    (equal (subseq version-string 0 2) "5.")))
+  ;;  FIXME: unnecessary if require mtn 0.37 or greater
+  (let ((version (string-to-number
+                  (xmtn--command-output-line nil `("automate" "interface_version")))))
+    (>= version 6.0)))
 
 ;;;###autoload
 (defun xmtn-dvc-status (&optional root)
@@ -1045,9 +1045,15 @@ the file before saving."
 
 (defun xmtn--add-files (root file-names)
   (dolist (file-name file-names)
-    ;; On directories, mtn add will recurse, which isn't what we want.
-    ;; FIXME: was true for older mtn versions; not true in current, unless we specify --recursive
-    (assert (not (file-directory-p file-name)))
+    (xmtn--version-case
+     ((< 0 33)
+      ;; mtn <0.33 will add directories recursively, which isn't what
+      ;; we want.
+      (if (file-directory-p file-name)
+          (error "Adding directories is not implemented for mtn versions below 0.33")))
+     ((>= 0 33)
+      ;; directories are ok
+      ))
     ;; I don't know how mtn handles symlinks (and symlinks to
     ;; directories), so forbid them for now.
     (assert (not (file-symlink-p file-name))))
