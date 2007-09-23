@@ -658,9 +658,9 @@ The value is determined based on `xgit-use-index'."
                 (customize-variable 'xgit-use-index)
                 (message "Use git index (y/n/a/e/c/?)? "))
                (help (message
-"\"Use the index\" (aka staging areameans) means add file content
-explicitely before commiting. Concretely, this means run commit
-without -a, and run diff without option.
+"\"Use the index\" (aka staging area) means add file content
+explicitly before commiting. Concretely, this means run commit
+without -a, and run diff without options.
 
 Use git index?
  y (Yes): yes, use the index this time
