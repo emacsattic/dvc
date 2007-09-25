@@ -581,7 +581,7 @@ of the commit. Additionally the destination email address can be specified."
 (defun bzr-log-edit-commit-local ()
   "Local commit"
   (interactive)
-  (bzr-log-edit-done))
+  (bzr-log-edit-commit t))
 
 (defun bzr-log-edit-commit (&optional local)
   "Commit without --local by default.
