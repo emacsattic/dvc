@@ -183,6 +183,18 @@ See also `dvc-get-buffer'"
                  return-buffer dvc default-directory)
       return-buffer)))
 
+(defun dvc-type-buffers (type)
+  "Return the list of all buffers of type TYPE."
+  (let ((result nil)
+        (tree dvc-buffers-tree))
+    (while tree
+      (let ((entries (cdr (assoc type (car tree)))))
+        (while entries
+          (setq result (cons (nth 1 (car entries)) result))
+          (setq entries (cdr entries))))
+      (setq tree (cdr tree)))
+    result))
+
 (defun dvc-get-buffer (dvc type &optional path mode)
   "Get a buffer of type TYPE for the path PATH.
 
