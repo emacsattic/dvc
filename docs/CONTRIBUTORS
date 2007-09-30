@@ -79,6 +79,10 @@
     (contributor :name "Sam Steingold"
                  :signed done
                  :mail-addresses "sds#gnu.org")
+    (contributor :name "Andrea Russo"
+                 :signed done
+                 :mail-addresses ("rastandy#inventati.org"
+                                  "rast4ndy#gmail.com"))
 
     (contributor :name "Alan Shutko"
                  :signed done-emacs-only
@@ -93,15 +97,14 @@
     ;;
     ;; Assignment in progress
     ;;
-    (contributor :name "Andrea Russo"
-                 :signed in-progress
-                 :contacted yes
-                 :mail-addresses ("rastandy#inventati.org"
-                                  "rast4ndy#gmail.com"))
     (contributor :name "Andre Kuehne"
                  :signed in-progress
                  :contacted yes
                  :mail-addresses "andre.kuehne#gmx.net")
+    (contributor :name "Takuzo O'hara"
+                 :signed in-progress
+                 :contacted yes
+                 :mail-addresses "takuzo.ohara#gmail.com")
 
     ;;
     ;; Does not need assignment yet
@@ -115,17 +118,13 @@
     ;;
     ;; Needs assignment (or investigation into changes made)
     ;;
-    (contributor :name "Takuzo O'hara"
-                 :signed not-yet
-                 :contacted yes
-                 :mail-addresses "takuzo.ohara#gmail.com")
     (contributor :name "Christian Ohler"
                  :signed not-yet
                  :contacted yes
                  :mail-addresses "ohler+mtn#fastmail.net")
     (contributor :signed "Chris Gray"
                  :signed not-yet
-                 :contacted yes
+                 :contacted email-invalid
                  :mail-addresses "christopher.grayb#mail.mcgill.ca")
     ;;
     ;; ADD YOUR NAME HERE.
