@@ -116,6 +116,15 @@ Only when called with a prefix argument, add the files."
   (interactive "P")
   (dvc-run-dvc-sync 'xgit (list "add" (unless arg "-n") ".")))
 
+;;;###autoload
+(defun xgit-addremove ()
+  "Add all new files to the index, and remove all deleted files from
+the index as well."
+  (interactive)
+  (let ((executable (dvc-variable 'xgit "executable")))
+    (shell-command (concat executable " ls-files -d -o -z | xargs -0 "
+                           executable " update-index --add --remove"))))
+
 (defvar xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
   "Regexp that matches a line of status output.
