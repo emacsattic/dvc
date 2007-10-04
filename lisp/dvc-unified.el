@@ -126,12 +126,14 @@ the actual dvc."
 (defun dvc-status (&optional path)
   "Display the status in optional PATH tree."
   (interactive)
-  (save-some-buffers (not dvc-confirm-save-buffers))
-  (if path
-      (let* ((abs-path (expand-file-name path))
-             (default-directory abs-path))
-        (dvc-apply "dvc-status" abs-path))
-    (dvc-apply "dvc-status" nil)))
+  (let* ((path (when path (expand-file-name path)))
+         (default-directory (or path default-directory)))
+    ;; this should be done in back-ends, so that
+    ;; M-x <back-end>-status RET also prompts for save.
+    ;; We keep it here as a safety belt, in case the back-end forgets
+    ;; to do it.
+    (dvc-save-some-buffers path)
+    (dvc-apply "dvc-status" path)))
 
 (define-dvc-unified-command dvc-name-construct (back-end-revision)
   "Returns a string representation of BACK-END-REVISION.")
