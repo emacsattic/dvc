@@ -121,9 +121,14 @@ Only when called with a prefix argument, add the files."
   "Add all new files to the index, and remove all deleted files from
 the index as well."
   (interactive)
-  (let ((executable (dvc-variable 'xgit "executable")))
-    (shell-command (concat executable " ls-files -d -o -z | xargs -0 "
-                           executable " update-index --add --remove"))))
+  (dvc-run-dvc-sync
+   'xgit (list "add" ".")
+   :finished (lambda (output error status arguments)
+               (dvc-run-dvc-sync
+                'xgit (list "add" "-u")
+                :finished
+                (lambda (output error status args)
+                  (message "Finished adding and removing files to index"))))))
 
 (defvar xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
