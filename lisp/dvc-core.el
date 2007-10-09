@@ -1010,6 +1010,7 @@ Strips the final newline if there is one."
 
 (defun dvc-log-edit-file-name ()
   "Return a suitable file name to edit the commit message"
+  ;; FIXME: replace this with define-dvc-unified-command
   (dvc-apply "dvc-log-edit-file-name-func"))
 
 (defun dvc-dvc-log-edit-file-name-func ()

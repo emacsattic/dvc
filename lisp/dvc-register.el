@@ -1,6 +1,6 @@
 ;;; dvc-register.el --- Registration of DVC back-ends
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from: Matthieu Moy <Matthieu.Moy@imag.fr>
@@ -102,7 +102,11 @@ backend, use dvc-<prefix> instead."
   "Apply ARGS to the `dvc-current-active-dvc' concated with POSTFIX."
   (let ((current-dvc (dvc-current-active-dvc)))
     (if current-dvc
-        (apply (dvc-function current-dvc postfix) args)
+        ;; We bind dvc-temp-current-active-dvc here so functions that
+        ;; create new buffers and then call dvc-current-active-dvc
+        ;; get the right back-end.
+        (let ((dvc-temp-current-active-dvc current-dvc))
+          (apply (dvc-function current-dvc postfix) args))
       (let ((default-directory
               (dvc-read-directory-name "Local tree: ")))
         (apply 'dvc-apply postfix args)))))
@@ -127,39 +131,98 @@ Overrides the search for a control directory in
 (defun dvc-current-active-dvc (&optional nocache)
   "Get the currently active dvc for the current `default-directory'.
 
-Currently supported dvc's can be found in `dvc-registered-backends'.
+Currently supported dvc's can be found in
+`dvc-registered-backends'. If `dvc-prompt-active-dvc' is nil,
 `dvc-select-priority' specifies the priority, if more than one
-backend is in use for the `default-directory'.
-The values are cached in `dvc-current-active-dvc-cache'.
+back-end is in use for `default-directory'. If
+`dvc-prompt-active-dvc' is non-nil, `dvc-select-priority'
+specifies the list of back-ends to test for, and the user is
+prompted when more than one is found. The values are cached in
+`dvc-current-active-dvc-cache'.
 
-If NOCACHE is provided, ignore the cache for this call, but still
+If NOCACHE is non-nil, ignore the cache for this call, but still
 cache the result (useful for correcting an incorrect cache entry).
 
 If either `dvc-temp-current-active-dvc' (a let-bound value)
 or `dvc-buffer-current-active-dvc' (a buffer-local value) is non-nil,
-then use that value instead of trying to figure it out."
+then use that value instead of the cache or searching."
   (interactive "P")
   (or dvc-temp-current-active-dvc
       dvc-buffer-current-active-dvc
-      (let ((dvc (unless nocache
+      (let (root
+            (dvc (unless nocache
                    (gethash (dvc-uniquify-file-name default-directory)
                             dvc-current-active-dvc-cache))))
         (unless dvc
-          (let ((dvc-list (append dvc-select-priority dvc-registered-backends))
-                (root "/")
-                (tree-root-func))
-            (while dvc-list
-              (setq tree-root-func (dvc-function (car dvc-list) "tree-root" t))
-              (when (fboundp tree-root-func)
-                (let ((current-root (funcall tree-root-func nil t)))
-                  (when (and current-root (> (length current-root) (length root)))
-                    (setq root current-root)
-                    (setq dvc (car dvc-list)))))
-              (setq dvc-list (cdr dvc-list)))
-            (puthash (dvc-uniquify-file-name default-directory)
-                     dvc dvc-current-active-dvc-cache))) ;cache the found dvc
-        (when (interactive-p)
-          (message "DVC: using %s for %s" dvc default-directory))
+          (if dvc-prompt-active-dvc
+              (let ((dvc-list dvc-select-priority)
+                    (options)
+                    (tree-root-func))
+                (while dvc-list
+                  (setq tree-root-func (dvc-function (car dvc-list) "tree-root" t))
+                  (when (fboundp tree-root-func)
+                    (let ((current-root (funcall tree-root-func nil t)))
+                      (when current-root
+                        (setq options (cons (list (car dvc-list) current-root) options)))))
+                  (setq dvc-list (cdr dvc-list)))
+                (case (length options)
+                  (0
+                   ;; FIXME: we'd like to abort with a nice error
+                   ;; message here, but some places (ie
+                   ;; dvc-find-file-hook) expect
+                   ;; dvc-current-active-dvc to silently return nil if
+                   ;; there is no back-end found.
+;;                    (error (concat "No active back-end found for %s. Check setting of `dvc-select-priority';"
+;;                                   " it must contain all back-ends to consider.")
+;;                           default-directory))
+                   (setq dvc nil))
+
+                  (1
+                   (setq dvc (caar options)))
+
+                  (t
+                   ;; FIXME: we should use (dvc-variable (car option)
+                   ;; "backend-name") in the prompt and completion
+                   ;; list, but we can't go from that name back to the
+                   ;; dvc symbol; dvc-register-dvc needs to build an
+                   ;; alist. On the other hand, users use the symbol
+                   ;; name in setting `dvc-select-priority', so
+                   ;; perhaps this is better.
+                   (let ((selection
+                          (completing-read
+                            (concat "back-end ("
+                                    (mapconcat (lambda (option) (symbol-name (car option))) options ", ")
+                                    "): ")
+                            options nil t)))
+                     (setq dvc (intern selection))
+                     (setq root (cadr (assoc dvc options)))))))
+
+            ;; not prompting
+            (let ((dvc-list (append dvc-select-priority dvc-registered-backends))
+                  (tree-root-func))
+              (setq root "/")
+              (while dvc-list
+                (setq tree-root-func (dvc-function (car dvc-list) "tree-root" t))
+                (when (fboundp tree-root-func)
+                  (let ((current-root (funcall tree-root-func nil t)))
+                    (when (and current-root (> (length current-root) (length root)))
+                      (setq root current-root)
+                      (setq dvc (car dvc-list)))))
+                (setq dvc-list (cdr dvc-list)))))
+
+          (if dvc
+              ;; cache the found dvc, for both default-directory and root,
+              ;; since a previous call may have cached a different dvc for
+              ;; the root.
+              (puthash (dvc-uniquify-file-name default-directory)
+                       dvc dvc-current-active-dvc-cache)
+
+            (unless (string= root default-directory)
+              (puthash (dvc-uniquify-file-name root)
+                       dvc dvc-current-active-dvc-cache))
+
+            (when (interactive-p)
+              (message "DVC: using %s for %s" dvc default-directory))))
         dvc)))
 
 (defun dvc-select-dvc (directory dvc)

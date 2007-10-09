@@ -139,3 +139,9 @@ which might not have a dvc-* dispatching command. The user can call
 them with M-x <back-end>-command RET explicitly. Additionaly, one can
 extend some DVC modes with additional keybindings and menus. See
 `dvc-diff-mode' and `xgit-diff-mode' for an example.
+
+-----------------------------------------------------------------------------
+* External tools
+-----------------------------------------------------------------------------
+
+'sh' is required for dvc-run-sync and dvc-run-async
