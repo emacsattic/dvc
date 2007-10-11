@@ -46,64 +46,62 @@
                                   "matthieu.moy#imag.fr"
                                   "moy#ecrins"
                                   "moy#moy"))
-    (contributor :name "Masatake YAMATO"
-                 :signed done
-                 :mail-addresses ("jet#gyve.org"
-                                  "jet#gps06"))
-    (contributor :name "Martin Brett Pool"
-                 :signed done)
-    (contributor :name "Robert Widhopf-Fenk"
-                 :signed done
-                 :mail-addresses "hack#robf.de")
-    (contributor :name "Vincent LADEUIL"
-                 :signed done)
-    (contributor :name "Milan Zamazal"
-                 :signed done
-                 :mail-addresses ("pdm#zamazal.org" "pdm#debian.org"))
-    (contributor :name "Mark Triggs"
-                 :signed done
-                 :mail-addresses "mark#dishevelled.net")
     (contributor :name "Miles Bader"
                  :signed done
                  :mail-addresses "miles#gnu.org")
-    (contributor :name "Michael Olson"
+    (contributor :name "Andre Kuehne"
                  :signed done
-                 :mail-addresses ("mwolson#member.fsf.org"
-                                  "mwolson#gnu.org"
-                                  "mwolson#exabyte"))
+                 :mail-addresses "andre.kuehne#gmx.net")
+    (contributor :name "Vincent LADEUIL"
+                 :signed done)
     (contributor :name "Stephen Leake"
                  :signed done
                  :mail-addresses ("stephen_leake#stephe-leake.org"
                                   "stephe#ACS1100007992"
                                   "stephe#LM000850872"))
-    (contributor :name "Sam Steingold"
+    (contributor :name "Takuzo O'hara"
                  :signed done
-                 :mail-addresses "sds#gnu.org")
+                 :mail-addresses "takuzo.ohara#gmail.com")
+    (contributor :name "Michael Olson"
+                 :signed done
+                 :mail-addresses ("mwolson#member.fsf.org"
+                                  "mwolson#gnu.org"
+                                  "mwolson#exabyte"))
+    (contributor :name "Martin Brett Pool"
+                 :signed done)
     (contributor :name "Andrea Russo"
                  :signed done
                  :mail-addresses ("rastandy#inventati.org"
                                   "rast4ndy#gmail.com"))
-    (contributor :name "Andre Kuehne"
-                 :signed done
-                 :mail-addresses "andre.kuehne#gmx.net")
-
     (contributor :name "Alan Shutko"
                  :signed done-emacs-only
                  :mail-addresses "ats#acm.org")
+    (contributor :name "Sam Steingold"
+                 :signed done
+                 :mail-addresses "sds#gnu.org")
+    (contributor :name "Mark Triggs"
+                 :signed done
+                 :mail-addresses "mark#dishevelled.net")
+    (contributor :name "Robert Widhopf-Fenk"
+                 :signed done
+                 :mail-addresses "hack#robf.de")
     (contributor :name "Sascha Wilde"
                  :signed done-emacs-only
                  :mail-addresses "wilde#sha-bang.de")
+    (contributor :name "Masatake YAMATO"
+                 :signed done
+                 :mail-addresses ("jet#gyve.org"
+                                  "jet#gps06"))
     (contributor :name "Steve Youngs"
                  :signed done-emacs-only
                  :mail-addresses "steve#sxemacs.org")
+    (contributor :name "Milan Zamazal"
+                 :signed done
+                 :mail-addresses ("pdm#zamazal.org" "pdm#debian.org"))
 
     ;;
     ;; Assignment in progress
     ;;
-    (contributor :name "Takuzo O'hara"
-                 :signed in-progress
-                 :contacted yes
-                 :mail-addresses "takuzo.ohara#gmail.com")
 
     ;;
     ;; Does not need assignment yet
