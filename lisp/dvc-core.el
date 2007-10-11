@@ -527,6 +527,7 @@ In all cases, a new string is returned after normalizing newlines."
 
 (defun dvc-run-dvc-async (dvc arguments &rest keys)
   "Run a process asynchronously.
+Current directory for the process is the current `default-directory'.
 ARGUMENTS is a list of arguments.  nil values in this list are removed.
 KEYS is a list of keywords and values.  Possible keywords are:
 
