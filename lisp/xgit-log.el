@@ -211,7 +211,7 @@ See also `xgit-log-max-count'."
 (defun* xgit-log (dir cnt &key log-regexp diff-match rev file since)
   "Run git log for DIR.
 DIR is a directory controlled by Git/Cogito.
-CNT is max number of log to print.  If not specified, uses git-log-max-count.
+CNT is max number of log to print.  If not specified, uses xgit-log-max-count.
 LOG-REGEXP is regexp to filter logs by matching commit logs.
 DIFF-MATCH is string to filter logs by matching commit diffs.
 REV is revision to show.

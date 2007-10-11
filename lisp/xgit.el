@@ -108,7 +108,7 @@ uncommitted changes."
 
 ;;;###autoload
 (defun xgit-add-all-files (arg)
-  "Run 'git add .' to add all files to git.
+  "Run 'git add .' to add all files in the current directory tree to git.
 
 Normally run 'git add -n .' to simulate the operation to see
 which files will be added.
@@ -116,6 +116,22 @@ which files will be added.
 Only when called with a prefix argument, add the files."
   (interactive "P")
   (dvc-run-dvc-sync 'xgit (list "add" (unless arg "-n") ".")))
+
+;;;###autoload
+(defun xgit-addremove ()
+  "Add all new files to the index, remove all deleted files from
+the index, and add all changed files to the index.
+
+This is done only for files in the current directory tree."
+  (interactive)
+  (dvc-run-dvc-sync
+   'xgit (list "add" ".")
+   :finished (lambda (output error status arguments)
+               (dvc-run-dvc-sync
+                'xgit (list "add" "-u" ".")
+                :finished
+                (lambda (output error status args)
+                  (message "Finished adding and removing files to index"))))))
 
 (defvar xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"

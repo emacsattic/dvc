@@ -53,7 +53,7 @@ Commands:
 ;;    "^de398cf (Takuzo Ohara 2007-02-21 21:28:35 +0900 366) ..."
 ;; or not yet commited:
 ;;    "00000000 (Not Committed Yet 2007-02-24 15:31:42 +0900  37) ..."
-(defconst xgit-annotate-info-regexp "^\\(\\(\\^?\\([[:xdigit:]]+\\)\\)[[:blank:]]+(\\(.*?\\)[[:blank:]]+\\([0-9]\\{4\\}\\)-\\([0-9]\\{2\\}\\)-\\([0-9]\\{2\\}\\) \\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\) \\([+-][0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)[[:blank:]]+\\)\\([0-9]+\\))")
+(defconst xgit-annotate-info-regexp "^\\(\\(\\^?\\([[:xdigit:]]+\\)\\)[[:blank:]]+.*(\\(.*?\\)[[:blank:]]+\\([0-9]\\{4\\}\\)-\\([0-9]\\{2\\}\\)-\\([0-9]\\{2\\}\\) \\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\) \\([+-][0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)[[:blank:]]+\\)\\([0-9]+\\))")
 (defun xgit-info-to-allbutlinenum ()                   (match-string-no-properties 1))
 (defun xgit-info-to-rev       	()                   (match-string-no-properties 2))
 (defun xgit-info-to-initrev   	()                   (match-string-no-properties 3))
@@ -74,8 +74,8 @@ Commands:
   "Returns git revision at point in annotate buffer."
   (if (< (point) (point-max))
       (save-excursion
-	(end-of-line)
-	(if (re-search-backward xgit-annotate-info-regexp nil t)
+	(beginning-of-line)
+	(if (looking-at xgit-annotate-info-regexp)
 	    (xgit-info-to-rev)))))
 
 
@@ -101,7 +101,8 @@ Commands:
 	(while (string= p_rev (xgit-annotate-get-rev))
 	  (forward-line 1))
 	;; point is at new revision so move back a line,
-	(previous-line 1)
+	(unless (= (point) (point-max))
+	  (previous-line 1))
 	;; match again to get position of right-bottom corner,
 	(xgit-annotate-get-rev)
 	;; rectangular replace by white space, from start to end.
