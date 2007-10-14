@@ -280,7 +280,7 @@ Pretty-print ELEM."
 Use '\\<dvc-diff-mode-map>\\[dvc-diff-mark-file]' to mark files, and '\\[dvc-diff-unmark-file]' to unmark.
 If you commit from this buffer (with '\\<dvc-diff-mode-map>\\[dvc-log-edit]'), then,
 the list of selected files (in this buffer) will be commited (with the text you
-entered as a comment) at the time you actually commit with \\<dvc-log-edit-mode-map>\\[tla-log-edit-done].
+entered as a comment) at the time you actually commit with \\<dvc-log-edit-mode-map>\\[dvc-log-edit-done].
 
 Commands:
 \\{dvc-diff-mode-map}

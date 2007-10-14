@@ -57,9 +57,6 @@
 (defun xgit-dvc-log-edit-file-name-func ()
   (concat (xgit-tree-root) xgit-log-edit-file-name))
 
-(defun xgit-dvc-log-edit (&optional other-frame)
-  (dvc-dvc-log-edit other-frame))
-
 (defun xgit-dvc-log-edit-done ()
   "Finish a commit for git, using git commit -a"
   (let ((buffer (find-file-noselect (dvc-log-edit-file-name)))
