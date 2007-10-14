@@ -126,12 +126,14 @@ the actual dvc."
 (defun dvc-status (&optional path)
   "Display the status in optional PATH tree."
   (interactive)
-  (save-some-buffers (not dvc-confirm-save-buffers))
-  (if path
-      (let* ((abs-path (expand-file-name path))
-             (default-directory abs-path))
-        (dvc-apply "dvc-status" abs-path))
-    (dvc-apply "dvc-status" nil)))
+  (let* ((path (when path (expand-file-name path)))
+         (default-directory (or path default-directory)))
+    ;; this should be done in back-ends, so that
+    ;; M-x <back-end>-status RET also prompts for save.
+    ;; We keep it here as a safety belt, in case the back-end forgets
+    ;; to do it.
+    (dvc-save-some-buffers path)
+    (dvc-apply "dvc-status" path)))
 
 (define-dvc-unified-command dvc-name-construct (back-end-revision)
   "Returns a string representation of BACK-END-REVISION.")
@@ -219,6 +221,25 @@ edit buffer in a separate frame."
   (interactive "P")
   (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc)))
     (apply 'dvc-apply "dvc-log-edit" other-frame)))
+
+(defvar dvc-back-end-wrappers
+  '(("log-edit" (&optional OTHER-FRAME))
+    ("add-log-entry" ())
+    ("add-files" (&rest files))
+    ("revert-files" (&rest files))
+    ("remove-files" (&rest files))
+    ("ignore-file-extensions" (file-list))
+    ("ignore-file-extensions-in-dir" (file-list)))
+  "Alist of descriptions of back-end wrappers to define.
+
+A back-end wrapper is a fuction called <back-end>-<something>, whose
+body is a simple wrapper around dvc-<something>. This is usefull for
+functions which are totally generic, but will use some back-end
+specific stuff in their body.
+
+At this point in the file, we don't have the list of back-ends, which
+is why we don't do the (defun ...) here, but leave a description for
+use by `dvc-register-dvc'.")
 
 ;;;###autoload
 (define-dvc-unified-command dvc-log-edit-done ()

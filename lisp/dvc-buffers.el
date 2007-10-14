@@ -183,6 +183,18 @@ See also `dvc-get-buffer'"
                  return-buffer dvc default-directory)
       return-buffer)))
 
+(defun dvc-type-buffers (type)
+  "Return the list of all buffers of type TYPE."
+  (let ((result nil)
+        (tree dvc-buffers-tree))
+    (while tree
+      (let ((entries (cdr (assoc type (car tree)))))
+        (while entries
+          (setq result (cons (nth 1 (car entries)) result))
+          (setq entries (cdr entries))))
+      (setq tree (cdr tree)))
+    result))
+
 (defun dvc-get-buffer (dvc type &optional path mode)
   "Get a buffer of type TYPE for the path PATH.
 
@@ -517,7 +529,7 @@ If MODE is specified, the buffer will use that mode."
     ;; GNU Emacs
     (dvc-do-in-gnu-emacs
       (let ((dvc-menu (or (lookup-key global-map [menu-bar tools dvc])
-                          (lookup-key global-map [menu-bar tools Dvc]))))
+                          (lookup-key global-map [menu-bar tools DVC]))))
 	(when (and dvc-menu (not (integerp dvc-menu)))
 	  (define-key-after
 	    dvc-menu

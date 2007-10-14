@@ -33,6 +33,7 @@
 ;;; Code:
 
 (require 'dvc-core)
+(require 'dvc-diff)
 (require 'xgit-core)
 (require 'xgit-log)
 (eval-when-compile (require 'cl))
@@ -107,7 +108,7 @@ uncommitted changes."
 
 ;;;###autoload
 (defun xgit-add-all-files (arg)
-  "Run 'git add .' to add all files to git.
+  "Run 'git add .' to add all files in the current directory tree to git.
 
 Normally run 'git add -n .' to simulate the operation to see
 which files will be added.
@@ -115,6 +116,22 @@ which files will be added.
 Only when called with a prefix argument, add the files."
   (interactive "P")
   (dvc-run-dvc-sync 'xgit (list "add" (unless arg "-n") ".")))
+
+;;;###autoload
+(defun xgit-addremove ()
+  "Add all new files to the index, remove all deleted files from
+the index, and add all changed files to the index.
+
+This is done only for files in the current directory tree."
+  (interactive)
+  (dvc-run-dvc-sync
+   'xgit (list "add" ".")
+   :finished (lambda (output error status arguments)
+               (dvc-run-dvc-sync
+                'xgit (list "add" "-u" ".")
+                :finished
+                (lambda (output error status args)
+                  (message "Finished adding and removing files to index"))))))
 
 (defvar xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
@@ -159,7 +176,7 @@ new file.")
           (while (re-search-forward xgit-status-line-regexp nil t)
             (setq status-string (match-string 1)
                   file (match-string 2)
-                  modif nil
+                  modif " "
                   dir nil
                   orig nil)
             (cond ((or (null file) (string= "" file))
@@ -239,6 +256,47 @@ new file.")
 (defun xgit-status-verbose (&optional against path)
   (interactive (list nil default-directory))
   (xgit-status against path t))
+
+(defun xgit-status-add-u ()
+  "Run \"git add -u\" and refresh current buffer."
+  (interactive)
+  (lexical-let ((buf (current-buffer)))
+    (dvc-run-dvc-async
+     'xgit '("add" "-u")
+     :finished (dvc-capturing-lambda
+                   (output error status arguments)
+                 (with-current-buffer buf
+                   (dvc-generic-refresh))))))
+
+(defun xgit-status-reset-mixed ()
+  "Run \"git reset --mixed\" and refresh current buffer.
+
+This reset the index to HEAD, but doesn't touch files."
+  (interactive)
+  (lexical-let ((buf (current-buffer)))
+    (dvc-run-dvc-async
+     'xgit '("reset" "--mixed")
+     :finished (dvc-capturing-lambda
+                   (output error status arguments)
+                 (with-current-buffer buf
+                   (dvc-generic-refresh))))))
+
+(defvar xgit-diff-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?A] 'xgit-status-add-u)
+    (define-key map [?R] 'xgit-status-reset-mixed)
+    map))
+
+(easy-menu-define xgit-diff-mode-menu xgit-diff-mode-map
+  "`Git specific changes' menu."
+  `("GIT-Diff"
+    ["Re-add modified files (add -u)" xgit-status-add-u t]
+    ["Reset index (reset --mixed)" xgit-status-reset-mixed t]
+    ))
+
+(define-derived-mode xgit-diff-mode dvc-diff-mode "xgit-diff"
+  "Mode redefining a few commands for diff."
+  )
 
 (defun xgit-parse-diff (changes-buffer)
   (save-excursion
@@ -616,9 +674,9 @@ The value is determined based on `xgit-use-index'."
                 (customize-variable 'xgit-use-index)
                 (message "Use git index (y/n/a/e/c/?)? "))
                (help (message
-"\"Use the index\" (aka staging areameans) means add file content
-explicitely before commiting. Concretely, this means run commit
-without -a, and run diff without option.
+"\"Use the index\" (aka staging area) means add file content
+explicitly before commiting. Concretely, this means run commit
+without -a, and run diff without options.
 
 Use git index?
  y (Yes): yes, use the index this time

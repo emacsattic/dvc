@@ -44,15 +44,47 @@ It's a macro, so it can be called without loading dvc-unified. The
 build system inserts a (eval-when-compile (require 'dvc-unified))
 at the beginning of the autoload file, so, the macro is available in
 the autoloads."
-  `(progn
-     (defvar dvc-registered-backends nil)
-     (add-to-list 'dvc-registered-backends ,dvc)
-     (defvar ,(intern (concat (symbol-name (cadr dvc))
-                              "-backend-name"))
-       ,name
-       ,(concat "Human friendly name used for the dvc backend '"
-                (symbol-name (cadr dvc))
-                ".\nThis variable was created by `dvc-register-dvc'"))))
+  ;; make sure dvc-back-end-wrappers is defined.
+  (require 'dvc-unified)
+  (let ((wrappers-defs
+         (mapcar (lambda (wrapper)
+                   (let* ((dvc-noquote (cadr dvc))
+                          (name (nth 0 wrapper))
+                          (symb (intern (concat (symbol-name
+                                                 dvc-noquote)
+                                                "-"
+                                                name)))
+                          (symb-dvc (intern (concat "dvc-"
+                                                    name)))
+                          (args (nth 1 wrapper))
+                          (docstring (concat "Wrapper for dvc-" name
+                                             ", for back-end "
+                                             (symbol-name dvc-noquote)
+                                             ".")))
+                     `(defun ,symb ,args
+                        ,docstring
+                        (interactive)
+                        (let ((dvc-temp-current-active-dvc ,dvc))
+                          (call-interactively (quote ,symb-dvc))))))
+                 dvc-back-end-wrappers
+         )))
+    `(progn
+       (defvar dvc-registered-backends nil)
+       (add-to-list 'dvc-registered-backends ,dvc)
+       (defvar ,(intern (concat (symbol-name (cadr dvc))
+                                "-backend-name"))
+         ,name
+         ,(concat "Human friendly name used for the dvc backend '"
+                  (symbol-name (cadr dvc))
+                  ".\nThis variable was created by `dvc-register-dvc'"))
+       ;; the hard thing is to make sure all back-ends define all
+       ;; functions.
+       ;; some dvc-register-dvc will be called before processing DVC
+       ;; core's autoloads (_b_az, _b_zr, ...), some after (_x_hg,
+       ;; _x_git, ...), since it's done in alphabetical order. here,
+       ;; we make sure all functions are declared, and since
+       ;; dvc-register-dvc is called for each back-end, we've got it.
+              ,@wrappers-defs)))
 
 (defvar dvc-backend-name "Unknown")
 

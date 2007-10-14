@@ -208,7 +208,7 @@ by calling `dvc-log-flush-commit-file-list'."
 (defun dvc-add-log-entry-internal ()
   "Similar to `add-change-log-entry'.
 
-Inserts the entry in the arch log file instead of the ChangeLog."
+Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
   ;; This is mostly copied from add-log.el.  Perhaps it would be better to
   ;; split add-change-log-entry into several functions and then use them, but
   ;; that wouldn't work with older versions of Emacs.
@@ -224,8 +224,25 @@ Inserts the entry in the arch log file instead of the ChangeLog."
          (entry (add-log-file-name buffer-file file-name))
          beg
          bound
-         narrowing)
-    (dvc-log-edit)
+         narrowing
+         (log-edit-buffers (dvc-type-buffers 'log-edit)))
+
+    (if log-edit-buffers
+        (if (= 1 (length log-edit-buffers))
+            ;; There is only one log-edit buffer; use it
+            (dvc-log-edit)
+          ;; There are more than one. We can't decide which to use,
+          ;; because we don't know what dvc-buffer-active-dvc nor path
+          ;; should be. So give up. IMPROVEME: could assume current
+          ;; buffer default-directory is child of desired path, search
+          ;; for that. Or prompt user.
+          (error "More than one log-edit buffer; can't tell which to use. Please close some."))
+      ;; No log-edit buffers. We can't create one, because we don't
+      ;; know what dvc-buffer-active-dvc, dvc-partner-buffer, nor path
+      ;; should be. IMPROVEME: could search for status and diff
+      ;; buffers, prompt user.
+      (error "Please create a log-edit buffer first."))
+
     (undo-boundary)
     (goto-char (point-min))
     (when (re-search-forward (regexp-opt
