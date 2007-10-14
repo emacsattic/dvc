@@ -159,7 +159,6 @@
     (setq accu (nreverse accu))
     accu))
 
-(defvar xmtn--log--normalized-files nil)
 (defvar xmtn--log--branch nil)
 (defvar xmtn--log--root nil)
 
@@ -330,58 +329,68 @@ the file before saving."
   (dvc-log-flush-commit-file-list))
 
 ;;;###autoload
-(defun xmtn-dvc-log-edit (&optional other-frame)
-  (let ((root (dvc-tree-root))
-        (orig-buffer (current-buffer))
-        log-edit-buffer)
-    (prog2
-        (progn
-          (dvc-save-some-buffers root)
-          (setq log-edit-buffer (dvc-get-buffer-create (dvc-current-active-dvc)
-                                                       'log-edit))
-          (with-current-buffer log-edit-buffer
+(defun xmtn-dvc-log-edit (&optional other-frame no-init)
+  (if no-init
+      (dvc-dvc-log-edit other-frame no-init)
+    (let ((root (xmtn-tree-root))
+          (orig-buffer (current-buffer))
+          log-edit-buffer)
+      (prog2
+          (progn
+            (dvc-save-some-buffers root)
+            (setq log-edit-buffer (dvc-get-buffer-create 'xmtn 'log-edit))
+            (with-current-buffer log-edit-buffer
+              (let ((previously-modified-p (buffer-modified-p)))
+                (unwind-protect
+                    (dvc-log-flush-commit-file-list)
+                  (set-buffer-modified-p previously-modified-p)))))
+          (dvc-dvc-log-edit other-frame nil)
+        (with-current-buffer log-edit-buffer
+          (setq buffer-file-coding-system 'xmtn--monotone-normal-form)
+          (add-to-list 'buffer-file-format 'xmtn--log-file)
+          (let* ((files (or (with-current-buffer dvc-partner-buffer
+                              (dvc-current-file-list 'nil-if-none-marked))
+                            'all))
+                 (normalized-files
+                  (case files
+                    (all 'all)
+                    (t
+                     ;; Need to normalize in original buffer, since
+                     ;; switching buffers changes default-directory and
+                     ;; therefore the semantics of relative file names.
+                     (with-current-buffer orig-buffer
+                       (xmtn--normalize-file-names root files))))))
             (let ((previously-modified-p (buffer-modified-p)))
               (unwind-protect
-                  (dvc-log-flush-commit-file-list)
-                (set-buffer-modified-p previously-modified-p)))))
-        (dvc-dvc-log-edit other-frame)
-      (with-current-buffer log-edit-buffer
-        (setq buffer-file-coding-system 'xmtn--monotone-normal-form)
-        (add-to-list 'buffer-file-format 'xmtn--log-file)
-        (let* ((files (or (with-current-buffer dvc-partner-buffer
-                            (dvc-current-file-list 'nil-if-none-marked))
-                          'all))
-               (normalized-files
-                (case files
-                  (all 'all)
-                  (t
-                   ;; Need to normalize in original buffer, since
-                   ;; switching buffers changes default-directory and
-                   ;; therefore the semantics of relative file names.
-                   (with-current-buffer orig-buffer
-                     (xmtn--normalize-file-names root files))))))
-          (let ((previously-modified-p (buffer-modified-p)))
-            (unwind-protect
-                (let ((branch (xmtn--tree-default-branch root)))
-                  (goto-char (point-max))
-                  (xmtn--insert-log-edit-hints root
-                                               branch
-                                               (current-buffer)
-                                               dvc-log-edit-flush-prefix
-                                               normalized-files)
-                  (set (make-local-variable 'xmtn--log--root) root)
-                  (set (make-local-variable 'xmtn--log--normalized-files)
-                       normalized-files)
-                  (set (make-local-variable 'xmtn--log--branch) branch))
-              (set-buffer-modified-p previously-modified-p))))
-        ;; This allows using `find-file-at-point' on file names in our
-        ;; log edit hints.  Really convenient.
-        (setq default-directory root)))))
+                  (let ((branch (xmtn--tree-default-branch root)))
+                    (goto-char (point-max))
+                    (xmtn--insert-log-edit-hints root
+                                                 branch
+                                                 (current-buffer)
+                                                 dvc-log-edit-flush-prefix
+                                                 normalized-files)
+                    (set (make-local-variable 'xmtn--log--root) root)
+                    (set (make-local-variable 'xmtn--log--branch) branch))
+                (set-buffer-modified-p previously-modified-p))))
+          ;; This allows using `find-file-at-point' on file names in our
+          ;; log edit hints.  Really convenient.
+          (setq default-directory root))))))
 
 ;;;###autoload
 (defun xmtn-dvc-log-edit-done ()
   (let* ((root xmtn--log--root)
-         (normalized-files xmtn--log--normalized-files)
+         (files (or (with-current-buffer dvc-partner-buffer
+                      (dvc-current-file-list 'nil-if-none-marked))
+                    'all))
+         (normalized-files
+          (case files
+            (all 'all)
+            (t
+             ;; Need to normalize in original buffer, since
+             ;; switching buffers changes default-directory and
+             ;; therefore the semantics of relative file names.
+             (with-current-buffer dvc-partner-buffer
+               (xmtn--normalize-file-names root files)))))
          (branch xmtn--log--branch))
     ;; Saving the buffer will automatically flush the log edit hints.
     (save-buffer)
@@ -571,7 +580,7 @@ the file before saving."
 
 ;;;###autoload
 (defun xmtn-dvc-diff (&optional base-rev path dont-switch)
-  (xmtn-dvc-delta base-rev `(xmtn (local-tree ,path)) dont-switch))
+  (xmtn-dvc-delta base-rev (list 'xmtn (list 'local-tree (xmtn-tree-root path))) dont-switch))
 
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id dont-switch)
@@ -896,14 +905,10 @@ the file before saving."
                     root (current-buffer) error)))))))
 
 (defun xmtn--mtn-has-basic-io-inventory ()
-  ;; FIXME: This is a hack.  It should look like
-  ;;
-  ;; (xmtn--version-case
-  ;;   ((>= 0 37) t)
-  ;;   (t nil))
-  (let ((version-string (xmtn--command-output-line nil `("automate"
-                                                         "interface_version"))))
-    (equal (subseq version-string 0 2) "5.")))
+  ;;  FIXME: unnecessary if require mtn 0.37 or greater
+  (let ((version (string-to-number
+                  (xmtn--command-output-line nil `("automate" "interface_version")))))
+    (>= version 6.0)))
 
 ;;;###autoload
 (defun xmtn-dvc-status (&optional root)
@@ -1041,9 +1046,15 @@ the file before saving."
 
 (defun xmtn--add-files (root file-names)
   (dolist (file-name file-names)
-    ;; On directories, mtn add will recurse, which isn't what we want.
-    ;; FIXME: was true for older mtn versions; not true in current, unless we specify --recursive
-    (assert (not (file-directory-p file-name)))
+    (xmtn--version-case
+     ((< 0 33)
+      ;; mtn <0.33 will add directories recursively, which isn't what
+      ;; we want.
+      (if (file-directory-p file-name)
+          (error "Adding directories is not implemented for mtn versions below 0.33")))
+     ((>= 0 33)
+      ;; directories are ok
+      ))
     ;; I don't know how mtn handles symlinks (and symlinks to
     ;; directories), so forbid them for now.
     (assert (not (file-symlink-p file-name))))

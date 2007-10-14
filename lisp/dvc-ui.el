@@ -312,7 +312,8 @@
     (define-key map [(meta ?l)] 'tla-tree-lint)
     (define-key map dvc-keyvec-update        'dvc-update)
     (define-key map [?m]                     'dvc-missing)
-    (define-key map dvc-keyvec-show-bookmark 'tla-bookmarks)
+    (define-key map [?M]                     'dvc-merge)
+    (define-key map dvc-keyvec-show-bookmark 'dvc-bookmarks)
     (define-key map dvc-keyvec-help          'tla-help)
 
     ;; file specific functionality
@@ -392,7 +393,7 @@
    ["View Inventory" tla-inventory t]
    ["View Tree Lint" tla-tree-lint t]
    ["Show Tree Revisions" tla-tree-revisions t]
-   ["Edit Arch Log" dvc-log-edit t]
+   ["Edit Commit Log" dvc-log-edit t]
    "---"
    "File Commands:"
    ["Insert Arch Tag" tla-tag-insert t]

@@ -67,6 +67,14 @@ Possible values include: 'tla, 'baz, 'xhg, 'xgit, 'bzr, 'xmtn"
                          (symbol :tag "Other")))
   :group 'dvc)
 
+(defcustom dvc-prompt-active-dvc nil
+  "If non-nil, prompt for the active dvc when more than one is
+found for the current directory. The back-ends considered are
+given in dvc-select-priority (it must be non-nil). Otherwise, use
+the first one found; dvc-select-priority sets the search order."
+  :type 'boolean
+  :group 'dvc)
+
 (defcustom dvc-highlight t
   "*Use highlighting for DVC buffers."
   :type 'boolean
@@ -82,10 +90,16 @@ Possible values include: 'tla, 'baz, 'xhg, 'xgit, 'bzr, 'xmtn"
   :type 'boolean
   :group 'dvc)
 
-(defcustom dvc-confirm-save-buffers t
-  "*If non-nil, prompt for confirmation when saving buffers."
-  :type 'boolean
-  :group 'dvc)
+;; [Matthieu Moy] This was redundant with
+;; `dvc-do-not-prompt-for-save'. I'm keeping the commented code so
+;; that people looking for the option can find it here. Since this one
+;; has not been in DVC for a long time, I'm not adding a backward
+;; compatibility option.
+;;
+;;(defcustom dvc-confirm-save-buffers t
+;; "*If non-nil, prompt for confirmation when saving buffers."
+;;  :type 'boolean
+;;  :group 'dvc)
 
 (defcustom dvc-log-last-n nil
   "*If non-nil, limit log listings to last n entries."

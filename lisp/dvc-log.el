@@ -28,6 +28,7 @@
 ;;; Code:
 
 (require 'dvc-unified)
+(require 'ediff)
 
 ;;
 ;; Log edit mode
@@ -100,28 +101,28 @@ Commands:
 (defvar dvc-pre-commit-window-configuration nil)
 
 ;;;###autoload
-(defun dvc-dvc-log-edit (&optional other-frame)
+(defun dvc-dvc-log-edit (other-frame no-init)
   "Edit the log file before a commit.
 
-If  invoked from  a buffer  containing marked  files,  only those
-files  will be  taken  into  account when  you  will commit  with
-\<dvc-log-edit-mode-map>\[dvc-log-edit-done] (dvc-log-edit-done)."
-  (interactive)
+OTHER_FRAME if non-nil puts log edit buffer in a separate frame.
+NO-INIT if non-nil suppresses initialization of the buffer if one
+is reused."
   (setq dvc-pre-commit-window-configuration
         (current-window-configuration))
   (let ((start-buffer (current-buffer)))
     (dvc-switch-to-buffer
      (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit)
      other-frame)
-    (let ((buffer-name (buffer-name))
-          (file-name (dvc-log-edit-file-name)))
-      (set-visited-file-name file-name t t)
-      (when (and (= (point-min) (point-max)) (file-readable-p file-name))
-        (insert-file-contents file-name)
-        (set-buffer-modified-p nil))
-      (rename-buffer buffer-name))
-    (dvc-log-edit-mode)
-    (set (make-local-variable 'dvc-partner-buffer) start-buffer)))
+    (unless no-init
+      (let ((buffer-name (buffer-name))
+            (file-name (dvc-log-edit-file-name)))
+        (set-visited-file-name file-name t t)
+        (when (and (= (point-min) (point-max)) (file-readable-p file-name))
+          (insert-file-contents file-name)
+          (set-buffer-modified-p nil))
+        (rename-buffer buffer-name))
+      (dvc-log-edit-mode)
+      (set (make-local-variable 'dvc-partner-buffer) start-buffer))))
 
 (defun dvc-log-edit-abort ()
   "Abort the current log edit."
@@ -199,16 +200,23 @@ by calling `dvc-log-flush-commit-file-list'."
     (insert dvc-memorized-log-message)))
 
 ;;;###autoload
-(defun dvc-add-log-entry ()
+(defun dvc-add-log-entry (&optional other-frame)
   "Add new DVC log ChangeLog style entry."
-  (interactive)
+  (interactive "P")
   (save-restriction
-    (dvc-add-log-entry-internal)))
+    (dvc-add-log-entry-internal other-frame)))
 
-(defun dvc-add-log-entry-internal ()
+(defun dvc-ediff-add-log-entry (&optional other-frame)
+  "Add new DVC log ChangeLog style entry; intended to be invoked
+from the ediff control buffer."
+  (interactive "P")
+  (set-buffer ediff-buffer-A) ; DVC puts original here
+  (dvc-add-log-entry-internal other-frame))
+
+(defun dvc-add-log-entry-internal (other-frame)
   "Similar to `add-change-log-entry'.
 
-Inserts the entry in the arch log file instead of the ChangeLog."
+Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
   ;; This is mostly copied from add-log.el.  Perhaps it would be better to
   ;; split add-change-log-entry into several functions and then use them, but
   ;; that wouldn't work with older versions of Emacs.
@@ -225,7 +233,9 @@ Inserts the entry in the arch log file instead of the ChangeLog."
          beg
          bound
          narrowing)
-    (dvc-log-edit)
+
+    (dvc-log-edit other-frame t)
+
     (undo-boundary)
     (goto-char (point-min))
     (when (re-search-forward (regexp-opt

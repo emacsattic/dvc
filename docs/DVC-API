@@ -90,6 +90,12 @@ For xhg:
 
 TODO
 
+For xgit:
+
+BACK-END-REVISION :: (revision "sha1")
+                   | (index)
+  ;; content of the index (aka staging area).
+
 Example
 =======
 
@@ -105,3 +111,37 @@ Based upon that, we define the functions:
 
 dvc-revision-get-file-in-buffer: get the particular revision of a file
                                  in a buffer.
+
+-----------------------------------------------------------------------------
+* Back-end specific features Vs Unification
+-----------------------------------------------------------------------------
+
+DVC provides the user an interface for multiple revision control
+system, and does it using as much back-end independant code as
+possible. This has several benefits :
+
+* For the user:
+  - Similar user-interface, keybindings, ... for different back-ends.
+  - Unified interface for most operations : one menu, one set of
+    keybindings, and DVC detects which back-end to use automatically.
+
+* For the developers:
+  - much less code to write than individual, independant interfaces.
+
+However, some back-end features do not fit well in the DVC common
+interface. For example, git differs from other common version control
+systems in several regards (the index, for example, is something
+probably unique to git, and it leads to a different flow to prepare a
+commit).
+
+In this case, there's nothing wrong providing additional functions,
+which might not have a dvc-* dispatching command. The user can call
+them with M-x <back-end>-command RET explicitly. Additionaly, one can
+extend some DVC modes with additional keybindings and menus. See
+`dvc-diff-mode' and `xgit-diff-mode' for an example.
+
+-----------------------------------------------------------------------------
+* External tools
+-----------------------------------------------------------------------------
+
+'sh' is required for dvc-run-sync and dvc-run-async

@@ -95,9 +95,15 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it."
   ;; working tree against its base revision; dvc-delta handles other diffs.
   (interactive (list nil default-directory current-prefix-arg))
   (setq base-rev (or base-rev
-                     (list (dvc-current-active-dvc)
-                           (list 'last-revision path 1))))
+                     ;; allow back-ends to override this for e.g. git,
+                     ;; which can return either the index or the last
+                     ;; revision.
+                     (dvc-apply "dvc-last-revision" path)))
   (dvc-apply "dvc-diff" base-rev path dont-switch))
+
+(defun dvc-dvc-last-revision (path)
+  (list (dvc-current-active-dvc)
+        (list 'last-revision path 1)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-delta (base modified &optional dont-switch)
@@ -120,12 +126,14 @@ the actual dvc."
 (defun dvc-status (&optional path)
   "Display the status in optional PATH tree."
   (interactive)
-  (save-some-buffers (not dvc-confirm-save-buffers))
-  (if path
-      (let* ((abs-path (expand-file-name path))
-             (default-directory abs-path))
-        (dvc-apply "dvc-status" abs-path))
-    (dvc-apply "dvc-status" nil)))
+  (let* ((path (when path (expand-file-name path)))
+         (default-directory (or path default-directory)))
+    ;; this should be done in back-ends, so that
+    ;; M-x <back-end>-status RET also prompts for save.
+    ;; We keep it here as a safety belt, in case the back-end forgets
+    ;; to do it.
+    (dvc-save-some-buffers path)
+    (dvc-apply "dvc-status" path)))
 
 (define-dvc-unified-command dvc-name-construct (back-end-revision)
   "Returns a string representation of BACK-END-REVISION.")
@@ -206,13 +214,58 @@ the current active back-end."
     root))
 
 ;;;###autoload
-(defun dvc-log-edit (&optional other-frame)
-  "Edit the log before commiting. Optional user prefix puts log
-edit buffer in a separate frame."
-  ;; FIXME: added other-frame; fix uses. xmtn done.
+(defun dvc-log-edit (&optional other-frame no-init)
+  "Edit the log before commiting. Optional OTHER_FRAME (default
+user prefix) puts log edit buffer in a separate frame. Optional
+NO-INIT if non-nil suppresses initialization of buffer if one is
+reused."
   (interactive "P")
-  (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc)))
-    (apply 'dvc-apply "dvc-log-edit" other-frame)))
+  ;; Reuse an existing log-edit buffer if possible.
+  ;;
+  ;; If this is invoked from a status or diff buffer,
+  ;; dvc-buffer-current-active-dvc is set. If invoked from another
+  ;; buffer (ie a source file, either directly or via
+  ;; dvc-add-log-entry), dvc-buffer-current-active-dvc is nil, there
+  ;; might be two back-ends to choose from, and dvc-current-active-dvc
+  ;; might prompt. So we look for an existing log-edit buffer for the
+  ;; current tree first, and assume the user wants the back-end
+  ;; associated with that buffer (ie, it was the result of a previous
+  ;; prompt).
+  (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
+    (case (length log-edit-buffers)
+      (0 ;; Need to create a new log-edit buffer
+         (dvc-apply "dvc-log-edit" other-frame nil))
+
+      (1 ;; Just reuse the buffer. Switch to it first so
+         ;; dvc-buffer-current-active-dvc is set.
+       (set-buffer (nth 1 (car log-edit-buffers)))
+       (dvc-apply "dvc-log-edit" other-frame no-init))
+
+      (t ;; multiple matching buffers
+       (if dvc-buffer-current-active-dvc
+           (error "More than one log-edit buffer for %s in %s; can't tell which to use. Please close some."
+              dvc-buffer-current-active-dvc default-directory)
+         (error "More than one log-edit buffer for %s; can't tell which to use. Please close some."
+                default-directory))))))
+
+(defvar dvc-back-end-wrappers
+  '(("log-edit" (&optional OTHER-FRAME))
+    ("add-log-entry" ())
+    ("add-files" (&rest files))
+    ("revert-files" (&rest files))
+    ("remove-files" (&rest files))
+    ("ignore-file-extensions" (file-list))
+    ("ignore-file-extensions-in-dir" (file-list)))
+  "Alist of descriptions of back-end wrappers to define.
+
+A back-end wrapper is a fuction called <back-end>-<something>, whose
+body is a simple wrapper around dvc-<something>. This is usefull for
+functions which are totally generic, but will use some back-end
+specific stuff in their body.
+
+At this point in the file, we don't have the list of back-ends, which
+is why we don't do the (defun ...) here, but leave a description for
+use by `dvc-register-dvc'.")
 
 ;;;###autoload
 (define-dvc-unified-command dvc-log-edit-done ()

@@ -157,7 +157,7 @@
 
 (defun xgit-revlog-mode ()
   (interactive)
-  (dvc-diff-mode))
+  (xgit-diff-mode))
 
 (defun xgit-name-construct (revision)
   revision)

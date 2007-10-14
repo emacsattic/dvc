@@ -51,8 +51,9 @@ Must be buffer-local.")
   the diff for that file. Each backend can customize this for its
   diff format. Buffer-local in diff buffers.")
 
+;; xhg: "+++ b/LinuxLanguageApps.muse   Tue Sep 18 20:43:04 2007 +0200"
 (defun dvc-dvc-search-file-in-diff (file)
-  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "$")))
+  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "\\(.+[0-9][0-9][0-9][0-9]\\)?$")))
 
 (defun dvc-prepare-changes-buffer (base modified type path dvc)
   "Create and return a buffer to run command showing diffs.
@@ -68,7 +69,7 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
       (dvc-get-buffer-create dvc type path)
     (let ((inhibit-read-only t)) (erase-buffer))
-    (dvc-diff-mode)
+    (funcall (dvc-function dvc "diff-mode"))
     (set (make-local-variable 'dvc-diff-base)     base)
     (set (make-local-variable 'dvc-diff-modified) modified)
     (set (make-local-variable 'dvc-buffer-search-file)
@@ -239,11 +240,9 @@ Pretty-print ELEM."
   "Menu used on a `dvc-diff' file"
   dvc-diff-file-menu-list)
 
-(easy-menu-define dvc-diff-mode-menu dvc-diff-mode-map
-  "`tla-changes' menu"
-  `("Changes"
-    ["Refresh Buffer" dvc-generic-refresh t]
-    ["Edit log before commit" dvc-diff-edit-log t]
+(defconst dvc-diff-mode-menu-list
+  `(["Refresh Buffer" dvc-generic-refresh t]
+    ["Edit log before commit" dvc-log-edit t]
     ["View other revisions" tla-tree-revisions t]
     ("Merge"
      ["Update" dvc-update t]
@@ -259,19 +258,29 @@ Pretty-print ELEM."
     ,dvc-diff-file-menu-list
     ))
 
+(easy-menu-define dvc-diff-mode-menu dvc-diff-mode-map
+  "`dvc-changes' menu"
+  `("DVC-Diff"
+    ,@dvc-diff-mode-menu-list))
+
 (defvar dvc-diff-file-map
   (let ((map (copy-keymap dvc-cmenu-map-template)))
     (define-key map dvc-mouse-2 'dvc-diff-jump-to-change-by-mouse)
     map)
   "Keymap used on files in `dvc-diff-mode' buffers.")
 
+;; "<back-end>-diff-mode", if defined, will be used instead of this
+;; one. If so, it should be derived from dvc-diff-mode (via
+;; `define-derived-mode'), and rely on it for as many features as
+;; possible (one can, for example, extend the menu and keymap). See
+;; `xgit-diff-mode' in xgit.el for a good example.
 (define-derived-mode dvc-diff-mode fundamental-mode "dvc-diff"
   "Major mode to display changesets. Derives from `diff-mode'.
 
 Use '\\<dvc-diff-mode-map>\\[dvc-diff-mark-file]' to mark files, and '\\[dvc-diff-unmark-file]' to unmark.
-If you commit from this buffer (with '\\<dvc-diff-mode-map>\\[dvc-diff-edit-log]'), then,
+If you commit from this buffer (with '\\<dvc-diff-mode-map>\\[dvc-log-edit]'), then,
 the list of selected files (in this buffer) will be commited (with the text you
-entered as a comment) at the time you actually commit with \\<dvc-log-edit-mode-map>\\[tla-log-edit-done].
+entered as a comment) at the time you actually commit with \\<dvc-log-edit-mode-map>\\[dvc-log-edit-done].
 
 Commands:
 \\{dvc-diff-mode-map}
@@ -289,9 +298,8 @@ Commands:
   (setq dvc-buffer-refresh-function 'dvc-diff-generic-refresh)
   (set (make-local-variable 'dvc-diff-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
-		     #'dvc-diff-printer)))
+                     #'dvc-diff-printer)))
   (make-local-variable 'dvc-buffer-marked-file-list)
-  (easy-menu-add dvc-diff-mode-menu)
   (dvc-install-buffer-menu)
   (toggle-read-only 1)
   (set-buffer-modified-p nil))
@@ -570,12 +578,14 @@ Throw an error when not on a file."
 
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
-  `dvc-show-changes-buffer'.")
-;; FIXME: actually, dvc-show-changes-buffer doesn't use this. But
-;; functions that call dvc-show-changes-buffer do.
+`dvc-show-changes-buffer' (defined with a (let ...) in
+dvc-show-changes-buffer, and altered by called functions).
+
+This is just a lint trap.")
 
 (defun dvc-show-changes-buffer (buffer parser &optional
-                                       output-buffer no-switch header-end-regexp)
+                                       output-buffer no-switch
+                                       header-end-regexp cmd)
   ;; FIXME: pass in dvc?
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
 
@@ -590,8 +600,9 @@ If non-nil, HEADER-END-REGEXP is a regexp matching the first line
 which is not part of the diff header."
   (let* ((root (with-current-buffer buffer
                  (dvc-tree-root default-directory t)))
-         (changes-buffer (or output-buffer (dvc-get-buffer-create (dvc-current-active-dvc)
-                                            'diff root)))
+         (dvc (dvc-current-active-dvc))
+         (changes-buffer (or output-buffer
+                             (dvc-get-buffer-create dvc 'diff root)))
          (dvc-header ""))
     (if (or no-switch dvc-switch-to-buffer-first)
         (set-buffer changes-buffer)
@@ -600,15 +611,22 @@ which is not part of the diff header."
       (dvc-diff-delete-messages)
       (unless output-buffer
         (erase-buffer)
-        (dvc-diff-mode))
+        (funcall (dvc-function dvc "diff-mode")))
       (with-current-buffer buffer
         (goto-char (point-min))
+        (when cmd
+          (setq dvc-header
+                (concat dvc-header
+                        (dvc-face-add cmd 'dvc-header) "\n"
+                        (dvc-face-add (make-string  72 ?\ ) 'dvc-separator))))
         (when header-end-regexp
-          (setq dvc-header (buffer-substring-no-properties
-                            (goto-char (point-min))
-                            (progn (re-search-forward header-end-regexp nil t) ;; "^[^*\\.]"
-                                   (beginning-of-line)
-                                   (point)))))
+          (setq dvc-header
+                (concat dvc-header
+                        (buffer-substring-no-properties
+                         (goto-char (point-min))
+                         (progn (re-search-forward header-end-regexp nil t) ;; "^[^*\\.]"
+                                (beginning-of-line)
+                                (point))))))
         (beginning-of-line)
         (funcall parser changes-buffer)
         (let ((footer (concat

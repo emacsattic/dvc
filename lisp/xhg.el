@@ -345,6 +345,19 @@ If DONT-SWITCH, don't switch to the diff buffer"
                                (insert (format "hg incoming for %s\n\n" default-directory))
                                (toggle-read-only 1))))))))
 
+;;;###autoload
+(defun xhg-merge (&optional revision)
+  "Run hg merge."
+  (interactive "sMerge from hg revision: ")
+  (when (string= revision "")
+    (setq revision nil))
+  (dvc-run-dvc-async 'xhg (list "merge" revision)
+                     :finished
+                     (dvc-capturing-lambda (output error status arguments)
+                       (message "hg merge finished => %s"
+                                (concat (dvc-buffer-content error)
+                                        (dvc-buffer-content output))))))
+
 (defun xhg-command-version ()
   "Run hg version."
   (interactive)
