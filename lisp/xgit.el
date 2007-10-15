@@ -64,7 +64,8 @@
   (interactive (list (dvc-confirm-read-file-name "Add file or directory: ")))
   (xgit-add-files file))
 
-(defun xgit-add-files (&rest files)
+;;;###autoload
+(defun xgit-dvc-add-files (&rest files)
   "Run git add."
   (dvc-trace "xgit-add-files: %s" files)
   (let ((default-directory (xgit-tree-root)))
@@ -88,7 +89,8 @@ uncommitted changes."
                    (output error status arguments)
                  (message "git remove finished")))))
 
-(defun xgit-remove-files (&rest files)
+;;;###autoload
+(defun xgit-dvc-remove-files (&rest files)
   "Run git rm."
   (dvc-trace "xgit-remove-files: %s" files)
   (dvc-run-dvc-sync 'xgit (nconc (list "rm" "--")
@@ -445,7 +447,8 @@ The second element is the remainder of FILES."
   (interactive "fRevert file: ")
   (xgit-revert-files file))
 
-(defun xgit-revert-files (&rest files)
+;;;###autoload
+(defun xgit-dvc-revert-files (&rest files)
   "Revert uncommitted changes made to FILES in the current branch."
   (let ((default-directory (xgit-tree-root)))
     (setq files (mapcar #'file-relative-name files))
