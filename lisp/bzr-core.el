@@ -36,14 +36,14 @@
 ;;;###autoload
 (defun bzr-tree-root (&optional location no-error interactive)
   "Return the tree root for LOCATION, nil if not in a local tree.
-Computation is done from withing Emacs, by looking at an .bzr/
+Computation is done from withing Emacs, by looking at a .bzr/
 directory in a parent buffer of LOCATION.  This is therefore very
 fast.
 
-If NO-ERROR is non-nil, don't raise an error if LOCATION is not an
-arch managed tree (but return nil)."
+If NO-ERROR is non-nil, don't raise an error if LOCATION is not a
+bzr-managed tree (but return nil)."
   (interactive)
-  (dvc-tree-root-helper ".bzr/" (or interactive
+  (dvc-tree-root-helper ".bzr/checkout/" (or interactive
                                     (interactive-p))
                         "%S is not a bzr-managed tree"
                         location no-error))

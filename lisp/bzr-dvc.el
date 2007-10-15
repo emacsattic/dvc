@@ -34,8 +34,6 @@
 ;;;###autoload
 (dvc-register-dvc 'bzr "Bazaar 2")
 ;;;###autoload
-(defalias 'bzr-dvc-tree-root 'bzr-tree-root)
-;;;###autoload
 (defalias 'bzr-dvc-diff 'bzr-diff)
 ;;;###autoload
 (defalias 'bzr-dvc-status 'bzr-status)
