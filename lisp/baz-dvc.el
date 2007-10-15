@@ -35,9 +35,7 @@
 (defalias 'baz-dvc-file-diff 'baz-file-diff)
 (defun baz-dvc-status (&optional path)
   (baz-status path))
-(defun baz-dvc-log-edit (&optional other-frame no-init)
-  ;; FIXME: implement no-init
-  (tla-edit-log nil nil other-frame))
+(defalias 'baz-dvc-log-edit 'tla-dvc-log-edit)
 (defun baz-dvc-add (file)
   (baz-add nil file))
 (defun baz-dvc-log (arg last-n)

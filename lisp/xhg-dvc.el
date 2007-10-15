@@ -100,10 +100,6 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
 ARG is passed as prefix argument"
   (call-interactively 'xhg-log))
 
-(defalias 'xhg-dvc-add-files    'xhg-add-files)
-(defalias 'xhg-dvc-revert-files 'xhg-revert-files)
-(defalias 'xhg-dvc-remove-files 'xhg-remove-files)
-
 (defun xhg-dvc-rename ()
   (interactive)
   (call-interactively 'xhg-rename))

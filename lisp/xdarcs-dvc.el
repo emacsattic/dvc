@@ -42,12 +42,8 @@
 ;;;###autoload
 (defalias 'xdarcs-dvc-command-version 'xdarcs-command-version)
 
-(defalias 'xdarcs-dvc-add-files 'xdarcs-add-files)
-
 ;;;###autoload
 (defalias 'xdarcs-dvc-status    'xdarcs-whatsnew)
-(defalias 'xdarcs-dvc-remove-files 'xdarcs-remove-files)
-(defalias 'xdarcs-dvc-revert-files 'xdarcs-revert-files)
 
 (defalias 'xdarcs-dvc-diff 'xdarcs-diff)
 

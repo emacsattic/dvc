@@ -34,8 +34,6 @@
 ;;;###autoload
 (dvc-register-dvc 'bzr "Bazaar 2")
 ;;;###autoload
-(defalias 'bzr-dvc-tree-root 'bzr-tree-root)
-;;;###autoload
 (defalias 'bzr-dvc-diff 'bzr-diff)
 ;;;###autoload
 (defalias 'bzr-dvc-status 'bzr-status)
@@ -51,10 +49,6 @@
 (defalias 'bzr-dvc-submit-patch 'bzr-submit-patch)
 ;;;###autoload
 (defalias 'bzr-dvc-add 'bzr-add)
-
-(defalias 'bzr-dvc-add-files 'bzr-add-files)
-(defalias 'bzr-dvc-revert-files 'bzr-revert-files)
-(defalias 'bzr-dvc-remove-files 'bzr-remove-files)
 
 ;;;###autoload
 (defalias 'bzr-dvc-log-edit-done 'bzr-log-edit-done)
