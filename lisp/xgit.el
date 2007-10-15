@@ -294,6 +294,10 @@ This reset the index to HEAD, but doesn't touch files."
   `("GIT-Diff"
     ["Re-add modified files (add -u)" xgit-status-add-u t]
     ["Reset index (reset --mixed)" xgit-status-reset-mixed t]
+    "---"
+    ["View staged changes" xgit-diff-cached t]
+    ["View unstaged changes" xgit-diff-index t]
+    ["View all local changes" xgit-diff-head t]
     ))
 
 (define-derived-mode xgit-diff-mode dvc-diff-mode "xgit-diff"
@@ -376,7 +380,8 @@ This reset the index to HEAD, but doesn't touch files."
 (defun xgit-diff-cached (&optional against-rev path dont-switch)
   "Call \"git diff --cached\"."
   (interactive (list nil nil current-prefix-arg))
-  (xgit-diff-1 against-rev path dont-switch '(xgit (index))))
+  (let ((xgit-use-index 'always))
+    (xgit-diff-1 against-rev path dont-switch '(xgit (index)))))
 
 ;;;###autoload
 (defun xgit-diff-index (&optional against-rev path dont-switch)
