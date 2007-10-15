@@ -144,4 +144,9 @@ extend some DVC modes with additional keybindings and menus. See
 * External tools
 -----------------------------------------------------------------------------
 
-'sh' is required for dvc-run-sync and dvc-run-async
+* 'sh' is required for dvc-run-sync and dvc-run-async.
+
+  In practice, that is not a problem for Unix users, but requires
+  cygwin or mingw for Windows users. A port of DVC to windows without
+  these dependancies shouldn't be hard, but none of the developers
+  carred enough up to now.

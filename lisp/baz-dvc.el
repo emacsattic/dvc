@@ -35,6 +35,7 @@
 (defalias 'baz-dvc-file-diff 'baz-file-diff)
 (defun baz-dvc-status (&optional path)
   (baz-status path))
+(defalias 'baz-dvc-log-edit 'tla-dvc-log-edit)
 (defun baz-dvc-add (file)
   (baz-add nil file))
 (defun baz-dvc-log (arg last-n)
