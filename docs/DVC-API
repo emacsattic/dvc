@@ -117,7 +117,7 @@ dvc-revision-get-file-in-buffer: get the particular revision of a file
 -----------------------------------------------------------------------------
 
 DVC provides the user an interface for multiple revision control
-system, and does it using as much back-end indepentant code as
+system, and does it using as much back-end independant code as
 possible. This has several benefits :
 
 * For the user:
@@ -125,8 +125,8 @@ possible. This has several benefits :
   - Unified interface for most operations : one menu, one set of
     keybindings, and DVC detects which back-end to use automatically.
 
-* For the developpers:
-  - much less code to write than individual, indepentant interfaces.
+* For the developers:
+  - much less code to write than individual, independant interfaces.
 
 However, some back-end features do not fit well in the DVC common
 interface. For example, git differs from other common version control
@@ -136,6 +136,17 @@ commit).
 
 In this case, there's nothing wrong providing additional functions,
 which might not have a dvc-* dispatching command. The user can call
-them with M-x <back-end>-command RET explicitely. Additionaly, one can
+them with M-x <back-end>-command RET explicitly. Additionaly, one can
 extend some DVC modes with additional keybindings and menus. See
 `dvc-diff-mode' and `xgit-diff-mode' for an example.
+
+-----------------------------------------------------------------------------
+* External tools
+-----------------------------------------------------------------------------
+
+* 'sh' is required for dvc-run-sync and dvc-run-async.
+
+  (In practice, that is not a problem for Unix users, but requires
+  cygwin or mingw for Windows users. A port of DVC to windows without
+  these dependancies shouldn't be hard, but none of the developers
+  carred enough up to now.)

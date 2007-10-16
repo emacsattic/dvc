@@ -393,7 +393,7 @@
    ["View Inventory" tla-inventory t]
    ["View Tree Lint" tla-tree-lint t]
    ["Show Tree Revisions" tla-tree-revisions t]
-   ["Edit Arch Log" dvc-log-edit t]
+   ["Edit Commit Log" dvc-log-edit t]
    "---"
    "File Commands:"
    ["Insert Arch Tag" tla-tag-insert t]

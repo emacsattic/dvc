@@ -214,13 +214,39 @@ the current active back-end."
     root))
 
 ;;;###autoload
-(defun dvc-log-edit (&optional other-frame)
-  "Edit the log before commiting. Optional user prefix puts log
-edit buffer in a separate frame."
-  ;; FIXME: added other-frame; fix uses. xmtn done.
+(defun dvc-log-edit (&optional other-frame no-init)
+  "Edit the log before commiting. Optional OTHER_FRAME (default
+user prefix) puts log edit buffer in a separate frame. Optional
+NO-INIT if non-nil suppresses initialization of buffer if one is
+reused."
   (interactive "P")
-  (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc)))
-    (apply 'dvc-apply "dvc-log-edit" other-frame)))
+  ;; Reuse an existing log-edit buffer if possible.
+  ;;
+  ;; If this is invoked from a status or diff buffer,
+  ;; dvc-buffer-current-active-dvc is set. If invoked from another
+  ;; buffer (ie a source file, either directly or via
+  ;; dvc-add-log-entry), dvc-buffer-current-active-dvc is nil, there
+  ;; might be two back-ends to choose from, and dvc-current-active-dvc
+  ;; might prompt. So we look for an existing log-edit buffer for the
+  ;; current tree first, and assume the user wants the back-end
+  ;; associated with that buffer (ie, it was the result of a previous
+  ;; prompt).
+  (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
+    (case (length log-edit-buffers)
+      (0 ;; Need to create a new log-edit buffer
+         (dvc-apply "dvc-log-edit" other-frame nil))
+
+      (1 ;; Just reuse the buffer. Switch to it first so
+         ;; dvc-buffer-current-active-dvc is set.
+       (set-buffer (nth 1 (car log-edit-buffers)))
+       (dvc-apply "dvc-log-edit" other-frame no-init))
+
+      (t ;; multiple matching buffers
+       (if dvc-buffer-current-active-dvc
+           (error "More than one log-edit buffer for %s in %s; can't tell which to use. Please close some."
+              dvc-buffer-current-active-dvc default-directory)
+         (error "More than one log-edit buffer for %s; can't tell which to use. Please close some."
+                default-directory))))))
 
 (defvar dvc-back-end-wrappers
   '(("log-edit" (&optional OTHER-FRAME))

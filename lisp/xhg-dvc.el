@@ -42,9 +42,6 @@
 ;;;###autoload
 (defalias 'xhg-dvc-merge 'xhg-merge)
 
-(defun xhg-dvc-log-edit (&optional other-frame)
-  (dvc-dvc-log-edit))
-
 (defvar xhg-dvc-commit-extra-parameters nil "A list of extra parameters for the next hg commit.")
 
 (defvar xhg-commit-done-hook '()
@@ -102,10 +99,6 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
   "Shows the changelog in the current Mercurial tree.
 ARG is passed as prefix argument"
   (call-interactively 'xhg-log))
-
-(defalias 'xhg-dvc-add-files    'xhg-add-files)
-(defalias 'xhg-dvc-revert-files 'xhg-revert-files)
-(defalias 'xhg-dvc-remove-files 'xhg-remove-files)
 
 (defun xhg-dvc-rename ()
   (interactive)

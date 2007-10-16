@@ -67,6 +67,14 @@ Possible values include: 'tla, 'baz, 'xhg, 'xgit, 'bzr, 'xmtn"
                          (symbol :tag "Other")))
   :group 'dvc)
 
+(defcustom dvc-prompt-active-dvc nil
+  "If non-nil, prompt for the active dvc when more than one is
+found for the current directory. The back-ends considered are
+given in dvc-select-priority (it must be non-nil). Otherwise, use
+the first one found; dvc-select-priority sets the search order."
+  :type 'boolean
+  :group 'dvc)
+
 (defcustom dvc-highlight t
   "*Use highlighting for DVC buffers."
   :type 'boolean

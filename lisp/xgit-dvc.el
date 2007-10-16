@@ -43,10 +43,6 @@
 (defun xgit-dvc-status (&optional path)
   (xgit-status))
 
-(defalias 'xgit-dvc-add-files 'xgit-add-files)
-(defalias 'xgit-dvc-remove-files 'xgit-remove-files)
-(defalias 'xgit-dvc-revert-files 'xgit-revert-files)
-
 ;;;###autoload
 (defalias 'xgit-dvc-command-version 'xgit-command-version)
 
@@ -56,9 +52,6 @@
 
 (defun xgit-dvc-log-edit-file-name-func ()
   (concat (xgit-tree-root) xgit-log-edit-file-name))
-
-(defun xgit-dvc-log-edit (&optional other-frame)
-  (dvc-dvc-log-edit other-frame))
 
 (defun xgit-dvc-log-edit-done ()
   "Finish a commit for git, using git commit -a"

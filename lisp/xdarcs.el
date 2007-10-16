@@ -45,7 +45,8 @@
                                     (output error status arguments)
                                   (message "darcs initialize finished")))))
 
-(defun xdarcs-add-files (&rest files)
+;;;###autoload
+(defun xdarcs-dvc-add-files (&rest files)
   "Run darcs add."
   (dvc-trace "xdarcs-add-files: %s" files)
   (dvc-run-dvc-sync 'xdarcs (append '("add") files)
@@ -218,7 +219,8 @@ LAST-REVISION looks like
         ;; TODO: remove output-file
         ))))
 
-(defun xdarcs-revert-files (&rest files)
+;;;###autoload
+(defun xdarcs-dvc-revert-files (&rest files)
   "Run darcs revert."
   (dvc-trace "xdarcs-revert-files: %s" files)
   (let ((default-directory (xdarcs-tree-root)))
@@ -227,7 +229,8 @@ LAST-REVISION looks like
 				    (output error status arguments)
 				  (message "xdarcs revert finished")))))
 
-(defun xdarcs-remove-files (&rest files)
+;;;###autoload
+(defun xdarcs-dvc-remove-files (&rest files)
   "Run darcs remove."
   (dvc-trace "xdarcs-remove-files: %s" files)
   (dvc-run-dvc-sync 'xdarcs (append '("remove" "-a") files)

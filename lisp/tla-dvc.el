@@ -64,12 +64,12 @@
   (interactive)
   (tla-update default-directory))
 
-(defalias 'tla-dvc-log-edit 'tla-edit-log)
+(defun tla-dvc-log-edit (&optional other-frame no-init)
+  (interactive "P")
+  (tla-edit-log (not no-init) (current-buffer) other-frame))
 
 (defun tla-dvc-add (file)
   (tla-add nil file))
-
-(defalias 'tla-dvc-add-files 'tla-add-files)
 
 (defun tla-dvc-remove-files (&rest files)
   "Call `tla-remove' to remove a list of files."
