@@ -71,8 +71,6 @@
 (defun tla-dvc-add (file)
   (tla-add nil file))
 
-(defalias 'tla-dvc-add-files 'tla-add-files)
-
 (defun tla-dvc-remove-files (&rest files)
   "Call `tla-remove' to remove a list of files."
   (apply 'tla-remove nil files))

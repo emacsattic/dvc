@@ -43,10 +43,6 @@
 (defun xgit-dvc-status (&optional path)
   (xgit-status))
 
-(defalias 'xgit-dvc-add-files 'xgit-add-files)
-(defalias 'xgit-dvc-remove-files 'xgit-remove-files)
-(defalias 'xgit-dvc-revert-files 'xgit-revert-files)
-
 ;;;###autoload
 (defalias 'xgit-dvc-command-version 'xgit-command-version)
 

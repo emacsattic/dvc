@@ -531,7 +531,8 @@ of the commit. Additionally the destination email address can be specified."
               'bzr (list "add" (file-relative-name file))
               :finished 'dvc-output-and-error-buffer-handler))))
 
-(defun bzr-add-files (&rest files)
+;;;###autoload
+(defun bzr-dvc-add-files (&rest files)
   "Run bzr add."
   (dvc-trace "bzr-add-files: %s" files)
   (let ((default-directory (bzr-tree-root)))
@@ -541,7 +542,8 @@ of the commit. Additionally the destination email address can be specified."
                                     (output error status arguments)
                                   (message "bzr add finished")))))
 
-(defun bzr-revert-files (&rest files)
+;;;###autoload
+(defun bzr-dvc-revert-files (&rest files)
   "Run bzr revert."
   (dvc-trace "bzr-revert-files: %s" files)
   (let ((default-directory (bzr-tree-root)))
@@ -550,7 +552,8 @@ of the commit. Additionally the destination email address can be specified."
                                   (output error status arguments)
                                 (message "bzr revert finished")))))
 
-(defun bzr-remove-files (&rest files)
+;;;###autoload
+(defun bzr-dvc-remove-files (&rest files)
   "Run bzr remove."
   (dvc-trace "bzr-remove-files: %s" files)
   (dvc-run-dvc-sync 'bzr (append '("remove") files)

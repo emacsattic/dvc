@@ -403,7 +403,7 @@ If HELP is nil and if MENU is non nil, the MENU title is used as HELP."
 ;; Debugging facilities
 ;; ----------------------------------------------------------------------------
 (defvar dvc-debug nil
-  "Indicate whether debugging messages should be printed by `dvc-trace'.")
+  "*Indicate whether debugging messages should be printed by `dvc-trace'.")
 
 ;;;###autoload
 (defun dvc-trace (&rest msg)
