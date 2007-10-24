@@ -53,18 +53,28 @@
 (defun xgit-dvc-log-edit-file-name-func ()
   (concat (xgit-tree-root) xgit-log-edit-file-name))
 
-(defun xgit-dvc-log-edit-done ()
-  "Finish a commit for git, using git commit -a"
+(defun xgit-dvc-log-edit-done (&optional invert-normal)
+  "Finish a commit for git, using git commit.
+
+If the partner buffer has files marked, then the index will
+always be used.  Otherwise, the `xgit-use-index' option
+determines whether the index will be used in this commit.
+
+If INVERT-NORMAL is non-nil, the behavior opposite of that
+specified by `xgit-use-index' will be used in this commit."
   (let ((buffer (find-file-noselect (dvc-log-edit-file-name)))
         (files-to-commit (when (buffer-live-p dvc-partner-buffer)
                            (with-current-buffer dvc-partner-buffer
-                             (dvc-current-file-list 'nil-if-none-marked)))))
+                             (dvc-current-file-list 'nil-if-none-marked))))
+        (use-index (if invert-normal (not (xgit-use-index-p))
+                     (xgit-use-index-p))))
     (dvc-log-flush-commit-file-list)
     (save-buffer buffer)
-    (message "committing %S in %s" (or files-to-commit "all files") (dvc-tree-root))
+    (message "committing %S in %s" (or files-to-commit "all files")
+             (dvc-tree-root))
     (dvc-run-dvc-sync
      'xgit (append (list "commit"
-                         (unless (xgit-use-index-p) "-a")
+                         (unless (or files-to-commit use-index) "-a")
                          "-F" (dvc-log-edit-file-name))
                    files-to-commit)
      :finished (dvc-capturing-lambda

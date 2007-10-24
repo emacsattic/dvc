@@ -268,7 +268,7 @@ is why we don't do the (defun ...) here, but leave a description for
 use by `dvc-register-dvc'.")
 
 ;;;###autoload
-(define-dvc-unified-command dvc-log-edit-done ()
+(define-dvc-unified-command dvc-log-edit-done (&optional arg)
   "Commit and close the log buffer."
   (interactive))
 
