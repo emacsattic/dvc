@@ -70,12 +70,12 @@ USING CONFIGURE
        the install directory do everything for you: Manually, you can
        run
 
-         M-x load-file RET /path/to/dvc-load.el RET
+         M-x load-file RET /path/to/install/share/emacs/site-lisp/dvc/dvc-load.el RET
 
        (usefull when you want to load DVC after starting "emacs -q"!),
        or add
 
-         (load-file "/path/to/this/file/in/builddir/dvc-load.el")
+         (load-file "/path/to/install/share/emacs/site-lisp/dvc/dvc-load.el")
 
        to your ~/.emacs.el
 
@@ -85,8 +85,8 @@ USING CONFIGURE
        GNU Emacs: Put the lisp/info path as chosen above into your load-path,
        i.e. add the following to your ~/.emacs.el (if you don't already have an
        equivalent)
-         (add-to-list 'load-path "/path/to/lisp/build/dir")
-         (add-to-list 'Info-default-directory-list "/path/to/the/info/dir"))
+         (add-to-list 'load-path "/path/to/install/share/emacs/site-lisp/dvc/lisp/")
+         (add-to-list 'Info-default-directory-list "/path/to/install/share/info/"))
 
        Now, GNU Emacs knows where to find DVC, tell it to load it, by adding
          (require 'dvc-autoloads)
