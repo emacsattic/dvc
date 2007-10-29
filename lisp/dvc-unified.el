@@ -77,12 +77,38 @@ to (dvc-current-file-list)."
                                                        singleprompt nil))
       (dvc-apply "dvc-remove-files" files))))
 
+(defun dvc-remove-optional-args (spec &rest args)
+  "Process ARGS, removing those that come after the &optional keyword
+in SPEC if they are nil, returning the result."
+  (let ((orig args)
+        new)
+    (if (not (catch 'found
+               (while (and spec args)
+                 (if (eq (car spec) '&optional)
+                     (throw 'found t)
+                   (setq new (cons (car args) new)
+                         args (cdr args)
+                         spec (cdr spec))))
+               nil))
+        orig
+      ;; an &optional keyword was found: process it
+      (let ((acc (reverse args)))
+        (while (and acc (null (car acc)))
+          (setq acc (cdr acc)))
+        (if acc
+            (nreverse (nconc acc new))
+          nil)))))
+
 ;;;###autoload
 (defmacro define-dvc-unified-command (name args comment &optional interactive)
+  "Define a DVC unified command.  &optional arguments are permitted, but
+not &rest."
   `(defun ,name ,args
      ,comment
      ,@(when interactive (list interactive))
-     (dvc-call ,(symbol-name name) ,@(remove '&optional args))))
+     (dvc-apply ,(symbol-name name)
+                (dvc-remove-optional-args ',args
+                                          ,@(remove '&optional args)))))
 
 ;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
