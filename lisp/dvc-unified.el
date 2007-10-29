@@ -51,8 +51,8 @@ to (dvc-current-file-list)."
              (singleprompt (format "Add file to %s: " dvc)))
         (when (setq files (dvc-confirm-read-file-name-list multiprompt files
                                                            singleprompt t))
-          (apply 'dvc-apply "dvc-add-files" files)))
-    (apply 'dvc-apply "dvc-add-files" files)))
+          (dvc-apply "dvc-add-files" files)))
+    (dvc-apply "dvc-add-files" files)))
 
 ;;;###autoload
 (defun dvc-revert-files (&rest files)
@@ -64,7 +64,7 @@ to (dvc-current-file-list)."
          (singleprompt (format "Revert file to its state in %s: " dvc)))
     (when (setq files (dvc-confirm-read-file-name-list multiprompt files
                                                        singleprompt nil))
-      (apply 'dvc-apply "dvc-revert-files" files))))
+      (dvc-apply "dvc-revert-files" files))))
 
 ;;;###autoload
 (defun dvc-remove-files (&rest files)
@@ -75,14 +75,14 @@ to (dvc-current-file-list)."
          (singleprompt (format "Remove file from %s: " dvc)))
     (when (setq files (dvc-confirm-read-file-name-list multiprompt files
                                                        singleprompt nil))
-      (apply 'dvc-apply "dvc-remove-files" files))))
+      (dvc-apply "dvc-remove-files" files))))
 
 ;;;###autoload
 (defmacro define-dvc-unified-command (name args comment &optional interactive)
   `(defun ,name ,args
      ,comment
      ,@(when interactive (list interactive))
-     (dvc-apply ,(symbol-name name) ,@(remove '&optional args))))
+     (dvc-call ,(symbol-name name) ,@(remove '&optional args))))
 
 ;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
@@ -98,8 +98,8 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it."
                      ;; allow back-ends to override this for e.g. git,
                      ;; which can return either the index or the last
                      ;; revision.
-                     (dvc-apply "dvc-last-revision" path)))
-  (dvc-apply "dvc-diff" base-rev path dont-switch))
+                     (dvc-call "dvc-last-revision" path)))
+  (dvc-call "dvc-diff" base-rev path dont-switch))
 
 (defun dvc-dvc-last-revision (path)
   (list (dvc-current-active-dvc)
@@ -133,7 +133,7 @@ the actual dvc."
     ;; We keep it here as a safety belt, in case the back-end forgets
     ;; to do it.
     (dvc-save-some-buffers path)
-    (dvc-apply "dvc-status" path)))
+    (dvc-call "dvc-status" path)))
 
 (define-dvc-unified-command dvc-name-construct (back-end-revision)
   "Returns a string representation of BACK-END-REVISION.")
@@ -143,7 +143,7 @@ the actual dvc."
   "Display the log for PATH (default entire tree), LAST-N
 entries (default `dvc-log-last-n'; all if nil)."
   (interactive)
-  (dvc-apply "dvc-log" path (if last-n last-n dvc-log-last-n)))
+  (dvc-call "dvc-log" path (if last-n last-n dvc-log-last-n)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-changelog (&optional arg)
@@ -174,7 +174,7 @@ entries (default `dvc-log-last-n'; all if nil)."
 (defun dvc-command-version ()
   "Returns and/or shows the version identity string of backend command."
   (interactive)
-  (setq dvc-command-version (dvc-apply "dvc-command-version"))
+  (setq dvc-command-version (dvc-call "dvc-command-version"))
   (when (interactive-p)
     (message "%s" dvc-command-version))
   dvc-command-version)
@@ -234,12 +234,12 @@ reused."
   (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
     (case (length log-edit-buffers)
       (0 ;; Need to create a new log-edit buffer
-         (dvc-apply "dvc-log-edit" other-frame nil))
+         (dvc-call "dvc-log-edit" other-frame nil))
 
       (1 ;; Just reuse the buffer. Switch to it first so
          ;; dvc-buffer-current-active-dvc is set.
        (set-buffer (nth 1 (car log-edit-buffers)))
-       (dvc-apply "dvc-log-edit" other-frame no-init))
+       (dvc-call "dvc-log-edit" other-frame no-init))
 
       (t ;; multiple matching buffers
        (if dvc-buffer-current-active-dvc
@@ -295,7 +295,7 @@ directories of the workspace."
                 (t (format "%d extensions" (length extensions))))))
     (if extensions
         (when (y-or-n-p (format "Ignore %s in workspace %s? " msg root))
-          (apply 'dvc-apply "dvc-backend-ignore-file-extensions" (list extensions)))
+          (dvc-call "dvc-backend-ignore-file-extensions" extensions))
       (error "No files with an extension selected"))))
 
 ;;;###autoload
@@ -317,7 +317,7 @@ directories containing the files, and recursively below them."
       (if (not dir)
           (error "A file with no directory selected")))
     (when (y-or-n-p (format "Ignore %s? " msg))
-          (apply 'dvc-apply "dvc-backend-ignore-file-extensions-in-dir" (list file-list)))))
+          (dvc-call "dvc-backend-ignore-file-extensions-in-dir" file-list))))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-missing (&optional other)
