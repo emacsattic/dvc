@@ -66,8 +66,10 @@ specified by `xgit-use-index' will be used in this commit."
         (files-to-commit (when (buffer-live-p dvc-partner-buffer)
                            (with-current-buffer dvc-partner-buffer
                              (dvc-current-file-list 'nil-if-none-marked))))
-        (use-index (if invert-normal (not (xgit-use-index-p))
-                     (xgit-use-index-p))))
+        (use-index (if (or (eq xgit-use-index 'ask)
+                           (not invert-normal))
+                       (xgit-use-index-p)
+                     (not (xgit-use-index-p)))))
     (dvc-log-flush-commit-file-list)
     (save-buffer buffer)
     (message "committing %S in %s" (or files-to-commit "all files")
