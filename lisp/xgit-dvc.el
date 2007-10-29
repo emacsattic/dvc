@@ -103,7 +103,7 @@ ARG is passed as prefix argument"
 
 (defalias 'xgit-dvc-name-construct 'xgit-name-construct)
 
-(defun xgit-dvc-changelog (arg)
+(defun xgit-dvc-changelog (&optional arg)
   "Shows the changelog in the current git tree.
 ARG is passed as prefix argument"
   (call-interactively 'xgit-log))
