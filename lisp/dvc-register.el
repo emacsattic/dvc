@@ -138,11 +138,17 @@ backend, use dvc-<prefix> instead."
         ;; create new buffers and then call dvc-current-active-dvc
         ;; get the right back-end.
         (let ((dvc-temp-current-active-dvc current-dvc))
-          (apply (dvc-function current-dvc postfix) args))
+          (apply 'apply (dvc-function current-dvc postfix) args))
       (let ((default-directory
               (dvc-read-directory-name "Local tree: ")))
         (apply 'dvc-apply postfix args)))))
 
+;;;###autoload
+(defun dvc-call (postfix &rest args)
+  "Call the function specified by concatenating `dvc-current-active-dvc' and
+POSTFIX, with arguments ARGS."
+  ;; The &rest argument turns ARGS into a list for us
+  (dvc-apply postfix args))
 
 (defvar dvc-current-active-dvc-cache (make-hash-table :test 'equal)
   "A cache that contains directories as keys and the DVC symbol as value.

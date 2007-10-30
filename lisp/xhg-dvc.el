@@ -95,7 +95,7 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
 ;;;###autoload
 (defalias 'xhg-dvc-command-version 'xhg-command-version)
 
-(defun xhg-dvc-changelog (arg)
+(defun xhg-dvc-changelog (&optional arg)
   "Shows the changelog in the current Mercurial tree.
 ARG is passed as prefix argument"
   (call-interactively 'xhg-log))

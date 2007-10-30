@@ -377,15 +377,14 @@ refresh the revision list buffer.  It must take no arguments."
        (with-current-buffer output
          (funcall (capture parser) (capture buffer) (capture location))))
      :error
-     ;; TODO handle error messages, only treat the bzr missing command like this (errorcode=1)
+     ;; TODO handle error messages, only treat the bzr missing command
+     ;; like this (errorcode=1)
      (dvc-capturing-lambda (output error status arguments)
        (with-current-buffer output
-         (funcall (capture parser) (capture buffer) (capture location))))
-     ))
-  )
+         (funcall (capture parser) (capture buffer) (capture location)))))))
 
 (defun dvc-revision-log-message-at-point ()
-  (dvc-apply "revision-st-message" (dvc-revlist-current-patch-struct)))
+  (dvc-call "revision-st-message" (dvc-revlist-current-patch-struct)))
 
 (defun dvc-revision-save-log-message-as-kill ()
   "Save the log message for the actual patch."
