@@ -95,9 +95,9 @@ in SPEC if they are nil, returning the result."
       (let ((acc (reverse args)))
         (while (and acc (null (car acc)))
           (setq acc (cdr acc)))
-        (if acc
-            (nreverse (nconc acc new))
-          nil)))))
+        (when acc
+          (setq new (nconc acc new)))
+        (nreverse new)))))
 
 ;;;###autoload
 (defmacro define-dvc-unified-command (name args comment &optional interactive)
