@@ -146,6 +146,24 @@
                                     (capture root)
                                     output error))))))
 
+(defun xdarcs-missing ()
+  "Run darcs pull --dry-run -s to see whats missing"
+  (interactive)
+  (let ((buffer (dvc-get-buffer-create 'xdarcs 'missing)))
+    (dvc-run-dvc-async
+     'xdarcs '("pull" "--dry-run" "-s")
+     :finished
+     (dvc-capturing-lambda (output error status arguments)
+       (progn
+         (with-current-buffer (capture buffer)
+           (let ((inhibit-read-only t))
+             (erase-buffer)
+             (insert-buffer-substring output)
+             (toggle-read-only 1)))
+         (goto-char (point-min))
+         (dvc-switch-to-buffer (capture buffer)))))))
+
+
 ;; --------------------------------------------------------------------------------
 ;; diff
 ;; --------------------------------------------------------------------------------
