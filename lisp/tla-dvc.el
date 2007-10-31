@@ -83,7 +83,7 @@
   "Show the log for the current Arch tree."
   (tla-logs))
 
-(defun tla-dvc-changelog (arg)
+(defun tla-dvc-changelog ()
   "Show the changelog for the current Arch tree."
   (tla-changelog))
 
@@ -110,7 +110,7 @@
 ;;;###autoload
 (defalias 'tla-dvc-command-version 'tla-command-version)
 
-(defun tla-dvc-delta (base modified dont-switch)
+(defun tla-dvc-delta (base modified &optional dont-switch)
   (interactive (error "TODO: interactive not implemented"))
   (if (and (eq (dvc-revision-get-type base) 'previous-revision)
            (eq (dvc-revision-get-type modified) 'revision)

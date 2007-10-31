@@ -456,7 +456,7 @@ turn off visualization."
   "Set dvc-show-active-dvc-string, after loading a file."
   (when (dvc-current-active-dvc)
     (dvc-actualize-modeline)
-    (when (dvc-apply "dvc-file-has-conflict-p" (buffer-file-name))
+    (when (dvc-call "dvc-file-has-conflict-p" (buffer-file-name))
       (dvc-funcall-if-exists smerge-mode 1)
       (message
        "Conflicts in file%s. Use M-x dvc-resolved RET when done."

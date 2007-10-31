@@ -45,10 +45,37 @@
   :type 'string
   :group 'dvc-xgit)
 
+(defcustom xgit-git-dir-mapping nil
+  "A mapping from the root of a directory tree to the desired
+git metadata directory."
+  :type '(repeat (list :tag "Rule"
+                       (regexp :tag "Root dir")
+                       (directory :tag "Git dir")))
+  :group 'dvc-xgit)
+
 (defvar xgit-log-edit-file-name
   "++xgit-log-edit"
   "The filename, used to store the log message before commiting.
 Usually that file is placed in the tree-root of the working tree.")
+
+(defun xgit-lookup-external-git-dir (&optional location root)
+  "Check to see whether the user has specified a custom git metadata
+directory in `xgit-git-dir-mapping'.
+
+If root is non-nil, return the tree root, which is guaranteed to
+end with a trailing slash.  Otherwise, return the git metadata
+directory.
+
+If no rule from `xgit-git-dir-mapping' matches, return nil."
+  (setq location (file-name-as-directory (or location default-directory)))
+  (save-match-data
+    (catch 'found
+      (dolist (rule xgit-git-dir-mapping)
+        (when (string-match (concat "^" (directory-file-name (car rule)) "/")
+                            location)
+          (throw 'found (if root (match-string 0 location)
+                          (cadr rule)))))
+      nil)))
 
 ;;;###autoload
 (defun xgit-tree-root (&optional location no-error interactive)
@@ -59,9 +86,10 @@ fast.
 
 If NO-ERROR is non-nil, don't raise an error if LOCATION is not a
 git managed tree (but return nil)."
-  (dvc-tree-root-helper ".git/" (or interactive (interactive-p))
-                        "%S is not in a git tree!"
-                        location no-error))
+  (or (xgit-lookup-external-git-dir location t)
+      (dvc-tree-root-helper ".git/" (or interactive (interactive-p))
+                            "%S is not in a git tree!"
+                            location no-error)))
 
 ;; Stefan: 17.05.2007: not sure, if xgit-tree-has-head is still needed/valid
 (defun xgit-tree-has-head ()
@@ -73,11 +101,12 @@ It will be nil before the initial commit."
   "Utility function to add --git-dir option to git command."
   ;; git barfs when "~/" is in the --git-dir argument, so we cannot
   ;; just concat the result of xgit-tree-root as-is
-  (concat "--git-dir="
-          (file-relative-name
-           (xgit-tree-root location)
-           (file-name-as-directory (or location default-directory)))
-          ".git"))
+  (let ((git-dir (xgit-lookup-external-git-dir location)))
+    (concat "--git-dir="
+            (file-relative-name
+             (or git-dir (xgit-tree-root location))
+             (file-name-as-directory (or location default-directory)))
+            (if git-dir "" ".git"))))
 
 (defconst xgit-hash-regexp "[0-9a-f]\\{40\\}")
 
@@ -86,7 +115,10 @@ It will be nil before the initial commit."
   "Prepare the environment to run git."
   ;; git pipes the result of "git log" to the PAGER, so set
   ;; GIT_PAGER=cat to work around that feature
-  (cons "GIT_PAGER=cat" env))
+  (let ((git-dir (xgit-lookup-external-git-dir)))
+    (nconc (when git-dir (list (concat "GIT_DIR=" git-dir)))
+           (list "GIT_PAGER=cat")
+           env)))
 
 (provide 'xgit-core)
 ;;; xgit-core.el ends here
