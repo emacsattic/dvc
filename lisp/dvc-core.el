@@ -103,15 +103,16 @@ If LOCATION is nil, the tree root is returned, and it is
 guaranteed to end in a \"/\" character.
 
 MSG must be of the form \"%S is not a ...-managed tree\"."
-  (let ((pwd (dvc-find-tree-root-file-first
-              file-or-dir location)))
-    (when (and interactivep pwd)
-      (dvc-trace "%s" pwd))
-    (or pwd
-        (if no-error
-            nil
-          (error msg
-                 (or location default-directory))))))
+  (let ((location (dvc-uniquify-file-name location)))
+    (let ((pwd (dvc-find-tree-root-file-first
+                file-or-dir location)))
+      (when (and interactivep pwd)
+        (dvc-trace "%s" pwd))
+      (or pwd
+          (if no-error
+              nil
+            (error msg
+                   (or location default-directory)))))))
 
 (defun dvc-find-tree-root-file-last (file-or-dir &optional location)
   "Like `dvc-find-tree-root-file-upward' but recursively if FILE-OR-DIR is found.
@@ -1012,7 +1013,7 @@ Strips the final newline if there is one."
 (defun dvc-log-edit-file-name ()
   "Return a suitable file name to edit the commit message"
   ;; FIXME: replace this with define-dvc-unified-command
-  (dvc-apply "dvc-log-edit-file-name-func"))
+  (dvc-call "dvc-log-edit-file-name-func"))
 
 (defun dvc-dvc-log-edit-file-name-func ()
   (concat (file-name-as-directory (dvc-tree-root))

@@ -48,7 +48,8 @@
                                    (output error status arguments)
                                  (message "hg init finished"))))
 
-(defun xhg-add-files (&rest files)
+;;;###autoload
+(defun xhg-dvc-add-files (&rest files)
   "Run hg add."
   (dvc-trace "xhg-add-files: %s" files)
   (let ((default-directory (xhg-tree-root)))
@@ -57,7 +58,8 @@
                                     (output error status arguments)
                                   (message "hg add finished")))))
 
-(defun xhg-revert-files (&rest files)
+;;;###autoload
+(defun xhg-dvc-revert-files (&rest files)
   "Run hg revert."
   (dvc-trace "xhg-revert-files: %s" files)
   (let ((default-directory (xhg-tree-root)))
@@ -66,7 +68,8 @@
                                     (output error status arguments)
                                   (message "hg revert finished")))))
 
-(defun xhg-remove-files (&rest files)
+;;;###autoload
+(defun xhg-dvc-remove-files (&rest files)
   "Run hg remove."
   (dvc-trace "xhg-remove-files: %s" files)
   (let ((default-directory (xhg-tree-root)))

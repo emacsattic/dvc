@@ -282,7 +282,7 @@
 ;;;###autoload
 (defun xmtn-dvc-log (path last-n) (xmtn--log-helper path t last-n))
 ;;;###autoload
-(defun xmtn-dvc-changelog (path) (xmtn--log-helper path nil nil))
+(defun xmtn-dvc-changelog (&optional path) (xmtn--log-helper path nil nil))
 
 (defun xmtn--log-helper (path first-line-only-p last-n)
   ;; FIXME: I don't know what the argument PATH means.  So assert this

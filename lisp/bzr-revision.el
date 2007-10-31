@@ -175,7 +175,7 @@
   (goto-char (point-min)))
 
 ;;;###autoload
-(defun bzr-changelog (path)
+(defun bzr-changelog (&optional path)
   "Run bzr log and show the full log message."
   (interactive (list default-directory))
   (let ((path (or path (bzr-tree-root))))

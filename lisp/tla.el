@@ -5923,7 +5923,8 @@ When called interactively with a prefix argument, ask additionally for the ID."
   (tla--run-tla-sync `(,(if (tla-has-add-id-command) "add-id" "add")
                        ,@(when id (list "--id" id)) . ,files)))
 
-(defun tla-add-files (&rest files)
+;;;###autoload
+(defun tla-dvc-add-files (&rest files)
   "Run tla add."
   (message "tla-add-files: %s" files)
   (dvc-run-dvc-sync tla-arch-branch (append (list (if (tla-has-add-id-command) "add-id" "add")) files)
