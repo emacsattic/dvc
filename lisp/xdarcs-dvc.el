@@ -48,6 +48,9 @@
 ;;;###autoload
 (defalias 'xdarcs-dvc-missing 'xdarcs-missing)
 
+;;;###autoload
+(defalias 'xdarcs-dvc-pull 'xdarcs-pull)
+
 (defalias 'xdarcs-dvc-diff 'xdarcs-diff)
 
 (defvar xdarcs-ignore-file "_darcs/prefs/boring"
