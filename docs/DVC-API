@@ -148,4 +148,6 @@ extend some DVC modes with additional keybindings and menus. See
 
   In practice, that is not a problem for Unix users, but requires
   cygwin or mingw for Windows users. 'sh' is used to separate stdout
-  from stderr; the Emacs function 'call-process' merges them.
+  from stderr; the Emacs function 'call-process' merges them. It may
+  be possible to do this with native Windows tools, if someone wants
+  to investigate.

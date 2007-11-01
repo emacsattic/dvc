@@ -295,7 +295,7 @@ use by `dvc-register-dvc'.")
 
 ;;;###autoload
 (define-dvc-unified-command dvc-log-edit-done (&optional arg)
-  "Commit and close the log buffer."
+  "Commit and close the log buffer.  Optional ARG is back-end specific."
   (interactive (list current-prefix-arg)))
 
 ;;;###autoload

@@ -1086,7 +1086,9 @@ REVISION-ID may have the values described in docs/DVC-API."
 REVISION-ID is as specified in docs/DVC-API."
   (dvc-trace "dvc-revision-get-file-in-buffer. revision-id=%S" revision-id)
   (let ((type (dvc-revision-get-type revision-id))
-        (inhibit-read-only t))
+        (inhibit-read-only t)
+        ;; find-file-noselect will call dvc-current-active-dvc in a hook
+        (dvc-temp-current-active-dvc (dvc-current-active-dvc)))
     (let ((buffer (dvc-revision-get-buffer file revision-id)))
       (with-current-buffer buffer
         (case type
