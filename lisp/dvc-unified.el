@@ -117,15 +117,22 @@ BASE-REV (a revision-id) defaults to base revision of the
 tree. Use `dvc-delta' for differencing two revisions.
 PATH defaults to `default-directory'.
 The new buffer is always displayed; if DONT-SWITCH is nil, select it."
-  ;; FIXME: this should _only_ diff
-  ;; working tree against its base revision; dvc-delta handles other diffs.
+  ;; FIXME: this should _only_ diff working tree against its base
+  ;; revision; dvc-delta handles other diffs.
   (interactive (list nil default-directory current-prefix-arg))
-  (setq base-rev (or base-rev
-                     ;; allow back-ends to override this for e.g. git,
-                     ;; which can return either the index or the last
-                     ;; revision.
-                     (dvc-call "dvc-last-revision" path)))
-  (dvc-call "dvc-diff" base-rev path dont-switch))
+  ;; We don't use (dvc-tree-root default-directory) in the interactive
+  ;; form, because that would prompt for a local tree if the user
+  ;; specifies `path' and default-directory is not a root; and `path'
+  ;; must be a root anyway. We bind default-directory here so dvc-call
+  ;; can find the right back-end for `path'.
+  (let ((default-directory (or path
+                               default-directory)))
+    (setq base-rev (or base-rev
+                       ;; Allow back-ends to override this for e.g. git,
+                       ;; which can return either the index or the last
+                       ;; revision.
+                     (dvc-call "dvc-last-revision" (dvc-tree-root path))))
+    (dvc-call "dvc-diff" base-rev path dont-switch)))
 
 (defun dvc-dvc-last-revision (path)
   (list (dvc-current-active-dvc)

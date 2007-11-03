@@ -522,11 +522,9 @@ a 'file."
   (save-excursion (re-search-backward "^--- " nil t)))
 
 
-(defun dvc-diff-ediff (&optional other-file)
-  "Run ediff on the current changes.
-The prefix argument OTHER-FILE controls whether the original or new
-file is visited."
-  (interactive "P")
+(defun dvc-diff-ediff ()
+  "Run ediff on the current changes."
+  (interactive)
   (unless (and (car dvc-diff-base)
                (car dvc-diff-modified))
     (error "No revision information to base ediff on"))
@@ -535,8 +533,8 @@ file is visited."
     (if (and on-modified-file (not (tla--changes-in-diff)))
         ;; on ewoc item; just ediff
         (dvc-file-ediff-revisions on-modified-file
-                                  dvc-diff-modified
-                                  dvc-diff-base)
+                                  dvc-diff-base
+                                  dvc-diff-modified)
       ;; in diff section; find hunk index, so we can jump to it in the ediff.
       (end-of-line)
       (dvc-trace "loc=%S" loc)
@@ -550,8 +548,8 @@ file is visited."
         (goto-char loc)
         (with-current-buffer
             (dvc-file-ediff-revisions on-modified-file
-                                      dvc-diff-modified
-                                      dvc-diff-base)
+                                      dvc-diff-base
+                                      dvc-diff-modified)
           (ediff-jump-to-difference hunk))))))
 
 (defun dvc-diff-find-file-name ()
@@ -745,10 +743,8 @@ Usefull to clear diff buffers after a commit."
         (set-auto-mode t)))
     (dvc-ediff-buffers file-buffer pristine-buffer)))
 
-;;;###autoload
-(defun dvc-file-ediff-revisions (file &optional base modified)
+(defun dvc-file-ediff-revisions (file base modified)
   "View changes in FILE between BASE and MODIFIED using ediff."
-  ;; TODO could be interactive
   (dvc-ediff-buffers
    (dvc-revision-get-file-in-buffer file base)
    (dvc-revision-get-file-in-buffer file modified)))

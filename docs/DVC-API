@@ -71,6 +71,7 @@ BACK-END-ID :: (revision BACK-END-REVISION)
 (probably we'll need a (head REMOTE-BRANCH) too)
 
 PATH :: string
+  ;; must be a tree root directory
 
 NUM :: number
 

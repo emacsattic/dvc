@@ -210,7 +210,7 @@ by calling `dvc-log-flush-commit-file-list'."
   "Add new DVC log ChangeLog style entry; intended to be invoked
 from the ediff control buffer."
   (interactive "P")
-  (set-buffer ediff-buffer-A) ; DVC puts original here
+  (set-buffer ediff-buffer-B) ; DVC puts workspace version here
   (dvc-add-log-entry-internal other-frame))
 
 (defun dvc-add-log-entry-internal (other-frame)

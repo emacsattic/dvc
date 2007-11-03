@@ -862,14 +862,13 @@ REVISION is a back-end-revision, not a dvc revision-id. It looks like
   "Insert the content of FILE in LAST-REVISION, in current buffer.
 
 LAST-REVISION looks like
-\(\"path\" NUM)
+\(\"root\" NUM)
 "
   (let ((bzr-rev (concat "last:" (int-to-string
                                   (nth 1 last-revision))))
         (default-directory (car last-revision)))
     (insert
      (dvc-run-dvc-sync
-      ;; TODO what if I'm not at the tree root ?
       'bzr (list "cat" "--revision" bzr-rev file)
       :finished 'dvc-output-buffer-handler-withnewline))))
 
