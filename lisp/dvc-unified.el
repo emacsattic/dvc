@@ -286,7 +286,7 @@ reused."
     ("add-files" (&rest files))
     ("revert-files" (&rest files))
     ("remove-files" (&rest files))
-    ("status" (&optional path verbose))
+    ("status" (&optional path))
     ("ignore-file-extensions" (file-list))
     ("ignore-file-extensions-in-dir" (file-list)))
   "Alist of descriptions of back-end wrappers to define.

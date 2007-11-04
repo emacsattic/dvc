@@ -57,6 +57,7 @@ the autoloads."
                           (symb-dvc (intern (concat "dvc-"
                                                     name)))
                           (args (nth 1 wrapper))
+                          (call-args (remove '&rest (remove '&optional args)))
                           (docstring (concat "Wrapper for dvc-" name
                                              ", for back-end "
                                              (symbol-name dvc-noquote)
@@ -65,7 +66,11 @@ the autoloads."
                         ,docstring
                         (interactive)
                         (let ((dvc-temp-current-active-dvc ,dvc))
-                          (call-interactively (quote ,symb-dvc))))))
+                          ,(if call-args
+                               `(if (interactive-p)
+                                    (call-interactively (quote ,symb-dvc))
+                                  (apply (quote ,symb-dvc) ,@call-args))
+                             `(call-interactively (quote ,symb-dvc)))))))
                  dvc-back-end-wrappers
          )))
     `(progn
