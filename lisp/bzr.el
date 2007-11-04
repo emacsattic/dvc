@@ -323,7 +323,7 @@ TODO: DONT-SWITCH is currently ignored."
          (dvc-show-changes-buffer output 'bzr-parse-diff
                                   (capture buffer)))))))
 
-(defun bzr-delta (base modified dont-switch)
+(defun bzr-delta (base modified &optional dont-switch)
   "Run bzr diff -r BASE..MODIFIED.
 
 TODO: dont-switch is currently ignored."
