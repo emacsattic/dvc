@@ -229,17 +229,15 @@ new file.")
             (dolist (elem (xgit-parse-status-sort (nreverse status-list)))
               (ewoc-enter-last dvc-diff-cookie elem))))))))
 
-(defun xgit-status (&optional against path verbose)
+(defun xgit-dvc-status (&optional verbose)
   "Run git status."
-  (interactive (list nil default-directory))
-  (let* ((dir (or path default-directory))
-         (root (xgit-tree-root dir))
+  (let* ((root default-directory)
          (buffer (dvc-prepare-changes-buffer
                   `(xgit (last-revision ,root 1))
                   `(git (local-tree ,root))
                   'status root 'xgit)))
     (dvc-switch-to-buffer-maybe buffer)
-    (setq dvc-buffer-refresh-function 'xgit-status)
+    (setq dvc-buffer-refresh-function 'xgit-dvc-status)
     (dvc-save-some-buffers root)
     (let ((show-changes-buffer
            (dvc-capturing-lambda (output error status arguments)
@@ -255,9 +253,9 @@ new file.")
        :finished show-changes-buffer
        :error show-changes-buffer))))
 
-(defun xgit-status-verbose (&optional against path)
-  (interactive (list nil default-directory))
-  (xgit-status against path t))
+(defun xgit-status-verbose ()
+  (interactive)
+  (xgit-status t))
 
 (defun xgit-status-add-u ()
   "Run \"git add -u\" and refresh current buffer."

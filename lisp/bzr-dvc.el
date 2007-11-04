@@ -36,8 +36,6 @@
 ;;;###autoload
 (defalias 'bzr-dvc-diff 'bzr-diff)
 ;;;###autoload
-(defalias 'bzr-dvc-status 'bzr-status)
-;;;###autoload
 (defalias 'bzr-dvc-inventory 'bzr-inventory)
 ;;;###autoload
 (defalias 'bzr-dvc-missing 'bzr-missing)

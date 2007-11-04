@@ -346,12 +346,16 @@ arch operation modifying the file."
 - always: When running a dvc command requiring a tree, always prompt
   for it.
 
-- sometimes: If a command is ran inside a project tree, the tree root
+- unless-specified: If a directory is given as an argument, use it;
+  otherwise prompt.
+
+- sometimes: If a command is run inside a project tree, the tree root
   is used. Otherwise, prompt.
 
 - never: If a command is run inside a project tree, use the tree root.
-  Othwise, raise an error."
+  Otherwise, raise an error."
   :type '(choice (const always)
+                 (const unless-specified)
                  (const sometimes)
                  (const never))
   :group 'dvc)

@@ -40,10 +40,6 @@
 (defalias 'xgit-dvc-tree-root 'xgit-tree-root)
 
 ;;;###autoload
-(defun xgit-dvc-status (&optional path)
-  (xgit-status))
-
-;;;###autoload
 (defalias 'xgit-dvc-command-version 'xgit-command-version)
 
 (defalias 'xgit-dvc-diff 'xgit-diff)

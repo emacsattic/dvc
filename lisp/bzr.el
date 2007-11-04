@@ -446,20 +446,17 @@ of the commit. Additionally the destination email address can be specified."
           (t (error "unrecognized context in bzr-parse-status")))
     (forward-line 1)))
 
-;;;###autoload
-(defun bzr-status (&optional path)
-  "Run \"bzr status\"."
-  (interactive (list default-directory))
+(defun bzr-dvc-status ()
+  "Run \"bzr status\" in `default-directory', which must be a tree root."
   (let* ((window-conf (current-window-configuration))
-         (dir (or path default-directory))
-         (root (bzr-tree-root dir))
+         (root default-directory)
          (buffer (dvc-prepare-changes-buffer
                   `(bzr (last-revision ,root 1))
                   `(bzr (local-tree ,root))
                   'status root 'bzr)))
     (dvc-switch-to-buffer-maybe buffer)
     (dvc-buffer-push-previous-window-config window-conf)
-    (setq dvc-buffer-refresh-function 'bzr-status)
+    (setq dvc-buffer-refresh-function 'bzr-dvc-status)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-async
      'bzr '("status")
@@ -862,14 +859,13 @@ REVISION is a back-end-revision, not a dvc revision-id. It looks like
   "Insert the content of FILE in LAST-REVISION, in current buffer.
 
 LAST-REVISION looks like
-\(\"path\" NUM)
+\(\"root\" NUM)
 "
   (let ((bzr-rev (concat "last:" (int-to-string
                                   (nth 1 last-revision))))
         (default-directory (car last-revision)))
     (insert
      (dvc-run-dvc-sync
-      ;; TODO what if I'm not at the tree root ?
       'bzr (list "cat" "--revision" bzr-rev file)
       :finished 'dvc-output-buffer-handler-withnewline))))
 

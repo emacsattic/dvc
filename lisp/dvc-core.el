@@ -572,17 +572,7 @@ arguments.
                    where the result of the process will be used.  If
                    this buffer is killed before the end of the
                    execution, the user is prompted if he wants to kill
-                   the process.
-
-Example:
-  (dvc-run-dvc-async 'tla
-                      `(\"changes\" ,(unless arg \"--diffs\"))
-                      :finished
-                      (lambda (output error status arguments)
-                        (message \"No changes in this working copy\"))
-                      :error
-                      (lambda (output error status arguments)
-                        (dvc-show-changes-buffer 'tla--parse-changes output)))"
+                   the process."
   (dvc-with-keywords
       (:finished :killed :error :filter
        :output-buffer :error-buffer :related-buffer)
@@ -1086,35 +1076,33 @@ REVISION-ID may have the values described in docs/DVC-API."
 REVISION-ID is as specified in docs/DVC-API."
   (dvc-trace "dvc-revision-get-file-in-buffer. revision-id=%S" revision-id)
   (let ((type (dvc-revision-get-type revision-id))
-        (inhibit-read-only t))
-    (let ((buffer (dvc-revision-get-buffer file revision-id)))
-      (with-current-buffer buffer
-        (case type
-          (local-tree (find-file-noselect file))
+        (inhibit-read-only t)
+        ;; find-file-noselect will call dvc-current-active-dvc in a
+        ;; hook; specify dvc for dvc-call
+        (dvc-temp-current-active-dvc (dvc-revision-get-dvc revision-id))
+        (buffer (dvc-revision-get-buffer file revision-id)))
+    (with-current-buffer buffer
+      (case type
+        (local-tree (find-file-noselect file))
 
-          (revision
-           (funcall (dvc-function
-                     (dvc-revision-get-dvc revision-id)
-                     "revision-get-file-revision")
-                    file (dvc-revision-get-data revision-id))
-           buffer)
+        (revision
+         (dvc-call "revision-get-file-revision"
+                   file (dvc-revision-get-data revision-id))
+         buffer)
 
-          (previous-revision
-           (let* ((dvc (dvc-revision-get-dvc revision-id))
-                  (data (nth 0 (dvc-revision-get-data revision-id)))
-                  (rev-id (list dvc data)))
-             (funcall (dvc-function dvc "revision-get-previous-revision")
-                      file rev-id))
-           buffer)
+        (previous-revision
+         (let* ((dvc (dvc-revision-get-dvc revision-id))
+                (data (nth 0 (dvc-revision-get-data revision-id)))
+                (rev-id (list dvc data)))
+           (dvc-call "revision-get-previous-revision" file rev-id))
+         buffer)
 
-          (last-revision
-           (funcall (dvc-function
-                     (dvc-revision-get-dvc revision-id)
-                     "revision-get-last-revision")
-                    file (dvc-revision-get-data revision-id))
-           buffer)
+        (last-revision
+         (dvc-call "revision-get-last-revision"
+                   file (dvc-revision-get-data revision-id))
+         buffer)
 
-          (t (error "TODO: type %S" type)))))))
+        (t (error "TODO: type %S" type))))))
 
 (defun dvc-revision-get-previous-revision (file revision-id)
 "Default function to fill the current buffer with the content of
