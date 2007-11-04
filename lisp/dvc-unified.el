@@ -159,14 +159,13 @@ the actual dvc."
 (defun dvc-status (&optional path)
   "Display the status in optional PATH tree."
   (interactive)
-  (let* ((path (when path (expand-file-name path)))
-         (default-directory (or path default-directory)))
-    ;; this should be done in back-ends, so that
-    ;; M-x <back-end>-status RET also prompts for save.
-    ;; We keep it here as a safety belt, in case the back-end forgets
-    ;; to do it.
-    (dvc-save-some-buffers path)
-    (dvc-call "dvc-status" path)))
+  (let ((default-directory
+          (dvc-read-project-tree-maybe "DVC status (directory): "
+                                       (when path (expand-file-name path)))))
+    ;; Since we have bound default-directory, we don't need to pass
+    ;; `path' to the back-end.
+    (dvc-save-some-buffers default-directory)
+    (dvc-call "dvc-status")))
 
 (define-dvc-unified-command dvc-name-construct (back-end-revision)
   "Returns a string representation of BACK-END-REVISION.")
@@ -287,6 +286,7 @@ reused."
     ("add-files" (&rest files))
     ("revert-files" (&rest files))
     ("remove-files" (&rest files))
+    ("status" (&optional path verbose))
     ("ignore-file-extensions" (file-list))
     ("ignore-file-extensions-in-dir" (file-list)))
   "Alist of descriptions of back-end wrappers to define.

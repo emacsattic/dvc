@@ -87,12 +87,6 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
 (defalias 'xhg-dvc-save-diff 'xhg-save-diff)
 
 ;;;###autoload
-(defun xhg-dvc-status (&optional path)
-  ;; Path is already set as default-directory in dvc-status so it can be ignored here
-  (xhg-status))
-
-
-;;;###autoload
 (defalias 'xhg-dvc-command-version 'xhg-command-version)
 
 (defun xhg-dvc-changelog (&optional arg)

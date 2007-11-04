@@ -911,12 +911,11 @@ the file before saving."
     (>= version 6.0)))
 
 ;;;###autoload
-(defun xmtn-dvc-status (&optional root)
-  "Display status of monotone tree ROOT (default current tree)."
-  (let ((root (or root (dvc-tree-root))))
-    (if (xmtn--mtn-has-basic-io-inventory)
-        (xmtn--status-using-inventory root)
-      (xmtn--status-without-inventory root))))
+(defun xmtn-dvc-status ()
+  "Display status of monotone tree at `default-directory'."
+  (if (xmtn--mtn-has-basic-io-inventory)
+      (xmtn--status-using-inventory default-directory)
+    (xmtn--status-without-inventory default-directory)))
 
 ;;;###autoload
 (defun xmtn-dvc-revision-direct-ancestor (revision-id)

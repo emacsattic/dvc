@@ -148,7 +148,7 @@ guess the repository path via `xgit-apply-patch-mapping'."
                          "View git repository status for: "
                          nil nil t working-dir)))
     (let ((default-directory working-dir))
-      (xgit-status)
+      (xgit-dvc-status)
       (delete-other-windows)
       (setq xgit-gnus-status-window-configuration
             (current-window-configuration))
