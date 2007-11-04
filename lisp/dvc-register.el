@@ -69,7 +69,7 @@ the autoloads."
                           ,(if call-args
                                `(if (interactive-p)
                                     (call-interactively (quote ,symb-dvc))
-                                  (apply (quote ,symb-dvc) ,@call-args))
+                                  (funcall (quote ,symb-dvc) ,@call-args))
                              `(call-interactively (quote ,symb-dvc)))))))
                  dvc-back-end-wrappers
          )))
