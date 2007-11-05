@@ -72,7 +72,7 @@
 
 (defvar dvc-bookmarks-file-name "dvc-bookmarks.el" "The file that holds the dvc bookmarks")
 
-(defvar dvc-bookmarks-show-partners nil)
+(defvar dvc-bookmarks-show-partners t)
 
 (defvar dvc-bookmarks-loaded nil "Whether `dvc-bookmark-alist' has been loaded from `dvc-bookmarks-file-name'.")
 (defvar dvc-bookmarks-cookie nil "The ewoc cookie for the *dvc-bookmarks* buffer.")
