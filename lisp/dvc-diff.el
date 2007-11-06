@@ -741,7 +741,7 @@ Usefull to clear diff buffers after a commit."
       (toggle-read-only 1)
       (let ((buffer-file-name file))
         (set-auto-mode t)))
-    (dvc-ediff-buffers file-buffer pristine-buffer)))
+    (dvc-ediff-buffers pristine-buffer file-buffer)))
 
 (defun dvc-file-ediff-revisions (file base modified)
   "View changes in FILE between BASE and MODIFIED using ediff."

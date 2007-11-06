@@ -72,7 +72,9 @@
 
 (defvar dvc-bookmarks-file-name "dvc-bookmarks.el" "The file that holds the dvc bookmarks")
 
-(defvar dvc-bookmarks-show-partners nil)
+(defvar dvc-bookmarks-show-partners t
+"If non-nil, display partners.
+Must be non-nil for some featurs of dvc-bookmarks to work.")
 
 (defvar dvc-bookmarks-loaded nil "Whether `dvc-bookmark-alist' has been loaded from `dvc-bookmarks-file-name'.")
 (defvar dvc-bookmarks-cookie nil "The ewoc cookie for the *dvc-bookmarks* buffer.")
@@ -238,8 +240,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
-        (let ((default-directory local-tree))
-          (dvc-status))
+        (dvc-status local-tree)
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-log-edit ()
@@ -284,6 +285,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
 
 (defvar dvc-bookmarks-merge-template "Merged from %s: ")
 (defun dvc-bookmarks-merge ()
+  "Merge from partner at point into current bookmark."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
