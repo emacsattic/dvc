@@ -84,6 +84,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map dvc-keyvec-help 'describe-mode)
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     (define-key map [return] 'dvc-bookmarks-goto)
+    (define-key map "\C-x\C-f" 'dvc-bookmarks-find-file-in-tree)
     (define-key map "\C-m"   'dvc-bookmarks-goto)
     (define-key map "g"      'dvc-bookmarks)
     (define-key map "h"      'dvc-buffer-pop-to-partner-buffer)
@@ -234,6 +235,14 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (find-file local-tree)
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-find-file-in-tree ()
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (let ((default-directory local-tree))
+          (find-file (read-file-name "Find file in bookmarked tree: ")))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-status ()
