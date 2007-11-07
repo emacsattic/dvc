@@ -56,7 +56,7 @@
 (easy-menu-define xhg-log-mode-menu xhg-log-mode-map
   "`xhg-log-mode' menu"
   `("hg-log"
-    ["Show status" xhg-status t]
+    ["Show status" dvc-status t] ;; `xhg-status' is not defined at compile time.
     ["Toggle embedded diff" xhg-log-toggle-diff-for-changeset t]
     ["Start Commiting" dvc-log-edit t]
     ["Export Changeset" xhg-export t]

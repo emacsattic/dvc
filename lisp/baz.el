@@ -79,8 +79,8 @@ Else it runs asynchronously."
 
 ;;;###autoload
 (defun baz-status-goto (&optional root against)
-  "Switch to status buffer or run `baz-status'."
-  (interactive (list (tla--read-project-tree-maybe
+  "Switch to status buffer or run `baz-dvc-status'."
+  (interactive (list (dvc-read-project-tree-maybe
                       (format "Run %s in: "
                               (tla--changes-command)))
                      current-prefix-arg))
@@ -90,22 +90,16 @@ Else it runs asynchronously."
          (buffer (dvc-get-buffer 'status default-directory)))
     (if buffer
         (dvc-switch-to-buffer buffer)
-      (baz-status root))))
+      (baz-dvc-status))))
 
-;;;###autoload
-(defun baz-status (&optional root)
-  "Run \"baz status\".
+(defun baz-dvc-status ()
+  "Run \"baz status\" in `default-directory', which must be a tree root.
 
 Doesn't work with tla. Use `tla-changes' or `tla-tree-lint'
 instead."
-  (interactive (list (tla--read-project-tree-maybe
-                      (format "Run %s in: "
-                              (tla--changes-command)))
-                     current-prefix-arg))
-  (dvc-trace "baz-status")
   (unless (tla-has-status-command)
     (error "status not available with this arch branch"))
-  (let* ((default-directory (or root default-directory))
+  (let* ((root default-directory)
          (buffer (dvc-prepare-changes-buffer
                   (list 'last-revision root)
                   (list 'local-tree root)
@@ -183,7 +177,7 @@ instead."
     (dvc-show-changes-buffer output 'tla--parse-baz-status buffer
                              master-buffer "^[^*\\.]")
     (with-current-buffer buffer
-      (setq dvc-buffer-refresh-function 'baz-status))
+      (setq dvc-buffer-refresh-function 'baz-dvc-status))
     (when master-buffer
       (with-current-buffer master-buffer
         (ewoc-map (lambda (x)

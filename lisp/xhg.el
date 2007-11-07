@@ -252,10 +252,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
   (xhg-diff-1 (dvc-revision-to-string modified) path dont-switch
               (dvc-revision-to-string base-rev)))
 
-;;;###autoload
-(defun xhg-status ()
+(defun xhg-dvc-status ()
   "Run hg status."
-  (interactive)
   (let* ((window-conf (current-window-configuration))
          (root (xhg-tree-root))
          (buffer (dvc-prepare-changes-buffer
@@ -289,7 +287,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
   (easy-menu-add xhg-mode-menu)
   (when (boundp 'xhg-mq-sub-mode-map)
     (local-set-key [?Q] xhg-mq-sub-mode-map))
-  (setq dvc-buffer-refresh-function 'xhg-status))
+  (setq dvc-buffer-refresh-function 'xhg-dvc-status))
 
 (defun xhg-pull-finish-function (output error status arguments)
   (let ((buffer (dvc-get-buffer-create 'xhg 'pull)))
