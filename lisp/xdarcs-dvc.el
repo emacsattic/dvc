@@ -43,7 +43,13 @@
 (defalias 'xdarcs-dvc-command-version 'xdarcs-command-version)
 
 ;;;###autoload
-(defalias 'xdarcs-dvc-status    'xdarcs-whatsnew)
+(defalias 'xdarcs-dvc-status 'xdarcs-whatsnew)
+
+;;;###autoload
+(defalias 'xdarcs-dvc-missing 'xdarcs-missing)
+
+;;;###autoload
+(defalias 'xdarcs-dvc-pull 'xdarcs-pull)
 
 (defalias 'xdarcs-dvc-diff 'xdarcs-diff)
 
