@@ -71,6 +71,7 @@ BACK-END-ID :: (revision BACK-END-REVISION)
 (probably we'll need a (head REMOTE-BRANCH) too)
 
 PATH :: string
+  ;; must be a tree root directory
 
 NUM :: number
 
@@ -146,7 +147,8 @@ extend some DVC modes with additional keybindings and menus. See
 
 * 'sh' is required for dvc-run-sync and dvc-run-async.
 
-  (In practice, that is not a problem for Unix users, but requires
-  cygwin or mingw for Windows users. A port of DVC to windows without
-  these dependancies shouldn't be hard, but none of the developers
-  carred enough up to now.)
+  In practice, that is not a problem for Unix users, but requires
+  cygwin or mingw for Windows users. 'sh' is used to separate stdout
+  from stderr; the Emacs function 'call-process' merges them. It may
+  be possible to do this with native Windows tools, if someone wants
+  to investigate.

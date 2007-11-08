@@ -122,7 +122,7 @@ HANDLE should be the handle of the part."
     (unless import-dir ;; when we find the directory in xhg-apply-patch-mapping don't ask for confirmation
       (setq import-dir (dvc-read-directory-name "View hg repository status for: " nil nil t import-dir)))
     (let ((default-directory import-dir))
-      (xhg-status)
+      (xhg-dvc-status)
       (delete-other-windows)
       (setq xhg-gnus-status-window-configuration (current-window-configuration))
       (dvc-buffer-push-previous-window-config window-conf))))
