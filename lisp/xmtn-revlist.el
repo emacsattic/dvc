@@ -274,41 +274,38 @@
       (xmtn--display-buffer-maybe buffer nil)))
   nil)
 
-;;; What is the difference between "log" and "changelog"?  In the bzr
-;;; backend, "log" shows the first line of each commit message only,
-;;; while "changelog" shows the entire message.  I doubt that's the
-;;; most useful interpretation (since it could be implemented as a
-;;; simple toggle inside the revlist buffer), but we copy it here.
 ;;;###autoload
-(defun xmtn-dvc-log (path last-n) (xmtn--log-helper path t last-n))
-;;;###autoload
-(defun xmtn-dvc-changelog (&optional path) (xmtn--log-helper path nil nil))
+(defun xmtn-dvc-log (path last-n)
+  ;; path may be a tree root, a directory in that tree, or a file. The
+  ;; front-end ensures that 'default-directory' is set to a tree root.
+  ;; FIXME: We only support tree root for now.
+  (xmtn--log-helper default-directory t last-n))
 
-(defun xmtn--log-helper (path first-line-only-p last-n)
-  ;; FIXME: I don't know what the argument PATH means.  So assert this
-  ;; for now.
-  (assert (or (null path)
-              (equal path (dvc-tree-root))))
-  (let ((root (dvc-tree-root)))
-    (xmtn--setup-revlist
-     root
-     (lambda (root)
-       (xmtn-automate-with-session (nil root)
-         (let ((branch (xmtn--tree-default-branch root)))
-           (list branch
-                 (list (format "Log for branch %s:" branch))
-                 '()
-                 (xmtn--expand-selector root
-                                        ;; This restriction to current
-                                        ;; branch is completely
-                                        ;; arbitrary.
-                                        (concat
-                                         "b:"
-                                         (xmtn--escape-branch-name-for-selector
-                                          branch)))))))
-     first-line-only-p
-     last-n))
-  nil)
+;;;###autoload
+(defun xmtn-dvc-changelog (&optional arg)
+  ;; front-end does not define 'arg'
+  (xmtn--log-helper (dvc-tree-root) nil nil))
+
+(defun xmtn--log-helper (root first-line-only-p last-n)
+  (xmtn--setup-revlist
+   root
+   (lambda (root)
+     (xmtn-automate-with-session
+      (nil root)
+      (let ((branch (xmtn--tree-default-branch root)))
+        (list branch
+              (list (format "Log for branch %s:" branch))
+              '()
+              (xmtn--expand-selector
+               root
+               ;; This restriction to current branch is completely
+               ;; arbitrary.
+               (concat
+                "b:"
+                (xmtn--escape-branch-name-for-selector
+                 branch)))))))
+   first-line-only-p
+   last-n))
 
 (defun xmtn--revlist--missing-get-info (root branch new-revision-hash-ids)
   (xmtn-automate-with-session (nil root)

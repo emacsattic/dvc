@@ -103,7 +103,7 @@ the first one found; dvc-select-priority sets the search order."
 
 (defcustom dvc-log-last-n nil
   "*If non-nil, limit log listings to last n entries."
-  :type 'integer
+  :type '(choice boolean integer)
   :group 'dvc)
 
 ;; --------------------------------------------------------------------------------
