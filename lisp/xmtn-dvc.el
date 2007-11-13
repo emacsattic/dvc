@@ -1353,8 +1353,7 @@ finished."
                                (message "%s...done" name)))))
 
 ;;;###autoload
-(defun xmtn-dvc-revert-files (file-names)
-  ;; Accepting a string seems to be part of the API.
+(defun xmtn-dvc-revert-files (&rest file-names)
   (when (stringp file-names) (setq file-names (list file-names)))
   (let ((root (dvc-tree-root)))
     (assert (not (endp file-names)))

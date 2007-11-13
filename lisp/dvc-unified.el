@@ -177,11 +177,10 @@ the actual dvc."
 entire tree), LAST-N entries (default `dvc-log-last-n'; all if
 nil). LAST-N may be specified interactively. Use `dvc-changelog'
 for the full log."
-  (interactive "i\np")
+  (interactive (list nil (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (let ((default-directory
           (dvc-read-project-tree-maybe "DVC log (directory): "
                                        (when path (expand-file-name path)))))
-    ;; FIXME: share back-end with dvc-changelog
     (dvc-call "dvc-log" (or path default-directory) last-n)))
 
 ;;;###autoload
