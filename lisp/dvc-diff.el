@@ -177,6 +177,8 @@ Pretty-print ELEM."
     (define-key map [?=] 'dvc-diff-diff)
     (define-key map dvc-keyvec-add  'dvc-add-files)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
+    (define-key map dvc-keyvec-logs    'dvc-log)
+    (define-key map "l"                'dvc-diff-log)
     (define-key map dvc-keyvec-ediff   'dvc-diff-ediff)
     (define-key map dvc-keyvec-refresh 'dvc-generic-refresh)
     (define-key map dvc-keyvec-commit  'dvc-log-edit)
@@ -230,6 +232,8 @@ Pretty-print ELEM."
     ["Jump to Diffs"                  dvc-diff-diff-or-list   t]
     ["View Diff in Separate Buffer"   dvc-diff-diff           t]
     ["View Diff with Ediff"           dvc-diff-ediff          t]
+    ["Log (full tree)"                dvc-log                 t]
+    ["Log (single file)"              dvc-diff-log            t]
     "--"
     ["Delete File"                    dvc-remove-files        t]
     ["Revert File"                    dvc-revert-files        t]
@@ -552,6 +556,13 @@ a 'file."
                                       dvc-diff-modified)
           (ediff-jump-to-difference hunk))))))
 
+(defun dvc-diff-log (&optional last-n)
+  "Show log for current file, LAST-N entries (default
+`dvc-log-last-n'; all if nil). LAST-N may be specified
+interactively."
+  (interactive (list (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
+  (dvc-log (dvc-get-file-info-at-point) last-n))
+
 (defun dvc-diff-find-file-name ()
   "Same as `diff-find-file-name', but works in more cases."
   (cond ((re-search-backward "^\\+\\+\\+ \\(mod/\\|b/\\)?\\([^\n]*?\\)\\([ \t].*\\)?$" nil t)
@@ -741,7 +752,7 @@ Usefull to clear diff buffers after a commit."
       (toggle-read-only 1)
       (let ((buffer-file-name file))
         (set-auto-mode t)))
-    (dvc-ediff-buffers file-buffer pristine-buffer)))
+    (dvc-ediff-buffers pristine-buffer file-buffer)))
 
 (defun dvc-file-ediff-revisions (file base modified)
   "View changes in FILE between BASE and MODIFIED using ediff."

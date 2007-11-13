@@ -281,5 +281,10 @@ The given value is stored in `dvc-current-active-dvc-cache'."
     (setq dvc nil))
   (puthash directory dvc dvc-current-active-dvc-cache))
 
+(defun dvc-clear-dvc-cache ()
+  "Clear the dvc cache. Useful when changing to an alternate back-end."
+  (interactive)
+  (clrhash dvc-current-active-dvc-cache))
+
 (provide 'dvc-register)
 ;;; dvc-register.el ends here

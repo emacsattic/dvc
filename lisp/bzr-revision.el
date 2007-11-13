@@ -1,6 +1,6 @@
 ;;; bzr-revision.el --- Management of revision lists in bzr
 
-;; Copyright (C) 2006  by all contributors
+;; Copyright (C) 2006, 2007  by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -154,11 +154,21 @@
 
 ;;;###autoload
 (defun bzr-log (path last-n)
-  "Run bzr log and show only the first line of the log message."
-  (interactive (list default-directory nil))
-  (let ((path (or path (bzr-tree-root))))
+  "Run bzr log for PATH and show only the first line of the log message.
+LAST-N revisions are shown (default dvc-log-last-n). Note that the
+LAST-N restriction is applied first, so if both PATH and LAST-N are
+specified, fewer than LAST-N revisions may be shown."
+  (interactive (list default-directory (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
+  (let ((root (bzr-tree-root path))
+        (cmd (remove
+              nil
+              (append
+               (list "log")
+               (if last-n
+                   (list "-r" (format "last:%d.." last-n)))
+               (list path)))))
     (setq bzr-log-show-only-short-message t)
-    (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse
+    (dvc-build-revision-list 'bzr 'log root cmd 'bzr-log-parse
                              (dvc-capturing-lambda ()
                                (bzr-log (capture path) (capture last-n))))
     (goto-char (point-min))))
