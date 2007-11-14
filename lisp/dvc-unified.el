@@ -361,7 +361,9 @@ directories containing the files, and recursively below them."
 
 ;;;###autoload
 (define-dvc-unified-command dvc-missing (&optional other)
-  "Show the missing changesets for this working copy in regard to other."
+  "Show revisions missing from the local workspace, relative to OTHER.
+OTHER defaults to the head revision of the current branch; for
+some back-ends, it may also be a remote repository."
   (interactive))
 
 ;;;###autoload

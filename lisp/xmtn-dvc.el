@@ -805,102 +805,101 @@ the file before saving."
   ;; We don't run automate inventory through xmtn-automate here as
   ;; that would block.  xmtn-automate doesn't support asynchronous
   ;; command execution yet.
-  (let* ((base-revision (xmtn--get-base-revision-hash-id-or-null root))
-        (branch (xmtn--tree-default-branch root))
-        (heads (length (xmtn--heads root branch)))
-        (status-buffer
-         (dvc-prepare-changes-buffer
-          `(xmtn (revision ,base-revision))
-          `(xmtn (local-tree ,root))
-          'status
-          root
-          'xmtn)))
-      (dvc-switch-to-buffer-maybe status-buffer)
-      (dvc-kill-process-maybe status-buffer)
-      ;; Attempt to make sure the sentinels have a chance to run.
-      (accept-process-output)
-      (let ((processes (dvc-processes-related-to-buffer status-buffer)))
-        (when processes
-          (error "Process still running in buffer %s" status-buffer)))
-      (let ((header (with-output-to-string
-                      (princ (format "Status for %s:\n" root))
-                      (princ (if base-revision
-                                 (format "  base revision %s\n"
-                                         base-revision)
-                               "  tree has no base revision\n"))
-                      (princ (format "  branch %s\n" branch))
-                      (princ
-                       (case heads
-                         (0 "  branch is empty\n")
-                         (1 "  branch is merged\n")
-                         (t (format "  branch has %s heads\n"
-                                    heads))))
-                      (when base-revision
-                        (let ((children
-                               (xmtn-automate-simple-command-output-lines
-                                root `("children"
-                                       ,base-revision))))
-                          (princ
-                           (if children
-                               "  base revision is not a head revision\n"
-                             "  base revision is a head revision\n"))))))
-            (footer ""))
-        (with-current-buffer status-buffer
-          (setq buffer-read-only t)
-          (buffer-disable-undo)
-          (setq dvc-buffer-refresh-function 'xmtn-dvc-status)
-          (ewoc-set-hf dvc-diff-cookie header footer)
-          (ewoc-enter-last dvc-diff-cookie `(message "Running monotone..."))
-          (ewoc-refresh dvc-diff-cookie))
-        (lexical-let* ((status-buffer status-buffer))
-          (xmtn--run-command-async
-           root `("automate" "inventory")
-           :finished (lambda (output error status arguments)
-                       ;; Don't use `dvc-show-changes-buffer' here because
-                       ;; it attempts to do some regexp stuff for us that we
-                       ;; don't need to be done.
-                       (with-current-buffer status-buffer
-                         (ewoc-enter-last dvc-diff-cookie `(message "Parsing inventory..."))
-                         (ewoc-refresh dvc-diff-cookie)
-                         (xmtn--redisplay t)
-                         (dvc-diff-delete-messages)
-                         (lexical-let ((changesp nil))
-                           (xmtn-basic-io-with-stanza-parser
-                            (parser output)
-                            (xmtn--parse-inventory
-                             parser
-                             (lambda (path status changes old-path-or-null
-                                           old-type new-type fs-type)
-                               (when
-                                   (xmtn--status-process-entry dvc-diff-cookie
-                                                               path status
-                                                               changes
-                                                               old-path-or-null
-                                                               old-type new-type
-                                                               fs-type)
-                                 (setq changesp t)))))
-                           (when (not changesp)
-                             ;; Calling `dvc-diff-no-changes' here is part
-                             ;; of the protocol, so we do it, even though
-                             ;; its output is not very pretty (printing an
-                             ;; asterisk, repeating the root directory and
-                             ;; adding two newlines to the end of the
-                             ;; buffer is redundant in our layout).
-                             (dvc-diff-no-changes status-buffer "No changes in %s" root)))))
-           :error (lambda (output error status arguments)
-                    (dvc-diff-error-in-process
-                     status-buffer
-                     (format "Error running mtn with arguments %S" arguments)
-                     root output error))
-           :killed (lambda (output error status arguments)
-                     ;; Create an empty buffer as a fake output buffer to
-                     ;; avoid printing all the output so far.
-                     (with-temp-buffer
-                       (dvc-diff-error-in-process
-                        status-buffer
-                        (format "Received signal running mtn with arguments %S"
-                                arguments)
-                        root (current-buffer) error))))))))
+  (let*
+      ((base-revision (xmtn--get-base-revision-hash-id-or-null root))
+       (branch (xmtn--tree-default-branch root))
+       (head-revisions (xmtn--heads root branch))
+       (head-count (length head-revisions))
+       (status-buffer
+        (dvc-prepare-changes-buffer
+         `(xmtn (revision ,base-revision))
+         `(xmtn (local-tree ,root))
+         'status
+         root
+         'xmtn)))
+    (dvc-switch-to-buffer-maybe status-buffer)
+    (dvc-kill-process-maybe status-buffer)
+    ;; Attempt to make sure the sentinels have a chance to run.
+    (accept-process-output)
+    (let ((processes (dvc-processes-related-to-buffer status-buffer)))
+      (when processes
+        (error "Process still running in buffer %s" status-buffer)))
+    (let ((header (with-output-to-string
+                    (princ (format "Status for %s:\n" root))
+                    (princ (if base-revision
+                               (format "  base revision %s\n"
+                                       base-revision)
+                             "  tree has no base revision\n"))
+                    (princ (format "  branch %s\n" branch))
+                    (princ
+                     (case head-count
+                       (0 "  branch is empty\n")
+                       (1 "  branch is merged\n")
+                       (t (format "  branch has %s heads\n"
+                                  head-count))))
+                    (princ
+                     (if (member base-revision head-revisions)
+                         "  base revision is a head revision\n"
+                       "  base revision is not a head revision\n"))))
+          (footer ""))
+      (with-current-buffer status-buffer
+        (setq buffer-read-only t)
+        (buffer-disable-undo)
+        (setq dvc-buffer-refresh-function 'xmtn-dvc-status)
+        (ewoc-set-hf dvc-diff-cookie header footer)
+        (ewoc-enter-last dvc-diff-cookie `(message "Running monotone..."))
+        (ewoc-refresh dvc-diff-cookie))
+      (lexical-let*
+          ((status-buffer status-buffer)
+           (root root))
+        (xmtn--run-command-async
+         root `("automate" "inventory")
+         :finished (lambda (output error status arguments)
+                     ;; Don't use `dvc-show-changes-buffer' here because
+                     ;; it attempts to do some regexp stuff for us that we
+                     ;; don't need to be done.
+                     (with-current-buffer status-buffer
+                       (ewoc-enter-last dvc-diff-cookie `(message "Parsing inventory..."))
+                       (ewoc-refresh dvc-diff-cookie)
+                       (xmtn--redisplay t)
+                       (dvc-diff-delete-messages)
+                       (lexical-let ((changesp nil))
+                         (xmtn-basic-io-with-stanza-parser
+                          (parser output)
+                          (xmtn--parse-inventory
+                           parser
+                           (lambda (path status changes old-path-or-null
+                                         old-type new-type fs-type)
+                             (when
+                                 (xmtn--status-process-entry dvc-diff-cookie
+                                                             path status
+                                                             changes
+                                                             old-path-or-null
+                                                             old-type new-type
+                                                             fs-type)
+                               (setq changesp t)))))
+                         (when (not changesp)
+                           ;; Calling `dvc-diff-no-changes' here is part
+                           ;; of the protocol, so we do it, even though
+                           ;; its output is not very pretty (printing an
+                           ;; asterisk, repeating the root directory and
+                           ;; adding two newlines to the end of the
+                           ;; buffer is redundant in our layout).
+                           (dvc-diff-no-changes status-buffer "No changes in %s" root)))))
+         :error (lambda (output error status arguments)
+                  (dvc-diff-error-in-process
+                   status-buffer
+                   (format "Error running mtn with arguments %S" arguments)
+                   root output error))
+         :killed (lambda (output error status arguments)
+                   ;; Create an empty buffer as a fake output buffer to
+                   ;; avoid printing all the output so far.
+                   (with-temp-buffer
+                     (dvc-diff-error-in-process
+                      status-buffer
+                      (format "Received signal running mtn with arguments %S"
+                              arguments)
+                      root (current-buffer) error))))))))
 
 (defun xmtn--mtn-has-basic-io-inventory ()
   ;;  FIXME: unnecessary if require mtn 0.37 or greater
