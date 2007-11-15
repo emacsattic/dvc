@@ -173,14 +173,20 @@ the actual dvc."
 
 ;;;###autoload
 (defun dvc-log (&optional path last-n)
-  "Display the log for PATH (default entire tree), LAST-N
-entries (default `dvc-log-last-n'; all if nil)."
-  (interactive)
-  (dvc-call "dvc-log" path (if last-n last-n dvc-log-last-n)))
+  "Display the brief log for PATH (directory or file; default
+entire tree), LAST-N entries (default `dvc-log-last-n'; all if
+nil). LAST-N may be specified interactively. Use `dvc-changelog'
+for the full log."
+  (interactive (list nil (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
+  (let ((default-directory
+          (dvc-read-project-tree-maybe "DVC log (directory): "
+                                       (when path (expand-file-name path)))))
+    (dvc-call "dvc-log" (or path default-directory) last-n)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-changelog (&optional arg)
-  "Display the changelog in this tree for the actual dvc."
+  "Display the full changelog in this tree for the actual dvc.
+Use `dvc-log' for the brief log."
   (interactive))
 
 ;;;###autoload

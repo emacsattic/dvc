@@ -1300,22 +1300,38 @@ finished."
                   branch (length heads)))))))
   nil)
 
+(defun xmtn-propagate-from (other)
+  "Propagate from OTHER branch to local tree branch."
+  (lexical-let*
+      ((root (dvc-tree-root))
+       (local-branch (xmtn--tree-default-branch root))
+       (cmd (concat "propagate " other " " local-branch)))
+    (message "%s..." cmd)
+  (xmtn--run-command-sync root (list "propagate" other local-branch)
+                          :output-buffer cmd
+                          :error-buffer cmd
+                          :finished
+                          (lambda (output error status arguments)
+                            ;; no useful output in output buffer
+                            (message "%s...done; need to update." cmd)))))
+
 ;;;###autoload
 (defun xmtn-dvc-merge (&optional other)
   (if other
-   (error "xmtn-dvc-merge does not support OTHER argument"))
-
-  (let ((root (dvc-tree-root)))
-    (xmtn-automate-with-session (nil root)
-      (let* ((branch (xmtn--tree-default-branch root))
-             (heads (xmtn--heads root branch)))
-        (case (length heads)
-          (0 (assert nil))
-          (1
-           (message "already merged"))
-          (t
-           (xmtn--run-command-that-might-invoke-merger root '("merge")))))))
-  nil)
+      (xmtn-propagate-from other)
+    ;; else merge heads
+    (let ((root (dvc-tree-root)))
+      (xmtn-automate-with-session
+       (nil root)
+       (let* ((branch (xmtn--tree-default-branch root))
+              (heads (xmtn--heads root branch)))
+         (case (length heads)
+           (0 (assert nil))
+           (1
+            (message "already merged"))
+           (t
+            (xmtn--run-command-that-might-invoke-merger root '("merge"))))))))
+    nil)
 
 ;;;###autoload
 (defun xmtn-dvc-pull ()
@@ -1337,8 +1353,7 @@ finished."
                                (message "%s...done" name)))))
 
 ;;;###autoload
-(defun xmtn-dvc-revert-files (file-names)
-  ;; Accepting a string seems to be part of the API.
+(defun xmtn-dvc-revert-files (&rest file-names)
   (when (stringp file-names) (setq file-names (list file-names)))
   (let ((root (dvc-tree-root)))
     (assert (not (endp file-names)))

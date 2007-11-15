@@ -37,6 +37,10 @@
 (require 'dvc-ui)
 
 
+(defvar dvc-revlist-last-n nil
+  "Buffer-local value of dvc-log-last-n.")
+(make-variable-buffer-local 'dvc-revlist-last-n)
+
 (defstruct (dvc-revlist-entry-patch)
   dvc ;; the back-end
   marked
@@ -193,6 +197,14 @@
   (dvc-revision-refresh-maybe)
   (ewoc-refresh dvc-revlist-cookie))
 
+(defun dvc-revision-more (&optional delta)
+  "If revision list was limited by `dvc-log-last-n', show more revisions.
+Increment DELTA may be specified interactively; default 10."
+  (interactive (list (if current-prefix-arg (prefix-numeric-value current-prefix-arg) 10)))
+  (if dvc-revlist-last-n
+      (progn
+        (setq dvc-revlist-last-n (+ dvc-revlist-last-n delta))
+        (dvc-generic-refresh))))
 
 (defvar dvc-get-revision-info-at-point-function nil
   "Variable should be local to each buffer.
@@ -304,6 +316,7 @@ revision list."
     (unless (featurep 'xemacs)
       (define-key map [(shift iso-lefttab)] 'dvc-revision-prev)
       (define-key map [(shift control ?i)] 'dvc-revision-prev))
+    (define-key map [?+] 'dvc-revision-more)
     (define-key map [?n] 'dvc-revision-next)
     (define-key map [?p] 'dvc-revision-prev)
     (define-key map [?N] 'dvc-revision-next-unmerged)

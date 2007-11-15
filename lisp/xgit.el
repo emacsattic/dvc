@@ -441,7 +441,6 @@ The second element is the remainder of FILES."
       (if (member file tree-added)
           (setq added (cons file added))
         (setq not-added (cons file not-added))))
-    ;; `list' is the same as `values'
     (list added not-added)))
 
 ;;;###autoload
@@ -455,7 +454,7 @@ The second element is the remainder of FILES."
   "Revert uncommitted changes made to FILES in the current branch."
   (let ((default-directory (xgit-tree-root)))
     (setq files (mapcar #'file-relative-name files))
-    (multiple-value-bind (added not-added)
+    (destructuring-bind (added not-added)
         (xgit-split-out-added-files files)
       ;; remove added files from the index
       (when added
