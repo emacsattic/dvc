@@ -37,9 +37,16 @@
 (require 'dvc-ui)
 
 
+;; Display parameters
+(defvar dvc-revlist-brief nil)
+(make-variable-buffer-local 'dvc-revlist-brief)
+
 (defvar dvc-revlist-last-n nil
   "Buffer-local value of dvc-log-last-n.")
 (make-variable-buffer-local 'dvc-revlist-last-n)
+
+(defvar dvc-revlist-path nil)
+(make-variable-buffer-local 'dvc-revlist-path)
 
 (defstruct (dvc-revlist-entry-patch)
   dvc ;; the back-end
@@ -197,7 +204,7 @@
   (dvc-revision-refresh-maybe)
   (ewoc-refresh dvc-revlist-cookie))
 
-(defun dvc-revision-more (&optional delta)
+(defun dvc-revlist-more (&optional delta)
   "If revision list was limited by `dvc-log-last-n', show more revisions.
 Increment DELTA may be specified interactively; default 10."
   (interactive (list (if current-prefix-arg (prefix-numeric-value current-prefix-arg) 10)))
@@ -205,6 +212,12 @@ Increment DELTA may be specified interactively; default 10."
       (progn
         (setq dvc-revlist-last-n (+ dvc-revlist-last-n delta))
         (dvc-generic-refresh))))
+
+(defun dvc-revlist-toggle-brief ()
+  "Toggle between brief and full revisions."
+  (interactive)
+  (setq dvc-revlist-brief (not dvc-revlist-brief))
+  (dvc-generic-refresh))
 
 (defvar dvc-get-revision-info-at-point-function nil
   "Variable should be local to each buffer.
@@ -316,7 +329,8 @@ revision list."
     (unless (featurep 'xemacs)
       (define-key map [(shift iso-lefttab)] 'dvc-revision-prev)
       (define-key map [(shift control ?i)] 'dvc-revision-prev))
-    (define-key map [?+] 'dvc-revision-more)
+    (define-key map [?+] 'dvc-revlist-more)
+    (define-key map [?b] 'dvc-revlist-toggle-brief)
     (define-key map [?n] 'dvc-revision-next)
     (define-key map [?p] 'dvc-revision-prev)
     (define-key map [?N] 'dvc-revision-next-unmerged)
@@ -361,12 +375,28 @@ Commands are:
        (ewoc-create (dvc-ewoc-create-api-select
 		     #'dvc-revlist-printer)))
   (toggle-read-only 1)
+  (buffer-disable-undo)
+  (setq truncate-lines t)
   (set-buffer-modified-p nil)
   (set (make-local-variable 'dvc-get-revision-info-at-point-function)
        'dvc-revlist-get-rev-at-point))
 
+(defun dvc-revlist-create-buffer (back-end type location refresh-fn brief last-n)
+  "Create (or reuse) and return a buffer to display a revision list.
+BACK-END is the the back-end.
+TYPE must be in dvc-buffer-type-alist.
+LOCATION is root or a buffer name, depending on TYPE."
+  (let ((dvc-temp-current-active-dvc back-end)
+        (buffer (dvc-get-buffer-create back-end type location)))
+    (with-current-buffer buffer
+      (dvc-revlist-mode)
+      (setq dvc-buffer-refresh-function refresh-fn)
+      (setq dvc-revlist-brief brief)
+      (setq dvc-revlist-last-n last-n))
+    buffer))
+
 (defun dvc-build-revision-list (back-end type location arglist parser
-                                         refresh-fn)
+                                         brief last-n refresh-fn)
   "Runs the back-end BACK-END to build a revision list.
 
 A buffer of type TYPE with location LOCATION is created or reused.
@@ -375,13 +405,18 @@ The back-end is launched with the arguments ARGLIST, and the
 caller has to provide the function PARSER which will actually
 build the revision list.
 
+BRIEF, if non-nil, means show a brief entry for each revision;
+nil means show full entry.
+
+LAST-N limits the number of revisions to display; all if nil.
+
 REFRESH-FN specifies the function to call when the user wants to
 refresh the revision list buffer.  It must take no arguments."
-  (let ((dvc-temp-current-active-dvc back-end)
-        (buffer (dvc-get-buffer-create back-end type location)))
+  (let ((buffer (dvc-revlist-create-buffer back-end type location refresh-fn brief last-n)))
     (with-current-buffer buffer
-      (dvc-revlist-mode)
-      (setq dvc-buffer-refresh-function refresh-fn))
+      (setq dvc-revlist-path location)
+      (setq dvc-revlist-brief brief)
+      (setq dvc-revlist-last-n last-n))
     (dvc-switch-to-buffer-maybe buffer t)
     (dvc-run-dvc-async
      back-end arglist

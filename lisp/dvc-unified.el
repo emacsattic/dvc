@@ -173,15 +173,17 @@ the actual dvc."
 
 ;;;###autoload
 (defun dvc-log (&optional path last-n)
-  "Display the brief log for PATH (directory or file; default
-entire tree), LAST-N entries (default `dvc-log-last-n'; all if
-nil). LAST-N may be specified interactively. Use `dvc-changelog'
-for the full log."
+  "Display the brief log for PATH (a file-name; nil means entire
+tree), LAST-N entries (default `dvc-log-last-n'; all if nil).
+LAST-N may be specified interactively. Use `dvc-changelog' for
+the full log."
   (interactive (list nil (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (let ((default-directory
           (dvc-read-project-tree-maybe "DVC log (directory): "
                                        (when path (expand-file-name path)))))
-    (dvc-call "dvc-log" (or path default-directory) last-n)))
+    ;; Since we have bound default-directory, we don't need to pass
+    ;; 'root' to the back-end.
+    (dvc-call "dvc-log" path last-n)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-changelog (&optional arg)
