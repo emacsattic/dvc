@@ -241,10 +241,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
-        (let ((default-directory (if (and (file-directory-p local-tree)
-					  (not (string-match "/$" local-tree)))
-				     (concat local-tree "/")
-				   local-tree)))
+        (let ((default-directory (file-name-as-directory local-tree)))
           (find-file (read-file-name "Find file in bookmarked tree: ")))
       (message "No local-tree defined for this bookmark entry."))))
 

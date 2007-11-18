@@ -369,7 +369,7 @@ arg; root. The output must be put in the current buffer."
 
 ;;;###autoload
 (defun xmtn-dvc-missing (&optional other)
-  ;; `other' designates a remote repository (see bzr); mtn doesn't support that.
+  ;; `other', if non-nil, designates a remote repository (see bzr); mtn doesn't support that.
   (let ((root (dvc-tree-root)))
     (xmtn--setup-revlist
      root
