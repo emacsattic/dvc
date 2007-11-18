@@ -2,7 +2,7 @@ Source: dvc
 Section: devel
 Priority: optional
 Maintainer: Milan Zamazal <pdm@debian.org>
-Build-Depends-Indep: debhelper (>= 4.0.0), autoconf, emacsen, tla | bazaar | bzr, texinfo
+Build-Depends-Indep: cdbs (>= 0.4.50), autoconf, emacsen, tla | bazaar | bzr, texinfo
 Standards-Version: 3.6.2
 
 Package: dvc
