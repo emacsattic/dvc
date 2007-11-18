@@ -41,23 +41,18 @@
   (require 'xmtn-dvc))
 
 
-(defvar xmtn--revlist-*root* nil)
-(make-variable-buffer-local 'xmtn--revlist-*root*)
-
 (defvar xmtn--revlist-*info-generator-fn* nil)
 "Buffer-local variable pointing to a function that generates a
 list of revisions to display in a revlist buffer. Called with one
-arg; root. The output must be put in the current buffer."
+arg; root. Result is of the form:
+    (branch
+     (header-lines)
+     (footer-lines)
+     (revisions))"
 (make-variable-buffer-local 'xmtn--revlist-*info-generator-fn*)
-
-(defvar xmtn--revlist-*first-line-only-p* nil)
-(make-variable-buffer-local 'xmtn--revlist-*first-line-only-p*)
 
 (defvar xmtn--revlist-*merge-destination-branch* nil)
 (make-variable-buffer-local 'xmtn--revlist-*merge-destination-branch*)
-
-(defvar xmtn--revlist-*last-n* nil)
-(make-variable-buffer-local 'xmtn--revlist-*last-n*)
 
 (defun xmtn--escape-branch-name-for-selector (branch-name)
   ;; FIXME.  The monotone manual refers to "shell wildcards" but
@@ -143,7 +138,7 @@ arg; root. The output must be put in the current buffer."
          (if (null changelog)
              (insert (format "   No changelog"))
            (let ((lines (split-string changelog "\n")))
-             (dolist (line (if xmtn--revlist-*first-line-only-p*
+             (dolist (line (if dvc-revlist-brief
                                (and lines (list (first lines)))
                              lines))
                (insert (format "     %s\n" line))))))))))
@@ -230,12 +225,11 @@ arg; root. The output must be put in the current buffer."
   (mapconcat #'identity (xmtn--revlist-entry-changelogs entry) "\n"))
 
 (defun xmtn--revlist-refresh ()
-  (let ((root xmtn--revlist-*root*))
+  (let ((root default-directory))
     (destructuring-bind (merge-destination-branch
                          header-lines footer-lines revision-hash-ids)
         (funcall xmtn--revlist-*info-generator-fn* root)
-      (set (make-local-variable 'xmtn--revlist-*merge-destination-branch*)
-           merge-destination-branch)
+      (setq xmtn--revlist-*merge-destination-branch* merge-destination-branch)
       (let ((ewoc dvc-revlist-cookie))
         (xmtn--revlist-setup-ewoc root ewoc
                                   (with-temp-buffer
@@ -253,26 +247,20 @@ arg; root. The output must be put in the current buffer."
                                         (insert line ?\n)))
                                     (buffer-string))
                                   revision-hash-ids
-                                  xmtn--revlist-*last-n*)
+                                  dvc-revlist-last-n)
         (if (null (ewoc-nth ewoc 0))
             (goto-char (point-max))
           (ewoc-goto-node ewoc (ewoc-nth ewoc 0))))))
   nil)
 
 (defun xmtn--setup-revlist (root info-generator-fn first-line-only-p last-n)
+  ;; Adapted from `dvc-build-revision-list'.
   (xmtn-automate-with-session (nil root)
-    (let ((dvc-temp-current-active-dvc 'xmtn)
-          (buffer (dvc-get-buffer-create 'xmtn 'log root)))
-      ;; Adapted from `dvc-build-revision-list'.
+    (let ((buffer (dvc-revlist-create-buffer
+                   'xmtn 'log root 'xmtn--revlist-refresh first-line-only-p last-n)))
       (with-current-buffer buffer
         (dvc-revlist-mode)
-        (buffer-disable-undo)
-        (setq truncate-lines t)
-        (setq xmtn--revlist-*root* root)
         (setq xmtn--revlist-*info-generator-fn* info-generator-fn)
-        (setq xmtn--revlist-*first-line-only-p* first-line-only-p)
-        (setq xmtn--revlist-*last-n* last-n)
-        (setq dvc-buffer-refresh-function 'xmtn--revlist-refresh)
         (xmtn--revlist-refresh))
       (xmtn--display-buffer-maybe buffer nil)))
   nil)
@@ -369,7 +357,7 @@ arg; root. The output must be put in the current buffer."
 
 ;;;###autoload
 (defun xmtn-dvc-missing (&optional other)
-  ;; `other' designates a remote repository (see bzr); mtn doesn't support that.
+  ;; `other', if non-nil, designates a remote repository (see bzr); mtn doesn't support that.
   (let ((root (dvc-tree-root)))
     (xmtn--setup-revlist
      root

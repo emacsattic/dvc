@@ -152,8 +152,7 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
                                                 dont-switch)
   "Display the changes in FILE (default current buffer file) for
 the actual dvc."
-  ;; FIXME: other operations default to (dvc-current-file-list); this
-  ;; should default to (dvc-get-file-info-at-point)
+  ;; use dvc-diff-diff to default file to dvc-get-file-info-at-point
   (interactive (list buffer-file-name)))
 
 ;;;###autoload
@@ -173,15 +172,17 @@ the actual dvc."
 
 ;;;###autoload
 (defun dvc-log (&optional path last-n)
-  "Display the brief log for PATH (directory or file; default
-entire tree), LAST-N entries (default `dvc-log-last-n'; all if
-nil). LAST-N may be specified interactively. Use `dvc-changelog'
-for the full log."
+  "Display the brief log for PATH (a file-name; nil means entire
+tree), LAST-N entries (default `dvc-log-last-n'; all if nil).
+LAST-N may be specified interactively. Use `dvc-changelog' for
+the full log."
   (interactive (list nil (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (let ((default-directory
           (dvc-read-project-tree-maybe "DVC log (directory): "
                                        (when path (expand-file-name path)))))
-    (dvc-call "dvc-log" (or path default-directory) last-n)))
+    ;; Since we have bound default-directory, we don't need to pass
+    ;; 'root' to the back-end.
+    (dvc-call "dvc-log" path last-n)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-changelog (&optional arg)
@@ -361,7 +362,9 @@ directories containing the files, and recursively below them."
 
 ;;;###autoload
 (define-dvc-unified-command dvc-missing (&optional other)
-  "Show the missing changesets for this working copy in regard to other."
+  "Show revisions missing from the local workspace, relative to OTHER.
+OTHER defaults to the head revision of the current branch; for
+some back-ends, it may also be a remote repository."
   (interactive))
 
 ;;;###autoload

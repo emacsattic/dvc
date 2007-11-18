@@ -762,49 +762,48 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-dvc-file-diff (file &optional base modified dont-switch)
-  "View changes in FILE between BASE (default last-revision) and
-MODIFIED (default workspace version)."
+  "Default back-end for `dvc-file-diff'."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
-         (modified (or modified `(,dvc (local-tree ,file)))))
-    (let* ((buffer (dvc-get-buffer-create
-                    'dvc ;; TODO anything ;; better ?
-                    'file-diff
-                    (dvc-uniquify-file-name file)))
-           (base-buffer
-            (dvc-revision-get-file-in-buffer file base))
-           (modified-buffer
-            (dvc-revision-get-file-in-buffer file modified))
-           (base-file (make-temp-file "DVC-file-diff-base"))
-           (modified-file (make-temp-file "DVC-file-diff-mod")))
-      (with-temp-file base-file
-        (insert (with-current-buffer base-buffer (buffer-string)))
-        (setq buffer-file-coding-system (with-current-buffer base-buffer
-                                          buffer-file-coding-system)))
-      (with-temp-file modified-file
-        (insert (with-current-buffer modified-buffer (buffer-string)))
-        (setq buffer-file-coding-system (with-current-buffer modified-buffer
-                                          buffer-file-coding-system)))
-      (dvc-switch-to-buffer buffer)
-      (let ((inhibit-read-only t)
-            (slash (unless (file-name-absolute-p file) "/")))
-        (erase-buffer)
-        (call-process dvc-diff-executable nil buffer nil
-                      "-u"
-                      ;; FIXME: If the file has been renamed between
-                      ;; BASE and MODIFIED, the file names as
-                      ;; displayed here may be incorrect.  The
-                      ;; protocol needs to be extended to allow the
-                      ;; backend to supply the correct file names.
-                      (concat "-La" slash file)
-                      (concat "-Lb" slash file)
-                      base-file modified-file))
-      (delete-file base-file)
-      (delete-file modified-file)
-      (message "")
-      (toggle-read-only 1)
-      (goto-char (point-min))
-      (diff-mode))))
+         (modified (or modified `(,dvc (local-tree ,file))))
+         (diff-buffer (dvc-get-buffer-create
+                       dvc
+                       'file-diff
+                       (dvc-uniquify-file-name file)))
+         (base-buffer
+          (dvc-revision-get-file-in-buffer file base))
+         (modified-buffer
+          (dvc-revision-get-file-in-buffer file modified))
+         (base-file (make-temp-file "DVC-file-diff-base"))
+         (modified-file (make-temp-file "DVC-file-diff-mod")))
+    (with-temp-file base-file
+      (insert (with-current-buffer base-buffer (buffer-string)))
+      (setq buffer-file-coding-system (with-current-buffer base-buffer
+                                        buffer-file-coding-system)))
+    (with-temp-file modified-file
+      (insert (with-current-buffer modified-buffer (buffer-string)))
+      (setq buffer-file-coding-system (with-current-buffer modified-buffer
+                                        buffer-file-coding-system)))
+    (dvc-switch-to-buffer diff-buffer)
+    (let ((inhibit-read-only t)
+          (slash (unless (file-name-absolute-p file) "/")))
+      (erase-buffer)
+      (call-process dvc-diff-executable nil diff-buffer nil
+                    "-u"
+                    ;; FIXME: If the file has been renamed between
+                    ;; BASE and MODIFIED, the file names as
+                    ;; displayed here may be incorrect.  The
+                    ;; protocol needs to be extended to allow the
+                    ;; backend to supply the correct file names.
+                    (concat "-La" slash file)
+                    (concat "-Lb" slash file)
+                    base-file modified-file))
+    (delete-file base-file)
+    (delete-file modified-file)
+    (message "")
+    (toggle-read-only 1)
+    (goto-char (point-min))
+    (diff-mode)))
 
 (defun dvc-ediff-startup-hook ()
   "Passed as a startup hook for ediff.
