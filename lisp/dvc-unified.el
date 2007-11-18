@@ -152,8 +152,7 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
                                                 dont-switch)
   "Display the changes in FILE (default current buffer file) for
 the actual dvc."
-  ;; FIXME: other operations default to (dvc-current-file-list); this
-  ;; should default to (dvc-get-file-info-at-point)
+  ;; use dvc-diff-diff to default file to dvc-get-file-info-at-point
   (interactive (list buffer-file-name)))
 
 ;;;###autoload

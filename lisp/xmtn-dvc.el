@@ -1089,7 +1089,8 @@ the file before saving."
      (with-current-buffer output
        (save-excursion
          (goto-char (point-max))
-         (xmtn--insert-hint-into-process-buffer "[process finished]\n"))))
+         (xmtn--insert-hint-into-process-buffer "[process finished]\n")))
+     (message "... done"))
    :error
    (lambda (output error status arguments)
      (with-current-buffer output
@@ -1230,13 +1231,8 @@ finished."
        (local-branch (xmtn--tree-default-branch root))
        (cmd (concat "propagate " other " " local-branch)))
     (message "%s..." cmd)
-  (xmtn--run-command-sync root (list "propagate" other local-branch)
-                          :output-buffer cmd
-                          :error-buffer cmd
-                          :finished
-                          (lambda (output error status arguments)
-                            ;; no useful output in output buffer
-                            (message "%s...done; need to update." cmd)))))
+  (xmtn--run-command-that-might-invoke-merger
+   root (list "propagate" other local-branch))))
 
 ;;;###autoload
 (defun xmtn-dvc-merge (&optional other)
@@ -1353,14 +1349,7 @@ finished."
                     (with-temp-file temp-file
                       (set-buffer-multibyte nil)
                       (setq buffer-file-coding-system 'binary)
-                      ;; FIXME: this is currently broken
-                      ;;(xmtn--insert-file-contents-by-name root backend-id corresponding-file buffer)))
-                      ;; So do this instead:
-                      (let ((contents-hash
-                             (xmtn--revision-file-contents-hash
-                              root backend-id corresponding-file)))
-                        (xmtn--insert-file-contents root contents-hash
-                                                    (current-buffer))))
+                      (xmtn--insert-file-contents-by-name root backend-id corresponding-file buffer))
                     (let ((output-buffer (current-buffer)))
                       (with-temp-buffer
                         (insert-file-contents temp-file)
@@ -1563,13 +1552,11 @@ finished."
   (let* ((resolved-id (xmtn--resolve-backend-id root backend-id))
          (hash-id (case (car resolved-id)
                         (local-tree nil)
-                        (revision (cadr resolved-id)))))
-    (if hash-id
-        ;; FIXME: mtn says this is the wrong number of arguments!?
-        (xmtn-automate-simple-command-output-insert-into-buffer
-         root buffer (list "get_file_of" normalized-file-name (concat "--revision=" hash-id)))
-      (xmtn-automate-simple-command-output-insert-into-buffer
-       root buffer (list "get_file_of" normalized-file-name)))))
+                        (revision (cadr resolved-id))))
+         (cmd (if hash-id
+                  (cons (list (concat "--revision=" hash-id)) (list "get_file_of" normalized-file-name))
+                (list "get_file_of" normalized-file-name))))
+    (xmtn-automate-simple-command-output-insert-into-buffer root buffer cmd)))
 
 (defun xmtn--same-tree-p (a b)
   (equal (file-truename a) (file-truename b)))

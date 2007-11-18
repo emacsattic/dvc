@@ -396,7 +396,7 @@ LOCATION is root or a buffer name, depending on TYPE."
     buffer))
 
 (defun dvc-build-revision-list (back-end type location arglist parser
-                                         brief last-n refresh-fn)
+                                         brief last-n path refresh-fn)
   "Runs the back-end BACK-END to build a revision list.
 
 A buffer of type TYPE with location LOCATION is created or reused.
@@ -410,11 +410,13 @@ nil means show full entry.
 
 LAST-N limits the number of revisions to display; all if nil.
 
+PATH, if non-nil, restricts the log to that file.
+
 REFRESH-FN specifies the function to call when the user wants to
 refresh the revision list buffer.  It must take no arguments."
   (let ((buffer (dvc-revlist-create-buffer back-end type location refresh-fn brief last-n)))
     (with-current-buffer buffer
-      (setq dvc-revlist-path location)
+      (setq dvc-revlist-path path)
       (setq dvc-revlist-brief brief)
       (setq dvc-revlist-last-n last-n))
     (dvc-switch-to-buffer-maybe buffer t)

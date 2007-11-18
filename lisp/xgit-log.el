@@ -226,7 +226,7 @@ FILE is filename in repostory to filter logs by matching filename."
          (args  (list "log" "--pretty=fuller" count
                       since grep diff rev "--" fname)))
     (dvc-build-revision-list 'xgit 'log (or dir default-directory) args
-                             'xgit-log-parse t nil
+                             'xgit-log-parse t nil nil
                              (dvc-capturing-lambda ()
                                (xgit-log (capture dir)
                                          (capture cnt)

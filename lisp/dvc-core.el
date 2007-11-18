@@ -1069,34 +1069,36 @@ REVISION-ID may have the values described in docs/DVC-API."
 
 REVISION-ID is as specified in docs/DVC-API."
   (dvc-trace "dvc-revision-get-file-in-buffer. revision-id=%S" revision-id)
-  (let ((type (dvc-revision-get-type revision-id))
-        (inhibit-read-only t)
-        ;; find-file-noselect will call dvc-current-active-dvc in a
-        ;; hook; specify dvc for dvc-call
-        (dvc-temp-current-active-dvc (dvc-revision-get-dvc revision-id))
-        (buffer (dvc-revision-get-buffer file revision-id)))
-    (with-current-buffer buffer
-      (case type
-        (local-tree (find-file-noselect file))
+  (let* ((type (dvc-revision-get-type revision-id))
+         (inhibit-read-only t)
+         ;; find-file-noselect will call dvc-current-active-dvc in a
+         ;; hook; specify dvc for dvc-call
+         (dvc-temp-current-active-dvc (dvc-revision-get-dvc revision-id))
+         (buffer (unless (eq type 'local-tree) (dvc-revision-get-buffer file revision-id))))
+    (case type
+      (local-tree (find-file-noselect file))
 
-        (revision
+      (revision
+       (with-current-buffer buffer
          (dvc-call "revision-get-file-revision"
                    file (dvc-revision-get-data revision-id))
-         buffer)
+         buffer))
 
         (previous-revision
-         (let* ((dvc (dvc-revision-get-dvc revision-id))
-                (data (nth 0 (dvc-revision-get-data revision-id)))
-                (rev-id (list dvc data)))
-           (dvc-call "revision-get-previous-revision" file rev-id))
-         buffer)
+         (with-current-buffer buffer
+           (let* ((dvc (dvc-revision-get-dvc revision-id))
+                  (data (nth 0 (dvc-revision-get-data revision-id)))
+                  (rev-id (list dvc data)))
+             (dvc-call "revision-get-previous-revision" file rev-id))
+           buffer))
 
         (last-revision
-         (dvc-call "revision-get-last-revision"
-                   file (dvc-revision-get-data revision-id))
-         buffer)
+         (with-current-buffer buffer
+           (dvc-call "revision-get-last-revision"
+                     file (dvc-revision-get-data revision-id))
+           buffer))
 
-        (t (error "TODO: type %S" type))))))
+        (t (error "TODO: dvc-revision-get-file-in-buffer type %S" type)))))
 
 (defun dvc-revision-get-previous-revision (file revision-id)
 "Default function to fill the current buffer with the content of

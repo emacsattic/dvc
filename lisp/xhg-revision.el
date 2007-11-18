@@ -103,8 +103,8 @@
 (defun xhg-dvc-log (path last-n)
   "Show a dvc formatted log for xhg."
   (interactive (list default-directory nil))
-  (dvc-build-revision-list 'xhg 'log (or path default-directory) '("log") 'xhg-dvc-log-parse
-                           t last-n
+  (dvc-build-revision-list 'xhg 'log (xhg-tree-root (or path default-directory)) '("log") 'xhg-dvc-log-parse
+                           t last-n path
                            (dvc-capturing-lambda ()
                              (xhg-dvc-log (capture path) (capture last-n)))))
 

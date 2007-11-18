@@ -162,7 +162,8 @@
                    (list "-r" (format "last:%d.." dvc-revlist-last-n)))
                (list dvc-revlist-path)))))
     (dvc-build-revision-list
-     'bzr 'log default-directory cmd 'bzr-log-parse dvc-revlist-brief dvc-revlist-last-n
+     'bzr 'log default-directory cmd 'bzr-log-parse
+     dvc-revlist-brief dvc-revlist-last-n dvc-revlist-path
      'bzr-log-refresh))
   (goto-char (point-min)))
 
@@ -184,7 +185,7 @@ specified, fewer than LAST-N revisions may be shown."
   "Run bzr log against a remote location."
   (interactive (list (read-string "Location of the branch: ")))
   (dvc-build-revision-list 'bzr 'remote-log location `("log" ,location)
-                           'bzr-log-parse-remote t nil
+                           'bzr-log-parse-remote t nil nil
                            (dvc-capturing-lambda ()
                              (bzr-log-remote (capture location))))
   (goto-char (point-min)))
@@ -193,8 +194,8 @@ specified, fewer than LAST-N revisions may be shown."
 (defun bzr-changelog (&optional path)
   "Run bzr log and show the full log message."
   (interactive (list default-directory))
-  (let ((path (or path (bzr-tree-root))))
-    (dvc-build-revision-list 'bzr 'log path '("log") 'bzr-log-parse nil nil
+  (let ((default-directory (bzr-tree-root (or path default-directory))))
+    (dvc-build-revision-list 'bzr 'log default-directory '("log") 'bzr-log-parse nil nil path
                              (dvc-capturing-lambda ()
                                (bzr-changelog (capture path))))
     (goto-char (point-min))))
@@ -209,7 +210,7 @@ specified, fewer than LAST-N revisions may be shown."
   (dvc-build-revision-list 'bzr 'missing (bzr-tree-root)
                            `("missing" ,other)
                            'bzr-missing-parse
-                           nil nil
+                           nil nil nil
                            (dvc-capturing-lambda ()
                              (bzr-missing (capture other))))
   (goto-char (point-min)))

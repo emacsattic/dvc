@@ -296,6 +296,16 @@ debugging, but this will eat the memory of your computer ;-)"
   :type 'boolean
   :group 'dvc-internal)
 
+(defcustom dvc-other-frame-width 80
+  "Width of frame created by `dvc-switch-to-buffer' when `other-frame' arg is non-nil."
+  :type 'integer
+  :group 'dvc)
+
+(defcustom dvc-other-frame-height 20
+  "Height of frame created by `dvc-switch-to-buffer' when `other-frame' arg is non-nil."
+  :type 'integer
+  :group 'dvc)
+
 (defvar dvc-dead-process-buffer-queue nil
   "List of process buffers belonging to terminated processes.
 When the list is greater than `dvc-number-of-dead-process-buffer', the last
@@ -369,11 +379,10 @@ See `dvc-switch-to-buffer-mode' for possible settings."
   (setq dvc-switched-from-buffer (current-buffer))
   (cond
    (other-frame
-    ;;FIXME: customize the width and height parameters
     (let ((display-reuse-frames t)
           (pop-up-frames t)
-          (pop-up-frame-alist '((width . 80)
-                                (height . 10)
+          (pop-up-frame-alist '((width . dvc-other-frame-width)
+                                (height . dvc-other-frame-height)
                                 (minibuffer . nil))))
       (pop-to-buffer buffer)))
    ((eq dvc-switch-to-buffer-mode 'pop-to-buffer)

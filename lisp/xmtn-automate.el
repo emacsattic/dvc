@@ -291,6 +291,9 @@
                                                    &key ((:may-kill-p
                                                           may-kill-p-form)))
                                        &body body)
+  "Send COMMAND_FORM (a list of strings, or cons of lists of
+strings) to session SESSION_FORM (current if nil). If car
+COMMAND_FORM is a list, car COMMAND_FORM is options, cdr is command."
   (let ((session (gensym))
         (command (gensym))
         (may-kill-p (gensym))
@@ -329,9 +332,11 @@
       (xmtn-automate-command-check-for-and-report-error handle)
       (xmtn-automate--command-output-as-string-ignoring-exit-code handle))))
 
-;; Only used once.  Could be eliminated.
 (defun xmtn-automate-simple-command-output-insert-into-buffer
   (root buffer command)
+  "Send COMMAND (a list of strings, or cons of lists of strings)
+to current session. If car COMMAND is a list, car COMMAND is
+options, cdr is command."
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
       (xmtn-automate-command-check-for-and-report-error handle)
@@ -462,6 +467,10 @@ Signals an error if output contains zero lines or more than one line."
   (let ((process (xmtn-automate--session-process session)))
     (cond
      ((null process)
+      ;; Process died for some reason - most likely 'mtn not found in
+      ;; path'. Don't warn if buffer hasn't been deleted; that
+      ;; obscures the real error message
+      ;; FIXME: if that is the reason, this assert fails. Disable assertions for now, fix later
       (xmtn--assert-optional (null (xmtn-automate--session-buffer session))))
      ((ecase (process-status process)
         (run nil)
@@ -568,6 +577,8 @@ Signals an error if output contains zero lines or more than one line."
 ;; Maybe this should be a defsubst; I haven't profiled this code
 ;; recently.
 (defun xmtn-automate--append-encoded-strings (strings)
+  "Encode STRINGS (a list of strings) in automate stdio format,
+insert into current buffer."
   ;; Assumes that point is at the end of the buffer.
   (xmtn--assert-optional (eql (point) (point-max)))
   (dolist (string strings)
@@ -579,6 +590,7 @@ Signals an error if output contains zero lines or more than one line."
 
 (defun xmtn-automate--send-command-string (session command option-plist
                                                    mtn-number session-number)
+  "Send COMMAND and OPTION-PLIST to SESSION."
   (let* ((buffer-name (format "*%s: input for command %s(%s)*"
                               (xmtn-automate--session-name session)
                               mtn-number
@@ -605,6 +617,9 @@ Signals an error if output contains zero lines or more than one line."
               (insert "l")
               (xmtn-automate--append-encoded-strings command)
               (insert "e\n"))
+
+            (dvc-trace "to mtn automate stdio: '%s'" (buffer-substring (point-min) (point-max)))
+
             (process-send-region (xmtn-automate--session-process session)
                                  (point-min) (point-max))))
       (when buffer
@@ -612,6 +627,9 @@ Signals an error if output contains zero lines or more than one line."
           (kill-buffer buffer))))))
 
 (defun xmtn-automate--new-command (session command may-kill-p)
+  "Send COMMAND (a list of strings, or cons of lists of strings)
+to the current automate stdio session. If car COMMAND is a list,
+car COMMAND is options, cdr is command."
   ;; For debugging.
   ;;(xmtn-automate-terminate-processes-in-root
   ;; (xmtn-automate--session-root session))
