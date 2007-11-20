@@ -45,37 +45,22 @@
 strings including path from root; interactive defaults
 to (dvc-current-file-list)."
   (interactive (dvc-current-file-list))
-  (if dvc-confirm-add
-      (let* ((dvc (dvc-current-active-dvc))
-             (multiprompt (format "Add %%d files to %s? " dvc))
-             (singleprompt (format "Add file to %s: " dvc)))
-        (when (setq files (dvc-confirm-read-file-name-list multiprompt files
-                                                           singleprompt t))
-          (dvc-apply "dvc-add-files" files)))
+  (when (setq files (dvc-confirm-file-op "add" files dvc-confirm-add))
     (dvc-apply "dvc-add-files" files)))
 
 ;;;###autoload
 (defun dvc-revert-files (&rest files)
   "Revert FILES for the currently active dvc."
   (interactive (dvc-current-file-list))
-  (let* ((dvc (dvc-current-active-dvc))
-         (multiprompt (format "Revert %%d files to their stored version in %s? "
-                              dvc))
-         (singleprompt (format "Revert file to its state in %s: " dvc)))
-    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
-                                                       singleprompt nil))
-      (dvc-apply "dvc-revert-files" files))))
+  (when (setq files (dvc-confirm-file-op "revert" files t))
+    (dvc-apply "dvc-revert-files" files)))
 
 ;;;###autoload
 (defun dvc-remove-files (&rest files)
   "Remove FILES for the currently active dvc."
   (interactive (dvc-current-file-list))
-  (let* ((dvc (dvc-current-active-dvc))
-         (multiprompt (format "Remove %%d files from %s control? " dvc))
-         (singleprompt (format "Remove file from %s: " dvc)))
-    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
-                                                       singleprompt nil))
-      (dvc-apply "dvc-remove-files" files))))
+  (when (setq files (dvc-confirm-file-op "remove" files t))
+    (dvc-apply "dvc-remove-files" files)))
 
 ;;;###autoload
 (defun dvc-remove-optional-args (spec &rest args)

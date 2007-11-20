@@ -381,8 +381,8 @@ See `dvc-switch-to-buffer-mode' for possible settings."
    (other-frame
     (let ((display-reuse-frames t)
           (pop-up-frames t)
-          (pop-up-frame-alist '((width . dvc-other-frame-width)
-                                (height . dvc-other-frame-height)
+          (pop-up-frame-alist `((width . ,dvc-other-frame-width)
+                                (height . ,dvc-other-frame-height)
                                 (minibuffer . nil))))
       (pop-to-buffer buffer)))
    ((eq dvc-switch-to-buffer-mode 'pop-to-buffer)
