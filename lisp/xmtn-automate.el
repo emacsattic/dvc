@@ -336,7 +336,7 @@ COMMAND_FORM is a list, car COMMAND_FORM is options, cdr is command."
   (root buffer command)
   "Send COMMAND (a list of strings, or cons of lists of strings)
 to current session. If car COMMAND is a list, car COMMAND is
-options, cdr is command."
+options, cdr is command. Insert result into BUFFER."
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
       (xmtn-automate-command-check-for-and-report-error handle)
@@ -553,6 +553,9 @@ Signals an error if output contains zero lines or more than one line."
     (with-current-buffer buffer
       (buffer-disable-undo)
       (xmtn--set-buffer-multibyte nil)
+
+      ;; FIXME: debugging
+      (setq buffer-file-coding-system 'dos)
       (setq buffer-read-only t))
     (setf (xmtn-automate--session-buffer session) buffer)
     buffer))

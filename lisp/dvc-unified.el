@@ -161,9 +161,10 @@ the actual dvc."
 tree), LAST-N entries (default `dvc-log-last-n'; all if nil).
 LAST-N may be specified interactively. Use `dvc-changelog' for
 the full log."
-  (interactive (list nil (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
+  (interactive (list (buffer-file-name)
+                     (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (let ((default-directory
-          (dvc-read-project-tree-maybe "DVC log (directory): "
+          (dvc-read-project-tree-maybe "DVC tree root (directory): "
                                        (when path (expand-file-name path)))))
     ;; Since we have bound default-directory, we don't need to pass
     ;; 'root' to the back-end.
