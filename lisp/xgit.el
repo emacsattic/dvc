@@ -370,7 +370,8 @@ This reset the index to HEAD, but doesn't touch files."
       '(xgit (index))
     `(xgit (last-revision ,path 1))))
 
-(defun xgit-diff (&optional against-rev path dont-switch)
+;;;###autoload
+(defun xgit-dvc-diff (&optional against-rev path dont-switch)
   (interactive (list nil nil current-prefix-arg))
   (xgit-diff-1 against-rev path dont-switch nil))
 

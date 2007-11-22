@@ -81,9 +81,6 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
                  (run-hooks 'xhg-commit-done-hook)))))
 
 ;;;###autoload
-(defalias 'xhg-dvc-diff 'xhg-diff)
-
-;;;###autoload
 (defalias 'xhg-dvc-save-diff 'xhg-save-diff)
 
 ;;;###autoload

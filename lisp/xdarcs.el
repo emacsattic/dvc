@@ -189,7 +189,8 @@
 (defun xdarcs-parse-diff (changes-buffer)
   nil)
 
-(defun xdarcs-diff (&optional against path dont-switch)
+;;;###autoload
+(defun xdarcs-dvc-diff (&optional against path dont-switch)
     (interactive (list nil nil current-prefix-arg))
   (let* ((cur-dir (or path default-directory))
          (orig-buffer (current-buffer))

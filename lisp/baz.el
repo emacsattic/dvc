@@ -242,8 +242,6 @@ the root of the projects is displayed."
      )))
 
 ;;;###autoload
-(defalias 'baz-diff 'tla-changes)
-;;;###autoload
 (defalias 'baz-merge 'tla-star-merge)
 
 ;;;###autoload

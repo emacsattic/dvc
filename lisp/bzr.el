@@ -273,7 +273,7 @@ TODO: just revision number and last:N are implemented.
 (defun bzr-diff-against (against &optional path dont-switch)
   "Run \"bzr diff\" against a particular revision.
 
-Same as `bzr-diff', but the interactive prompt is different."
+Same as `bzr-dvc-diff', but the interactive prompt is different."
   (interactive
    (let ((root (bzr-tree-root)))
      (list (bzr-revisionspec-to-rev
@@ -284,10 +284,10 @@ Same as `bzr-diff', but the interactive prompt is different."
   (bzr-diff against path dont-switch))
 
 ;;;###autoload
-(defun bzr-diff (&optional against path dont-switch)
+(defun bzr-dvc-diff (&optional against path dont-switch)
   "Run \"bzr diff\".
 
-AGAINST must be a revision specifier (number, last:N,
+AGAINST must be a DVC revision id ('bzr number, last:N,
 revid:foobar, ...).
 
 TODO: DONT-SWITCH is currently ignored."

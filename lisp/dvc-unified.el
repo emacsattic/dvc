@@ -103,22 +103,17 @@ BASE-REV (a revision-id) defaults to base revision of the
 tree. Use `dvc-delta' for differencing two revisions.
 PATH defaults to `default-directory'.
 The new buffer is always displayed; if DONT-SWITCH is nil, select it."
-  ;; FIXME: this should _only_ diff working tree against its base
-  ;; revision; dvc-delta handles other diffs.
-  (interactive (list nil default-directory current-prefix-arg))
-  ;; We don't use (dvc-tree-root default-directory) in the interactive
-  ;; form, because that would prompt for a local tree if the user
-  ;; specifies `path' and default-directory is not a root; and `path'
-  ;; must be a root anyway. We bind default-directory here so dvc-call
-  ;; can find the right back-end for `path'.
-  (let ((default-directory (or path
-                               default-directory)))
+  (interactive)
+  (let ((default-directory
+          (dvc-read-project-tree-maybe "DVC status (directory): "
+                                       (when path (expand-file-name path)))))
     (setq base-rev (or base-rev
                        ;; Allow back-ends to override this for e.g. git,
                        ;; which can return either the index or the last
                        ;; revision.
-                     (dvc-call "dvc-last-revision" (dvc-tree-root path))))
-    (dvc-call "dvc-diff" base-rev path dont-switch)))
+                       (dvc-call "dvc-last-revision" (dvc-tree-root path))))
+    (dvc-save-some-buffers default-directory)
+    (dvc-call "dvc-diff" base-rev default-directory dont-switch)))
 
 (defun dvc-dvc-last-revision (path)
   (list (dvc-current-active-dvc)
@@ -276,14 +271,15 @@ reused."
                 default-directory))))))
 
 (defvar dvc-back-end-wrappers
-  '(("log-edit" (&optional OTHER-FRAME))
-    ("add-log-entry" ())
+  '(("add-log-entry" ())
     ("add-files" (&rest files))
+    ("diff" (&optional base-rev path dont-switch))
+    ("ignore-file-extensions" (file-list))
+    ("ignore-file-extensions-in-dir" (file-list))
+    ("log-edit" (&optional OTHER-FRAME))
     ("revert-files" (&rest files))
     ("remove-files" (&rest files))
-    ("status" (&optional path))
-    ("ignore-file-extensions" (file-list))
-    ("ignore-file-extensions-in-dir" (file-list)))
+    ("status" (&optional path)))
   "Alist of descriptions of back-end wrappers to define.
 
 A back-end wrapper is a fuction called <back-end>-<something>, whose
