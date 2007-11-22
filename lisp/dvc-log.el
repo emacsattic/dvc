@@ -221,7 +221,8 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
   ;; split add-change-log-entry into several functions and then use them, but
   ;; that wouldn't work with older versions of Emacs.
   (if (not (featurep 'add-log)) (require 'add-log))
-  (let* ((defun (add-log-current-defun))
+  (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+         (defun (add-log-current-defun))
          (buf-file-name (if (and (boundp 'add-log-buffer-file-name-function)
                                  add-log-buffer-file-name-function)
                             (funcall add-log-buffer-file-name-function)

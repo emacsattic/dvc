@@ -135,8 +135,9 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
 ;;;###autoload
 (define-dvc-unified-command dvc-file-diff (file &optional base modified
                                                 dont-switch)
-  "Display the changes in FILE (default current buffer file) for
-the actual dvc."
+  "Display the changes in FILE (default current buffer file)
+between BASE (default last-revision) and MODIFIED (default
+workspace version)."
   ;; use dvc-diff-diff to default file to dvc-get-file-info-at-point
   (interactive (list buffer-file-name)))
 
@@ -157,13 +158,14 @@ the actual dvc."
 
 ;;;###autoload
 (defun dvc-log (&optional path last-n)
-  "Display the brief log for PATH (a file-name; nil means entire
-tree), LAST-N entries (default `dvc-log-last-n'; all if nil).
-LAST-N may be specified interactively. Use `dvc-changelog' for
-the full log."
-  (interactive (list nil (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
+  "Display the brief log for PATH (a file-name; default current
+buffer file name; nil means entire tree), LAST-N entries (default
+`dvc-log-last-n'; all if nil). LAST-N may be specified
+interactively. Use `dvc-changelog' for the full log."
+  (interactive (list (buffer-file-name)
+                     (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (let ((default-directory
-          (dvc-read-project-tree-maybe "DVC log (directory): "
+          (dvc-read-project-tree-maybe "DVC tree root (directory): "
                                        (when path (expand-file-name path)))))
     ;; Since we have bound default-directory, we don't need to pass
     ;; 'root' to the back-end.
@@ -376,7 +378,8 @@ local database, as appropriate for the current back-end."
 ;;;###autoload
 (define-dvc-unified-command dvc-merge (&optional other)
   "Merge with OTHER.
-If OTHER is nil, merge heads in current database.
+If OTHER is nil, merge heads in current database, or merge from
+remembered database.
 If OTHER is a string, it identifies a (local or remote)
 database to merge into the current database or workspace."
   (interactive))
