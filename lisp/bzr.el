@@ -458,7 +458,6 @@ of the commit. Additionally the destination email address can be specified."
     (dvc-switch-to-buffer-maybe buffer)
     (dvc-buffer-push-previous-window-config window-conf)
     (setq dvc-buffer-refresh-function 'bzr-dvc-status)
-    (dvc-save-some-buffers root)
     (dvc-run-dvc-async
      'bzr '("status")
      :finished

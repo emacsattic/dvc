@@ -146,7 +146,8 @@ workspace version)."
     ;; Since we have bound default-directory, we don't need to pass
     ;; `path' to the back-end.
     (dvc-save-some-buffers default-directory)
-    (dvc-call "dvc-status")))
+    (dvc-call "dvc-status"))
+  nil)
 
 (define-dvc-unified-command dvc-name-construct (back-end-revision)
   "Returns a string representation of BACK-END-REVISION.")
@@ -164,7 +165,8 @@ interactively. Use `dvc-changelog' for the full log."
                                        (when path (expand-file-name path)))))
     ;; Since we have bound default-directory, we don't need to pass
     ;; 'root' to the back-end.
-    (dvc-call "dvc-log" path last-n)))
+    (dvc-call "dvc-log" path last-n))
+  nil)
 
 ;;;###autoload
 (define-dvc-unified-command dvc-changelog (&optional arg)

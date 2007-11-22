@@ -2086,15 +2086,16 @@ reverse."
   "Actually call \"tla apply-changeset CHANGESET TARGET\".
 
 If REVERSE is non-nil, use --reverse too."
-  (tla--run-tla-sync (list "apply-changeset"
-                           (when reverse "--reverse")
-;;                            (when tla-use-forward-option "--forward")
-                           changeset target)
-                     :finished (dvc-capturing-lambda (output error status arguments)
-                                  ;; (tla--show-last--process-buffer)
-                                  (dvc-show-changes-buffer output 'tla--parse-other)
-                                  (message "tla apply-changeset finished")
-                                  (dvc-revert-some-buffers (capture target)))))
+  (let ((buffer (dvc-prepare-changes-buffer nil nil 'diff default-directory tla-arch-branch)))
+    (tla--run-tla-sync (list "apply-changeset"
+                             (when reverse "--reverse")
+                             ;; (when tla-use-forward-option "--forward")
+                             changeset target)
+                       :finished (dvc-capturing-lambda (output error status arguments)
+                                   ;; (tla--show-last--process-buffer)
+                                   (dvc-show-changes-buffer output 'tla--parse-other (capture buffer))
+                                   (message "tla apply-changeset finished")
+                                  (dvc-revert-some-buffers (capture target))))))
 
 (defun tla-apply-changeset-from-tgz (file tree show-changeset)
   "Apply changeset in FILE to TREE.
@@ -3418,7 +3419,9 @@ If REVERSE is non-nil, reverse the requested revision."
                                      (message "tla sync-tree finished")
                                      (dvc-revert-some-buffers (capture to-tree)))
                         :error (lambda (output error status arguments)
-                                 (dvc-show-changes-buffer output 'tla--parse-other)))))
+                                 (dvc-show-changes-buffer
+                                  output 'tla--parse-other
+                                  (dvc-prepare-changes-buffer nil nil 'diff default-directory tla-arch-branch))))))
 
 ;;;###autoload
 (defun tla-switch (tree version &optional handle)

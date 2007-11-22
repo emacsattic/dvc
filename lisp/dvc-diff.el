@@ -586,32 +586,32 @@ This is just a lint trap.")
 (defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch
                                        header-end-regexp cmd)
-  ;; FIXME: pass in dvc?
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
+default-directory of process buffer must be a tree root.
 
 PARSER is a function to parse the diff and fill in the ewoc list.
 
-Display changes in OUTPUT-BUFFER if non-nil; otherwise create a
-new display buffer.
+Display changes in OUTPUT-BUFFER (must be non-nil; create with
+dvc-prepare-changes-buffer).
 
 If NO-SWITCH is nil, don't switch to the created buffer.
 
 If non-nil, HEADER-END-REGEXP is a regexp matching the first line
 which is not part of the diff header."
-  (let* ((root (with-current-buffer buffer
-                 (dvc-tree-root default-directory t)))
+  ;; We assume default-directory is correct, rather than calling
+  ;; dvc-tree-root, because dvc-tree-root might prompt if there is
+  ;; more than one back-end present. Similarly, we assume
+  ;; output-buffer is created, to avoid calling dvc-current-active-dvc
+  ;; for dvc-get-buffer-create.
+  (let* ((root (with-current-buffer buffer default-directory))
          (dvc (dvc-current-active-dvc))
-         (changes-buffer (or output-buffer
-                             (dvc-get-buffer-create dvc 'diff root)))
+         (changes-buffer output-buffer)
          (dvc-header ""))
     (if (or no-switch dvc-switch-to-buffer-first)
         (set-buffer changes-buffer)
       (dvc-switch-to-buffer changes-buffer))
     (let (buffer-read-only)
       (dvc-diff-delete-messages)
-      (unless output-buffer
-        (erase-buffer)
-        (funcall (dvc-function dvc "diff-mode")))
       (with-current-buffer buffer
         (goto-char (point-min))
         (when cmd
@@ -703,28 +703,21 @@ of the process that raised an error."
     (recenter))
   (message msg))
 
-(defun dvc-diff-clear-buffers (dvc dir mesg)
-  "Clears all DVC diff buffers in directory DIR, insert message MSG.
-
-Usefull to clear diff buffers after a commit."
-  (dvc-trace "dvc-diff-clear-buffers (%S %S)"
-              dir mesg)
-  (dolist (buffer (list (dvc-get-buffer
-                         dvc 'diff
-                         (dvc-tree-root dir))
-                        (dvc-get-buffer
-                         dvc 'status
-                         (dvc-tree-root dir))))
-    (dvc-trace "buffer=%S" buffer)
+(defun dvc-diff-clear-buffers (dvc root msg)
+  "Clears all DVC diff and status buffers with root ROOT, insert message MSG.
+Useful to clear diff buffers after a commit."
+  (dvc-trace "dvc-diff-clear-buffers (%S %S)" root msg)
+  ;; Don't need to clear 'revision-diff; that is not changed by a commit
+  (dolist (buffer (list (dvc-get-buffer dvc 'diff root)
+                        (dvc-get-buffer dvc 'status root)))
     (when buffer
+      (dvc-trace "buffer=%S" buffer)
       (with-current-buffer buffer
         (let ((inhibit-read-only t))
           (ewoc-filter dvc-diff-cookie
                        (lambda (x) (eq (car x) 'subtree)))
           (ewoc-set-hf dvc-diff-cookie "" "")
-          (ewoc-enter-first
-           dvc-diff-cookie
-           `(message ,mesg))
+          (ewoc-enter-first dvc-diff-cookie `(message ,msg))
           (ewoc-refresh dvc-diff-cookie))))))
 
 ;;;###autoload
