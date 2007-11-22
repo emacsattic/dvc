@@ -553,9 +553,6 @@ Signals an error if output contains zero lines or more than one line."
     (with-current-buffer buffer
       (buffer-disable-undo)
       (xmtn--set-buffer-multibyte nil)
-
-      ;; FIXME: debugging
-      (setq buffer-file-coding-system 'dos)
       (setq buffer-read-only t))
     (setf (xmtn-automate--session-buffer session) buffer)
     buffer))
