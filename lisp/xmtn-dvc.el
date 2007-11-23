@@ -452,7 +452,8 @@ the file before saving."
                    ;; commit was successful.  Let's not interfere with
                    ;; that.  (Calling `dvc-log-close' would.)
                    (delete-file commit-message-file)
-                   (kill-buffer log-edit-buffer)))
+                   (kill-buffer log-edit-buffer)
+                   (dvc-diff-clear-buffers 'xmtn (capture root) "* Just committed! Please refresh buffer\n")))
       ;; Show message _after_ spawning command to override DVC's
       ;; debugging message.
       (message "%s..." progress-message))
