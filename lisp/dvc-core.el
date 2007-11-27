@@ -193,7 +193,7 @@ The following sources are tried (in that order) and used if they are non nil:
   - When SELECTION-MODE is 'all-if-none-marked, return all files from that buffer. That is not yet implemented. Just returns nil at the moment..
 * Otherwise call the function `dvc-get-file-info-at-point'."
   (cond (dvc-buffer-marked-file-list ;; dvc-diff, etc.
-         dvc-buffer-marked-file-list)
+         (remove nil dvc-buffer-marked-file-list))
         ((eq major-mode 'dired-mode)
          (dired-get-marked-files))
         ((eq selection-mode 'nil-if-none-marked)
@@ -1099,6 +1099,8 @@ REVISION-ID is as specified in docs/DVC-API."
        (with-current-buffer buffer
          (dvc-call "revision-get-file-revision"
                    file (dvc-revision-get-data revision-id))
+         (set-buffer-modified-p nil)
+         (toggle-read-only 1)
          buffer))
 
         (previous-revision
@@ -1107,12 +1109,16 @@ REVISION-ID is as specified in docs/DVC-API."
                   (data (nth 0 (dvc-revision-get-data revision-id)))
                   (rev-id (list dvc data)))
              (dvc-call "revision-get-previous-revision" file rev-id))
+           (set-buffer-modified-p nil)
+           (toggle-read-only 1)
            buffer))
 
         (last-revision
          (with-current-buffer buffer
            (dvc-call "revision-get-last-revision"
                      file (dvc-revision-get-data revision-id))
+           (set-buffer-modified-p nil)
+           (toggle-read-only 1)
            buffer))
 
         (t (error "TODO: dvc-revision-get-file-in-buffer type %S" type)))))
