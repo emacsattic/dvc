@@ -453,7 +453,7 @@ the file before saving."
                    ;; that.  (Calling `dvc-log-close' would.)
                    (delete-file commit-message-file)
                    (kill-buffer log-edit-buffer)
-                   (dvc-diff-clear-buffers 'xmtn (capture root) "* Just committed! Please refresh buffer\n")))
+                   (dvc-diff-clear-buffers 'xmtn default-directory "* Just committed! Please refresh buffer\n")))
       ;; Show message _after_ spawning command to override DVC's
       ;; debugging message.
       (message "%s..." progress-message))
