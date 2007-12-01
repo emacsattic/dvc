@@ -1009,6 +1009,34 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
           (save-buffer)))
       (kill-buffer buffer))))
 
+(defun bzr-do-annotate (file)
+  "Annote the FILE"
+  
+  (let*((file    (expand-file-name file))
+	(abuffer (dvc-get-buffer-create 'bzr 'annotate))
+	(args    (list "annotate" "--all" "--long" file)))
+    (dvc-switch-to-buffer-maybe abuffer)
+    (dvc-run-dvc-sync 'bzr args
+		      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+			(progn
+                          (with-current-buffer (capture abuffer)
+                            (let ((inhibit-read-only t))
+			      (erase-buffer)
+			      (setq truncate-lines t)
+			      (insert-buffer-substring output)
+			      (goto-char (point-min))))))
+		      )))
+
+(defun bzr-annotate ()
+  "Run bzr annotate"
+  (interactive)
+  (let* ((line (dvc-line-number-at-pos))
+         (filename (dvc-confirm-read-file-name "Filename to annotate: ")))
+    (bzr-do-annotate  filename)
+    (goto-line line)))
+
+
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.
 (provide 'bzr)
