@@ -574,6 +574,18 @@ Throw an error when not on a file."
                                      default-directory)
                                     (dvc-diff-find-file-name)))))))
 
+(defun dvc-diff-all-files ()
+  "Return list of all files in file list"
+  (let (result)
+    (ewoc-map
+     (lambda (elem)
+       (when (eq (car elem) 'file)
+         ;; we use 'add-to-list', because some back-ends put files in the ewoc more than once
+         (add-to-list 'result (cadr elem)))
+       nil)
+     dvc-diff-cookie)
+    result))
+
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
 `dvc-show-changes-buffer' (defined with a (let ...) in
