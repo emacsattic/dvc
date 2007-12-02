@@ -1036,6 +1036,21 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
     (bzr-do-annotate  filename)
     (goto-line line)))
 
+(defconst bzr-annon-parse-re
+  "^\\([^ ]*\\) \\([^ ]*\\) \\([0-9]\\{4\\}\\)\\([0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)[ ]+|")
+
+(defun bzr-annotate-time ()
+  (interactive)
+  (when (< (point) (point-max))
+    (beginning-of-line)
+    (if (re-search-forward bzr-annon-parse-re  nil t)
+	(let* ((year  (string-to-number (match-string 3)))
+	       (month  (string-to-number (match-string 4)))
+	       (day  (string-to-number (match-string 5)))
+	       )
+	  (dvc-annotate-convert-time
+	   (encode-time 1 1 1 day month  year ))))))
+
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.
