@@ -1025,7 +1025,8 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
 			      (erase-buffer)
 			      (setq truncate-lines t)
 			      (insert-buffer-substring output)
-			      (goto-char (point-min))))))
+			      (goto-char (point-min))
+			      (bzr-annotate-mode)))))
 		      )))
 
 (defun bzr-annotate ()
@@ -1050,6 +1051,15 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
 	       )
 	  (dvc-annotate-convert-time
 	   (encode-time 1 1 1 day month  year ))))))
+
+(define-derived-mode  bzr-annotate-mode fundamental-mode "bzr-annotate"
+  "Major mode to display bzr annotate output.
+
+"
+  (dvc-annotate-display-autoscale t)
+  (dvc-annotate-lines (point-max))
+  ;(xgit-annotate-hide-revinfo)
+  (toggle-read-only 1))
 
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
