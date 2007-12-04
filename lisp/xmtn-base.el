@@ -55,10 +55,10 @@ A list of strings.")
        (save-match-data
          (string-match "\\`[0-9a-f]\\{40\\}\\'" thing))))
 
-(defvar xmtn--*enable-assertions* t
+(defvar xmtn--*enable-assertions* nil
   "Effective at macroexpansion time.")
 
-;; (setq xmtn--*enable-assertions* nil)
+;; (setq xmtn--*enable-assertions* t)
 
 (defmacro xmtn--assert-for-effect (form &rest more-assert-args)
   (if xmtn--*enable-assertions*

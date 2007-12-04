@@ -220,7 +220,7 @@ Signals an error if more (or fewer) than one line is output."
     (first lines)))
 
 (defun xmtn--minimum-required-command-version ()
-  '(0 30))
+  '(0 37))
 
 (defvar xmtn--*cached-command-version* nil)
 (defvar xmtn--*command-version-cached-for-executable* nil)
@@ -295,7 +295,7 @@ This command resets xmtn's command version cache."
       (xmtn--cached-command-version)
     (let* ((latest (xmtn--latest-mtn-release))
            (latest-major (first latest))
-           (latest-minor (second latest)))      
+           (latest-minor (second latest)))
       (if (eval `(xmtn--version-case
                    ((and (= ,latest-major latest-minor)
                          (mainline> latest-major latest-minor))

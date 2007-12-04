@@ -148,11 +148,11 @@
 
 ;;;###autoload
 (defun xdarcs-missing ()
-  "Run darcs pull --dry-run -s to see whats missing"
+  "Run 'darcs pull --dry-run -s -v' to see what's missing"
   (interactive)
   (let ((buffer (dvc-get-buffer-create 'xdarcs 'missing)))
     (dvc-run-dvc-async
-     'xdarcs '("pull" "--dry-run" "-s")
+     'xdarcs '("pull" "--dry-run" "-s" "-v")
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (progn

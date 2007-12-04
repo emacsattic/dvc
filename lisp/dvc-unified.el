@@ -45,37 +45,22 @@
 strings including path from root; interactive defaults
 to (dvc-current-file-list)."
   (interactive (dvc-current-file-list))
-  (if dvc-confirm-add
-      (let* ((dvc (dvc-current-active-dvc))
-             (multiprompt (format "Add %%d files to %s? " dvc))
-             (singleprompt (format "Add file to %s: " dvc)))
-        (when (setq files (dvc-confirm-read-file-name-list multiprompt files
-                                                           singleprompt t))
-          (dvc-apply "dvc-add-files" files)))
+  (when (setq files (dvc-confirm-file-op "add" files dvc-confirm-add))
     (dvc-apply "dvc-add-files" files)))
 
 ;;;###autoload
 (defun dvc-revert-files (&rest files)
   "Revert FILES for the currently active dvc."
   (interactive (dvc-current-file-list))
-  (let* ((dvc (dvc-current-active-dvc))
-         (multiprompt (format "Revert %%d files to their stored version in %s? "
-                              dvc))
-         (singleprompt (format "Revert file to its state in %s: " dvc)))
-    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
-                                                       singleprompt nil))
-      (dvc-apply "dvc-revert-files" files))))
+  (when (setq files (dvc-confirm-file-op "revert" files t))
+    (dvc-apply "dvc-revert-files" files)))
 
 ;;;###autoload
 (defun dvc-remove-files (&rest files)
   "Remove FILES for the currently active dvc."
   (interactive (dvc-current-file-list))
-  (let* ((dvc (dvc-current-active-dvc))
-         (multiprompt (format "Remove %%d files from %s control? " dvc))
-         (singleprompt (format "Remove file from %s: " dvc)))
-    (when (setq files (dvc-confirm-read-file-name-list multiprompt files
-                                                       singleprompt nil))
-      (dvc-apply "dvc-remove-files" files))))
+  (when (setq files (dvc-confirm-file-op "remove" files t))
+    (dvc-apply "dvc-remove-files" files)))
 
 ;;;###autoload
 (defun dvc-remove-optional-args (spec &rest args)
@@ -150,10 +135,10 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
 ;;;###autoload
 (define-dvc-unified-command dvc-file-diff (file &optional base modified
                                                 dont-switch)
-  "Display the changes in FILE (default current buffer file) for
-the actual dvc."
-  ;; FIXME: other operations default to (dvc-current-file-list); this
-  ;; should default to (dvc-get-file-info-at-point)
+  "Display the changes in FILE (default current buffer file)
+between BASE (default last-revision) and MODIFIED (default
+workspace version)."
+  ;; use dvc-diff-diff to default file to dvc-get-file-info-at-point
   (interactive (list buffer-file-name)))
 
 ;;;###autoload
@@ -173,15 +158,18 @@ the actual dvc."
 
 ;;;###autoload
 (defun dvc-log (&optional path last-n)
-  "Display the brief log for PATH (directory or file; default
-entire tree), LAST-N entries (default `dvc-log-last-n'; all if
-nil). LAST-N may be specified interactively. Use `dvc-changelog'
-for the full log."
-  (interactive (list nil (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
+  "Display the brief log for PATH (a file-name; default current
+buffer file name; nil means entire tree), LAST-N entries (default
+`dvc-log-last-n'; all if nil). LAST-N may be specified
+interactively. Use `dvc-changelog' for the full log."
+  (interactive (list (buffer-file-name)
+                     (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (let ((default-directory
-          (dvc-read-project-tree-maybe "DVC log (directory): "
+          (dvc-read-project-tree-maybe "DVC tree root (directory): "
                                        (when path (expand-file-name path)))))
-    (dvc-call "dvc-log" (or path default-directory) last-n)))
+    ;; Since we have bound default-directory, we don't need to pass
+    ;; 'root' to the back-end.
+    (dvc-call "dvc-log" path last-n)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-changelog (&optional arg)
@@ -390,7 +378,8 @@ local database, as appropriate for the current back-end."
 ;;;###autoload
 (define-dvc-unified-command dvc-merge (&optional other)
   "Merge with OTHER.
-If OTHER is nil, merge heads in current database.
+If OTHER is nil, merge heads in current database, or merge from
+remembered database.
 If OTHER is a string, it identifies a (local or remote)
 database to merge into the current database or workspace."
   (interactive))

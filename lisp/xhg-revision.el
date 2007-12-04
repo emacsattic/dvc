@@ -1,6 +1,6 @@
 ;;; xhg-revision.el --- Management of revision lists in xhg
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006, 2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Keywords:
@@ -103,7 +103,8 @@
 (defun xhg-dvc-log (path last-n)
   "Show a dvc formatted log for xhg."
   (interactive (list default-directory nil))
-  (dvc-build-revision-list 'xhg 'log path '("log") 'xhg-dvc-log-parse
+  (dvc-build-revision-list 'xhg 'log (xhg-tree-root (or path default-directory)) '("log") 'xhg-dvc-log-parse
+                           t last-n path
                            (dvc-capturing-lambda ()
                              (xhg-dvc-log (capture path) (capture last-n)))))
 

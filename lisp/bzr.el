@@ -292,7 +292,8 @@ revid:foobar, ...).
 
 TODO: DONT-SWITCH is currently ignored."
   (interactive (list nil nil current-prefix-arg))
-  (let* ((window-conf (current-window-configuration))
+  (let* ((dvc-temp-current-active-dvc 'bzr)
+         (window-conf (current-window-configuration))
          (dir (or path default-directory))
          (root (bzr-tree-root dir))
          (against (or against `(bzr (last-revision ,root 1))))
@@ -311,15 +312,15 @@ TODO: DONT-SWITCH is currently ignored."
      :finished
      (dvc-capturing-lambda (output error status arguments)
        (dvc-diff-no-changes (capture buffer)
-                             "No changes in %s"
-                             (capture root)))
+                            "No changes in %s"
+                            (capture root)))
      :error
      (dvc-capturing-lambda (output error status arguments)
        (if (/= 1 status)
            (dvc-diff-error-in-process (capture buffer)
-                                       "Error in diff process"
-                                       (capture root)
-                                       output error)
+                                      "Error in diff process"
+                                      (capture root)
+                                      output error)
          (dvc-show-changes-buffer output 'bzr-parse-diff
                                   (capture buffer)))))))
 

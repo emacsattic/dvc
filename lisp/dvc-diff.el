@@ -34,25 +34,16 @@
 (require 'dvc-core)
 (eval-when-compile (require 'cl))
 
-
 (defvar dvc-diff-base nil
-  "BASE revision-id for the changes currently displayed.
-
-Must be buffer-local.")
+  "BASE revision-id for the changes currently displayed.")
+(make-variable-buffer-local 'dvc-diff-base)
 
 (defvar dvc-diff-modified nil
-  "MODIFIED revision-id for the changes currently displayed.
+  "MODIFIED revision-id for the changes currently displayed.")
+(make-variable-buffer-local 'dvc-diff-modified)
 
-Must be buffer-local.")
-
-(defvar dvc-buffer-search-file nil
-  "Function to find a file in a diff display. Function is passed
-  one argument FILE; it should place point on the first line of
-  the diff for that file. Each backend can customize this for its
-  diff format. Buffer-local in diff buffers.")
-
-;; xhg: "+++ b/LinuxLanguageApps.muse   Tue Sep 18 20:43:04 2007 +0200"
 (defun dvc-dvc-search-file-in-diff (file)
+  "Default for \"dvc-search-file-in-diff\". Place point on diff hunk for FILE."
   (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "\\(.+[0-9][0-9][0-9][0-9]\\)?$")))
 
 (defun dvc-prepare-changes-buffer (base modified type path dvc)
@@ -70,11 +61,8 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
       (dvc-get-buffer-create dvc type path)
     (let ((inhibit-read-only t)) (erase-buffer))
     (funcall (dvc-function dvc "diff-mode"))
-    (set (make-local-variable 'dvc-diff-base)     base)
-    (set (make-local-variable 'dvc-diff-modified) modified)
-    (set (make-local-variable 'dvc-buffer-search-file)
-         (dvc-function dvc "dvc-search-file-in-diff"))
-    ;;(dvc-trace "dvc=%S function=%S" dvc dvc-buffer-search-file)
+    (setq dvc-diff-base base)
+    (setq dvc-diff-modified modified)
     (current-buffer)))
 
 (defun dvc-diff-chose-face (status modif)
@@ -182,6 +170,7 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-ediff   'dvc-diff-ediff)
     (define-key map dvc-keyvec-refresh 'dvc-generic-refresh)
     (define-key map dvc-keyvec-commit  'dvc-log-edit)
+    (define-key map "t"                'dvc-add-log-entry)
     ;; TODO move this somewhere else.
     (define-key map [?I] 'tla-inventory)
     (define-key map dvc-keyvec-inventory 'dvc-pop-to-inventory)
@@ -247,6 +236,7 @@ Pretty-print ELEM."
 (defconst dvc-diff-mode-menu-list
   `(["Refresh Buffer" dvc-generic-refresh t]
     ["Edit log before commit" dvc-log-edit t]
+    ["Add log entry" dvc-add-log-entry t]
     ["View other revisions" tla-tree-revisions t]
     ("Merge"
      ["Update" dvc-update t]
@@ -303,13 +293,13 @@ Commands:
   (set (make-local-variable 'dvc-diff-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
                      #'dvc-diff-printer)))
-  (make-local-variable 'dvc-buffer-marked-file-list)
+  (setq dvc-buffer-marked-file-list nil)
   (dvc-install-buffer-menu)
   (toggle-read-only 1)
   (set-buffer-modified-p nil))
 
 (defun dvc-diff-generic-refresh ()
-  "Refresh the changes buffer."
+  "Refresh the diff buffer."
   (interactive)
   (if (eq (dvc-revision-get-type dvc-diff-modified) 'local-tree)
       (dvc-diff dvc-diff-base)
@@ -317,8 +307,8 @@ Commands:
 
 (defun dvc-diff-jump-to-change (&optional other-file)
   "Jump to the corresponding file and location of the change.
-The prefix argument OTHER-FILE controls whether the original or new
-file is visited."
+OTHER-FILE (default prefix) if non-nil means visit the original
+file; otherwise visit the modified file."
   (interactive "P")
   (let* ((elem (ewoc-locate dvc-diff-cookie))
          (data (ewoc-data elem)))
@@ -332,12 +322,11 @@ file is visited."
 
 (defun dvc-diff-scroll-or-diff (up-or-down)
   "If file-diff buffer is visible, scroll. Otherwise, show it."
-  (interactive)
   (let ((file (dvc-get-file-info-at-point)))
     (unless file
       (error "No file info at point."))
     ;; TODO
-    (let ((buffer (dvc-get-buffer tla-arch-branch 'file-diff file)))
+    (let ((buffer (dvc-get-buffer dvc-buffer-current-active-dvc 'file-diff file)))
       (unless (tla--scroll-maybe buffer up-or-down)
         (tla-file-diff file nil t)))))
 
@@ -353,7 +342,8 @@ file is visited."
   "Almost the same as `diff-goto-source'.
 But the target file is transformed by `tla--changes-what-changed-original-file'
 to handle files in what-changed directory.
-OTHER-FILE controls whether the original or new file is visited."
+OTHER-FILE if non-nil means visit the original
+file; otherwise visit the modified file."
   (let ((dvc-original-file-exists-p (symbol-function
                                      'file-exists-p))
         (dvc-original-find-file-noselect (symbol-function
@@ -405,7 +395,7 @@ files."
                (error (format "Can't find file %s in list" file)))
              ))
           ((eq (car data) 'file)
-           (funcall dvc-buffer-search-file (cadr data))
+           (dvc-call "dvc-search-file-in-diff" (cadr data))
            (diff-hunk-next))
           ((eq (car data) 'subtree)
            (dvc-switch-to-buffer (cadr data)))
@@ -477,7 +467,7 @@ a 'file."
   (dvc-diff-unmark-file t))
 
 (defun dvc-diff-diff ()
-  "Run tla file-diff on the file at point in *{tla|baz}-changes*."
+  "Show diff for file at point."
   (interactive)
   (let ((on-modified-file (dvc-get-file-info-at-point)))
     (if on-modified-file
@@ -488,7 +478,7 @@ a 'file."
       (error "Not on a modified file"))))
 
 (defun dvc-diff-next ()
-  "Move to the next changes."
+  "Move to the next status line or diff hunk."
   (interactive)
   (let ((cur-location (ewoc-location (ewoc-locate dvc-diff-cookie)))
         (next (ewoc-next dvc-diff-cookie
@@ -502,7 +492,7 @@ a 'file."
       (diff-hunk-next)))))
 
 (defun dvc-diff-prev ()
-  "Move to the previous changes."
+  "Move to the previous status line or diff hunk."
   (interactive)
   (let* ((current (ewoc-locate dvc-diff-cookie))
          (cur-location (ewoc-location current))
@@ -573,7 +563,7 @@ interactively."
          (diff-find-file-name))))
 
 (defun dvc-diff-get-file-at-point ()
-  "Find file at point in *<backend>-changes*.
+  "Return filename for file at point.
 Throw an error when not on a file."
   (save-excursion
     (let ((elem (ewoc-locate dvc-diff-cookie (point))))
@@ -738,7 +728,7 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-file-ediff (file)
-  "Run ediff of FILE (defaut current buffer file) against last revision."
+  "Run ediff of FILE (default current buffer file) against last revision."
   (interactive (list (buffer-file-name)))
   (let ((file-buffer (find-file-noselect file))
         (pristine-buffer
@@ -762,49 +752,48 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-dvc-file-diff (file &optional base modified dont-switch)
-  "View changes in FILE between BASE (default last-revision) and
-MODIFIED (default workspace version)."
+  "Default back-end for `dvc-file-diff'."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
-         (modified (or modified `(,dvc (local-tree ,file)))))
-    (let* ((buffer (dvc-get-buffer-create
-                    'dvc ;; TODO anything ;; better ?
-                    'file-diff
-                    (dvc-uniquify-file-name file)))
-           (base-buffer
-            (dvc-revision-get-file-in-buffer file base))
-           (modified-buffer
-            (dvc-revision-get-file-in-buffer file modified))
-           (base-file (make-temp-file "DVC-file-diff-base"))
-           (modified-file (make-temp-file "DVC-file-diff-mod")))
-      (with-temp-file base-file
-        (insert (with-current-buffer base-buffer (buffer-string)))
-        (setq buffer-file-coding-system (with-current-buffer base-buffer
-                                          buffer-file-coding-system)))
-      (with-temp-file modified-file
-        (insert (with-current-buffer modified-buffer (buffer-string)))
-        (setq buffer-file-coding-system (with-current-buffer modified-buffer
-                                          buffer-file-coding-system)))
-      (dvc-switch-to-buffer buffer)
-      (let ((inhibit-read-only t)
-            (slash (unless (file-name-absolute-p file) "/")))
-        (erase-buffer)
-        (call-process dvc-diff-executable nil buffer nil
-                      "-u"
-                      ;; FIXME: If the file has been renamed between
-                      ;; BASE and MODIFIED, the file names as
-                      ;; displayed here may be incorrect.  The
-                      ;; protocol needs to be extended to allow the
-                      ;; backend to supply the correct file names.
-                      (concat "-La" slash file)
-                      (concat "-Lb" slash file)
-                      base-file modified-file))
-      (delete-file base-file)
-      (delete-file modified-file)
-      (message "")
-      (toggle-read-only 1)
-      (goto-char (point-min))
-      (diff-mode))))
+         (modified (or modified `(,dvc (local-tree ,file))))
+         (diff-buffer (dvc-get-buffer-create
+                       dvc
+                       'file-diff
+                       (dvc-uniquify-file-name file)))
+         (base-buffer
+          (dvc-revision-get-file-in-buffer file base))
+         (modified-buffer
+          (dvc-revision-get-file-in-buffer file modified))
+         (base-file (make-temp-file "DVC-file-diff-base"))
+         (modified-file (make-temp-file "DVC-file-diff-mod")))
+    (with-temp-file base-file
+      (insert (with-current-buffer base-buffer (buffer-string)))
+      (setq buffer-file-coding-system (with-current-buffer base-buffer
+                                        buffer-file-coding-system)))
+    (with-temp-file modified-file
+      (insert (with-current-buffer modified-buffer (buffer-string)))
+      (setq buffer-file-coding-system (with-current-buffer modified-buffer
+                                        buffer-file-coding-system)))
+    (dvc-switch-to-buffer diff-buffer)
+    (let ((inhibit-read-only t)
+          (slash (unless (file-name-absolute-p file) "/")))
+      (erase-buffer)
+      (call-process dvc-diff-executable nil diff-buffer nil
+                    "-u"
+                    ;; FIXME: If the file has been renamed between
+                    ;; BASE and MODIFIED, the file names as
+                    ;; displayed here may be incorrect.  The
+                    ;; protocol needs to be extended to allow the
+                    ;; backend to supply the correct file names.
+                    (concat "-La" slash file)
+                    (concat "-Lb" slash file)
+                    base-file modified-file))
+    (delete-file base-file)
+    (delete-file modified-file)
+    (message "")
+    (toggle-read-only 1)
+    (goto-char (point-min))
+    (diff-mode)))
 
 (defun dvc-ediff-startup-hook ()
   "Passed as a startup hook for ediff.
@@ -819,7 +808,7 @@ quitting."
             nil 'local))
 
 (defvar dvc-window-config nil
-  "Used for inter-function communication.")
+  "Used for inter-function communication. Actual value is let-bound.")
 
 (defun dvc-ediff-buffers (bufferA bufferB)
   "Wrapper around `ediff-buffers'.

@@ -214,9 +214,6 @@ The following sources are tried (in that order) and used if they are non nil:
 
 (defun dvc-confirm-read-file-name-list (prompt &optional files single-prompt mustmatch)
   (or
-   ;; FIXME: is there a way to respond to this prompt from a unit
-   ;; test? See tests/xmtn-tests.el dvc-status-add. For now, bypassing
-   ;; confirmation with `dvc-test-mode'.
    (if dvc-test-mode files)
    (let ((num-files (length files)))
      (if (= num-files 1)
@@ -228,8 +225,28 @@ The following sources are tried (in that order) and used if they are non nil:
        (and (y-or-n-p (format prompt num-files))
             files)))))
 
-;(dvc-confirm-read-file-name "Add file ")
-;(dvc-confirm-read-file-name-list "Add %d files? " (dvc-current-file-list) "Add file " t)
+(defun dvc-confirm-file-op (operation files confirm)
+  "Confirm OPERATION (a string, used in prompt) on FILE (list of strings).
+If CONFIRM is nil, just return FILES (no prompt).
+Returns FILES, or nil if not confirmed."
+  (or
+   ;; Allow bypassing confirmation with `dvc-test-mode'. See
+   ;; tests/xmtn-tests.el dvc-status-add.
+   (if dvc-test-mode files)
+   ;; Abstracted from pcvs.el cvs-do-removal
+   (if (not confirm)
+       files
+     (let ((nfiles (length files)))
+       (if (yes-or-no-p
+            (if (= 1 nfiles)
+                (format "%s file: \"%s\" ? "
+                        operation
+                        (car files))
+              (format "%s %d files? "
+                      operation
+                      nfiles)))
+           files
+         nil)))))
 
 (defun dvc-dvc-files-to-commit ()
   ;;todo: set the correct modifier, one of dvc-modified, dvc-added, dvc-move, now use only nil
@@ -1069,34 +1086,36 @@ REVISION-ID may have the values described in docs/DVC-API."
 
 REVISION-ID is as specified in docs/DVC-API."
   (dvc-trace "dvc-revision-get-file-in-buffer. revision-id=%S" revision-id)
-  (let ((type (dvc-revision-get-type revision-id))
-        (inhibit-read-only t)
-        ;; find-file-noselect will call dvc-current-active-dvc in a
-        ;; hook; specify dvc for dvc-call
-        (dvc-temp-current-active-dvc (dvc-revision-get-dvc revision-id))
-        (buffer (dvc-revision-get-buffer file revision-id)))
-    (with-current-buffer buffer
-      (case type
-        (local-tree (find-file-noselect file))
+  (let* ((type (dvc-revision-get-type revision-id))
+         (inhibit-read-only t)
+         ;; find-file-noselect will call dvc-current-active-dvc in a
+         ;; hook; specify dvc for dvc-call
+         (dvc-temp-current-active-dvc (dvc-revision-get-dvc revision-id))
+         (buffer (unless (eq type 'local-tree) (dvc-revision-get-buffer file revision-id))))
+    (case type
+      (local-tree (find-file-noselect file))
 
-        (revision
+      (revision
+       (with-current-buffer buffer
          (dvc-call "revision-get-file-revision"
                    file (dvc-revision-get-data revision-id))
-         buffer)
+         buffer))
 
         (previous-revision
-         (let* ((dvc (dvc-revision-get-dvc revision-id))
-                (data (nth 0 (dvc-revision-get-data revision-id)))
-                (rev-id (list dvc data)))
-           (dvc-call "revision-get-previous-revision" file rev-id))
-         buffer)
+         (with-current-buffer buffer
+           (let* ((dvc (dvc-revision-get-dvc revision-id))
+                  (data (nth 0 (dvc-revision-get-data revision-id)))
+                  (rev-id (list dvc data)))
+             (dvc-call "revision-get-previous-revision" file rev-id))
+           buffer))
 
         (last-revision
-         (dvc-call "revision-get-last-revision"
-                   file (dvc-revision-get-data revision-id))
-         buffer)
+         (with-current-buffer buffer
+           (dvc-call "revision-get-last-revision"
+                     file (dvc-revision-get-data revision-id))
+           buffer))
 
-        (t (error "TODO: type %S" type))))))
+        (t (error "TODO: dvc-revision-get-file-in-buffer type %S" type)))))
 
 (defun dvc-revision-get-previous-revision (file revision-id)
 "Default function to fill the current buffer with the content of
