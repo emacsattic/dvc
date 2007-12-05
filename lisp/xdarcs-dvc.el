@@ -51,8 +51,6 @@
 ;;;###autoload
 (defalias 'xdarcs-dvc-pull 'xdarcs-pull)
 
-(defalias 'xdarcs-dvc-diff 'xdarcs-diff)
-
 (defvar xdarcs-ignore-file "_darcs/prefs/boring"
   "Relative path of the darcs boring file within the xdarcs-tree-root.")
 

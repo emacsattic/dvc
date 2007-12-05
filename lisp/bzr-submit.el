@@ -123,6 +123,7 @@ If INCLUDE-ADDED is specified, include files that are newly-added."
           (output (current-buffer)))
       (when dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer))
+      ;; Since we did not search for a tree root, some things may not work from the diff buffer.
       (dvc-show-changes-buffer output 'bzr-parse-diff buffer))))
 
 (defun bzr-changes-save-as-patch (file-name
