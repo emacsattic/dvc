@@ -101,8 +101,8 @@ Commands:
 (defvar dvc-pre-commit-window-configuration nil)
 
 ;;;###autoload
-(defun dvc-dvc-log-edit (other-frame no-init)
-  "Edit the log file before a commit.
+(defun dvc-dvc-log-edit (root other-frame no-init)
+  "Edit the log file for tree ROOT before a commit.
 
 OTHER_FRAME if non-nil puts log edit buffer in a separate frame.
 NO-INIT if non-nil suppresses initialization of the buffer if one
@@ -119,7 +119,9 @@ is reused."
         (set-visited-file-name file-name t t)
         (when (and (= (point-min) (point-max)) (file-readable-p file-name))
           (insert-file-contents file-name)
-          (set-buffer-modified-p nil))
+          (set-buffer-modified-p nil)
+          ;; `insert-file-contents' modifies default-directory
+          (setq default-directory root))
         (rename-buffer buffer-name))
       (dvc-log-edit-mode)
       (set (make-local-variable 'dvc-partner-buffer) start-buffer))))
