@@ -42,8 +42,6 @@
 ;;;###autoload
 (defalias 'xgit-dvc-command-version 'xgit-command-version)
 
-(defalias 'xgit-dvc-diff 'xgit-diff)
-
 (defalias 'xgit-dvc-delta 'xgit-delta)
 
 (defun xgit-dvc-log-edit-file-name-func ()

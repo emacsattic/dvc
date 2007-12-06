@@ -239,7 +239,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                                                   (capture buffer))))))
 
 ;;;###autoload
-(defun xhg-diff (&optional base-rev path dont-switch)
+(defun xhg-dvc-diff (&optional base-rev path dont-switch)
   "Run hg diff.
 If DONT-SWITCH, don't switch to the diff buffer"
   (interactive (list nil nil current-prefix-arg))
