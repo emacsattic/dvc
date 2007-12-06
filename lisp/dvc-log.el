@@ -49,6 +49,10 @@
 
 (defvar dvc-log-edit-flush-prefix "## ")
 
+(defvar dvc-log-edit-file-list-marker
+  "--This line, and those below, will be ignored--"
+  "A marker separating the actual log message from the list of files to commit.")
+
 (defvar dvc-log-edit-init-functions (make-hash-table :test 'equal)
   "A hash table that holds the mapping from work directory roots to
 functions that provide the initial content for a commit.")
