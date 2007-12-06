@@ -1039,7 +1039,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
     (goto-line line)))
 
 (defconst bzr-annon-parse-re
-  "^\\([^ ]*\\) \\([^ ]*\\) \\([0-9]\\{4\\}\\)\\([0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)[ ]+|")
+  "^\\([^ ]*\\)[ ]+\\([^ ]*\\)[ ]+\\([0-9]\\{4\\}\\)\\([0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)[ ]+|")
 
 (defun bzr-annotate-time ()
   (interactive)
@@ -1049,9 +1049,9 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
 	(let* ((year  (string-to-number (match-string 3)))
 	       (month  (string-to-number (match-string 4)))
 	       (day  (string-to-number (match-string 5)))
-	       )
-	  (dvc-annotate-convert-time
-	   (encode-time 1 1 1 day month  year ))))))
+	       (ct   ( dvc-annotate-convert-time
+		       (encode-time 1 1 1 day month  year ))))
+	  ct))))
 
 (define-derived-mode  bzr-annotate-mode fundamental-mode "bzr-annotate"
   "Major mode to display bzr annotate output.
