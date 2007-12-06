@@ -183,31 +183,28 @@ Otherwise return the buffer file name."
 ;;;###autoload
 (defun dvc-current-file-list (&optional selection-mode)
   "Return a list of currently active files.
-
-The following sources are tried (in that order) and used if they are non nil:
-
-* `dvc-buffer-marked-file-list'
-* When in dired mode, return the marked files or the file where point is
-* SELECTION-MODE provides a way to select the file list that should be returned.
-  - When SELECTION-MODE is 'nil-if-none-marked, return nil, if no files are explicitely marked.
-  - When SELECTION-MODE is 'all-if-none-marked, return all files from that buffer.
-* Otherwise call the function `dvc-get-file-info-at-point'."
+When in dired mode, return the marked files or the file under point.
+In a DVC mode, return `dvc-buffer-marked-file-list' if non-nil;
+otherwise the result depends on SELECTION-MODE:
+* When 'nil-if-none-marked, return nil.
+* When 'all-if-none-marked, return all files.
+* Otherwise return result of calling `dvc-get-file-info-at-point'."
   (cond
    ((eq major-mode 'dired-mode)
     (dired-get-marked-files))
 
    ((eq major-mode 'dvc-diff-mode)
-    (cond
-     ((eq selection-mode 'nil-if-none-marked)
-      (remove nil dvc-buffer-marked-file-list))
+    (or (remove nil dvc-buffer-marked-file-list)
+        (cond
+         ((eq selection-mode 'nil-if-none-marked)
+          nil)
 
-     ((eq selection-mode 'all-if-none-marked)
-      (or dvc-buffer-marked-file-list
-          (dvc-diff-all-files)))
+         ((eq selection-mode 'all-if-none-marked)
+          (dvc-diff-all-files))
 
-     (t (list (dvc-get-file-info-at-point)))))
+         (t (list (dvc-get-file-info-at-point))))))
 
-  (t (list (dvc-get-file-info-at-point)))))
+   (t (list (dvc-get-file-info-at-point)))))
 
 (defun dvc-confirm-read-file-name (prompt &optional mustmatch file-name default-filename)
   "A wrapper around `read-file-name' that provides some useful defaults."
