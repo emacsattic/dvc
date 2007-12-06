@@ -123,6 +123,10 @@
                  :signed not-yet
                  :contacted email-invalid
                  :mail-addresses "christopher.grayb#mail.mcgill.ca")
+    (contributor :signed "Bojan Nikolic"
+                 :signed in-progress
+                 :contacted yes
+                 :mail-addresses "bojan#bnikolic.co.uk")
     ;;
     ;; ADD YOUR NAME HERE.
     ;;
