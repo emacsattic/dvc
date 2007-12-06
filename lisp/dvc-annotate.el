@@ -53,7 +53,6 @@
 ;;     -. Changed (vc-call-backend ...) to use static values defined
 ;;        in below.
 
-(defalias 'dvc-annotate-time 'xgit-annotate-time)
 (defalias 'dvc-annotate-current-time 'dvc-default-annotate-current-time)
 
 ;;
@@ -255,5 +254,8 @@ The annotations are relative to the current time, unless overridden by OFFSET."
 	(put-text-property point (point) 'face face)))
     ;; Pretend to font-lock there were no matches.
     nil))
+
+(defun dvc-annotate-time ()
+  (dvc-call "dvc-annotate-time"  ))
 
 (provide 'dvc-annotate)

@@ -32,6 +32,7 @@
 (require 'dvc-core)
 (require 'dvc-defs)
 (require 'dvc-revlist)
+(require 'dvc-annotate)
 (eval-and-compile (require 'dvc-lisp))
 
 (eval-when-compile (require 'cl))
