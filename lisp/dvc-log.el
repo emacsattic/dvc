@@ -117,18 +117,26 @@ is reused."
     (dvc-switch-to-buffer
      (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit)
      other-frame)
+    ;; `no-init' is somewhat misleading here. It is set to t in
+    ;; dvc-add-log-entry, and nil in dvc-log-edit. That prevents
+    ;; changing dvc-partner-buffer when we shouldn't. But the user
+    ;; might call dvc-log-edit multiple times from the same diff or
+    ;; status buffer, and expect edits in the log-edit buffer to be
+    ;; preserved.
     (unless no-init
       (let ((buffer-name (buffer-name))
             (file-name (dvc-log-edit-file-name)))
         (set-visited-file-name file-name t t)
+        ;; `set-visited-file-name' modifies default-directory
+        (setq default-directory root)
+        ;; Read in the current log file, unless the user has already
+        ;; edited the buffer.
         (when (and (= (point-min) (point-max)) (file-readable-p file-name))
           (insert-file-contents file-name)
-          (set-buffer-modified-p nil)
-          ;; `insert-file-contents' modifies default-directory
-          (setq default-directory root))
-        (rename-buffer buffer-name))
-      (dvc-log-edit-mode)
-      (set (make-local-variable 'dvc-partner-buffer) start-buffer))))
+          (set-buffer-modified-p nil))
+        (rename-buffer buffer-name)
+        (setq dvc-partner-buffer start-buffer)
+        (dvc-log-edit-mode)))))
 
 (defun dvc-log-edit-abort ()
   "Abort the current log edit."

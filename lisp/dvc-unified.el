@@ -258,10 +258,14 @@ reused."
       (0 ;; Need to create a new log-edit buffer
          (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
 
-      (1 ;; Just reuse the buffer. Switch to it first so
-         ;; dvc-buffer-current-active-dvc is set.
-       (set-buffer (nth 1 (car log-edit-buffers)))
-       (dvc-call "dvc-log-edit" default-directory other-frame no-init))
+      (1 ;; Just reuse the buffer. We want to use
+         ;; dvc-buffer-current-active-dvc from that buffer for this
+         ;; dvc-call, but we can't switch to it first, because
+         ;; dvc-log-edit needs the current buffer to set
+         ;; dvc-partner-buffer.
+       (let ((dvc-temp-current-active-dvc
+              (with-current-buffer (nth 1 (car log-edit-buffers)) dvc-buffer-current-active-dvc)))
+         (dvc-call "dvc-log-edit" default-directory other-frame no-init)))
 
       (t ;; multiple matching buffers
        (if dvc-buffer-current-active-dvc

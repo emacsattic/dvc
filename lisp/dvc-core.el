@@ -320,8 +320,10 @@ This uses `dvc-current-active-dvc'.
 
 ;; partner buffer stuff
 (defvar dvc-partner-buffer nil
-  "DVC Partner buffer; stores diff buffer for log-edit, etc. Must
-  be local to each buffer.")
+  "DVC Partner buffer; stores diff buffer for log-edit, etc.
+Local to each buffer, not killed by kill-all-local-variables.")
+(make-variable-buffer-local 'dvc-partner-buffer)
+(put 'dvc-partner-buffer 'permanent-local t)
 
 (defun dvc-buffer-pop-to-partner-buffer ()
   "Pop to dvc-partner-buffer, if available."
