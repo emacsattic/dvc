@@ -49,6 +49,7 @@
   (require 'font-lock)
   (require 'add-log)
   (require 'ffap)
+  (require 'dvc-log)
   (require 'dvc-utils)
   (require 'dvc-core)
   (require 'dvc-ui)
