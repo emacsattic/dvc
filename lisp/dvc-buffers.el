@@ -182,7 +182,7 @@ See also `dvc-get-buffer'"
       return-buffer)))
 
 (defun dvc-get-matching-buffers (dvc type path)
-  "Return the list of all buffers in dvc-buffers-tree matching DVC, TYPE, PATH.
+  "Return the list of all dvc-buffers-tree entries matching DVC, TYPE, PATH.
 
 If DVC is nil, it matches any back-end. TYPE must match exactly.
 PATH matches if the entry in dvc-buffers-tree is a prefix of
