@@ -168,9 +168,7 @@ See also `dvc-get-buffer'"
                           (let ((default-directory
                                   (or (file-name-directory path)
                                       default-directory)))
-                            (generate-new-buffer
-                             (or name (concat "*" (symbol-name dvc)
-                                              "-buffer*")))))))
+                            (generate-new-buffer name)))))
                    (with-current-buffer buffer
                      (if (featurep 'xemacs)
                          (dvc-install-buffer-menu))
@@ -403,10 +401,10 @@ Depends on the value of `dvc-switch-to-buffer-first'.
 When SETUP-AS-PARTNER, set the `dvc-partner-buffer' variable in BUFFER to current-buffer and vice versa."
   ;; (message "dvc-switch-to-buffer-maybe, curr-buff: %s switch-to: %s" (current-buffer) buffer)
   (when setup-as-partner
-    (set (make-local-variable 'dvc-partner-buffer) buffer)
+    (setq dvc-partner-buffer buffer)
     (let ((cur-buff (current-buffer)))
       (with-current-buffer buffer
-        (set (make-local-variable 'dvc-partner-buffer) cur-buff))))
+        (setq dvc-partner-buffer cur-buff))))
   (if dvc-switch-to-buffer-first
       (dvc-switch-to-buffer buffer)
     (set-buffer buffer)))

@@ -8265,13 +8265,12 @@ If used with a prefix arg ARG, don't include the diffs from the output."
          (revision (tla--name-construct full)))
     (tla-get-changeset revision t nil arg)
 
-    ;; setup the dvc-partner-buffer stuff
-    (set (make-local-variable 'dvc-partner-buffer)
+    (setq dvc-partner-buffer
          (dvc-get-buffer-create tla-arch-branch
                                  'changeset revision))
     (dvc-trace "before with. dvc-partner-buffer=%S" dvc-partner-buffer)
     (with-current-buffer dvc-partner-buffer
-      (set (make-local-variable 'dvc-partner-buffer) cur-buf))
+      (setq dvc-partner-buffer cur-buf))
 
     (when (or (dvc-do-in-xemacs (setq window-conf t)
                 window-conf ;; we use window-conf only to get rid of warnings
