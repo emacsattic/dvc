@@ -561,11 +561,20 @@ directory."
          (prompt (or prompt "Use directory: ")))
     (case dvc-read-project-tree-mode
       (always (dvc-tree-root (dvc-read-directory-name prompt)))
-      (unless-specified (if directory root (dvc-read-directory-name prompt)))
+
+      (unless-specified
+       (if directory
+           (if root
+               root
+             (error "%s directory is not a DVC managed directory" directory))
+         (dvc-read-directory-name prompt)))
+
       (sometimes (or root
                      (dvc-tree-root (dvc-read-directory-name prompt))))
+
       (never (or root
-                 (error "Not in a project tree")))
+                 (error "%s directory is not a DVC managed directory" directory)))
+
       (t (error "`%s': wrong value for dvc-read-project-tree-mode" dvc-read-project-tree-mode)))))
 
 (defun dvc-generic-refresh ()

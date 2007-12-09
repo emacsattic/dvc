@@ -64,7 +64,7 @@
   (interactive)
   (tla-update default-directory))
 
-(defun tla-dvc-log-edit (&optional other-frame no-init)
+(defun tla-dvc-log-edit (&optional root other-frame no-init)
   (interactive "P")
   (tla-edit-log (not no-init) (current-buffer) other-frame))
 

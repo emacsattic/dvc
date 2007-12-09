@@ -62,7 +62,6 @@ to (dvc-current-file-list)."
   (when (setq files (dvc-confirm-file-op "remove" files t))
     (dvc-apply "dvc-remove-files" files)))
 
-;;;###autoload
 (defun dvc-remove-optional-args (spec &rest args)
   "Process ARGS, removing those that come after the &optional keyword
 in SPEC if they are nil, returning the result."
@@ -105,7 +104,7 @@ PATH defaults to `default-directory'.
 The new buffer is always displayed; if DONT-SWITCH is nil, select it."
   (interactive)
   (let ((default-directory
-          (dvc-read-project-tree-maybe "DVC status (directory): "
+          (dvc-read-project-tree-maybe "DVC diff (directory): "
                                        (when path (expand-file-name path)))))
     (setq base-rev (or base-rev
                        ;; Allow back-ends to override this for e.g. git,
@@ -211,11 +210,10 @@ Use `dvc-log' for the brief log."
 When called interactively, print a message including the tree root and
 the current active back-end."
   (interactive)
-  ;; FIXME: this ignores dvc-buffer-current-active-dvc and
-  ;; dvc-temp-current-active-dvc; should use dvc-current-active-dvc
-  ;; (or parts of it). This only matters when one directory is under
-  ;; more than one CM tool, and they have different roots.
-  (let ((dvc-list (append dvc-select-priority dvc-registered-backends))
+  (let ((dvc-list (or
+                   (when dvc-temp-current-active-dvc (list dvc-temp-current-active-dvc))
+                   (when dvc-buffer-current-active-dvc (list dvc-buffer-current-active-dvc))
+                   (append dvc-select-priority dvc-registered-backends)))
         (root "/")
         (dvc)
         (tree-root-func)
@@ -258,12 +256,16 @@ reused."
   (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
     (case (length log-edit-buffers)
       (0 ;; Need to create a new log-edit buffer
-         (dvc-call "dvc-log-edit" other-frame nil))
+         (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
 
-      (1 ;; Just reuse the buffer. Switch to it first so
-         ;; dvc-buffer-current-active-dvc is set.
-       (set-buffer (nth 1 (car log-edit-buffers)))
-       (dvc-call "dvc-log-edit" other-frame no-init))
+      (1 ;; Just reuse the buffer. We want to use
+         ;; dvc-buffer-current-active-dvc from that buffer for this
+         ;; dvc-call, but we can't switch to it first, because
+         ;; dvc-log-edit needs the current buffer to set
+         ;; dvc-partner-buffer.
+       (let ((dvc-temp-current-active-dvc
+              (with-current-buffer (nth 1 (car log-edit-buffers)) dvc-buffer-current-active-dvc)))
+         (dvc-call "dvc-log-edit" default-directory other-frame no-init)))
 
       (t ;; multiple matching buffers
        (if dvc-buffer-current-active-dvc
