@@ -1039,7 +1039,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
     (goto-line line)))
 
 (defconst bzr-annon-parse-re
-  "^\\([^ ]*\\)[ ]+\\([^ ]*\\)[ ]+\\([0-9]\\{4\\}\\)\\([0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)[ ]+|")
+  "^\\(\\S-*\\)\\s-+\\(\\S-*\\)\\s-+\\([0-9]\\{4\\}\\)\\([0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)\\s-+|")
 
 (defun bzr-annotate-time ()
   (interactive)
