@@ -255,17 +255,36 @@ reused."
   ;; prompt).
   (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
     (case (length log-edit-buffers)
-      (0 ;; Need to create a new log-edit buffer
-         (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
+      (0 ;; Need to create a new log-edit buffer. In the log-edit
+         ;; buffer, dvc-partner-buffer must be set to a dvc-diff or
+         ;; dvc-status buffer. So if we are not currently in one of
+         ;; those, find one.
+       (let ((diff-status-buffers
+              (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory))))
+         (case (length diff-status-buffers)
+           (0 (error "Must have a DVC diff or status buffer before calling dvc-log-edit"))
+           (1
+            (with-current-buffer (nth 1 (car diff-status-buffers))
+              (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil)))
 
-      (1 ;; Just reuse the buffer. We want to use
-         ;; dvc-buffer-current-active-dvc from that buffer for this
-         ;; dvc-call, but we can't switch to it first, because
-         ;; dvc-log-edit needs the current buffer to set
+           (t ;; multiple; give up. IMPROVEME: could prompt
+            (if dvc-buffer-current-active-dvc
+                (error "More than one dvc-diff or dvc-status buffer for %s in %s; can't tell which to use. Please close some."
+                       dvc-buffer-current-active-dvc default-directory)
+              (error "More than one dvc-diff or dvc-status buffer for %s; can't tell which to use. Please close some."
+                     default-directory))))))
+
+      (1 ;; Just reuse the buffer. In this call, we can't use
+         ;; dvc-buffer-current-active-dvc from the current buffer,
+         ;; because it might be nil (if we are in a source buffer). We
+         ;; want to use dvc-buffer-current-active-dvc from that buffer
+         ;; for this dvc-call, but we can't switch to it first,
+         ;; because dvc-log-edit needs the current buffer to set
          ;; dvc-partner-buffer.
        (let ((dvc-temp-current-active-dvc
               (with-current-buffer (nth 1 (car log-edit-buffers)) dvc-buffer-current-active-dvc)))
-         (dvc-call "dvc-log-edit" default-directory other-frame no-init)))
+         (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame no-init)))
 
       (t ;; multiple matching buffers
        (if dvc-buffer-current-active-dvc
