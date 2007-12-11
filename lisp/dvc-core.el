@@ -204,7 +204,15 @@ otherwise the result depends on SELECTION-MODE:
 
          (t (list (dvc-get-file-info-at-point))))))
 
-   (t (list (dvc-get-file-info-at-point)))))
+   (t
+    ;; Some other mode. We assume it has no notion of "marked files",
+    ;; so there are none marked. The only file name available is
+    ;; buffer-file-name, so we could just return that. But some DVC
+    ;; mode might set dvc-get-file-info-at-point-function without
+    ;; updating this function, so support that.
+    (if (eq selection-mode 'nil-if-none-marked)
+        nil
+      (list (dvc-get-file-info-at-point))))))
 
 (defun dvc-confirm-read-file-name (prompt &optional mustmatch file-name default-filename)
   "A wrapper around `read-file-name' that provides some useful defaults."
@@ -229,10 +237,28 @@ otherwise the result depends on SELECTION-MODE:
        (and (y-or-n-p (format prompt num-files))
             files)))))
 
+(defcustom dvc-confirm-file-op-method 'y-or-n-p
+  "Function to use for confirming file-based DVC operations.
+Some valid options are:
+y-or-n-p: Prompt for 'y' or 'n' keystroke.
+yes-or-no-p: Prompt for \"yes\" or \"no\" string.
+dvc-always-true: Do not display a prompt."
+  :type 'function
+  :group 'dvc)
+
+(defun dvc-always-true (&rest ignore)
+  "Do nothing and return t.
+This function accepts any number of arguments, but ignores them."
+  (interactive)
+  t)
+
 (defun dvc-confirm-file-op (operation files confirm)
   "Confirm OPERATION (a string, used in prompt) on FILE (list of strings).
 If CONFIRM is nil, just return FILES (no prompt).
-Returns FILES, or nil if not confirmed."
+Returns FILES, or nil if not confirmed.
+
+If you want to adjust the function called to confirm the
+operation, then customize the `dvc-confirm-file-op-method' function."
   (or
    ;; Allow bypassing confirmation with `dvc-test-mode'. See
    ;; tests/xmtn-tests.el dvc-status-add.
@@ -241,14 +267,16 @@ Returns FILES, or nil if not confirmed."
    (if (not confirm)
        files
      (let ((nfiles (length files)))
-       (if (yes-or-no-p
-            (if (= 1 nfiles)
-                (format "%s file: \"%s\" ? "
-                        operation
-                        (car files))
-              (format "%s %d files? "
-                      operation
-                      nfiles)))
+       (if (funcall (or (and (functionp dvc-confirm-file-op-method)
+                             dvc-confirm-file-op-method)
+                        'y-or-n-p)
+                    (if (= 1 nfiles)
+                        (format "%s file: \"%s\" ? "
+                                operation
+                                (car files))
+                      (format "%s %d files? "
+                              operation
+                              nfiles)))
            files
          nil)))))
 
