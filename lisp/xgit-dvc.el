@@ -108,5 +108,7 @@ ARG is passed as prefix argument"
 
 (defalias 'xgit-dvc-last-revision 'xgit-last-revision)
 
+(defalias 'xgit-dvc-annotate-time 'xgit-annotate-time)
+
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here

@@ -32,6 +32,7 @@
 (require 'dvc-core)
 (require 'dvc-defs)
 (require 'dvc-revlist)
+(require 'dvc-annotate)
 (eval-and-compile (require 'dvc-lisp))
 
 (eval-when-compile (require 'cl))
@@ -1023,7 +1024,8 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
                               (erase-buffer)
                               (setq truncate-lines t)
                               (insert-buffer-substring output)
-                              (goto-char (point-min)))))))))
+                              (goto-char (point-min))
+                              (bzr-annotate-mode))))))))
 
 (defun bzr-annotate ()
   "Run bzr annotate"
@@ -1032,6 +1034,28 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
          (filename (dvc-confirm-read-file-name "Filename to annotate: ")))
     (bzr-do-annotate filename)
     (goto-line line)))
+
+(defconst bzr-annon-parse-re
+  "^\\(\\S-*\\)\\s-+\\(\\S-*\\)\\s-+\\([0-9]\\{4\\}\\)\\([0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)\\s-+|")
+
+(defun bzr-annotate-time ()
+  (interactive)
+  (when (< (point) (point-max))
+    (beginning-of-line)
+    (if (re-search-forward bzr-annon-parse-re nil t)
+        (let* ((year (string-to-number (match-string 3)))
+               (month (string-to-number (match-string 4)))
+               (day (string-to-number (match-string 5)))
+               (ct (dvc-annotate-convert-time
+                    (encode-time 1 1 1 day month year))))
+          ct))))
+
+(define-derived-mode  bzr-annotate-mode fundamental-mode "bzr-annotate"
+  "Major mode to display bzr annotate output."
+  (dvc-annotate-display-autoscale t)
+  (dvc-annotate-lines (point-max))
+  ;(xgit-annotate-hide-revinfo)
+  (toggle-read-only 1))
 
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
