@@ -325,12 +325,11 @@ the file before saving."
   (dvc-log-flush-commit-file-list))
 
 ;;;###autoload
-(defun xmtn-dvc-log-edit (&optional other-frame no-init)
+(defun xmtn-dvc-log-edit (root other-frame no-init)
   (if no-init
-      (dvc-dvc-log-edit other-frame no-init)
+      (dvc-dvc-log-edit root other-frame no-init)
     (progn
-      (dvc-dvc-log-edit other-frame nil)
-      (dvc-log-flush-commit-file-list)
+      (dvc-dvc-log-edit root other-frame nil)
       (setq buffer-file-coding-system 'xmtn--monotone-normal-form) ;; FIXME: move this into dvc-get-buffer-create?
       (add-to-list 'buffer-file-format 'xmtn--log-file) ;; FIXME: generalize to dvc--log-file
       )))
@@ -558,9 +557,8 @@ the file before saving."
         (let ((rev-specs
                `(,(xmtn-match from-resolved
                     ((local-tree $path)
-                     ;; FROM-REVISION-ID is not a committed revision, but the
-                     ;; workspace.  mtn diff can't directly handle
-                     ;; this case.
+                     ;; FROM-REVISION-ID is the workspace. mtn diff
+                     ;; can't handle this case.
                      (error "not implemented"))
 
                     ((revision $hash-id)
@@ -1559,6 +1557,7 @@ finished."
                                    attrs)))))))))
 
 (defstruct (xmtn--revision (:constructor xmtn--make-revision))
+  ;; matches data output by 'mtn diff'
   new-manifest-hash-id
   old-revision-hash-ids
   delete
@@ -1667,11 +1666,6 @@ finished."
      :set-attr set-attr
      )))
 
-
-;;;###autoload
-(defun xmtn-dvc-file-diff (&rest args)
-  ;; There is a reasonable default implementation to fall back on.
-  (apply #'dvc-dvc-file-diff args))
 
 ;;;###autoload
 (defun xmtn-dvc-revision-nth-ancestor (&rest args)
