@@ -274,7 +274,7 @@ TODO: just revision number and last:N are implemented.
 (defun bzr-diff-against (against &optional path dont-switch)
   "Run \"bzr diff\" against a particular revision.
 
-Same as `bzr-diff', but the interactive prompt is different."
+Same as `bzr-dvc-diff', but the interactive prompt is different."
   (interactive
    (let ((root (bzr-tree-root)))
      (list (bzr-revisionspec-to-rev
@@ -285,10 +285,10 @@ Same as `bzr-diff', but the interactive prompt is different."
   (bzr-diff against path dont-switch))
 
 ;;;###autoload
-(defun bzr-diff (&optional against path dont-switch)
+(defun bzr-dvc-diff (&optional against path dont-switch)
   "Run \"bzr diff\".
 
-AGAINST must be a revision specifier (number, last:N,
+AGAINST must be a DVC revision id ('bzr number, last:N,
 revid:foobar, ...).
 
 TODO: DONT-SWITCH is currently ignored."
@@ -459,7 +459,6 @@ of the commit. Additionally the destination email address can be specified."
     (dvc-switch-to-buffer-maybe buffer)
     (dvc-buffer-push-previous-window-config window-conf)
     (setq dvc-buffer-refresh-function 'bzr-dvc-status)
-    (dvc-save-some-buffers root)
     (dvc-run-dvc-async
      'bzr '("status")
      :finished
@@ -1012,15 +1011,14 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
 
 (defun bzr-do-annotate (file)
   "Annote the FILE"
-  
-  (let*((file    (expand-file-name file))
-	(abuffer (dvc-get-buffer-create 'bzr 'annotate))
-	(args    (list "annotate" "--all" "--long" file)))
+  (let* ((file (expand-file-name file))
+         (abuffer (dvc-get-buffer-create 'bzr 'annotate))
+         (args (list "annotate" "--all" "--long" file)))
     (dvc-switch-to-buffer-maybe abuffer)
     (dvc-run-dvc-sync 'bzr args
-		      :finished
+                      :finished
                       (dvc-capturing-lambda (output error status arguments)
-			(progn
+                        (progn
                           (with-current-buffer (capture abuffer)
                             (let ((inhibit-read-only t))
 			      (erase-buffer)
@@ -1035,7 +1033,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   (interactive)
   (let* ((line (dvc-line-number-at-pos))
          (filename (dvc-confirm-read-file-name "Filename to annotate: ")))
-    (bzr-do-annotate  filename)
+    (bzr-do-annotate filename)
     (goto-line line)))
 
 (defconst bzr-annon-parse-re

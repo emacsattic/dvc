@@ -305,6 +305,11 @@ Commands:
       (dvc-diff dvc-diff-base)
     (error "Don't know how to refresh buffer")))
 
+(defun dvc-diff-in-ewoc-p ()
+  "Return non-nil if in ewoc section of diff buffer."
+  (let ((elem (ewoc-locate dvc-diff-cookie)))
+    (>= (ewoc-location elem) (line-beginning-position))))
+
 (defun dvc-diff-jump-to-change (&optional other-file)
   "Jump to the corresponding file and location of the change.
 OTHER-FILE (default prefix) if non-nil means visit the original
@@ -315,7 +320,8 @@ file; otherwise visit the modified file."
     (cond ((< (ewoc-location elem) (line-beginning-position))
            (dvc-diff-diff-goto-source other-file))
           ((eq (car data) 'file)
-           (find-file (cadr data)))
+           (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc)))
+             (find-file (cadr data))))
           ((eq (car data) 'subtree)
            (dvc-switch-to-buffer (cadr data)))
           (t (error "Not on a recognized location")))))
@@ -324,7 +330,7 @@ file; otherwise visit the modified file."
   "If file-diff buffer is visible, scroll. Otherwise, show it."
   (let ((file (dvc-get-file-info-at-point)))
     (unless file
-      (error "No file info at point."))
+      (error "No file at point."))
     ;; TODO
     (let ((buffer (dvc-get-buffer dvc-buffer-current-active-dvc 'file-diff file)))
       (unless (tla--scroll-maybe buffer up-or-down)
@@ -375,10 +381,7 @@ if IMMEDIATE is non-nil, refresh the display too."
                    (not (eq (car elem) 'message))))))
 
 (defun dvc-diff-diff-or-list ()
-  "Move around the changes buffer.
-When in the list part of the buffer, jump to the corresponding
-patch. When on a patch, jump to the corresponding entry in the list of
-files."
+  "Jump between list entry and corresponding diff hunk."
   (interactive)
   (let* ((elem (ewoc-locate dvc-diff-cookie))
          (data (ewoc-data elem)))
@@ -478,7 +481,7 @@ a 'file."
       (error "Not on a modified file"))))
 
 (defun dvc-diff-next ()
-  "Move to the next status line or diff hunk."
+  "Move to the next list line or diff hunk."
   (interactive)
   (let ((cur-location (ewoc-location (ewoc-locate dvc-diff-cookie)))
         (next (ewoc-next dvc-diff-cookie
@@ -492,7 +495,7 @@ a 'file."
       (diff-hunk-next)))))
 
 (defun dvc-diff-prev ()
-  "Move to the previous status line or diff hunk."
+  "Move to the previous list line or diff hunk."
   (interactive)
   (let* ((current (ewoc-locate dvc-diff-cookie))
          (cur-location (ewoc-location current))
@@ -510,12 +513,6 @@ a 'file."
            (goto-char cur-location)))
     ))
 
-;; TODO make this generic
-(defun tla--changes-in-diff ()
-  "Return t if cursor is in the diffs section of the changes buffer."
-  (save-excursion (re-search-backward "^--- " nil t)))
-
-
 (defun dvc-diff-ediff ()
   "Run ediff on the current changes."
   (interactive)
@@ -524,7 +521,9 @@ a 'file."
     (error "No revision information to base ediff on"))
   (let ((on-modified-file (dvc-get-file-info-at-point))
         (loc (point)))
-    (if (and on-modified-file (not (tla--changes-in-diff)))
+
+    (if (and on-modified-file
+             (dvc-diff-in-ewoc-p))
         ;; on ewoc item; just ediff
         (dvc-file-ediff-revisions on-modified-file
                                   dvc-diff-base
@@ -575,6 +574,18 @@ Throw an error when not on a file."
                                      default-directory)
                                     (dvc-diff-find-file-name)))))))
 
+(defun dvc-diff-all-files ()
+  "Return list of all files in file list"
+  (let (result)
+    (ewoc-map
+     (lambda (elem)
+       (when (eq (car elem) 'file)
+         ;; we use 'add-to-list', because some back-ends put files in the ewoc more than once
+         (add-to-list 'result (cadr elem)))
+       nil)
+     dvc-diff-cookie)
+    result))
+
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
 `dvc-show-changes-buffer' (defined with a (let ...) in
@@ -585,32 +596,32 @@ This is just a lint trap.")
 (defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch
                                        header-end-regexp cmd)
-  ;; FIXME: pass in dvc?
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
+default-directory of process buffer must be a tree root.
 
 PARSER is a function to parse the diff and fill in the ewoc list.
 
-Display changes in OUTPUT-BUFFER if non-nil; otherwise create a
-new display buffer.
+Display changes in OUTPUT-BUFFER (must be non-nil; create with
+dvc-prepare-changes-buffer).
 
 If NO-SWITCH is nil, don't switch to the created buffer.
 
 If non-nil, HEADER-END-REGEXP is a regexp matching the first line
 which is not part of the diff header."
-  (let* ((root (with-current-buffer buffer
-                 (dvc-tree-root default-directory t)))
+  ;; We assume default-directory is correct, rather than calling
+  ;; dvc-tree-root, because dvc-tree-root might prompt if there is
+  ;; more than one back-end present. Similarly, we assume
+  ;; output-buffer is created, to avoid calling dvc-current-active-dvc
+  ;; for dvc-get-buffer-create.
+  (let* ((root (with-current-buffer buffer default-directory))
          (dvc (dvc-current-active-dvc))
-         (changes-buffer (or output-buffer
-                             (dvc-get-buffer-create dvc 'diff root)))
+         (changes-buffer output-buffer)
          (dvc-header ""))
     (if (or no-switch dvc-switch-to-buffer-first)
         (set-buffer changes-buffer)
       (dvc-switch-to-buffer changes-buffer))
     (let (buffer-read-only)
       (dvc-diff-delete-messages)
-      (unless output-buffer
-        (erase-buffer)
-        (funcall (dvc-function dvc "diff-mode")))
       (with-current-buffer buffer
         (goto-char (point-min))
         (when cmd
@@ -702,28 +713,21 @@ of the process that raised an error."
     (recenter))
   (message msg))
 
-(defun dvc-diff-clear-buffers (dvc dir mesg)
-  "Clears all DVC diff buffers in directory DIR, insert message MSG.
-
-Usefull to clear diff buffers after a commit."
-  (dvc-trace "dvc-diff-clear-buffers (%S %S)"
-              dir mesg)
-  (dolist (buffer (list (dvc-get-buffer
-                         dvc 'diff
-                         (dvc-tree-root dir))
-                        (dvc-get-buffer
-                         dvc 'status
-                         (dvc-tree-root dir))))
-    (dvc-trace "buffer=%S" buffer)
+(defun dvc-diff-clear-buffers (dvc root msg)
+  "Clears all DVC diff and status buffers with root ROOT, insert message MSG.
+Useful to clear diff buffers after a commit."
+  (dvc-trace "dvc-diff-clear-buffers (%S %S)" root msg)
+  ;; Don't need to clear 'revision-diff; that is not changed by a commit
+  (dolist (buffer (list (dvc-get-buffer dvc 'diff root)
+                        (dvc-get-buffer dvc 'status root)))
     (when buffer
+      (dvc-trace "buffer=%S" buffer)
       (with-current-buffer buffer
         (let ((inhibit-read-only t))
           (ewoc-filter dvc-diff-cookie
                        (lambda (x) (eq (car x) 'subtree)))
           (ewoc-set-hf dvc-diff-cookie "" "")
-          (ewoc-enter-first
-           dvc-diff-cookie
-           `(message ,mesg))
+          (ewoc-enter-first dvc-diff-cookie `(message ,msg))
           (ewoc-refresh dvc-diff-cookie))))))
 
 ;;;###autoload
@@ -752,7 +756,9 @@ Usefull to clear diff buffers after a commit."
 
 ;;;###autoload
 (defun dvc-dvc-file-diff (file &optional base modified dont-switch)
-  "Default back-end for `dvc-file-diff'."
+  "Default for back-end-specific file diff. View changes in FILE
+between BASE (default last-revision) and MODIFIED (default
+workspace version)."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
          (modified (or modified `(,dvc (local-tree ,file))))
@@ -803,12 +809,11 @@ quitting."
   ;; ediff-after-quit-hook-internal is local to an ediff session.
   (add-hook 'ediff-after-quit-hook-internal
             (dvc-capturing-lambda ()
-               (set-window-configuration
-                (capture dvc-window-config)))
+              (set-window-configuration (capture dvc-window-config)))
             nil 'local))
 
 (defvar dvc-window-config nil
-  "Used for inter-function communication. Actual value is let-bound.")
+  "Keep byte-compiler happy; declare let-bound variable used by dvc-ediff-startup-hook.")
 
 (defun dvc-ediff-buffers (bufferA bufferB)
   "Wrapper around `ediff-buffers'.
