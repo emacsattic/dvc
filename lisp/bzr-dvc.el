@@ -107,5 +107,7 @@ Usually that file is placed in the tree-root of the working tree.")
 
 (defalias 'bzr-dvc-resolved 'bzr-resolved)
 
+(defalias 'bzr-dvc-annotate-time 'bzr-annotate-time)
+
 (provide 'bzr-dvc)
 ;;; bzr-dvc.el ends here

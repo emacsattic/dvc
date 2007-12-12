@@ -204,7 +204,15 @@ otherwise the result depends on SELECTION-MODE:
 
          (t (list (dvc-get-file-info-at-point))))))
 
-   (t (list (dvc-get-file-info-at-point)))))
+   (t
+    ;; Some other mode. We assume it has no notion of "marked files",
+    ;; so there are none marked. The only file name available is
+    ;; buffer-file-name, so we could just return that. But some DVC
+    ;; mode might set dvc-get-file-info-at-point-function without
+    ;; updating this function, so support that.
+    (if (eq selection-mode 'nil-if-none-marked)
+        nil
+      (list (dvc-get-file-info-at-point))))))
 
 (defun dvc-confirm-read-file-name (prompt &optional mustmatch file-name default-filename)
   "A wrapper around `read-file-name' that provides some useful defaults."
