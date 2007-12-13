@@ -128,6 +128,7 @@ via bzr init-repository."
                      :finished
                      (dvc-capturing-lambda
                          (output error status arguments)
+		       (dvc-revert-some-buffers)
                        (message "bzr pull finished => %s"
                                 (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
@@ -548,6 +549,7 @@ of the commit. Additionally the destination email address can be specified."
     (dvc-run-dvc-sync 'bzr (append '("revert") (mapcar #'file-relative-name files))
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
+				(dvc-revert-some-buffers default-directory)
                                 (message "bzr revert finished")))))
 
 ;;;###autoload
