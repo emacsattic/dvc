@@ -265,8 +265,8 @@ reused."
          (case (length diff-status-buffers)
            (0 (error "Must have a DVC diff or status buffer before calling dvc-log-edit"))
            (1
-            (with-current-buffer (nth 1 (car diff-status-buffers))
-              (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil)))
+            (set-buffer (nth 1 (car diff-status-buffers)))
+            (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
 
            (t ;; multiple; give up. IMPROVEME: could prompt
             (if dvc-buffer-current-active-dvc
