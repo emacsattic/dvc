@@ -1177,9 +1177,7 @@ finished."
            ;; keep it simple for now.
            (error (substitute-command-keys
                    (concat "Branch %s is unmerged (%s heads)."
-                           "  Try \\[xmtn-view-heads-revlist] and"
-                           " \\[xmtn-revlist-update] or"
-                           " \\[xmtn-revlist-explicit-merge]"))
+                           "  Try \\[dvc-log] and \\[dvc-merge]"))
                   branch (length heads)))))))
   nil)
 
