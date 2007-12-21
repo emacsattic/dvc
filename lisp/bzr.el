@@ -562,7 +562,7 @@ of the commit. Additionally the destination email address can be specified."
                                 (message "bzr remove finished"))))
 
 ;;;###autoload
-(defun bzr-rename (from to &optional after)
+(defun bzr-dvc-rename (from to &optional after)
   "Run bzr rename."
   (interactive
    (let* ((from-name (dvc-confirm-read-file-name "bzr rename: "))

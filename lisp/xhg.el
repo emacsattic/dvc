@@ -88,7 +88,7 @@
                                 (message "hg addremove finished"))))
 
 ;;;###autoload
-(defun xhg-rename (from to &optional after force)
+(defun xhg-dvc-rename (from to &optional after force)
   "Run hg rename."
   (interactive
    (let* ((from-name (dvc-confirm-read-file-name "xhg rename: "))
