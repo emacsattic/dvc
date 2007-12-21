@@ -32,6 +32,7 @@
 (require 'dvc-core)
 (require 'dvc-defs)
 (require 'dvc-revlist)
+(require 'dvc-annotate)
 (eval-and-compile (require 'dvc-lisp))
 
 (eval-when-compile (require 'cl))
@@ -127,6 +128,7 @@ via bzr init-repository."
                      :finished
                      (dvc-capturing-lambda
                          (output error status arguments)
+                       (dvc-revert-some-buffers)
                        (message "bzr pull finished => %s"
                                 (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
@@ -547,6 +549,7 @@ of the commit. Additionally the destination email address can be specified."
     (dvc-run-dvc-sync 'bzr (append '("revert") (mapcar #'file-relative-name files))
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
+                                (dvc-revert-some-buffers default-directory)
                                 (message "bzr revert finished")))))
 
 ;;;###autoload
@@ -559,7 +562,7 @@ of the commit. Additionally the destination email address can be specified."
                                 (message "bzr remove finished"))))
 
 ;;;###autoload
-(defun bzr-rename (from to &optional after)
+(defun bzr-dvc-rename (from to &optional after)
   "Run bzr rename."
   (interactive
    (let* ((from-name (dvc-confirm-read-file-name "bzr rename: "))
@@ -1007,6 +1010,55 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
           (insert "# end DVC ignore\n")
           (save-buffer)))
       (kill-buffer buffer))))
+
+(defun bzr-do-annotate (file)
+  "Annote the FILE"
+  (let* ((file (expand-file-name file))
+         (abuffer (dvc-get-buffer-create 'bzr 'annotate))
+         (args (list "annotate" "--all" "--long" file)))
+    (dvc-switch-to-buffer-maybe abuffer)
+    (dvc-run-dvc-sync 'bzr args
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (progn
+                          (with-current-buffer (capture abuffer)
+                            (let ((inhibit-read-only t))
+                              (erase-buffer)
+                              (setq truncate-lines t)
+                              (insert-buffer-substring output)
+                              (goto-char (point-min))
+                              (bzr-annotate-mode))))))))
+
+(defun bzr-annotate ()
+  "Run bzr annotate"
+  (interactive)
+  (let* ((line (dvc-line-number-at-pos))
+         (filename (dvc-confirm-read-file-name "Filename to annotate: ")))
+    (bzr-do-annotate filename)
+    (goto-line line)))
+
+(defconst bzr-annon-parse-re
+  "^\\(\\S-*\\)\\s-+\\(\\S-*\\)\\s-+\\([0-9]\\{4\\}\\)\\([0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)\\s-+|")
+
+(defun bzr-annotate-time ()
+  (interactive)
+  (when (< (point) (point-max))
+    (beginning-of-line)
+    (if (re-search-forward bzr-annon-parse-re nil t)
+        (let* ((year (string-to-number (match-string 3)))
+               (month (string-to-number (match-string 4)))
+               (day (string-to-number (match-string 5)))
+               (ct (dvc-annotate-convert-time
+                    (encode-time 1 1 1 day month year))))
+          ct))))
+
+(define-derived-mode  bzr-annotate-mode fundamental-mode "bzr-annotate"
+  "Major mode to display bzr annotate output."
+  (dvc-annotate-display-autoscale t)
+  (dvc-annotate-lines (point-max))
+  ;(xgit-annotate-hide-revinfo)
+  (toggle-read-only 1))
+
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.

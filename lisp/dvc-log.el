@@ -30,6 +30,11 @@
 (require 'dvc-unified)
 (require 'ediff)
 
+(defcustom dvc-add-log-entry-other-frame nil
+  "If non-nil, dvc-add-log-entry defaults to other-frame."
+  :type 'boolean
+  :group 'dvc)
+
 ;;
 ;; Log edit mode
 ;;
@@ -48,6 +53,10 @@
   "Keywords in dvc-log-edit mode.")
 
 (defvar dvc-log-edit-flush-prefix "## ")
+
+(defvar dvc-log-edit-file-list-marker
+  "--This line, and those below, will be ignored--"
+  "A marker separating the actual log message from the list of files to commit.")
 
 (defvar dvc-log-edit-init-functions (make-hash-table :test 'equal)
   "A hash table that holds the mapping from work directory roots to
@@ -101,8 +110,8 @@ Commands:
 (defvar dvc-pre-commit-window-configuration nil)
 
 ;;;###autoload
-(defun dvc-dvc-log-edit (other-frame no-init)
-  "Edit the log file before a commit.
+(defun dvc-dvc-log-edit (root other-frame no-init)
+  "Edit the log file for tree ROOT before a commit.
 
 OTHER_FRAME if non-nil puts log edit buffer in a separate frame.
 NO-INIT if non-nil suppresses initialization of the buffer if one
@@ -113,16 +122,26 @@ is reused."
     (dvc-switch-to-buffer
      (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit)
      other-frame)
+    ;; `no-init' is somewhat misleading here. It is set to t in
+    ;; dvc-add-log-entry, and nil in dvc-log-edit. That prevents
+    ;; changing dvc-partner-buffer when we shouldn't. But the user
+    ;; might call dvc-log-edit multiple times from the same diff or
+    ;; status buffer, and expect edits in the log-edit buffer to be
+    ;; preserved.
     (unless no-init
       (let ((buffer-name (buffer-name))
             (file-name (dvc-log-edit-file-name)))
         (set-visited-file-name file-name t t)
+        ;; `set-visited-file-name' modifies default-directory
+        (setq default-directory root)
+        ;; Read in the current log file, unless the user has already
+        ;; edited the buffer.
         (when (and (= (point-min) (point-max)) (file-readable-p file-name))
           (insert-file-contents file-name)
           (set-buffer-modified-p nil))
-        (rename-buffer buffer-name))
-      (dvc-log-edit-mode)
-      (set (make-local-variable 'dvc-partner-buffer) start-buffer))))
+        (rename-buffer buffer-name)
+        (setq dvc-partner-buffer start-buffer)
+        (dvc-log-edit-mode)))))
 
 (defun dvc-log-edit-abort ()
   "Abort the current log edit."
@@ -204,14 +223,27 @@ by calling `dvc-log-flush-commit-file-list'."
   "Add new DVC log ChangeLog style entry."
   (interactive "P")
   (save-restriction
-    (dvc-add-log-entry-internal other-frame)))
+    (dvc-add-log-entry-internal (Xor other-frame dvc-add-log-entry-other-frame))))
+
+(defun dvc-add-log-file-name (buffer-file)
+  "Return a file name for a log entry for BUFFER-FILE; including path from tree root.
+For use as add-log-file-name-function."
+  ;; This is better than the default algorithm in add-log-file-name,
+  ;; when the log file is not in the workspace root (as is true for
+  ;; monotone)
+  (if (string-match
+       (concat "^" (regexp-quote (dvc-tree-root)))
+       buffer-file)
+      (substring buffer-file (match-end 0))
+    (file-name-nondirectory buffer-file)))
 
 (defun dvc-ediff-add-log-entry (&optional other-frame)
   "Add new DVC log ChangeLog style entry; intended to be invoked
 from the ediff control buffer."
   (interactive "P")
   (set-buffer ediff-buffer-B) ; DVC puts workspace version here
-  (dvc-add-log-entry-internal other-frame))
+  (let ((add-log-file-name-function 'dvc-add-log-file-name))
+    (dvc-add-log-entry-internal other-frame)))
 
 (defun dvc-add-log-entry-internal (other-frame)
   "Similar to `add-change-log-entry'.

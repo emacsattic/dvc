@@ -49,10 +49,10 @@
   (tla-changes nil))
 
 (defun tla-dvc-file-diff (file &optional base modified dont-switch)
-  ;; FIXIME
-  ;; tla-file-diff expects BASE is a string.
+  ;; FIXME: tla-file-diff expects BASE is a string.
   ;; However, tla-dvc-file-diff receives BASE in a list revision form.
   ;; To fill the gap, nil is passed to. -- Masatake.
+  ;; FIXME: only tla overrides dvc-dvc-file-diff; perhaps it doesn't need to?
   (tla-file-diff file nil modified dont-switch))
 
 (defun tla-dvc-status ()
@@ -64,7 +64,7 @@
   (interactive)
   (tla-update default-directory))
 
-(defun tla-dvc-log-edit (&optional other-frame no-init)
+(defun tla-dvc-log-edit (&optional root other-frame no-init)
   (interactive "P")
   (tla-edit-log (not no-init) (current-buffer) other-frame))
 
@@ -75,9 +75,9 @@
   "Call `tla-remove' to remove a list of files."
   (apply 'tla-remove nil files))
 
-(defun tla-dvc-rename ()
+(defun tla-dvc-rename (from-name to-name bookkeep-only)
   (interactive)
-  (call-interactively 'tla-move))
+  (tla-move from-name to-name bookkeep-only))
 
 (defun tla-dvc-log (arg last-n)
   "Show the log for the current Arch tree."

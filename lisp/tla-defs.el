@@ -1,6 +1,6 @@
 ;;; tla-defs.el --- UI Xtla's element definitions
 
-;; Copyright (C) 2003-2006 by all contributors
+;; Copyright (C) 2003-2007 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -49,6 +49,7 @@
   (require 'font-lock)
   (require 'add-log)
   (require 'ffap)
+  (require 'dvc-log)
   (require 'dvc-utils)
   (require 'dvc-core)
   (require 'dvc-ui)
@@ -1856,10 +1857,6 @@ Hyperlink are sometimes long to set up with large ChangeLogs ..."
 ;; ----------------------------------------------------------------------------
 ;; Font lock keywords
 ;; ----------------------------------------------------------------------------
-
-(defvar dvc-log-edit-file-list-marker
-  "--This line, and those below, will be ignored--"
-  "A marker separating the actual log message from the list of files to commit.")
 
 ;;
 ;; Inventory file mode

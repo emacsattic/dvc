@@ -302,11 +302,10 @@ revision list."
         (setq buffer (dvc-revlist-entry-patch-diff-buffer
                       (nth 1 elem)))
         (dvc-trace "buffer2=%S" buffer))
-      ;; setup the dvc-partner-buffer stuff
       (with-current-buffer buffer
-        (set (make-local-variable 'dvc-partner-buffer) log-buf))
+        (setq dvc-partner-buffer log-buf))
       (pop-to-buffer log-buf)
-      (set (make-local-variable 'dvc-partner-buffer) buffer))))
+      (setq dvc-partner-buffer buffer))))
 
 (defun dvc-revlist-diff-to-current-tree (&optional scroll-down)
   "Show the diff between the revision at point and the local tree."

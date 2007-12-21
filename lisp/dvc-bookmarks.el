@@ -181,7 +181,6 @@ With prefix argument ARG, reload the bookmarks file from disk."
          (ewoc-create (dvc-ewoc-create-api-select
                        #'dvc-bookmarks-printer)))
     (put 'dvc-bookmarks-cookie 'permanent-local t)
-    (put 'dvc-partner-buffer 'permanent-local t)
     (dolist (entry dvc-bookmark-alist)
       (dvc-bookmarks-add-to-cookie entry 0))
     (if (eq major-mode 'dvc-bookmarks-mode)

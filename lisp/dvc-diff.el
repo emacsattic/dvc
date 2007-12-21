@@ -285,8 +285,7 @@ Commands:
 
   (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc))
 
-  (set (make-local-variable 'font-lock-defaults)
-       (list 'tla-changes-font-lock-keywords t nil nil))
+  (setq font-lock-defaults (list 'diff-font-lock-keywords t nil nil))
   (set (make-local-variable 'dvc-get-file-info-at-point-function)
        'dvc-diff-get-file-at-point)
   (setq dvc-buffer-refresh-function 'dvc-diff-generic-refresh)
@@ -573,6 +572,18 @@ Throw an error when not on a file."
           (expand-file-name (concat (file-name-as-directory
                                      default-directory)
                                     (dvc-diff-find-file-name)))))))
+
+(defun dvc-diff-all-files ()
+  "Return list of all files in file list"
+  (let (result)
+    (ewoc-map
+     (lambda (elem)
+       (when (eq (car elem) 'file)
+         ;; we use 'add-to-list', because some back-ends put files in the ewoc more than once
+         (add-to-list 'result (cadr elem)))
+       nil)
+     dvc-diff-cookie)
+    result))
 
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to

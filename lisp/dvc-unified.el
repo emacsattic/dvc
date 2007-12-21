@@ -62,7 +62,6 @@ to (dvc-current-file-list)."
   (when (setq files (dvc-confirm-file-op "remove" files t))
     (dvc-apply "dvc-remove-files" files)))
 
-;;;###autoload
 (defun dvc-remove-optional-args (spec &rest args)
   "Process ARGS, removing those that come after the &optional keyword
 in SPEC if they are nil, returning the result."
@@ -105,7 +104,7 @@ PATH defaults to `default-directory'.
 The new buffer is always displayed; if DONT-SWITCH is nil, select it."
   (interactive)
   (let ((default-directory
-          (dvc-read-project-tree-maybe "DVC status (directory): "
+          (dvc-read-project-tree-maybe "DVC diff (directory): "
                                        (when path (expand-file-name path)))))
     (setq base-rev (or base-rev
                        ;; Allow back-ends to override this for e.g. git,
@@ -189,9 +188,38 @@ Use `dvc-log' for the brief log."
   "Mark FILE as resolved"
   (interactive (list (buffer-file-name))))
 
-(define-dvc-unified-command dvc-rename ()
-  "Rename file from-file-name to to-file-name."
-  (interactive))
+(defun dvc-rename (from-name to-name)
+  "Rename file FROM-NAME to TO-NAME; TO-NAME may be a directory.
+When called non-interactively, if from-file-name does not exist,
+but to-file-name does, just record the rename in the back-end"
+  ;; back-end function <dvc>-dvc-rename (from-name to-name bookkeep-only)
+  ;; If bookkeep-only nil, rename file in filesystem and back-end
+  ;; If non-nil, rename file in back-end only.
+  (interactive
+    (let* ((from-name (dvc-confirm-read-file-name "Rename: " t))
+           (to-name (dvc-confirm-read-file-name
+                     (format "Rename %s to: " from-name)
+                     nil "" from-name)))
+      (list from-name to-name)))
+
+  (if (file-exists-p from-name)
+      (progn
+        ;; rename the file in the filesystem and back-end
+        (if (and (file-exists-p to-name)
+                 (not (file-directory-p to-name)))
+            (error "%s exists and is not a directory" to-name))
+        (when (file-directory-p to-name)
+          (setq to-name (file-name-as-directory to-name)))
+        (dvc-call "dvc-rename" from-name to-name nil))
+
+    ;; rename the file in the back-end only
+      (progn
+        ;; rename the file in the filesystem and back-end
+        (if (not (file-exists-p to-name))
+            (error "%s does not exist" to-name))
+        (when (file-directory-p to-name)
+          (setq to-name (file-name-as-directory to-name)))
+        (dvc-call "dvc-rename" from-name to-name t))))
 
 (defvar dvc-command-version nil)
 ;;;###autoload
@@ -211,11 +239,10 @@ Use `dvc-log' for the brief log."
 When called interactively, print a message including the tree root and
 the current active back-end."
   (interactive)
-  ;; FIXME: this ignores dvc-buffer-current-active-dvc and
-  ;; dvc-temp-current-active-dvc; should use dvc-current-active-dvc
-  ;; (or parts of it). This only matters when one directory is under
-  ;; more than one CM tool, and they have different roots.
-  (let ((dvc-list (append dvc-select-priority dvc-registered-backends))
+  (let ((dvc-list (or
+                   (when dvc-temp-current-active-dvc (list dvc-temp-current-active-dvc))
+                   (when dvc-buffer-current-active-dvc (list dvc-buffer-current-active-dvc))
+                   (append dvc-select-priority dvc-registered-backends)))
         (root "/")
         (dvc)
         (tree-root-func)
@@ -257,13 +284,36 @@ reused."
   ;; prompt).
   (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
     (case (length log-edit-buffers)
-      (0 ;; Need to create a new log-edit buffer
-         (dvc-call "dvc-log-edit" other-frame nil))
+      (0 ;; Need to create a new log-edit buffer. In the log-edit
+         ;; buffer, dvc-partner-buffer must be set to a dvc-diff or
+         ;; dvc-status buffer. So if we are not currently in one of
+         ;; those, find one.
+       (let ((diff-status-buffers
+              (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory))))
+         (case (length diff-status-buffers)
+           (0 (error "Must have a DVC diff or status buffer before calling dvc-log-edit"))
+           (1
+            (set-buffer (nth 1 (car diff-status-buffers)))
+            (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
 
-      (1 ;; Just reuse the buffer. Switch to it first so
-         ;; dvc-buffer-current-active-dvc is set.
-       (set-buffer (nth 1 (car log-edit-buffers)))
-       (dvc-call "dvc-log-edit" other-frame no-init))
+           (t ;; multiple; give up. IMPROVEME: could prompt
+            (if dvc-buffer-current-active-dvc
+                (error "More than one dvc-diff or dvc-status buffer for %s in %s; can't tell which to use. Please close some."
+                       dvc-buffer-current-active-dvc default-directory)
+              (error "More than one dvc-diff or dvc-status buffer for %s; can't tell which to use. Please close some."
+                     default-directory))))))
+
+      (1 ;; Just reuse the buffer. In this call, we can't use
+         ;; dvc-buffer-current-active-dvc from the current buffer,
+         ;; because it might be nil (if we are in a source buffer). We
+         ;; want to use dvc-buffer-current-active-dvc from that buffer
+         ;; for this dvc-call, but we can't switch to it first,
+         ;; because dvc-log-edit needs the current buffer to set
+         ;; dvc-partner-buffer.
+       (let ((dvc-temp-current-active-dvc
+              (with-current-buffer (nth 1 (car log-edit-buffers)) dvc-buffer-current-active-dvc)))
+         (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame no-init)))
 
       (t ;; multiple matching buffers
        (if dvc-buffer-current-active-dvc
@@ -279,8 +329,9 @@ reused."
     ("ignore-file-extensions" (file-list))
     ("ignore-file-extensions-in-dir" (file-list))
     ("log-edit" (&optional OTHER-FRAME))
-    ("revert-files" (&rest files))
+    ("rename" (from-name to-name))
     ("remove-files" (&rest files))
+    ("revert-files" (&rest files))
     ("status" (&optional path)))
   "Alist of descriptions of back-end wrappers to define.
 

@@ -183,24 +183,36 @@ Otherwise return the buffer file name."
 ;;;###autoload
 (defun dvc-current-file-list (&optional selection-mode)
   "Return a list of currently active files.
+When in dired mode, return the marked files or the file under point.
+In a DVC mode, return `dvc-buffer-marked-file-list' if non-nil;
+otherwise the result depends on SELECTION-MODE:
+* When 'nil-if-none-marked, return nil.
+* When 'all-if-none-marked, return all files.
+* Otherwise return result of calling `dvc-get-file-info-at-point'."
+  (cond
+   ((eq major-mode 'dired-mode)
+    (dired-get-marked-files))
 
-The following sources are tried (in that order) and used if they are non nil:
+   ((eq major-mode 'dvc-diff-mode)
+    (or (remove nil dvc-buffer-marked-file-list)
+        (cond
+         ((eq selection-mode 'nil-if-none-marked)
+          nil)
 
-* `dvc-buffer-marked-file-list'
-* When in dired mode, return the marked files or the file where point is
-* SELECTION-MODE provides a way to select the file list that should be returned.
-  - When SELECTION-MODE is 'nil-if-none-marked, return nil, if no files are explicitely marked.
-  - When SELECTION-MODE is 'all-if-none-marked, return all files from that buffer. That is not yet implemented. Just returns nil at the moment..
-* Otherwise call the function `dvc-get-file-info-at-point'."
-  (cond (dvc-buffer-marked-file-list ;; dvc-diff, etc.
-         (remove nil dvc-buffer-marked-file-list))
-        ((eq major-mode 'dired-mode)
-         (dired-get-marked-files))
-        ((eq selection-mode 'nil-if-none-marked)
-         nil)
-        ((eq selection-mode 'all-if-none-marked)
-         nil)         ;; TODO: get a list off all available files of that buffer:
-        (t (list (dvc-get-file-info-at-point)))))
+         ((eq selection-mode 'all-if-none-marked)
+          (dvc-diff-all-files))
+
+         (t (list (dvc-get-file-info-at-point))))))
+
+   (t
+    ;; Some other mode. We assume it has no notion of "marked files",
+    ;; so there are none marked. The only file name available is
+    ;; buffer-file-name, so we could just return that. But some DVC
+    ;; mode might set dvc-get-file-info-at-point-function without
+    ;; updating this function, so support that.
+    (if (eq selection-mode 'nil-if-none-marked)
+        nil
+      (list (dvc-get-file-info-at-point))))))
 
 (defun dvc-confirm-read-file-name (prompt &optional mustmatch file-name default-filename)
   "A wrapper around `read-file-name' that provides some useful defaults."
@@ -225,10 +237,28 @@ The following sources are tried (in that order) and used if they are non nil:
        (and (y-or-n-p (format prompt num-files))
             files)))))
 
+(defcustom dvc-confirm-file-op-method 'y-or-n-p
+  "Function to use for confirming file-based DVC operations.
+Some valid options are:
+y-or-n-p: Prompt for 'y' or 'n' keystroke.
+yes-or-no-p: Prompt for \"yes\" or \"no\" string.
+dvc-always-true: Do not display a prompt."
+  :type 'function
+  :group 'dvc)
+
+(defun dvc-always-true (&rest ignore)
+  "Do nothing and return t.
+This function accepts any number of arguments, but ignores them."
+  (interactive)
+  t)
+
 (defun dvc-confirm-file-op (operation files confirm)
   "Confirm OPERATION (a string, used in prompt) on FILE (list of strings).
 If CONFIRM is nil, just return FILES (no prompt).
-Returns FILES, or nil if not confirmed."
+Returns FILES, or nil if not confirmed.
+
+If you want to adjust the function called to confirm the
+operation, then customize the `dvc-confirm-file-op-method' function."
   (or
    ;; Allow bypassing confirmation with `dvc-test-mode'. See
    ;; tests/xmtn-tests.el dvc-status-add.
@@ -237,14 +267,16 @@ Returns FILES, or nil if not confirmed."
    (if (not confirm)
        files
      (let ((nfiles (length files)))
-       (if (yes-or-no-p
-            (if (= 1 nfiles)
-                (format "%s file: \"%s\" ? "
-                        operation
-                        (car files))
-              (format "%s %d files? "
-                      operation
-                      nfiles)))
+       (if (funcall (or (and (functionp dvc-confirm-file-op-method)
+                             dvc-confirm-file-op-method)
+                        'y-or-n-p)
+                    (if (= 1 nfiles)
+                        (format "%s file: \"%s\" ? "
+                                operation
+                                (car files))
+                      (format "%s %d files? "
+                              operation
+                              nfiles)))
            files
          nil)))))
 
@@ -316,8 +348,10 @@ This uses `dvc-current-active-dvc'.
 
 ;; partner buffer stuff
 (defvar dvc-partner-buffer nil
-  "DVC Partner buffer; stores diff buffer for log-edit, etc. Must
-  be local to each buffer.")
+  "DVC Partner buffer; stores diff buffer for log-edit, etc.
+Local to each buffer, not killed by kill-all-local-variables.")
+(make-variable-buffer-local 'dvc-partner-buffer)
+(put 'dvc-partner-buffer 'permanent-local t)
 
 (defun dvc-buffer-pop-to-partner-buffer ()
   "Pop to dvc-partner-buffer, if available."

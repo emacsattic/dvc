@@ -159,9 +159,6 @@
     (setq accu (nreverse accu))
     accu))
 
-(defvar xmtn--log--branch nil)
-(defvar xmtn--log--root nil)
-
 (defun xmtn--insert-log-edit-hints (root branch buffer prefix normalized-files)
   (with-current-buffer buffer
     (flet ((insert-line (&optional format-string-or-null &rest format-args)
@@ -328,56 +325,18 @@ the file before saving."
   (dvc-log-flush-commit-file-list))
 
 ;;;###autoload
-(defun xmtn-dvc-log-edit (&optional other-frame no-init)
+(defun xmtn-dvc-log-edit (root other-frame no-init)
   (if no-init
-      (dvc-dvc-log-edit other-frame no-init)
-    (let ((root (xmtn-tree-root))
-          (orig-buffer (current-buffer))
-          log-edit-buffer)
-      (prog2
-          (progn
-            (dvc-save-some-buffers root)
-            (setq log-edit-buffer (dvc-get-buffer-create 'xmtn 'log-edit))
-            (with-current-buffer log-edit-buffer
-              (let ((previously-modified-p (buffer-modified-p)))
-                (unwind-protect
-                    (dvc-log-flush-commit-file-list)
-                  (set-buffer-modified-p previously-modified-p)))))
-          (dvc-dvc-log-edit other-frame nil)
-        (with-current-buffer log-edit-buffer
-          (setq buffer-file-coding-system 'xmtn--monotone-normal-form)
-          (add-to-list 'buffer-file-format 'xmtn--log-file)
-          (let* ((files (or (with-current-buffer dvc-partner-buffer
-                              (dvc-current-file-list 'nil-if-none-marked))
-                            'all))
-                 (normalized-files
-                  (case files
-                    (all 'all)
-                    (t
-                     ;; Need to normalize in original buffer, since
-                     ;; switching buffers changes default-directory and
-                     ;; therefore the semantics of relative file names.
-                     (with-current-buffer orig-buffer
-                       (xmtn--normalize-file-names root files))))))
-            (let ((previously-modified-p (buffer-modified-p)))
-              (unwind-protect
-                  (let ((branch (xmtn--tree-default-branch root)))
-                    (goto-char (point-max))
-                    (xmtn--insert-log-edit-hints root
-                                                 branch
-                                                 (current-buffer)
-                                                 dvc-log-edit-flush-prefix
-                                                 normalized-files)
-                    (set (make-local-variable 'xmtn--log--root) root)
-                    (set (make-local-variable 'xmtn--log--branch) branch))
-                (set-buffer-modified-p previously-modified-p))))
-          ;; This allows using `find-file-at-point' on file names in our
-          ;; log edit hints.  Really convenient.
-          (setq default-directory root))))))
+      (dvc-dvc-log-edit root other-frame no-init)
+    (progn
+      (dvc-dvc-log-edit root other-frame nil)
+      (setq buffer-file-coding-system 'xmtn--monotone-normal-form) ;; FIXME: move this into dvc-get-buffer-create?
+      (add-to-list 'buffer-file-format 'xmtn--log-file) ;; FIXME: generalize to dvc--log-file
+      )))
 
 ;;;###autoload
 (defun xmtn-dvc-log-edit-done ()
-  (let* ((root xmtn--log--root)
+  (let* ((root default-directory)
          (files (or (with-current-buffer dvc-partner-buffer
                       (dvc-current-file-list 'nil-if-none-marked))
                     'all))
@@ -390,7 +349,7 @@ the file before saving."
              ;; therefore the semantics of relative file names.
              (with-current-buffer dvc-partner-buffer
                (xmtn--normalize-file-names root files)))))
-         (branch xmtn--log--branch))
+         (branch (xmtn--tree-default-branch root)))
     ;; Saving the buffer will automatically flush the log edit hints.
     (save-buffer)
     (dvc-save-some-buffers root)
@@ -598,9 +557,8 @@ the file before saving."
         (let ((rev-specs
                `(,(xmtn-match from-resolved
                     ((local-tree $path)
-                     ;; FROM-REVISION-ID is not a committed revision, but the
-                     ;; workspace.  mtn diff can't directly handle
-                     ;; this case.
+                     ;; FROM-REVISION-ID is the workspace. mtn diff
+                     ;; can't handle this case.
                      (error "not implemented"))
 
                     ((revision $hash-id)
@@ -1031,40 +989,20 @@ the file before saving."
 (defun xmtn-dvc-remove-files (&rest files)
   (xmtn--do-remove (dvc-tree-root) files nil))
 
-(defun xmtn--do-rename (root from-normalized-name to-normalized-name
-                             do-not-execute)
-  (xmtn--run-command-sync
-   root `("rename"
-          ,@(if do-not-execute `("--bookkeep-only") `())
-          "--" ,from-normalized-name ,to-normalized-name))
+;;;###autoload
+(defun xmtn-dvc-rename (from-name to-name bookkeep-only)
+  ;; See `dvc-rename' for doc string.
+  (let ((root (dvc-tree-root)))
+      (let ((to-normalized-name (xmtn--normalize-file-name root to-name))
+            (from-normalized-name (xmtn--normalize-file-name root from-name)))
+        (xmtn--run-command-sync
+         root `("rename"
+                ,@(if bookkeep-only `("--bookkeep-only") `())
+                "--" ,from-normalized-name ,to-normalized-name))))
   ;; FIXME: We should do something analogous to
   ;; `dvc-revert-some-buffers' (but for renaming) here.  But DVC
   ;; doesn't provide a function for that.
-  nil)
-
-;;;###autoload
-(defun xmtn-dvc-rename ()
-  ;; For the moment, we only provide an interface to the --execute
-  ;; variant of mtn rename.  I think the non---execute variant should
-  ;; be an entirely different command.  (One indication of this is
-  ;; that it needs different completion criteria.)
-  (let ((root (dvc-tree-root)))
-    ;; This UI stuff shouldn't have to be part of the backend.
-    (let* ((from-name (dvc-confirm-read-file-name "Rename: " t))
-           (to-name (dvc-confirm-read-file-name
-                     (format "Rename %s to: " from-name)
-                     nil "" from-name)))
-      (unless (or (not (file-exists-p to-name))
-                  (file-directory-p to-name))
-        (error "%s exists and is not a directory" to-name))
-      (when (file-directory-p to-name)
-        (setq to-name (file-name-as-directory to-name)))
-      (let ((to-normalized-name (xmtn--normalize-file-name root to-name))
-            (from-normalized-name (xmtn--normalize-file-name root from-name)))
-        (xmtn--do-rename root
-                         from-normalized-name
-                         to-normalized-name
-                         nil)))))
+  )
 
 (defun xmtn--heads (root branch)
   (xmtn-automate-simple-command-output-lines root `("heads" ,branch)))
@@ -1219,9 +1157,7 @@ finished."
            ;; keep it simple for now.
            (error (substitute-command-keys
                    (concat "Branch %s is unmerged (%s heads)."
-                           "  Try \\[xmtn-view-heads-revlist] and"
-                           " \\[xmtn-revlist-update] or"
-                           " \\[xmtn-revlist-explicit-merge]"))
+                           "  Try \\[dvc-log] and \\[dvc-merge]"))
                   branch (length heads)))))))
   nil)
 
@@ -1295,15 +1231,6 @@ finished."
   nil)
 
 ;;;###autoload
-(defun xmtn-dvc-files-to-commit ()
-  ;; This is called only from `dvc-log-insert-commit-file-list'.  But
-  ;; we have our own function `xmtn--insert-log-edit-hints', which
-  ;; subsumes it.  FIXME: DVC doesn't seem to provide a well-defined
-  ;; way to override `dvc-log-insert-commit-file-list'.  We should
-  ;; change that.
-  (error "not implemented"))
-
-;;;###autoload
 (defun xmtn-revision-get-previous-revision (file revision-id)
   (xmtn--revision-get-file-helper file (list 'previous-revision (cadr revision-id))))
 
@@ -1350,7 +1277,7 @@ finished."
                     (with-temp-file temp-file
                       (set-buffer-multibyte nil)
                       (setq buffer-file-coding-system 'binary)
-                      (xmtn--insert-file-contents-by-name root backend-id corresponding-file buffer))
+                      (xmtn--insert-file-contents-by-name root backend-id corresponding-file (current-buffer)))
                     (let ((output-buffer (current-buffer)))
                       (with-temp-buffer
                         (insert-file-contents temp-file)
@@ -1608,6 +1535,7 @@ finished."
                                    attrs)))))))))
 
 (defstruct (xmtn--revision (:constructor xmtn--make-revision))
+  ;; matches data output by 'mtn diff'
   new-manifest-hash-id
   old-revision-hash-ids
   delete
@@ -1716,11 +1644,6 @@ finished."
      :set-attr set-attr
      )))
 
-
-;;;###autoload
-(defun xmtn-dvc-file-diff (&rest args)
-  ;; There is a reasonable default implementation to fall back on.
-  (apply #'dvc-dvc-file-diff args))
 
 ;;;###autoload
 (defun xmtn-dvc-revision-nth-ancestor (&rest args)
