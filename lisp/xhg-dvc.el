@@ -91,10 +91,6 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
 ARG is passed as prefix argument"
   (call-interactively 'xhg-log))
 
-(defun xhg-dvc-rename ()
-  (interactive)
-  (call-interactively 'xhg-rename))
-
 ;; deactivated at them moment, use dvc-dvc-files-to-commit to allow selecting files to commit
 ;; (defun xhg-dvc-files-to-commit ()
 ;;   ;; -mar: modified+added+removed
