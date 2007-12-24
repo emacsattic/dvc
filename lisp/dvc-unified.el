@@ -188,9 +188,38 @@ Use `dvc-log' for the brief log."
   "Mark FILE as resolved"
   (interactive (list (buffer-file-name))))
 
-(define-dvc-unified-command dvc-rename ()
-  "Rename file from-file-name to to-file-name."
-  (interactive))
+(defun dvc-rename (from-name to-name)
+  "Rename file FROM-NAME to TO-NAME; TO-NAME may be a directory.
+When called non-interactively, if from-file-name does not exist,
+but to-file-name does, just record the rename in the back-end"
+  ;; back-end function <dvc>-dvc-rename (from-name to-name bookkeep-only)
+  ;; If bookkeep-only nil, rename file in filesystem and back-end
+  ;; If non-nil, rename file in back-end only.
+  (interactive
+    (let* ((from-name (dvc-confirm-read-file-name "Rename: " t))
+           (to-name (dvc-confirm-read-file-name
+                     (format "Rename %s to: " from-name)
+                     nil "" from-name)))
+      (list from-name to-name)))
+
+  (if (file-exists-p from-name)
+      (progn
+        ;; rename the file in the filesystem and back-end
+        (if (and (file-exists-p to-name)
+                 (not (file-directory-p to-name)))
+            (error "%s exists and is not a directory" to-name))
+        (when (file-directory-p to-name)
+          (setq to-name (file-name-as-directory to-name)))
+        (dvc-call "dvc-rename" from-name to-name nil))
+
+    ;; rename the file in the back-end only
+      (progn
+        ;; rename the file in the filesystem and back-end
+        (if (not (file-exists-p to-name))
+            (error "%s does not exist" to-name))
+        (when (file-directory-p to-name)
+          (setq to-name (file-name-as-directory to-name)))
+        (dvc-call "dvc-rename" from-name to-name t))))
 
 (defvar dvc-command-version nil)
 ;;;###autoload
@@ -265,8 +294,8 @@ reused."
          (case (length diff-status-buffers)
            (0 (error "Must have a DVC diff or status buffer before calling dvc-log-edit"))
            (1
-            (with-current-buffer (nth 1 (car diff-status-buffers))
-              (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil)))
+            (set-buffer (nth 1 (car diff-status-buffers)))
+            (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
 
            (t ;; multiple; give up. IMPROVEME: could prompt
             (if dvc-buffer-current-active-dvc
@@ -300,8 +329,9 @@ reused."
     ("ignore-file-extensions" (file-list))
     ("ignore-file-extensions-in-dir" (file-list))
     ("log-edit" (&optional OTHER-FRAME))
-    ("revert-files" (&rest files))
+    ("rename" (from-name to-name))
     ("remove-files" (&rest files))
+    ("revert-files" (&rest files))
     ("status" (&optional path)))
   "Alist of descriptions of back-end wrappers to define.
 

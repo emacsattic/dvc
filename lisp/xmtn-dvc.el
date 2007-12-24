@@ -989,40 +989,20 @@ the file before saving."
 (defun xmtn-dvc-remove-files (&rest files)
   (xmtn--do-remove (dvc-tree-root) files nil))
 
-(defun xmtn--do-rename (root from-normalized-name to-normalized-name
-                             do-not-execute)
-  (xmtn--run-command-sync
-   root `("rename"
-          ,@(if do-not-execute `("--bookkeep-only") `())
-          "--" ,from-normalized-name ,to-normalized-name))
+;;;###autoload
+(defun xmtn-dvc-rename (from-name to-name bookkeep-only)
+  ;; See `dvc-rename' for doc string.
+  (let ((root (dvc-tree-root)))
+      (let ((to-normalized-name (xmtn--normalize-file-name root to-name))
+            (from-normalized-name (xmtn--normalize-file-name root from-name)))
+        (xmtn--run-command-sync
+         root `("rename"
+                ,@(if bookkeep-only `("--bookkeep-only") `())
+                "--" ,from-normalized-name ,to-normalized-name))))
   ;; FIXME: We should do something analogous to
   ;; `dvc-revert-some-buffers' (but for renaming) here.  But DVC
   ;; doesn't provide a function for that.
-  nil)
-
-;;;###autoload
-(defun xmtn-dvc-rename ()
-  ;; For the moment, we only provide an interface to the --execute
-  ;; variant of mtn rename.  I think the non---execute variant should
-  ;; be an entirely different command.  (One indication of this is
-  ;; that it needs different completion criteria.)
-  (let ((root (dvc-tree-root)))
-    ;; This UI stuff shouldn't have to be part of the backend.
-    (let* ((from-name (dvc-confirm-read-file-name "Rename: " t))
-           (to-name (dvc-confirm-read-file-name
-                     (format "Rename %s to: " from-name)
-                     nil "" from-name)))
-      (unless (or (not (file-exists-p to-name))
-                  (file-directory-p to-name))
-        (error "%s exists and is not a directory" to-name))
-      (when (file-directory-p to-name)
-        (setq to-name (file-name-as-directory to-name)))
-      (let ((to-normalized-name (xmtn--normalize-file-name root to-name))
-            (from-normalized-name (xmtn--normalize-file-name root from-name)))
-        (xmtn--do-rename root
-                         from-normalized-name
-                         to-normalized-name
-                         nil)))))
+  )
 
 (defun xmtn--heads (root branch)
   (xmtn-automate-simple-command-output-lines root `("heads" ,branch)))
@@ -1177,9 +1157,7 @@ finished."
            ;; keep it simple for now.
            (error (substitute-command-keys
                    (concat "Branch %s is unmerged (%s heads)."
-                           "  Try \\[xmtn-view-heads-revlist] and"
-                           " \\[xmtn-revlist-update] or"
-                           " \\[xmtn-revlist-explicit-merge]"))
+                           "  Try \\[dvc-log] and \\[dvc-merge]"))
                   branch (length heads)))))))
   nil)
 
@@ -1299,7 +1277,7 @@ finished."
                     (with-temp-file temp-file
                       (set-buffer-multibyte nil)
                       (setq buffer-file-coding-system 'binary)
-                      (xmtn--insert-file-contents-by-name root backend-id corresponding-file buffer))
+                      (xmtn--insert-file-contents-by-name root backend-id corresponding-file (current-buffer)))
                     (let ((output-buffer (current-buffer)))
                       (with-temp-buffer
                         (insert-file-contents temp-file)
