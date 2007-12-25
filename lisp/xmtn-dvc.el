@@ -1163,6 +1163,7 @@ finished."
 
 (defun xmtn-propagate-from (other)
   "Propagate from OTHER branch to local tree branch."
+  (interactive "MPropagate from branch: ")
   (lexical-let*
       ((root (dvc-tree-root))
        (local-branch (xmtn--tree-default-branch root))

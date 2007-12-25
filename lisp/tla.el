@@ -8224,7 +8224,7 @@ if these values should now be displayed, run the refresh function."
                    tla-arch-branch 'changeset revision)))
       (dvc-trace "buffer=%S revision=%S tla-arch-branch=%S" buffer
                   revision tla-arch-branch)
-      (unless (tla--scroll-maybe buffer up-or-down)
+      (unless (dvc-scroll-maybe buffer up-or-down)
         (tla-revision-changeset)))))
 
 (defun tla-revision-scroll-up-or-show-changeset ()
@@ -8262,7 +8262,7 @@ If used with a prefix arg ARG, don't include the diffs from the output."
                 )
               (dvc-do-in-gnu-emacs (compare-window-configurations
                                      (current-window-configuration) window-conf)))
-      (tla--scroll-maybe dvc-partner-buffer 'scroll-up))))
+      (dvc-scroll-maybe dvc-partner-buffer 'scroll-up))))
 
 (defun tla-revision-store-delta (across-versions)
   "Store a delta between two marked revisions.
