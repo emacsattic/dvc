@@ -127,11 +127,11 @@ BASE and MODIFIED must be revision ID.
 The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
 
 ;;;###autoload
-(define-dvc-unified-command dvc-file-diff (file &optional base modified
-                                                dont-switch)
+(define-dvc-unified-command dvc-file-diff (file &optional base modified dont-switch)
   "Display the changes in FILE (default current buffer file)
 between BASE (default last-revision) and MODIFIED (default
-workspace version)."
+workspace version).
+If DONT-SWITCH is non-nil, just show the diff buffer, don't select it."
   ;; use dvc-diff-diff to default file to dvc-get-file-info-at-point
   (interactive (list buffer-file-name)))
 
@@ -429,8 +429,8 @@ local database, as appropriate for the current back-end."
   "Merge with OTHER.
 If OTHER is nil, merge heads in current database, or merge from
 remembered database.
-If OTHER is a string, it identifies a (local or remote)
-database to merge into the current database or workspace."
+If OTHER is a string, it identifies a (local or remote) database or
+branch to merge into the current database, branch, or workspace."
   (interactive))
 
 ;;;###autoload

@@ -776,7 +776,7 @@ the file before saving."
                        (ewoc-enter-last dvc-diff-cookie `(message "Parsing inventory..."))
                        (ewoc-refresh dvc-diff-cookie)
                        (xmtn--redisplay t)
-                       (dvc-diff-delete-messages)
+                       (dvc-fileinfo-delete-messages)
                        (lexical-let ((changesp nil))
                          (xmtn-basic-io-with-stanza-parser
                           (parser output)
@@ -804,7 +804,7 @@ the file before saving."
                   (dvc-diff-error-in-process
                    status-buffer
                    (format "Error running mtn with arguments %S" arguments)
-                   root output error))
+                   output error))
          :killed (lambda (output error status arguments)
                    ;; Create an empty buffer as a fake output buffer to
                    ;; avoid printing all the output so far.
@@ -813,7 +813,7 @@ the file before saving."
                       status-buffer
                       (format "Received signal running mtn with arguments %S"
                               arguments)
-                      root (current-buffer) error))))))))
+                      (current-buffer) error))))))))
 
 ;;;###autoload
 (defun xmtn-dvc-status ()

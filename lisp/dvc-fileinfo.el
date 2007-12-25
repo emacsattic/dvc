@@ -88,6 +88,22 @@ The elements must all be of class dvc-fileinfo-root.")
   text ;; String
   )
 
+(defstruct (dvc-fileinfo-legacy
+            (:include dvc-fileinfo-root)
+            (:copier nil))
+  ;; This type is has the same form as the old dvc-diff-cookie ewoc
+  ;; element. It is provided to ease the transition to the new
+  ;; structure; current parsing code needs very few changes to use
+  ;; this, and can be more gradually changed to use a dvc-fileinfo
+  ;; struct.
+
+  data
+  ;; one of:
+  ;; (file \"filename\" \"[CRADP?]\" \"M\" \"/\" \"origname\")
+  ;; (subtree \"name\" related-buffer changes?)
+  ;; (searching-subtree \"<message>\" )
+  )
+
 (defun dvc-fileinfo-choose-face (status)
   "Return a face appropriate for STATUS."
   (case status
@@ -126,20 +142,43 @@ The elements must all be of class dvc-fileinfo-root.")
                (insert "      ")
                (insert (dvc-fileinfo-file-more-status fileinfo))))))
 
+      (dvc-fileinfo-legacy
+       (dvc-diff-printer (dvc-fileinfo-legacy-data fileinfo)) )
+
       (dvc-fileinfo-message
        (insert (dvc-fileinfo-message-text fileinfo)))
       )))
 
 (defun dvc-fileinfo-current-fileinfo ()
-  "Return the fileinfo for the ewoc element at point. Throws an
-error if point is on a message."
-  (let ((fileinfo (ewoc-data (ewoc-locate dvc-fileinfo-ewoc))))
-    (etypecase fileinfo
-      (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
-       fileinfo)
+  "Return the fileinfo (a dvc-fileinfo-file, or
+dvc-fileinfo-legacy) for the ewoc element at point. Throws an
+error if point is not on a file or directory."
+  (let ((ewoc-entry (ewoc-locate dvc-fileinfo-ewoc)))
+    (if (not ewoc-entry)
+        ;; ewoc is empty
+        (error "not on a file or directory"))
+    (let ((fileinfo (ewoc-data ewoc-entry)))
+      (etypecase fileinfo
+        (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+         fileinfo)
 
-      (dvc-fileinfo-message
-       (error "not on a file or directory")))))
+        (dvc-fileinfo-legacy
+         (let ((data (dvc-fileinfo-legacy-data fileinfo)))
+           (cond
+            ((eq (car data) 'file)
+             fileinfo)
+
+            (t
+             (error "not on a file or directory")))))
+
+        (dvc-fileinfo-message
+         (error "not on a file or directory"))))))
+
+(defun dvc-fileinfo-file-or-legacy-file-p (fileinfo)
+  "Return t if FILEINFO is a dvc-fileinfo-file, or a dvc-fileinfo-legacy containing a 'file."
+  (or (dvc-fileinfo-file-p fileinfo)
+      (and (dvc-fileinfo-legacy-p fileinfo)
+           (eq 'file (car (dvc-fileinfo-legacy-data fileinfo))))))
 
 (defun dvc-fileinfo-path (fileinfo)
   "Return directory and file from fileinfo, as a string."
@@ -150,7 +189,24 @@ error if point is on a message."
 of the file element on the line at point. Throws an error if
 point is not on a file element line."
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
-    (dvc-fileinfo-path fileinfo)))
+    (etypecase fileinfo
+      (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+       (dvc-fileinfo-path fileinfo))
+
+      (dvc-fileinfo-legacy
+       (cadr (dvc-fileinfo-legacy-data fileinfo))))))
+
+(defun dvc-fileinfo-all-files ()
+  "Return list of all files in the ewoc"
+  (let (result)
+    (ewoc-map
+     (lambda (fileinfo)
+       (when (typep fileinfo 'dvc-fileinfo-file)
+         ;; we use 'add-to-list', because some back-ends put files in the ewoc more than once
+         (add-to-list 'result (dvc-fileinfo-path fileinfo)))
+       nil)
+     dvc-fileinfo-ewoc)
+    result))
 
 (defun dvc-fileinfo-delete-messages ()
   "Remove all message elements from the ewoc."
@@ -178,7 +234,7 @@ point is not on a file element line."
 
 (defun dvc-fileinfo-mark-dir-1 (fileinfo mark)
   (if (string-equal dir-compare (dvc-fileinfo-file-dir fileinfo))
-      (let (file (dvc-fileinfo-path fileinfo))
+      (let ((file (dvc-fileinfo-path fileinfo)))
         (setf (dvc-fileinfo-file-mark fileinfo) mark)
         (if mark
             (progn
@@ -321,17 +377,91 @@ in that directory. Then move to previous ewoc entry."
       nil))))
 
 (defun dvc-fileinfo-find-file (file)
-  "Return ewoc element for file (full path)."
+  "Return ewoc element for FILE (full path)."
   (let ((elem (ewoc-nth dvc-fileinfo-ewoc 0)))
-    (while (and elem
-                (or (not (dvc-fileinfo-file-p (ewoc-data elem)))
-                    (not (string= (expand-file-name
-                                   (dvc-fileinfo-path (ewoc-data elem)))
-                                  file))))
+    (while
+        (and elem
+             (let ((fileinfo (ewoc-data elem)))
+               (or (not
+                    (or (dvc-fileinfo-file-p fileinfo)
+                         (and (dvc-fileinfo-legacy-p fileinfo)
+                              (eq (car (dvc-fileinfo-legacy-data fileinfo)) 'file))))
+                   (not (string= (expand-file-name
+                                  (dvc-fileinfo-path fileinfo))
+                                 file)))))
+      ;; not found yet
       (setq elem (ewoc-next dvc-fileinfo-ewoc elem)))
     (if elem
         elem
-      (error "Can't find file %s in ewoc" file))))
+      (error "Can't find file %s in list" file))))
+
+(defun dvc-fileinfo-marked-files ()
+  "Return list of fileinfo structs that are marked files."
+  ;; This does _not_ include legacy fileinfo structs; they do not
+  ;; contain a mark field.
+  (let ((elem (ewoc-nth dvc-fileinfo-ewoc 0))
+        result)
+    (while elem
+      (let ((fi (ewoc-data elem)))
+        (if (and (dvc-fileinfo-file-p fi)
+                 (dvc-fileinfo-file-mark fi))
+          (setq result (append result (list fi))))
+        (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
+    result))
+
+;;; actions
+(defun dvc-fileinfo-add-log-entry (&optional other-frame)
+  "Add an entry in the current log-edit buffer for the current file.
+If OTHER-FRAME xor `dvc-add-log-entry-other-frame' is non-nil,
+show log-edit buffer in other frame."
+  (interactive "P")
+  (let ((fi (dvc-fileinfo-current-fileinfo)))
+    (ecase (dvc-fileinfo-file-status fi)
+      (added
+       (dvc-log-edit (Xor other-frame dvc-add-log-entry-other-frame) t)
+       (undo-boundary)
+       (goto-char (point-max))
+       (newline)
+       (insert "* ")
+       (insert (dvc-fileinfo-path fi))
+       (insert ": New file.")
+       (newline))
+
+      ((conflict
+        deleted
+        ignored
+        invalid
+        known
+        missing
+        modified
+        rename
+        rename
+        unknown)
+       (ding)))))
+
+(defun dvc-fileinfo-rename ()
+  "Record a rename for two currently marked files.
+One file must have status `missing', the other `unknown'."
+  (interactive)
+  (if (not (= 2 (length dvc-buffer-marked-file-list)))
+      (error "rename requires exactly 2 marked files"))
+
+  (let* ((fis (dvc-fileinfo-marked-files))
+         (stati (mapcar 'dvc-fileinfo-file-status fis)))
+
+    (cond
+     ((and (eq 'missing (nth 0 stati))
+           (eq 'unknown (nth 1 stati)))
+      (dvc-rename (dvc-fileinfo-path (nth 0 fis))
+                  (dvc-fileinfo-path (nth 1 fis))))
+
+     ((and (eq 'missing (nth 1 stati))
+           (eq 'unknown (nth 0 stati)))
+      (dvc-rename (dvc-fileinfo-path (nth 1 fis))
+                  (dvc-fileinfo-path (nth 0 fis))))
+
+     (t
+      (error "must rename from a file with status `missing' to a file with status `unknown'")))))
 
 (provide 'dvc-fileinfo)
 ;;; end of file

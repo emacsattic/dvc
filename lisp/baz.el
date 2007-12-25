@@ -219,7 +219,7 @@ the root of the projects is displayed."
              (message "No changes in %s" root-lex))
            (with-current-buffer -current-buffer--lex
              (let ((inhibit-read-only t))
-               (dvc-diff-delete-messages)
+               (dvc-fileinfo-delete-messages)
                (ewoc-enter-last dvc-diff-cookie
                                 (list 'message (concat "* No changes in "
                                                        root-lex ".\n\n")))

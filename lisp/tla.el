@@ -1532,7 +1532,7 @@ the root of the projects is displayed."
           (message "No changes in %s" (capture root)))
         (with-current-buffer (capture buffer)
           (let ((inhibit-read-only t))
-            (dvc-diff-delete-messages)
+            (dvc-fileinfo-delete-messages)
             (ewoc-enter-last dvc-diff-cookie
                              (list 'message (concat "* No changes in "
                                                     (capture root) ".\n\n")))
@@ -1579,7 +1579,7 @@ the root of the projects is displayed."
                                   tla-arch-branch 'diff
                                   ,(capture root))))))))
                 (with-current-buffer (capture buffer)
-                  (dvc-diff-delete-messages)
+                  (dvc-fileinfo-delete-messages)
                   (ewoc-enter-last
                    dvc-diff-cookie
                    (list 'message
@@ -8210,21 +8210,6 @@ if these values should now be displayed, run the refresh function."
     (tla-revision-refresh-maybe)
     (tla-revision-compute-merged-by))
   (ewoc-refresh dvc-revlist-cookie))
-
-(defun tla--scroll-maybe (buffer up-or-down)
-  "If BUFFER exists, show it, scroll and return non-nil.
-
-Otherwise, return nil."
-  (interactive)
-  (when (buffer-live-p buffer)
-    (let ((visible (dvc-buffer-visible-p buffer))
-          (buf (current-buffer)))
-      (pop-to-buffer buffer)
-      (when visible
-        (condition-case nil
-            (funcall up-or-down 2)
-          (error (message "Can't scroll anymore."))))
-      (pop-to-buffer buf))))
 
 (defun tla-revision-scroll-or-show-changeset (up-or-down)
   "If file-diff buffer is visible, scroll. Otherwise, show it."

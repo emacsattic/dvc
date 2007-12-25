@@ -241,18 +241,20 @@ The following functions are called:
              (renamed  (string= (match-string-no-properties 1) "renamed"))
              (added    (string= (match-string-no-properties 1) "added")))
         (with-current-buffer changes-buffer
-          (ewoc-enter-last dvc-diff-cookie
-                           (list 'file
-                                 newname
-                                 (cond (added   "A")
-                                       (renamed "R")
-                                       (t " "))
-                                 (cond (added " ")
-                                       (t "M"))
-                                 " "    ; dir
-                                 (when (and renamed
-                                            (not added))
-                                   origname))))))))
+          (ewoc-enter-last dvc-fileinfo-ewoc
+                           (make-dvc-fileinfo-legacy
+                            :data
+                            (list 'file
+                                  newname
+                                  (cond (added   "A")
+                                        (renamed "R")
+                                        (t " "))
+                                  (cond (added " ")
+                                        (t "M"))
+                                  " "    ; dir
+                                  (when (and renamed
+                                             (not added))
+                                    origname)))))))))
 
 (defun bzr-revisionspec-to-rev (string-revspec path)
   "Converts a bzr revision specifier (string) into a DVC revision.
@@ -321,7 +323,6 @@ TODO: DONT-SWITCH is currently ignored."
        (if (/= 1 status)
            (dvc-diff-error-in-process (capture buffer)
                                       "Error in diff process"
-                                      (capture root)
                                       output error)
          (dvc-show-changes-buffer output 'bzr-parse-diff
                                   (capture buffer)))))))
@@ -361,7 +362,6 @@ TODO: dont-switch is currently ignored."
          (if (/= 1 status)
              (dvc-diff-error-in-process (capture buffer)
                                         "Error in diff process"
-                                        ""
                                         output error)
            (dvc-show-changes-buffer output 'bzr-parse-diff
                                     (capture buffer)))))
@@ -427,25 +427,30 @@ of the commit. Additionally the destination email address can be specified."
     (cond ((looking-at "^\\([^ ][^\n]*:\\)")
            (let ((msg (match-string-no-properties 1)))
              (with-current-buffer changes-buffer
-               (ewoc-enter-last dvc-diff-cookie
-                                (list 'message msg)))))
+               (ewoc-enter-last dvc-fileinfo-ewoc
+                           (make-dvc-fileinfo-message
+                            :text msg)))))
           ((looking-at "^ +\\([^ ][^\n]*?\\)\\([/@]\\)? => \\([^\n]*?\\)\\([/@]\\)?$")
            (let ((oldname (match-string-no-properties 1))
                  (dir (match-string-no-properties 2))
                  (newname (match-string-no-properties 3)))
              (with-current-buffer changes-buffer
-               (ewoc-enter-last dvc-diff-cookie
-                                (list 'file newname
-                                      " " " " dir
-                                      oldname)))))
+               (ewoc-enter-last dvc-fileinfo-ewoc
+                                (make-dvc-fileinfo-legacy
+                                 :data
+                                 (list 'file newname
+                                       " " " " dir
+                                       oldname))))))
           ((looking-at " +\\(?:Text conflict in \\)?\\([^\n]*?\\)\\([/@*]\\)?$")
            (let ((file (match-string-no-properties 1))
                  (dir (match-string-no-properties 2)))
              (with-current-buffer changes-buffer
-               (ewoc-enter-last dvc-diff-cookie
-                                (list 'file file
-                                      ;; TODO perhaps not only " ".
-                                      " " " " dir nil)))))
+               (ewoc-enter-last dvc-fileinfo-ewoc
+                                (make-dvc-fileinfo-legacy
+                                 :data
+                                 (list 'file file
+                                       ;; TODO perhaps not only " ".
+                                       " " " " dir nil))))))
           (t (error "unrecognized context in bzr-parse-status")))
     (forward-line 1)))
 
@@ -475,7 +480,6 @@ of the commit. Additionally the destination email address can be specified."
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-error-in-process (capture buffer)
                                      "Error in diff process"
-                                     (capture root)
                                      output error))))))
 
 (defun bzr-parse-inventory (changes-buffer)
@@ -486,10 +490,12 @@ of the commit. Additionally the destination email address can be specified."
            (let ((file (match-string-no-properties 1))
                  (dir (match-string-no-properties 2)))
              (with-current-buffer changes-buffer
-               (ewoc-enter-last dvc-diff-cookie
-                                (list 'file file
-                                      ;; TODO perhaps not only " ".
-                                      " " " " dir nil)))))
+               (ewoc-enter-last dvc-fileinfo-ewoc
+                                (make-dvc-fileinfo-legacy
+                                 :data
+                                 (list 'file file
+                                       ;; TODO perhaps not only " ".
+                                       " " " " dir nil))))))
           (t (error "unrecognized context in bzr-parse-inventory")))
     (forward-line 1)))
 
@@ -517,7 +523,6 @@ of the commit. Additionally the destination email address can be specified."
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-error-in-process (capture buffer)
                                      "Error in inventory process"
-                                     (capture root)
                                      output error))))))
 
 ;;;###autoload
@@ -739,7 +744,7 @@ non-interactive versions."
 (defun bzr-resolved (file)
   "Command to delete .rej file after conflicts resolution.
 Asks confirmation if the file still has diff3 markers.
-Then, run \"bzr revolve\".
+Then, run \"bzr resolve\".
 
 TODO: should share some code with `tla-resolved'."
   (interactive

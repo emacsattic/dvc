@@ -143,7 +143,6 @@
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-error-in-process (capture buffer)
                                     "Error in diff process"
-                                    (capture root)
                                     output error))))))
 
 ;;;###autoload
