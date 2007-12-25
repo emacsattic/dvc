@@ -223,7 +223,7 @@ by calling `dvc-log-flush-commit-file-list'."
   "Add new DVC log ChangeLog style entry."
   (interactive "P")
   (save-restriction
-    (dvc-add-log-entry-internal (Xor other-frame dvc-add-log-entry-other-frame))))
+    (dvc-add-log-entry-internal other-frame)))
 
 (defun dvc-add-log-file-name (buffer-file)
   "Return a file name for a log entry for BUFFER-FILE; including path from tree root.
@@ -253,6 +253,7 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
   ;; split add-change-log-entry into several functions and then use them, but
   ;; that wouldn't work with older versions of Emacs.
   (if (not (featurep 'add-log)) (require 'add-log))
+  (setq other-frame (Xor other-frame dvc-add-log-entry-other-frame))
   (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
          (defun (add-log-current-defun))
          (buf-file-name (if (and (boundp 'add-log-buffer-file-name-function)

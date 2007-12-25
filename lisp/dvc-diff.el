@@ -60,7 +60,8 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
       (dvc-get-buffer-create dvc type path)
     (let ((inhibit-read-only t)) (erase-buffer))
-    (funcall (dvc-function dvc "diff-mode"))
+    (let ((dvc-temp-current-active-dvc dvc))
+      (funcall (dvc-function dvc "diff-mode"))
     (setq dvc-diff-base base)
     (setq dvc-diff-modified modified)
     (current-buffer)))
@@ -192,7 +193,7 @@ Pretty-print ELEM."
     ;; Buffers group
     (define-key map (dvc-prefix-buffer ?p) 'dvc-show-process-buffer)
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
-    (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'tla-bookmarks)
+    (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
 
     ;; Ignore file handling
     (define-key map (dvc-prefix-tagging-method ?i) 'dvc-ignore-files)
@@ -310,11 +311,12 @@ Commands:
     (>= (ewoc-location elem) (line-beginning-position))))
 
 (defun dvc-diff-jump-to-change (&optional other-file)
-  "Jump to the corresponding file and location of the change.
+  "Jump to the corresponding file and location of the change at point.
 OTHER-FILE (default prefix) if non-nil means visit the original
 file; otherwise visit the modified file."
   (interactive "P")
-  (let* ((elem (ewoc-locate dvc-diff-cookie))
+  (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+         (elem (ewoc-locate dvc-diff-cookie))
          (data (ewoc-data elem)))
     (cond ((< (ewoc-location elem) (line-beginning-position))
            (dvc-diff-diff-goto-source other-file))
