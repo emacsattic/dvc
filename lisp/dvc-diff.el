@@ -332,8 +332,8 @@ file; otherwise visit the modified file."
       (error "No file at point."))
     ;; TODO
     (let ((buffer (dvc-get-buffer dvc-buffer-current-active-dvc 'file-diff file)))
-      (unless (tla--scroll-maybe buffer up-or-down)
-        (tla-file-diff file nil t)))))
+      (unless (dvc-scroll-maybe buffer up-or-down)
+        (dvc-file-diff file dvc-diff-base dvc-diff-modified t)))))
 
 (defun dvc-diff-scroll-up-or-diff ()
   (interactive)
@@ -693,13 +693,11 @@ recursive command."
       (recenter '(4))))
   (message msg dir))
 
-(defun dvc-diff-error-in-process (diff-buffer msg dir output error
-                                               &optional
-                                               master-buffer)
-  "Similar to `dvc-diff-no-changes', but to report a real error.
-
-OUTPUT and ERROR are the buffers containing the stdout and stderr
-of the process that raised an error."
+(defun dvc-diff-error-in-process (diff-buffer msg output error)
+  "Enter a message in DIFF-BUFFER (created by
+dvc-prepare-changes-buffer), consisting of MSG and the contents of
+OUTPUT and ERROR. Should be called by the error handler in the
+diff parser."
   (with-current-buffer diff-buffer
     (dvc-diff-delete-messages)
     (ewoc-enter-last

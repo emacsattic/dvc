@@ -804,7 +804,7 @@ the file before saving."
                   (dvc-diff-error-in-process
                    status-buffer
                    (format "Error running mtn with arguments %S" arguments)
-                   root output error))
+                   output error))
          :killed (lambda (output error status arguments)
                    ;; Create an empty buffer as a fake output buffer to
                    ;; avoid printing all the output so far.
@@ -813,7 +813,7 @@ the file before saving."
                       status-buffer
                       (format "Received signal running mtn with arguments %S"
                               arguments)
-                      root (current-buffer) error))))))))
+                      (current-buffer) error))))))))
 
 ;;;###autoload
 (defun xmtn-dvc-status ()
@@ -1163,6 +1163,7 @@ finished."
 
 (defun xmtn-propagate-from (other)
   "Propagate from OTHER branch to local tree branch."
+  (interactive "MPropagate from branch: ")
   (lexical-let*
       ((root (dvc-tree-root))
        (local-branch (xmtn--tree-default-branch root))

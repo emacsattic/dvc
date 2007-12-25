@@ -621,5 +621,19 @@ merged by another revision in the same list."
                         'ewoc-next) ,cookie next)))
        (when next (goto-char (ewoc-location next))))))
 
+(defun dvc-scroll-maybe (buffer up-or-down)
+  "If BUFFER exists, show it, scroll and return non-nil.
+Otherwise, return nil."
+  (interactive)
+  (when (buffer-live-p buffer)
+    (let ((visible (dvc-buffer-visible-p buffer))
+          (buf (current-buffer)))
+      (pop-to-buffer buffer)
+      (when visible
+        (condition-case nil
+            (funcall up-or-down 2)
+          (error (message "Can't scroll anymore."))))
+      (pop-to-buffer buf))))
+
 (provide 'dvc-utils)
 ;;; dvc-utils.el ends here
