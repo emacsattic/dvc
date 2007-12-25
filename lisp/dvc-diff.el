@@ -61,7 +61,8 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
       (dvc-get-buffer-create dvc type path)
     (let ((inhibit-read-only t)) (erase-buffer))
-    (funcall (dvc-function dvc "diff-mode"))
+    (let ((dvc-temp-current-active-dvc dvc))
+      (funcall (dvc-function dvc "diff-mode")))
     (setq dvc-diff-base base)
     (setq dvc-diff-modified modified)
     (current-buffer)))
@@ -159,9 +160,9 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-quit                           'dvc-buffer-quit)
     (define-key map dvc-keyvec-remove                         'dvc-remove-files)
     (define-key map [?d]                                      'dvc-remove-files); as in dired
-    (define-key map dvc-keyvec-mark                           'dvc-fileinfo-mark-file)
-    (define-key map dvc-keyvec-unmark                         'dvc-fileinfo-unmark-file)
-    (define-key map [backspace]                               'dvc-fileinfo-unmark-file-up)
+    (define-key map dvc-keyvec-mark                           'dvc-diff-mark-file)
+    (define-key map dvc-keyvec-unmark                         'dvc-diff-unmark-file)
+    (define-key map [backspace]                               'dvc-diff-unmark-file-up)
     (define-key map [?v]                                      'dvc-diff-view-source)
     (define-key map dvc-keyvec-parent                         'dvc-diff-master-buffer)
     (define-key map [?j]                                      'dvc-diff-diff-or-list)
@@ -383,7 +384,8 @@ diff. When on a diff, jump to the corresponding entry in the list."
     (goto-char (ewoc-location (dvc-fileinfo-find-file (dvc-diff-get-file-at-point))))))
 
 (defun dvc-diff-mark-file ()
-  "Mark the file under point."
+  "Mark the file under point, and move to next file.
+If on a message, mark the group to the next message."
   (interactive)
   (if (not (dvc-diff-in-ewoc-p))
       (error "not in file list"))
@@ -452,12 +454,23 @@ file after."
   (if (not (dvc-diff-in-ewoc-p))
       (error "not in file list"))
 
-  (if (dvc-fileinfo-message-p (dvc-fileinfo-current-fileinfo))
-      (dvc-diff-mark-group t)
-    ;; not a message
-    (if up (dvc-fileinfo-prev))
-    (dvc-fileinfo-mark-file-1 t)
-    (unless up (dvc-fileinfo-next))))
+  (if up (dvc-fileinfo-prev))
+
+  (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
+    (etypecase fileinfo
+      (dvc-fileinfo-file
+       (dvc-fileinfo-mark-file-1 t))
+
+      (dvc-fileinfo-message
+       (dvc-diff-mark-group t))
+
+      (dvc-fileinfo-legacy
+       (let ((current (ewoc-locate dvc-fileinfo-ewoc))
+             (file (dvc-get-file-info-at-point)))
+         (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list))
+         (ewoc-invalidate dvc-fileinfo-ewoc current)))))
+
+  (unless up (dvc-fileinfo-next)))
 
 (defun dvc-diff-unmark-file-up ()
   "Unmark the file under point and move up."

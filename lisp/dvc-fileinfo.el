@@ -182,7 +182,15 @@ error if point is not on a file or directory."
 
 (defun dvc-fileinfo-path (fileinfo)
   "Return directory and file from fileinfo, as a string."
-  (concat (dvc-fileinfo-file-dir fileinfo) (dvc-fileinfo-file-file fileinfo)))
+  (etypecase fileinfo
+    (dvc-fileinfo-file
+     (concat (dvc-fileinfo-file-dir fileinfo) (dvc-fileinfo-file-file fileinfo)))
+
+    (dvc-fileinfo-legacy
+     (let ((data (dvc-fileinfo-legacy-data fileinfo)))
+       (if (eq 'file (car data))
+           (cadr data)
+         (error "Not on a file entry"))))))
 
 (defun dvc-fileinfo-current-file ()
   "Return a string giving the filename (including path from root)
@@ -382,13 +390,10 @@ in that directory. Then move to previous ewoc entry."
     (while
         (and elem
              (let ((fileinfo (ewoc-data elem)))
-               (or (not
-                    (or (dvc-fileinfo-file-p fileinfo)
-                         (and (dvc-fileinfo-legacy-p fileinfo)
-                              (eq (car (dvc-fileinfo-legacy-data fileinfo)) 'file))))
-                   (not (string= (expand-file-name
-                                  (dvc-fileinfo-path fileinfo))
-                                 file)))))
+               (not (and
+                     (dvc-fileinfo-file-or-legacy-file-p fileinfo)
+                     (string= (expand-file-name (dvc-fileinfo-path fileinfo))
+                              file)))))
       ;; not found yet
       (setq elem (ewoc-next dvc-fileinfo-ewoc elem)))
     (if elem
