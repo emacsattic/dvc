@@ -197,11 +197,11 @@ point is not on a file element line."
        (cadr (dvc-fileinfo-legacy-data fileinfo))))))
 
 (defun dvc-fileinfo-all-files ()
-  "Return list of all files in the ewoc"
+  "Return list of all files (as strings) in file list"
   (let (result)
     (ewoc-map
      (lambda (fileinfo)
-       (when (typep fileinfo 'dvc-fileinfo-file)
+       (when (dvc-fileinfo-file-or-legacy-file-p fileinfo)
          ;; we use 'add-to-list', because some back-ends put files in the ewoc more than once
          (add-to-list 'result (dvc-fileinfo-path fileinfo)))
        nil)
