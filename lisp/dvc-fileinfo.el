@@ -421,28 +421,31 @@ If OTHER-FRAME xor `dvc-add-log-entry-other-frame' is non-nil,
 show log-edit buffer in other frame."
   (interactive "P")
   (let ((fi (dvc-fileinfo-current-fileinfo)))
-    (ecase (dvc-fileinfo-file-status fi)
-      (added
-       (dvc-log-edit (Xor other-frame dvc-add-log-entry-other-frame) t)
-       (undo-boundary)
-       (goto-char (point-max))
-       (newline)
-       (insert "* ")
-       (insert (dvc-fileinfo-path fi))
-       (insert ": New file.")
-       (newline))
+    (dvc-log-edit (Xor other-frame dvc-add-log-entry-other-frame) t)
+    (undo-boundary)
+    (goto-char (point-max))
+    (newline)
+    (insert "* ")
+    (insert (dvc-fileinfo-path fi))
+    (insert ": ")
 
-      ((conflict
-        deleted
-        ignored
-        invalid
-        known
-        missing
-        modified
-        rename
-        rename
-        unknown)
-       (ding)))))
+    (if (typep fi dvc-fileinfo-file)
+        (ecase (dvc-fileinfo-file-status fi)
+          (added
+           (insert "New file.")
+           (newline))
+
+          ((conflict
+            deleted
+            ignored
+            invalid
+            known
+            missing
+            modified
+            rename
+            rename
+            unknown)
+           nil)))))
 
 (defun dvc-fileinfo-rename ()
   "Record a rename for two currently marked files.

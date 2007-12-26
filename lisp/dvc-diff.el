@@ -149,7 +149,7 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-ediff                          'dvc-diff-ediff)
     (define-key map dvc-keyvec-refresh                        'dvc-generic-refresh)
     (define-key map dvc-keyvec-commit                         'dvc-log-edit)
-    (define-key map "t"                                       'dvc-add-log-entry)
+    (define-key map "t"                                       'dvc-diff-add-log-entry)
     ;; TODO move this somewhere else.
     (define-key map [?I]                                      'tla-inventory)
     (define-key map dvc-keyvec-inventory                      'dvc-pop-to-inventory)
@@ -559,6 +559,13 @@ Throw an error when not on a file."
       (expand-file-name (concat (file-name-as-directory
                                  default-directory)
                                 (dvc-diff-find-file-name))))))
+
+(defun dvc-diff-add-log-entry (&optional other-frame)
+  "Add a log entry for file or diff hunk at point."
+  (interactive "P")
+  (if (dvc-diff-in-ewoc-p)
+      (dvc-fileinfo-add-log-entry other-frame)
+    (dvc-add-log-entry other-frame)))
 
 (defvar dvc-header nil
   "Free variable used to pass info from the parser to
