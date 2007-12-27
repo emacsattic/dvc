@@ -61,7 +61,7 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
       (dvc-get-buffer-create dvc type path)
     (let ((inhibit-read-only t)) (erase-buffer))
     (let ((dvc-temp-current-active-dvc dvc))
-      (funcall (dvc-function dvc "diff-mode"))
+      (funcall (dvc-function dvc "diff-mode")))
     (setq dvc-diff-base base)
     (setq dvc-diff-modified modified)
     (current-buffer)))
