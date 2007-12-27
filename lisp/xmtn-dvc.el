@@ -1512,7 +1512,7 @@ finished."
                         (local-tree nil)
                         (revision (cadr resolved-id))))
          (cmd (if hash-id
-                  (cons (list (concat "--revision=" hash-id)) (list "get_file_of" normalized-file-name))
+                  (cons (list "revision" hash-id) (list "get_file_of" normalized-file-name))
                 (list "get_file_of" normalized-file-name))))
     (xmtn-automate-simple-command-output-insert-into-buffer root buffer cmd)))
 
