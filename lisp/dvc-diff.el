@@ -809,7 +809,12 @@ quitting."
   (add-hook 'ediff-after-quit-hook-internal
             (dvc-capturing-lambda ()
               (set-window-configuration (capture dvc-window-config)))
-            nil 'local))
+            nil 'local)
+
+  ;; Set dvc-buffer-current-active-dvc for dvc-ediff-add-log-entry.
+  ;; When this hook is called, current buffer is the ediff control
+  ;; buffer, default-directory is the tree root.
+  (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc)))
 
 (defvar dvc-window-config nil
   "Keep byte-compiler happy; declare let-bound variable used by dvc-ediff-startup-hook.")
