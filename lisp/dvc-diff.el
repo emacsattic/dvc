@@ -823,7 +823,8 @@ quitting."
   "Wrapper around `ediff-buffers'.
 
 Calls `ediff-buffers' on BUFFERA and BUFFERB."
-  (let ((dvc-window-config (current-window-configuration)))
+  (let ((dvc-window-config (current-window-configuration))
+        (dvc-temp-current-active-dvc (dvc-current-active-dvc)))
     (ediff-buffers bufferA bufferB
                    '(dvc-ediff-startup-hook) 'dvc-ediff)))
 

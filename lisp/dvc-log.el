@@ -220,7 +220,9 @@ by calling `dvc-log-flush-commit-file-list'."
 
 ;;;###autoload
 (defun dvc-add-log-entry (&optional other-frame)
-  "Add new DVC log ChangeLog style entry."
+  "Add new ChangeLog style entry to the current DVC log-edit buffer.
+If OTHER-FRAME xor `dvc-add-log-entry-other-frame' is non-nil,
+show log-edit buffer in other frame."
   (interactive "P")
   (save-restriction
     (dvc-add-log-entry-internal other-frame)))
@@ -242,6 +244,9 @@ For use as add-log-file-name-function."
 from the ediff control buffer."
   (interactive "P")
   (set-buffer ediff-buffer-B) ; DVC puts workspace version here
+
+  ;; We don't set add-log-file-name-function globally because
+  ;; dvc-diff-mode needs a different one.
   (let ((add-log-file-name-function 'dvc-add-log-file-name))
     (dvc-add-log-entry-internal other-frame)))
 
@@ -368,7 +373,7 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
           ;; implemented in all variants of (X)Emacs.  We could create
           ;; a compatibility function for it, but nobody else seems to
           ;; use it yet, so there is no point.
-          (when (re-search-backward (concat defun ",\\s *\\=") nil t)
+          (when (re-search-backward (concat (regexp-quote defun) ",\\s *\\=") nil t)
             (replace-match ""))
           (insert defun "): "))
       ;; No function name, so put in a colon unless we have just a star.
