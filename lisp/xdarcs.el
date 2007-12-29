@@ -108,12 +108,14 @@
                    (setq modif nil
                          status nil)))
             (when (or modif status)
-              (ewoc-enter-last dvc-diff-cookie
-                               (list 'file
-                                     ;; Skip the status and "./" in the filename
-                                     (substring elem 4)
-                                     status
-                                     modif)))))))))
+              (ewoc-enter-last
+               dvc-diff-cookie
+               (make-dvc-fileinfo-legacy
+                :data (list 'file
+                            ;; Skip the status and "./" in the filename
+                            (substring elem 4)
+                            status
+                            modif))))))))))
 
 ;;;###autoload
 (defun xdarcs-whatsnew (&optional path)

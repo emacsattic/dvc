@@ -89,7 +89,7 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
 ;; ----------------------------------------------------------------------------
 
 (defun dvc-diff-printer (elem)
-  "Ewoc pretty-printer for `dvc-diff-cookie'.
+  "Ewoc pretty-printer for `dvc-fileinfo-legacy'.
 
 Pretty-print ELEM."
   (cond
@@ -438,7 +438,7 @@ a 'file."
             (setq dvc-buffer-marked-file-list
                   (delete file dvc-buffer-marked-file-list))
           (add-to-list 'dvc-buffer-marked-file-list file))))
-      (setq ewoc-elem (ewoc-next dvc-diff-cookie ewoc-elem)))
+      (setq ewoc-elem (ewoc-next dvc-fileinfo-ewoc ewoc-elem)))
 
     (ewoc-refresh dvc-fileinfo-ewoc)
     (if ewoc-elem

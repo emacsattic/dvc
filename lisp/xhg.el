@@ -187,16 +187,18 @@ negative : Don't show patches, limit to n revisions."
              (removed (progn (forward-line 1)
                              (looking-at "^\\+\\+\\+ /dev/null"))))
         (with-current-buffer changes-buffer
-          (ewoc-enter-last dvc-diff-cookie
-                           (list 'file
-                                 name
-                                 (cond (added   "A")
-                                       (removed "D")
-                                       (t " "))
-                                 (cond ((or added removed) " ")
-                                       (t "M"))
-                                 " " ; dir. Nothing is a directory in hg.
-                                 nil)))))))
+          (ewoc-enter-last
+           dvc-diff-cookie
+           (make-dvc-fileinfo-legacy
+            :data (list 'file
+                        name
+                        (cond (added   "A")
+                              (removed "D")
+                              (t " "))
+                        (cond ((or added removed) " ")
+                              (t "M"))
+                        " " ; dir. Nothing is a directory in hg.
+                        nil))))))))
 
 (defun xhg-parse-status (changes-buffer)
   (let ((status-list (split-string (dvc-buffer-content output) "\n")))
@@ -209,7 +211,10 @@ negative : Don't show patches, limit to n revisions."
         (unless (string= "" elem)
           (setq modif-char (substring elem 0 1))
           (with-current-buffer changes-buffer
-            (ewoc-enter-last dvc-diff-cookie (list 'file (substring elem 2) modif-char))))))))
+            (ewoc-enter-last
+             dvc-diff-cookie
+             (make-dvc-fileinfo-legacy
+              :data (list 'file (substring elem 2) modif-char)))))))))
 
 (defun xhg-diff-1 (modified path dont-switch base-rev)
   "Run hg diff.
