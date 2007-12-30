@@ -429,6 +429,8 @@ of the commit. Additionally the destination email address can be specified."
       ;;  lisp/bzr.el
       ;;  lisp/dvc-diff.el
       ;;  lisp/dvc-fileinfo.el
+      ;; removed:
+      ;;  lisp/deleted-file.el
       ;; unknown:
       ;;  lisp/new-file.el
       ;; conflicts:
@@ -452,6 +454,8 @@ of the commit. Additionally the destination email address can be specified."
                   (setq current-status 'conflict))
                  ((string-equal msg "modified:")
                   (setq current-status 'modified))
+                 ((string-equal msg "removed:")
+                  (setq current-status 'missing))
                  ((string-equal msg "unknown:")
                   (setq current-status 'unknown))
                  ((string-equal msg "pending merges:")

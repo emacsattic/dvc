@@ -460,7 +460,7 @@ file after."
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo
       (dvc-fileinfo-file
-       (dvc-fileinfo-mark-file-1 t))
+       (dvc-fileinfo-mark-file-1 nil))
 
       (dvc-fileinfo-message
        (dvc-diff-mark-group t))

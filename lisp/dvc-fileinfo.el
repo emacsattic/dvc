@@ -400,7 +400,7 @@ in that directory. Then move to previous ewoc entry."
         elem
       (error "Can't find file %s in list" file))))
 
-(defun dvc-fileinfo-marked-files ()
+(defun dvc-fileinfo-marked-elems ()
   "Return list of fileinfo structs that are marked files."
   ;; This does _not_ include legacy fileinfo structs; they do not
   ;; contain a mark field.
@@ -410,7 +410,7 @@ in that directory. Then move to previous ewoc entry."
       (let ((fi (ewoc-data elem)))
         (if (and (dvc-fileinfo-file-p fi)
                  (dvc-fileinfo-file-mark fi))
-          (setq result (append result (list fi))))
+          (setq result (append result (list elem))))
         (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
     result))
 
@@ -449,6 +449,15 @@ show log-edit buffer in other frame."
             unknown)
            nil)))))
 
+(defun dvc-fileinfo--do-rename (fi-source fi-target)
+  (dvc-rename (dvc-fileinfo-path fi-source)
+              (dvc-fileinfo-path fi-target))
+  (setf (dvc-fileinfo-file-status fi-source) 'rename-source)
+  (setf (dvc-fileinfo-file-status fi-target) 'rename-target)
+  (setf (dvc-fileinfo-file-mark fi-source) nil)
+  (setf (dvc-fileinfo-file-mark fi-target) nil)
+  (apply 'ewoc-invalidate dvc-fileinfo-ewoc elems))
+
 (defun dvc-fileinfo-rename ()
   "Record a rename for two currently marked files.
 One file must have status `missing', the other `unknown'."
@@ -456,19 +465,18 @@ One file must have status `missing', the other `unknown'."
   (if (not (= 2 (length dvc-buffer-marked-file-list)))
       (error "rename requires exactly 2 marked files"))
 
-  (let* ((fis (dvc-fileinfo-marked-files))
+  (let* ((elems (dvc-fileinfo-marked-elems))
+         (fis (mapcar 'ewoc-data elems))
          (stati (mapcar 'dvc-fileinfo-file-status fis)))
 
     (cond
      ((and (eq 'missing (nth 0 stati))
            (eq 'unknown (nth 1 stati)))
-      (dvc-rename (dvc-fileinfo-path (nth 0 fis))
-                  (dvc-fileinfo-path (nth 1 fis))))
+      (dvc-fileinfo--do-rename (nth 0 fis) (nth 1 fis)))
 
      ((and (eq 'missing (nth 1 stati))
            (eq 'unknown (nth 0 stati)))
-      (dvc-rename (dvc-fileinfo-path (nth 1 fis))
-                  (dvc-fileinfo-path (nth 0 fis))))
+      (dvc-fileinfo--do-rename (nth 1 fis) (nth 0 fis)))
 
      (t
       (error "must rename from a file with status `missing' to a file with status `unknown'")))))

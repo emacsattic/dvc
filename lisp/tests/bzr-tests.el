@@ -87,7 +87,7 @@ the test file."
        (dvc-log)
        (dvc-tests-wait-async); let log display
        (dvc-revlist-show-item))))
-  
+
   (file-diff
    ;; The test is simply that this doesn't crash.
    (save-window-excursion
@@ -99,7 +99,7 @@ the test file."
              (save-excursion
                (call-interactively #'dvc-file-diff)))
          (revert-buffer t t)))))
-  
+
   (diff
    ;; The test is simply that this doesn't crash.
    (save-window-excursion
@@ -108,7 +108,7 @@ the test file."
        (insert "x")
        (write-file file-name)
        (call-interactively #'dvc-diff))))
-  
+
   (diff-from-revlog
    ;; The test is simply that this doesn't crash.
    (save-window-excursion
@@ -138,9 +138,7 @@ the test file."
 
 (defun bzr-test-one ()
   (let ((default-directory bzr-test-dir))
-    (dvc-changelog)
-    (dvc-revision-next)
-    (dvc-revlist-diff)
+    (dvc-status)
     ))
 
 ;(bzr-test-create-history)
