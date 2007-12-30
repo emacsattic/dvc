@@ -148,6 +148,7 @@ Pretty-print ELEM."
     (define-key map "l"                                       'dvc-diff-log)
     (define-key map dvc-keyvec-ediff                          'dvc-diff-ediff)
     (define-key map dvc-keyvec-refresh                        'dvc-generic-refresh)
+    (define-key map "R"                                       'dvc-fileinfo-rename)
     (define-key map dvc-keyvec-commit                         'dvc-log-edit)
     (define-key map "t"                                       'dvc-diff-add-log-entry)
     ;; TODO move this somewhere else.

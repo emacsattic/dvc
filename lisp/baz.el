@@ -224,8 +224,9 @@ the root of the projects is displayed."
                (dvc-fileinfo-delete-messages)
                (ewoc-enter-last
                 dvc-fileinfo-ewoc
-                (make-dvc-fileinfo-message (concat "* No changes in "
-                                              root-lex ".\n\n")))
+                (make-dvc-fileinfo-message
+                 :text (concat "* No changes in "
+                               root-lex ".\n\n")))
                (when master-buffer-lex
                  (with-current-buffer master-buffer-lex
                    (ewoc-map (lambda (fi)
