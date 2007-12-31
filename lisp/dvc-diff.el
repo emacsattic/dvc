@@ -581,7 +581,9 @@ This is just a lint trap.")
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
 default-directory of process buffer must be a tree root.
 
-PARSER is a function to parse the diff and fill in the ewoc list.
+PARSER is a function to parse the diff and fill in the ewoc list;
+it will be called with one arg, the changes buffer. Data to be
+parsed will be in current buffer.
 
 Display changes in OUTPUT-BUFFER (must be non-nil; create with
 dvc-prepare-changes-buffer).
@@ -792,7 +794,8 @@ quitting."
   "Wrapper around `ediff-buffers'.
 
 Calls `ediff-buffers' on BUFFERA and BUFFERB."
-  (let ((dvc-window-config (current-window-configuration)))
+  (let ((dvc-window-config (current-window-configuration))
+        (dvc-temp-current-active-dvc (dvc-current-active-dvc)))
     (ediff-buffers bufferA bufferB
                    '(dvc-ediff-startup-hook) 'dvc-ediff)))
 

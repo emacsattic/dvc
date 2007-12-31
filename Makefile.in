@@ -52,8 +52,8 @@ html:
 dvc: generated-files
 	cd lisp; $(MAKE)
 
-dvc-maybe: generated-files
-	cd lisp; $(MAKE) maybe
+dvc-verbose: generated-files
+	cd lisp; $(MAKE) all-verbose
 
 install: dvc-load.el
 	@for i in $(SUBDIRS) ; do               \
