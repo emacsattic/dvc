@@ -241,6 +241,8 @@ point is not on a file element line."
                  )))
 
 (defun dvc-fileinfo-mark-dir-1 (fileinfo mark)
+;; `dir-compare' must be let-bound to the directory being marked.
+;; It can't be a normal parameter because this is called via ewoc-map.
   (if (string-equal dir-compare (dvc-fileinfo-file-dir fileinfo))
       (let ((file (dvc-fileinfo-path fileinfo)))
         (setf (dvc-fileinfo-file-mark fileinfo) mark)
@@ -365,7 +367,7 @@ in that directory. Then move to previous ewoc entry."
 
      (t
       ;; at last element
-      nil))))
+      (ding)))))
 
 (defun dvc-fileinfo-prev ()
   "Move to the previous ewoc entry."
@@ -382,7 +384,7 @@ in that directory. Then move to previous ewoc entry."
 
      (t
       ;; at first element
-      nil))))
+      (ding)))))
 
 (defun dvc-fileinfo-find-file (file)
   "Return ewoc element for FILE (full path)."
@@ -449,7 +451,7 @@ show log-edit buffer in other frame."
             unknown)
            nil)))))
 
-(defun dvc-fileinfo--do-rename (fi-source fi-target)
+(defun dvc-fileinfo--do-rename (fi-source fi-target elems)
   (dvc-rename (dvc-fileinfo-path fi-source)
               (dvc-fileinfo-path fi-target))
   (setf (dvc-fileinfo-file-status fi-source) 'rename-source)
@@ -472,11 +474,11 @@ One file must have status `missing', the other `unknown'."
     (cond
      ((and (eq 'missing (nth 0 stati))
            (eq 'unknown (nth 1 stati)))
-      (dvc-fileinfo--do-rename (nth 0 fis) (nth 1 fis)))
+      (dvc-fileinfo--do-rename (nth 0 fis) (nth 1 fis) elems))
 
      ((and (eq 'missing (nth 1 stati))
            (eq 'unknown (nth 0 stati)))
-      (dvc-fileinfo--do-rename (nth 1 fis) (nth 0 fis)))
+      (dvc-fileinfo--do-rename (nth 1 fis) (nth 0 fis) elems))
 
      (t
       (error "must rename from a file with status `missing' to a file with status `unknown'")))))

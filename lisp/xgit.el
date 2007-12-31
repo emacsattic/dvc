@@ -228,7 +228,7 @@ new file.")
           (with-current-buffer changes-buffer
             (dolist (elem (xgit-parse-status-sort (nreverse status-list)))
               (ewoc-enter-last
-               dvc-diff-cookie
+               dvc-fileinfo-ewoc
                (make-dvc-fileinfo-legacy :data elem)))))))))
 
 (defun xgit-dvc-status (&optional verbose)
@@ -315,7 +315,7 @@ This reset the index to HEAD, but doesn't touch files."
              (removed (looking-at "^deleted file")))
         (with-current-buffer changes-buffer
           (ewoc-enter-last
-           dvc-diff-cookie
+           dvc-fileinfo-ewoc
            (make-dvc-fileinfo-legacy
             :data (list 'file
                         name
