@@ -38,6 +38,9 @@ LINKPATH = @LINKPATH@
 all: dvc-version.el clean-some autoloads
 	$(EMACS_COMP) -f package-maint-compile
 
+all-verbose: dvc-version.el clean-some autoloads
+	$(EMACS_COMP) -f package-maint-compile-verbosely
+
 install: install-el install-elc
 
 # This entry will never install .el files if there are no .elc files.
