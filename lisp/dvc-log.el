@@ -1,6 +1,6 @@
 ;;; dvc-log.el --- Manipulation of the log before commiting
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -30,8 +30,8 @@
 (require 'dvc-unified)
 (require 'ediff)
 
-(defcustom dvc-add-log-entry-other-frame nil
-  "If non-nil, dvc-add-log-entry defaults to other-frame."
+(defcustom dvc-log-edit-other-frame nil
+  "If non-nil, dvc-log-edit defaults to other-frame."
   :type 'boolean
   :group 'dvc)
 
@@ -221,7 +221,7 @@ by calling `dvc-log-flush-commit-file-list'."
 ;;;###autoload
 (defun dvc-add-log-entry (&optional other-frame)
   "Add new ChangeLog style entry to the current DVC log-edit buffer.
-If OTHER-FRAME xor `dvc-add-log-entry-other-frame' is non-nil,
+If OTHER-FRAME xor `dvc-log-edit-other-frame' is non-nil,
 show log-edit buffer in other frame."
   (interactive "P")
   (save-restriction
@@ -258,7 +258,6 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
   ;; split add-change-log-entry into several functions and then use them, but
   ;; that wouldn't work with older versions of Emacs.
   (if (not (featurep 'add-log)) (require 'add-log))
-  (setq other-frame (Xor other-frame dvc-add-log-entry-other-frame))
   (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
          (defun (add-log-current-defun))
          (buf-file-name (if (and (boundp 'add-log-buffer-file-name-function)

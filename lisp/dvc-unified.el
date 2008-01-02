@@ -1,6 +1,6 @@
 ;;; dvc-unified.el --- The unification layer for dvc
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -271,6 +271,7 @@ user prefix) puts log edit buffer in a separate frame. Optional
 NO-INIT if non-nil suppresses initialization of buffer if one is
 reused."
   (interactive "P")
+  (setq other-frame (Xor other-frame dvc-log-edit-other-frame))
   ;; Reuse an existing log-edit buffer if possible.
   ;;
   ;; If this is invoked from a status or diff buffer,
