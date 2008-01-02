@@ -1,6 +1,6 @@
 ;;; dvc-fileinfo.el --- An ewoc structure for displaying file information for DVC
 
-;; Copyright (C) 2007 by all contributors
+;; Copyright (C) 2007, 2008 by all contributors
 
 ;; Author: Stephen Leake, <stephen_leake@stephe-leake.org>
 
@@ -76,6 +76,21 @@ The elements must all be of class dvc-fileinfo-root.")
     (rename-target  "rename-target")
     (unknown        "unknown      ")))
 
+(defun dvc-fileinfo-choose-face (status)
+  "Return a face appropriate for STATUS."
+  (ecase status
+    (added         'dvc-added)
+    (conflict      'dvc-conflict)
+    (deleted       'dvc-deleted)
+    (ignored       'dvc-ignored)
+    (invalid       'dvc-unrecognized)
+    (known         'dvc-source)
+    (missing       'dvc-move)
+    (modified      'dvc-modified)
+    (rename-source 'dvc-move)
+    (rename-target 'dvc-move)
+    (unknown       'dvc-unknown)))
+
 (defstruct (dvc-fileinfo-dir
             (:include dvc-fileinfo-file)
 	    (:copier nil))
@@ -103,18 +118,6 @@ The elements must all be of class dvc-fileinfo-root.")
   ;; (subtree \"name\" related-buffer changes?)
   ;; (searching-subtree \"<message>\" )
   )
-
-(defun dvc-fileinfo-choose-face (status)
-  "Return a face appropriate for STATUS."
-  (case status
-   ('added 'dvc-added)
-   ('unknown 'dvc-unknown)
-   ('modified 'dvc-modified)
-   ('conflict 'dvc-conflict)
-   ('move 'dvc-move)
-   (t
-    (dvc-trace "unknown status=%S" status)
-    'default)))
 
 (defun dvc-fileinfo-printer (fileinfo)
   "Ewoc pretty-printer for dvc-fileinfo types."
@@ -351,8 +354,9 @@ in that directory. Then move to previous ewoc entry."
                  nil)))
             dvc-fileinfo-ewoc))
 
-(defun dvc-fileinfo-next ()
-  "Move to the next ewoc entry."
+(defun dvc-fileinfo-next (&optional no-ding)
+  "Move to the next ewoc entry. If optional NO-DING, don't ding
+if there is no next."
   (interactive)
   (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
          (cur-location (ewoc-location current))
@@ -367,10 +371,11 @@ in that directory. Then move to previous ewoc entry."
 
      (t
       ;; at last element
-      (ding)))))
+      (unless no-ding (ding))))))
 
-(defun dvc-fileinfo-prev ()
-  "Move to the previous ewoc entry."
+(defun dvc-fileinfo-prev (&optional no-ding)
+  "Move to the previous ewoc entry. If optional NO-DING, don't ding
+if there is no prev."
   (interactive)
   (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
          (cur-location (ewoc-location current))
@@ -384,7 +389,7 @@ in that directory. Then move to previous ewoc entry."
 
      (t
       ;; at first element
-      (ding)))))
+      (unless no-ding (ding))))))
 
 (defun dvc-fileinfo-find-file (file)
   "Return ewoc element for FILE (full path)."
@@ -416,40 +421,61 @@ in that directory. Then move to previous ewoc entry."
         (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
     result))
 
+(defun dvc-fileinfo-same-status (elems)
+  "If all ELEMS (list of ewoc elements with data of class
+  dvc-fileinfo-file) have same status, return t. Otherwise
+  throw an error."
+  (if (null elems)
+      t
+    (let (status)
+      (mapc
+       (lambda (elem)
+         (let ((fileinfo (ewoc-data elem)))
+           (if status
+               (if (not (equal status (dvc-fileinfo-file-status fileinfo)))
+                   (error "cannot Do The Right Thing on files with different status"))
+             (setq status (dvc-fileinfo-file-status fileinfo))))))
+      status)))
+
 ;;; actions
+(defun dvc-fileinfo-add-log-entry-1 (fileinfo other-frame)
+  "Add an entry in the current log-edit buffer for FILEINFO.
+If OTHER-FRAME (default prefix) xor `dvc-log-edit-other-frame' is
+non-nil, show log-edit buffer in other frame."
+  (dvc-log-edit other-frame t)
+  (undo-boundary)
+  (goto-char (point-max))
+  (newline)
+  (insert "* ")
+  (insert (dvc-fileinfo-path fileinfo))
+  (insert ": ")
+
+  (if (typep fileinfo 'dvc-fileinfo-file)
+      (ecase (dvc-fileinfo-file-status fileinfo)
+        (added
+         (insert "New file.")
+         (newline))
+
+        ((rename-source rename-target)
+         (insert "renamed")
+         (newline))
+
+        ((conflict
+          deleted
+          ignored
+          invalid
+          known
+          missing
+          modified
+          unknown)
+         nil))))
+
 (defun dvc-fileinfo-add-log-entry (&optional other-frame)
   "Add an entry in the current log-edit buffer for the current file.
-If OTHER-FRAME xor `dvc-add-log-entry-other-frame' is non-nil,
-show log-edit buffer in other frame."
+If OTHER-FRAME (default prefix) xor `dvc-log-edit-other-frame' is
+non-nil, show log-edit buffer in other frame."
   (interactive "P")
-  (let ((fi (dvc-fileinfo-current-fileinfo)))
-    (dvc-log-edit (Xor other-frame dvc-add-log-entry-other-frame) t)
-    (undo-boundary)
-    (goto-char (point-max))
-    (newline)
-    (insert "* ")
-    (insert (dvc-fileinfo-path fi))
-    (insert ": ")
-
-    (if (typep fi 'dvc-fileinfo-file)
-        (ecase (dvc-fileinfo-file-status fi)
-          (added
-           (insert "New file.")
-           (newline))
-
-          ((rename-source rename-target)
-           (insert "renamed")
-           (newline))
-
-          ((conflict
-            deleted
-            ignored
-            invalid
-            known
-            missing
-            modified
-            unknown)
-           nil)))))
+  (dvc-fileinfo-add-log-entry-1 (dvc-fileinfo-current-fileinfo) other-frame))
 
 (defun dvc-fileinfo--do-rename (fi-source fi-target elems)
   (dvc-rename (dvc-fileinfo-path fi-source)
@@ -464,12 +490,12 @@ show log-edit buffer in other frame."
   "Record a rename for two currently marked files.
 One file must have status `missing', the other `unknown'."
   (interactive)
-  (if (not (= 2 (length dvc-buffer-marked-file-list)))
-      (error "rename requires exactly 2 marked files"))
-
   (let* ((elems (dvc-fileinfo-marked-elems))
          (fis (mapcar 'ewoc-data elems))
          (stati (mapcar 'dvc-fileinfo-file-status fis)))
+
+    (if (not (= 2 (length stati)))
+        (error "rename requires exactly 2 marked files"))
 
     (cond
      ((and (eq 'missing (nth 0 stati))
@@ -482,6 +508,21 @@ One file must have status `missing', the other `unknown'."
 
      (t
       (error "must rename from a file with status `missing' to a file with status `unknown'")))))
+
+(defun dvc-fileinfo-rename-possible (marked-elems)
+  "Return nil if `dvc-fileinfo-rename' will throw an error for
+MARKED-ELEMS, non-nil otherwise."
+  (and
+   marked-elems
+   (= 2 (length marked-elems))
+   (let* ((fis (mapcar 'ewoc-data marked-elems))
+          (stati (mapcar 'dvc-fileinfo-file-status fis)))
+    (or
+     (and (eq 'missing (nth 0 stati))
+          (eq 'unknown (nth 1 stati)))
+
+     (and (eq 'missing (nth 1 stati))
+          (eq 'unknown (nth 0 stati)))))))
 
 (provide 'dvc-fileinfo)
 ;;; end of file

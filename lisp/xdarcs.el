@@ -109,7 +109,7 @@
                          status nil)))
             (when (or modif status)
               (ewoc-enter-last
-               dvc-diff-cookie
+               dvc-fileinfo-ewoc
                (make-dvc-fileinfo-legacy
                 :data (list 'file
                             ;; Skip the status and "./" in the filename

@@ -1,6 +1,6 @@
 ;;; dvc-diff.el --- A generic diff mode for DVC
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -143,6 +143,7 @@ Pretty-print ELEM."
     (define-key map "\M-\C-m"                                 'dvc-diff-scroll-down-or-diff)
     (define-key map [?=]                                      'dvc-diff-diff)
     (define-key map dvc-keyvec-add                            'dvc-add-files)
+    (define-key map "\M-d"                                    'dvc-diff-dtrt)
     (define-key map [?h]                                      'dvc-buffer-pop-to-partner-buffer)
     (define-key map dvc-keyvec-logs                           'dvc-log)
     (define-key map "l"                                       'dvc-diff-log)
@@ -455,7 +456,7 @@ file after."
   (if (not (dvc-diff-in-ewoc-p))
       (error "not in file list"))
 
-  (if up (dvc-fileinfo-prev))
+  (if up (dvc-fileinfo-prev t))
 
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo
@@ -471,7 +472,7 @@ file after."
          (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list))
          (ewoc-invalidate dvc-fileinfo-ewoc current)))))
 
-  (unless up (dvc-fileinfo-next)))
+  (unless up (dvc-fileinfo-next nil)))
 
 (defun dvc-diff-unmark-file-up ()
   "Unmark the file under point and move up."
@@ -699,6 +700,74 @@ Useful to clear diff buffers after a commit."
           (ewoc-set-hf dvc-fileinfo-ewoc "" "")
           (ewoc-enter-first dvc-fileinfo-ewoc (make-dvc-fileinfo-message :text msg))
           (ewoc-refresh dvc-fileinfo-ewoc))))))
+
+(defun dvc-diff-dtrt (prefix)
+  "Do The Right Thing in a dvc-diff buffer."
+  (interactive "P")
+
+  (let* ((marked-elems (dvc-fileinfo-marked-elems))
+         (length-marked-elems (length marked-elems))
+         (fileinfo
+          (if (< 1 length-marked-elems)
+              (ewoc-data (car marked-elems))
+            (save-excursion
+              (unless (dvc-diff-in-ewoc-p) (dvc-diff-diff-or-list))
+              (dvc-fileinfo-current-fileinfo))))
+         (status (dvc-fileinfo-file-status fileinfo)))
+
+    (ecase status
+      (added
+       (if (< 1 length-marked-elems)
+         (error "cannot Do The Right Thing on more than one 'added' file"))
+       (dvc-fileinfo-add-log-entry-1 fileinfo prefix))
+
+      (deleted
+       ;; typically nothing to do; just need commit
+       (ding)
+       (dvc-fileinfo-next))
+
+      (missing
+       ;; File is in database, but not in workspace
+       (cond
+        ((dvc-fileinfo-rename-possible marked-elems)
+         (dvc-fileinfo-rename))
+
+        (t
+         (dvc-fileinfo-same-status marked-elems)
+         (ding)
+         (dvc-offer-choices (concat (dvc-fileinfo-current-file) " does not exist in working directory")
+                            '((dvc-revert-files "revert")
+                              (dvc-remove-files "remove")
+                              (dvc-fileinfo-rename "rename"))))))
+
+      (modified
+       ;; Don't offer undo here; not a common action
+       (if (dvc-diff-in-ewoc-p)
+           (if (< 1 length-marked-elems)
+               (error "cannot ediff more than one file")
+             (dvc-diff-ediff))
+         (if (< 1 length-marked-elems)
+             (error "cannot add a log entry for more than one file")
+           (dvc-diff-add-log-entry))))
+
+      ((rename-source rename-target)
+       ;; typically nothing to do; just need commit
+       (ding)
+       (dvc-fileinfo-next))
+
+      (unknown
+       (cond
+        ((dvc-fileinfo-rename-possible marked-elems)
+         (dvc-fileinfo-rename))
+
+        (t
+         (dvc-fileinfo-same-status marked-elems)
+         (dvc-offer-choices nil
+                            '((dvc-add-files "add")
+                              (dvc-ignore-files "ignore")
+                              (dvc-remove-files "remove")
+                              (dvc-fileinfo-rename "rename"))))))
+      )))
 
 ;;;###autoload
 (defun dvc-file-ediff (file)

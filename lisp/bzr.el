@@ -1,6 +1,6 @@
 ;;; bzr.el --- Support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -239,6 +239,7 @@ The following functions are called:
       (let* ((origname (match-string-no-properties 2))
              (newname  (or (match-string-no-properties 4) origname))
              (renamed  (string= (match-string-no-properties 1) "renamed"))
+             (removed  (string= (match-string-no-properties 1) "removed"))
              (added    (string= (match-string-no-properties 1) "added")))
         (with-current-buffer changes-buffer
           (ewoc-enter-last
@@ -249,6 +250,7 @@ The following functions are called:
                               :status (cond
                                        (added   'added)
                                        (renamed 'rename-source)
+                                       (removed 'missing)
                                        (t       'modified))
                               :more-status (when (and renamed (not added))
                                              origname))))))))
