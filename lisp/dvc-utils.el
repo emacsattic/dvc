@@ -649,5 +649,17 @@ containing (symbol description)."
                (concat comment "; " msg)
              msg))))
 
+(defun dvc-excluded-files ()
+  "Return a list of strings (normally file names relative to tree
+  root) from the file \".dvc-exclude\" in `default-directory'."
+  (if (file-readable-p ".dvc-exclude")
+      (with-temp-buffer
+        (insert-file-contents ".dvc-exclude")
+        (let (result)
+          (while (< (point) (point-max))
+            (setq result (append result (list (buffer-substring (point) (point-at-eol)))))
+            (forward-line 1))
+          result))))
+
 (provide 'dvc-utils)
 ;;; dvc-utils.el ends here

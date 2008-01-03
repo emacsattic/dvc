@@ -1,6 +1,6 @@
 ;;; xmtn-dvc.el --- DVC backend for monotone
 
-;; Copyright (C) 2006, 2007 Christian M. Ohler
+;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
 ;; Keywords: tools
@@ -349,8 +349,11 @@ the file before saving."
              ;; therefore the semantics of relative file names.
              (with-current-buffer dvc-partner-buffer
                (xmtn--normalize-file-names root files)))))
+         (excluded-files
+          (with-current-buffer dvc-partner-buffer
+            (xmtn--normalize-file-names root (dvc-excluded-files))))
          (branch (xmtn--tree-default-branch root)))
-    ;; Saving the buffer will automatically flush the log edit hints.
+    ;; Saving the buffer will automatically delete any log edit hints.
     (save-buffer)
     (dvc-save-some-buffers root)
     ;; Need to do this after `dvc-save-some-buffers'.
@@ -390,11 +393,14 @@ the file before saving."
        `("commit" ,(concat "--message-file=" commit-message-file)
          ,(concat "--branch=" branch)
          ,@(case normalized-files
-             (all '())
+             (all
+              (if excluded-files
+                  (mapcar (lambda (file) (concat "--exclude=" file)) excluded-files)
+                '()))
              (t (list*
-                 ;; This is the right thing for directory renames
-                 ;; marked in diff buffer.  I don't know yet whether
-                 ;; it's the right thing in other cases.
+                 ;; Since we are specifying files explicitly, don't
+                 ;; recurse into specified directories. Also commit
+                 ;; normally excluded files if they are selected.
                  "--depth=0"
                  "--" normalized-files))))
        :error (lambda (output error status arguments)
