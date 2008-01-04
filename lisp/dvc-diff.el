@@ -152,9 +152,6 @@ Pretty-print ELEM."
     (define-key map "R"                                       'dvc-fileinfo-rename)
     (define-key map dvc-keyvec-commit                         'dvc-log-edit)
     (define-key map "t"                                       'dvc-diff-add-log-entry)
-    ;; TODO move this somewhere else.
-    (define-key map [?I]                                      'tla-inventory)
-    (define-key map dvc-keyvec-inventory                      'dvc-pop-to-inventory)
 
     (define-key map dvc-keyvec-next                           'dvc-diff-next)
     (define-key map dvc-keyvec-previous                       'dvc-diff-prev)
@@ -179,6 +176,9 @@ Pretty-print ELEM."
     (define-key map (dvc-prefix-tagging-method ?i)            'dvc-ignore-files)
     (define-key map (dvc-prefix-tagging-method ?I)            'dvc-ignore-file-extensions)
     (define-key map (dvc-prefix-tagging-method ?e)            'dvc-edit-ignore-files)
+    (define-key map [?i]                                      'dvc-ignore-files)
+    (define-key map [?I]                                      'dvc-ignore-file-extensions-in-dir)
+    (define-key map "\M-I"                                    'dvc-ignore-file-extensions)
 
     ;; working copy bindings
     (define-key map (vector dvc-key-working-copy) nil) ;; unbind ?W, before it can be used
