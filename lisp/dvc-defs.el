@@ -1,6 +1,6 @@
 ;;; dvc-defs.el --- Common definitions for DVC
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributors: Matthieu Moy, <Matthieu.Moy@imag.fr>
@@ -145,6 +145,13 @@ the first one found; dvc-select-priority sets the search order."
     (((class color) (background dark)) (:foreground "yellow"))
     (t (:weight bold)))
   "Face to highlight a marked entry in DVC buffers"
+  :group 'dvc-faces)
+
+(defface dvc-excluded
+  '((((type tty) (class color)) (:foreground "orchid" :weight light))
+    (((class color) (background light)) (:foreground "orchid"))
+    (((class color) (background dark)) (:foreground "gold")))
+  "Face to highlight an excluded entry in DVC buffers"
   :group 'dvc-faces)
 
 (defface dvc-bookmark-name

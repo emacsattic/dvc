@@ -1,6 +1,6 @@
 ;;; dvc-core.el --- Core functions for distributed version control
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions From:
@@ -47,7 +47,7 @@
 ;; --------------------------------------------------------------------------------
 
 (defconst dvc-mark (dvc-face-add "*" 'dvc-mark) "Fontified string used for marking.")
-
+(defconst dvc-exclude (dvc-face-add "E" 'dvc-mark) "Fontified string used for excluded files.")
 
 ;; --------------------------------------------------------------------------------
 ;; Internal variables

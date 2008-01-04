@@ -54,6 +54,7 @@ The elements must all be of class dvc-fileinfo-root.")
             (:include dvc-fileinfo-root)
 	    (:copier nil))
   mark   	;; t/nil.
+  exclude       ;; t/nil. If t, don't commit unless also mark = t.
   dir		;; Directory the file resides in, relative to dvc-root.
   file	     	;; File name sans directory.
                 ;; (concat dir file) gives a valid path.
@@ -129,13 +130,15 @@ The elements must all be of class dvc-fileinfo-root.")
                      " "
                      (dvc-fileinfo-file-dir fileinfo)
                      (dvc-fileinfo-file-file fileinfo)))
-              (face (if (dvc-fileinfo-file-mark fileinfo)
-                        'dvc-marked
-                      (dvc-fileinfo-choose-face (dvc-fileinfo-file-status fileinfo)))))
+              (face (cond
+                     ((dvc-fileinfo-file-mark fileinfo) 'dvc-marked)
+                     ((dvc-fileinfo-file-exclude fileinfo) 'dvc-excluded)
+                     (t (dvc-fileinfo-choose-face (dvc-fileinfo-file-status fileinfo))))))
          (insert " ")
-         (if (dvc-fileinfo-file-mark fileinfo)
-             (insert dvc-mark)
-           (insert " "))
+         (cond
+          ((dvc-fileinfo-file-mark fileinfo) (insert dvc-mark))
+          ((dvc-fileinfo-file-exclude fileinfo) (insert dvc-exclude))
+          (t (insert " ")))
 
          (insert " ")
          (insert (dvc-face-add line face))
@@ -408,9 +411,10 @@ if there is no prev."
       (error "Can't find file %s in list" file))))
 
 (defun dvc-fileinfo-marked-elems ()
-  "Return list of fileinfo structs that are marked files."
+  "Return list of ewoc elements that are marked files."
   ;; This does _not_ include legacy fileinfo structs; they do not
-  ;; contain a mark field.
+  ;; contain a mark field. We are planning to eventually eliminate
+  ;; dvc-buffer-marked-file-list and legacy fileinfos.
   (let ((elem (ewoc-nth dvc-fileinfo-ewoc 0))
         result)
     (while elem
@@ -418,6 +422,20 @@ if there is no prev."
         (if (and (dvc-fileinfo-file-p fi)
                  (dvc-fileinfo-file-mark fi))
           (setq result (append result (list elem))))
+        (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
+    result))
+
+(defun dvc-fileinfo-excluded-files ()
+  "Return list of filenames that are excluded files."
+  ;; This does _not_ include legacy fileinfo structs; they do not
+  ;; contain an excluded field.
+  (let ((elem (ewoc-nth dvc-fileinfo-ewoc 0))
+        result)
+    (while elem
+      (let ((fi (ewoc-data elem)))
+        (if (and (dvc-fileinfo-file-p fi)
+                 (dvc-fileinfo-file-exclude fi))
+          (setq result (append result (list (dvc-fileinfo-path fi)))))
         (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
     result))
 
