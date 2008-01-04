@@ -1,6 +1,6 @@
 ;;; dvc-diff.el --- A generic diff mode for DVC
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -172,9 +172,6 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-refresh 'dvc-generic-refresh)
     (define-key map dvc-keyvec-commit  'dvc-log-edit)
     (define-key map "t"                'dvc-add-log-entry)
-    ;; TODO move this somewhere else.
-    (define-key map [?I] 'tla-inventory)
-    (define-key map dvc-keyvec-inventory 'dvc-pop-to-inventory)
 
     (define-key map dvc-keyvec-next      'dvc-diff-next)
     (define-key map dvc-keyvec-previous  'dvc-diff-prev)
@@ -198,8 +195,10 @@ Pretty-print ELEM."
     ;; Ignore file handling
     (define-key map (dvc-prefix-tagging-method ?i) 'dvc-ignore-files)
     (define-key map (dvc-prefix-tagging-method ?I) 'dvc-ignore-file-extensions)
-    ;; C-i is not a good choice since it's TAB in emacs -nw
     (define-key map (dvc-prefix-tagging-method ?e) 'dvc-edit-ignore-files)
+    (define-key map [?i]               'dvc-ignore-files)
+    (define-key map [?I]               'dvc-ignore-file-extensions-in-dir)
+    (define-key map "\M-I"             'dvc-ignore-file-extensions)
 
     ;; working copy bindings
     (define-key map (vector dvc-key-working-copy) nil) ;; unbind ?W, before it can be used
