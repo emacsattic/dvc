@@ -357,6 +357,19 @@ in that directory. Then move to previous ewoc entry."
                  nil)))
             dvc-fileinfo-ewoc))
 
+(defun dvc-fileinfo-toggle-exclude ()
+  "Toggle exclude for file under point. Does not edit default exclude file."
+  (interactive)
+  (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
+         (fileinfo (ewoc-data current)))
+    (typecase fileinfo
+      (dvc-fileinfo-file
+       (setf (dvc-fileinfo-file-exclude fileinfo) (not (dvc-fileinfo-file-exclude fileinfo)))
+       (ewoc-invalidate dvc-fileinfo-ewoc current))
+
+      (otherwise
+       (error "not on a file or directory")))))
+
 (defun dvc-fileinfo-next (&optional no-ding)
   "Move to the next ewoc entry. If optional NO-DING, don't ding
 if there is no next."
@@ -494,6 +507,50 @@ If OTHER-FRAME (default prefix) xor `dvc-log-edit-other-frame' is
 non-nil, show log-edit buffer in other frame."
   (interactive "P")
   (dvc-fileinfo-add-log-entry-1 (dvc-fileinfo-current-fileinfo) other-frame))
+
+(defun dvc-fileinfo-remove-files ()
+  "Remove current files. If status `unknown', delete from
+workspace. Otherwise, call `dvc-remove-files'."
+  (interactive)
+  (let ((elems (or (dvc-fileinfo-marked-elems)
+                   (list (ewoc-locate dvc-fileinfo-ewoc))))
+        (inhibit-read-only t)
+        known-files)
+
+    (while elems
+      (let ((fileinfo (ewoc-data (car elems))))
+        (typecase fileinfo
+          (dvc-fileinfo-file
+           (if (equal 'unknown (dvc-fileinfo-file-status fileinfo))
+               (progn
+                 (delete-file (dvc-fileinfo-path fileinfo))
+                 (ewoc-delete dvc-fileinfo-ewoc (car elems)))
+             (add-to-list 'known-files (car elems))))
+
+          (dvc-fileinfo-legacy
+           ;; Assume files are known
+           (add-to-list known-files fileinfo))
+
+          (otherwise
+           ;; just ignore
+           nil))
+        (setq elems (cdr elems))))
+
+    (if known-files
+        (progn
+          (apply 'dvc-remove-files (mapcar (lambda (elem) (dvc-fileinfo-path (ewoc-data elem))) known-files))
+          (mapc
+           (lambda (elem)
+             (let ((fileinfo (ewoc-data elem)))
+               (etypecase fileinfo
+                 (dvc-fileinfo-file
+                  (setf (dvc-fileinfo-file-status fileinfo) 'deleted)
+                  (ewoc-invalidate dvc-fileinfo-ewoc elem))
+
+                 (dvc-fileinfo-legacy
+                  ;; Don't have enough info to update this
+                  nil))))
+             known-files)))))
 
 (defun dvc-fileinfo--do-rename (fi-source fi-target elems)
   (dvc-rename (dvc-fileinfo-path fi-source)

@@ -661,5 +661,10 @@ containing (symbol description)."
             (forward-line 1))
           result))))
 
+(defun dvc-edit-exclude ()
+  "Edit the file \".dvc-exclude\" in `default-directory'."
+  (interactive)
+  (find-file ".dvc-exclude"))
+
 (provide 'dvc-utils)
 ;;; dvc-utils.el ends here
