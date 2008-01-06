@@ -60,7 +60,8 @@ TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
       (dvc-get-buffer-create dvc type path)
     (let ((inhibit-read-only t)) (erase-buffer))
-    (funcall (dvc-function dvc "diff-mode"))
+    (let ((dvc-temp-current-active-dvc dvc))
+      (funcall (dvc-function dvc "diff-mode")))
     (setq dvc-diff-base base)
     (setq dvc-diff-modified modified)
     (current-buffer)))
@@ -192,7 +193,7 @@ Pretty-print ELEM."
     ;; Buffers group
     (define-key map (dvc-prefix-buffer ?p) 'dvc-show-process-buffer)
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
-    (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'tla-bookmarks)
+    (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
 
     ;; Ignore file handling
     (define-key map (dvc-prefix-tagging-method ?i) 'dvc-ignore-files)
@@ -310,11 +311,12 @@ Commands:
     (>= (ewoc-location elem) (line-beginning-position))))
 
 (defun dvc-diff-jump-to-change (&optional other-file)
-  "Jump to the corresponding file and location of the change.
+  "Jump to the corresponding file and location of the change at point.
 OTHER-FILE (default prefix) if non-nil means visit the original
 file; otherwise visit the modified file."
   (interactive "P")
-  (let* ((elem (ewoc-locate dvc-diff-cookie))
+  (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+         (elem (ewoc-locate dvc-diff-cookie))
          (data (ewoc-data elem)))
     (cond ((< (ewoc-location elem) (line-beginning-position))
            (dvc-diff-diff-goto-source other-file))
@@ -332,8 +334,8 @@ file; otherwise visit the modified file."
       (error "No file at point."))
     ;; TODO
     (let ((buffer (dvc-get-buffer dvc-buffer-current-active-dvc 'file-diff file)))
-      (unless (tla--scroll-maybe buffer up-or-down)
-        (tla-file-diff file nil t)))))
+      (unless (dvc-scroll-maybe buffer up-or-down)
+        (dvc-file-diff file dvc-diff-base dvc-diff-modified t)))))
 
 (defun dvc-diff-scroll-up-or-diff ()
   (interactive)
@@ -598,7 +600,9 @@ This is just a lint trap.")
   "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
 default-directory of process buffer must be a tree root.
 
-PARSER is a function to parse the diff and fill in the ewoc list.
+PARSER is a function to parse the diff and fill in the ewoc list;
+it will be called with one arg, the changes buffer. Data to be
+parsed will be in current buffer.
 
 Display changes in OUTPUT-BUFFER (must be non-nil; create with
 dvc-prepare-changes-buffer).
@@ -693,13 +697,11 @@ recursive command."
       (recenter '(4))))
   (message msg dir))
 
-(defun dvc-diff-error-in-process (diff-buffer msg dir output error
-                                               &optional
-                                               master-buffer)
-  "Similar to `dvc-diff-no-changes', but to report a real error.
-
-OUTPUT and ERROR are the buffers containing the stdout and stderr
-of the process that raised an error."
+(defun dvc-diff-error-in-process (diff-buffer msg output error)
+  "Enter a message in DIFF-BUFFER (created by
+dvc-prepare-changes-buffer), consisting of MSG and the contents of
+OUTPUT and ERROR. Should be called by the error handler in the
+diff parser."
   (with-current-buffer diff-buffer
     (dvc-diff-delete-messages)
     (ewoc-enter-last
@@ -809,7 +811,12 @@ quitting."
   (add-hook 'ediff-after-quit-hook-internal
             (dvc-capturing-lambda ()
               (set-window-configuration (capture dvc-window-config)))
-            nil 'local))
+            nil 'local)
+
+  ;; Set dvc-buffer-current-active-dvc for dvc-ediff-add-log-entry.
+  ;; When this hook is called, current buffer is the ediff control
+  ;; buffer, default-directory is the tree root.
+  (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc)))
 
 (defvar dvc-window-config nil
   "Keep byte-compiler happy; declare let-bound variable used by dvc-ediff-startup-hook.")
@@ -818,7 +825,8 @@ quitting."
   "Wrapper around `ediff-buffers'.
 
 Calls `ediff-buffers' on BUFFERA and BUFFERB."
-  (let ((dvc-window-config (current-window-configuration)))
+  (let ((dvc-window-config (current-window-configuration))
+        (dvc-temp-current-active-dvc (dvc-current-active-dvc)))
     (ediff-buffers bufferA bufferB
                    '(dvc-ediff-startup-hook) 'dvc-ediff)))
 

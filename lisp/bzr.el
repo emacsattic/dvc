@@ -321,7 +321,6 @@ TODO: DONT-SWITCH is currently ignored."
        (if (/= 1 status)
            (dvc-diff-error-in-process (capture buffer)
                                       "Error in diff process"
-                                      (capture root)
                                       output error)
          (dvc-show-changes-buffer output 'bzr-parse-diff
                                   (capture buffer)))))))
@@ -361,7 +360,6 @@ TODO: dont-switch is currently ignored."
          (if (/= 1 status)
              (dvc-diff-error-in-process (capture buffer)
                                         "Error in diff process"
-                                        ""
                                         output error)
            (dvc-show-changes-buffer output 'bzr-parse-diff
                                     (capture buffer)))))
@@ -475,7 +473,6 @@ of the commit. Additionally the destination email address can be specified."
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-error-in-process (capture buffer)
                                      "Error in diff process"
-                                     (capture root)
                                      output error))))))
 
 (defun bzr-parse-inventory (changes-buffer)
@@ -517,7 +514,6 @@ of the commit. Additionally the destination email address can be specified."
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-error-in-process (capture buffer)
                                      "Error in inventory process"
-                                     (capture root)
                                      output error))))))
 
 ;;;###autoload

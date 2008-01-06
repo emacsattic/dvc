@@ -8211,21 +8211,6 @@ if these values should now be displayed, run the refresh function."
     (tla-revision-compute-merged-by))
   (ewoc-refresh dvc-revlist-cookie))
 
-(defun tla--scroll-maybe (buffer up-or-down)
-  "If BUFFER exists, show it, scroll and return non-nil.
-
-Otherwise, return nil."
-  (interactive)
-  (when (buffer-live-p buffer)
-    (let ((visible (dvc-buffer-visible-p buffer))
-          (buf (current-buffer)))
-      (pop-to-buffer buffer)
-      (when visible
-        (condition-case nil
-            (funcall up-or-down 2)
-          (error (message "Can't scroll anymore."))))
-      (pop-to-buffer buf))))
-
 (defun tla-revision-scroll-or-show-changeset (up-or-down)
   "If file-diff buffer is visible, scroll. Otherwise, show it."
   (interactive)
@@ -8239,7 +8224,7 @@ Otherwise, return nil."
                    tla-arch-branch 'changeset revision)))
       (dvc-trace "buffer=%S revision=%S tla-arch-branch=%S" buffer
                   revision tla-arch-branch)
-      (unless (tla--scroll-maybe buffer up-or-down)
+      (unless (dvc-scroll-maybe buffer up-or-down)
         (tla-revision-changeset)))))
 
 (defun tla-revision-scroll-up-or-show-changeset ()
@@ -8277,7 +8262,7 @@ If used with a prefix arg ARG, don't include the diffs from the output."
                 )
               (dvc-do-in-gnu-emacs (compare-window-configurations
                                      (current-window-configuration) window-conf)))
-      (tla--scroll-maybe dvc-partner-buffer 'scroll-up))))
+      (dvc-scroll-maybe dvc-partner-buffer 'scroll-up))))
 
 (defun tla-revision-store-delta (across-versions)
   "Store a delta between two marked revisions.

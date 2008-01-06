@@ -90,17 +90,6 @@ the first one found; dvc-select-priority sets the search order."
   :type 'boolean
   :group 'dvc)
 
-;; [Matthieu Moy] This was redundant with
-;; `dvc-do-not-prompt-for-save'. I'm keeping the commented code so
-;; that people looking for the option can find it here. Since this one
-;; has not been in DVC for a long time, I'm not adding a backward
-;; compatibility option.
-;;
-;;(defcustom dvc-confirm-save-buffers t
-;; "*If non-nil, prompt for confirmation when saving buffers."
-;;  :type 'boolean
-;;  :group 'dvc)
-
 (defcustom dvc-log-last-n nil
   "*If non-nil, limit log listings to last n entries."
   :type '(choice boolean integer)

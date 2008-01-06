@@ -199,7 +199,7 @@ negative : Don't show patches, limit to n revisions."
                                  nil)))))))
 
 (defun xhg-parse-status (changes-buffer)
-  (let ((status-list (split-string (dvc-buffer-content output) "\n")))
+  (let ((status-list (split-string (dvc-buffer-content (current-buffer)) "\n")))
     (let ((inhibit-read-only t)
           (modif)
           (modif-char))
