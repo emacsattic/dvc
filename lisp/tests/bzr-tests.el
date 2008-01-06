@@ -1,6 +1,6 @@
 ;;; bzr-tests.el --- Automated regression tests for bzr
 
-;; Copyright (C) 2007 Stephen Leake
+;; Copyright (C) 2007, 2008 Stephen Leake
 
 ;; Author: Stephen Leake
 
@@ -87,7 +87,7 @@ the test file."
        (dvc-log)
        (dvc-tests-wait-async); let log display
        (dvc-revlist-show-item))))
-  
+
   (file-diff
    ;; The test is simply that this doesn't crash.
    (save-window-excursion
@@ -99,7 +99,7 @@ the test file."
              (save-excursion
                (call-interactively #'dvc-file-diff)))
          (revert-buffer t t)))))
-  
+
   (diff
    ;; The test is simply that this doesn't crash.
    (save-window-excursion
@@ -108,7 +108,7 @@ the test file."
        (insert "x")
        (write-file file-name)
        (call-interactively #'dvc-diff))))
-  
+
   (diff-from-revlog
    ;; The test is simply that this doesn't crash.
    (save-window-excursion
@@ -121,40 +121,14 @@ the test file."
   )
 ;(elunit "bzr")
 
-;;; utils for debugging tests
-(defvar bzr-test-dir nil)
-
-(defun bzr-test-create-history ()
-  (let ((file-name "file-1"))
-    (setq bzr-test-dir (file-name-as-directory (make-temp-file "bzr-tests-" t)))
-    (let ((default-directory bzr-test-dir))
-      (message "test dir: %s" bzr-test-dir)
-      (dvc-run-dvc-sync 'bzr '("init"))
-      (with-temp-file file-name (insert "a\n"))
-      (bzr-add file-name)
-      (dvc-run-dvc-sync 'bzr '("commit" "--message" "\"commit 1\""))
-      (with-temp-file file-name (insert "b\n"))
-      (dvc-run-dvc-sync 'bzr '("commit" "--message" "\"commit 2\"")) )))
-
-(defun bzr-test-one ()
-  (let ((default-directory bzr-test-dir))
-    (dvc-changelog)
-    (dvc-revision-next)
-    (dvc-revlist-diff)
-    ))
-
-;(bzr-test-create-history)
-;(bzr-test-one)
-
 (defsuite bzr-one
   (log
    (save-window-excursion
      (bzr-tests--with-test-history
       (&key &allow-other-keys)
-      (dvc-changelog)
-      (dvc-tests-wait-async); let log display
-      (dvc-revision-next)
-      (dvc-revlist-diff))))
+      (dvc-diff))))
 )
 ;(elunit "bzr-one")
+
+(provide 'bzr-tests)
 ;;; bzr-tests.el ends here

@@ -1,6 +1,6 @@
 ;;; dvc-utils.el --- Utility functions for DVC
 
-;; Copyright (C) 2005 - 2007 by all contributors
+;; Copyright (C) 2005 - 2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -634,6 +634,20 @@ Otherwise, return nil."
             (funcall up-or-down 2)
           (error (message "Can't scroll anymore."))))
       (pop-to-buffer buf))))
+
+(defun dvc-offer-choices (comment choices)
+  "Present user with a choice of actions, labeled by COMMENT. CHOICES is a list of pairs
+containing (symbol description)."
+  ;; Could use "keyboard menu"; see elisp info 22.17.3 Menus and the Keyboard
+  (let ((msg "use ")
+        choice)
+    (dolist (choice choices)
+      (setq msg (concat msg
+                        (key-description (car (where-is-internal (car choice))))
+                        " (" (cadr choice) ") ")))
+    (error (if comment
+               (concat comment "; " msg)
+             msg))))
 
 (provide 'dvc-utils)
 ;;; dvc-utils.el ends here

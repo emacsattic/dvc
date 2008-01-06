@@ -95,6 +95,16 @@ the first one found; dvc-select-priority sets the search order."
   :type '(choice boolean integer)
   :group 'dvc)
 
+(defcustom dvc-status-display-known nil
+  "If non-nil, display files with 'known' status in dvc-status buffer."
+  :type 'boolean
+  :group 'dvc)
+
+(defcustom dvc-status-display-ignored nil
+  "If non-nil, display files with 'ignored' status in dvc-status buffer."
+  :type 'boolean
+  :group 'dvc)
+
 ;; --------------------------------------------------------------------------------
 ;; Keybindings
 ;; --------------------------------------------------------------------------------

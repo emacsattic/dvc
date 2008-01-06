@@ -1148,13 +1148,14 @@ specified."
 
 Return 'dont-know if the list can't be computed easily.
 
-The result is based on `dvc-diff-cookie'."
-  (if dvc-diff-cookie
+The result is based on `dvc-fileinfo-ewoc'."
+  (if dvc-fileinfo-ewoc
     (let ((res nil))
-      (ewoc-map (lambda (x)
-                  (when (eq (car x) 'file)
-                    (push (cadr x) res)))
-                dvc-diff-cookie)
+      (ewoc-map (lambda (fi)
+                  (let ((x (dvc-fileinfo-legacy-data fi)))
+                    (when (eq (car x) 'file)
+                      (push (cadr x) res))))
+                dvc-fileinfo-ewoc)
       res)
     'dont-know))
 
@@ -1245,11 +1246,12 @@ the list of marked files, and potentially run a selected file commit."
 
 (defun tla--changes-find-subtree-message ()
   "Finds the messages \"searching subtree\" from the ewoc."
-  (when dvc-diff-cookie
+  (when dvc-fileinfo-ewoc
     (tla--ewoc-collect-elem
-     dvc-diff-cookie
-     (lambda (elem)
-       (eq (car elem) 'searching-subtrees)))))
+     dvc-fileinfo-ewoc
+     (lambda (fi)
+       (let ((elem (dvc-fileinfo-legacy-data fi)))
+         (eq (car elem) 'searching-subtrees))))))
 
 (defvar tla--changes-summary nil
   "Wether the current buffer display only a summary or a full diff.")
@@ -1298,14 +1300,15 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
          (make-local-variable 'tla--changes-summary)
          (let ((inhibit-read-only t))
            (ewoc-enter-first
-            dvc-diff-cookie
-            (list 'message
-                  (concat "* running " ,command " in tree " root
-                          "...\n\n"))))
+            dvc-fileinfo-ewoc
+            (make-dvc-fileinfo-message
+             :text (concat "* running " ,command " in tree " root
+                           "...\n\n"))))
          (when ,recursive
-           (ewoc-enter-last dvc-diff-cookie
-                            (list 'searching-subtrees)))
-         (ewoc-refresh dvc-diff-cookie))
+           (ewoc-enter-last dvc-fileinfo-ewoc
+                            (make-dvc-fileinfo-legacy
+                             :data (list 'searching-subtrees))))
+         (ewoc-refresh dvc-fileinfo-ewoc))
        (when dvc-switch-to-buffer-first
          (dvc-switch-to-buffer buffer))
        (dvc-save-some-buffers)
@@ -1333,12 +1336,13 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
                         (set (make-local-variable
                               'tla--changes-buffer-master-buffer)
                              (capture buffer)))
-                      (ewoc-enter-after dvc-diff-cookie
+                      (ewoc-enter-after dvc-fileinfo-ewoc
                                         subtree-message
-                                        (list 'subtree buffer-sub subtree
-                                              nil))
+                                        (make-dvc-fileinfo-legacy
+                                         :data (list 'subtree buffer-sub subtree
+                                                     nil)))
                       ,(or expression-rec expression)))
-                  (tla--ewoc-delete dvc-diff-cookie
+                  (tla--ewoc-delete dvc-fileinfo-ewoc
                                     subtree-message))))))))))
 
 (tla-recursive-command tla-changes-rec (&optional summary against)
@@ -1420,14 +1424,15 @@ Value is chosen depending on user configuration and arch branch."
                    (with-current-buffer (or (capture master-buffer)
                                             (capture buffer))
                      ;; (dvc-trace "buf=%S modifs=%S" (capture buffer) modifs)
-                     (ewoc-map (lambda (x)
-                                 (when (and (eq (car x) 'subtree)
-                                            (eq (cadr x) (capture buffer)))
-                                   (setcar (cdr (cddr x))
-                                           (if modifs 'updated 'no-changes))
+                     (ewoc-map (lambda (fi)
+                                 (let ((x (dvc-fileinfo-legacy-data fi)))
+                                   (when (and (eq (car x) 'subtree)
+                                              (eq (cadr x) (capture buffer)))
+                                     (setcar (cdr (cddr x))
+                                             (if modifs 'updated 'no-changes)))
                                  ))
-                               ;; (ewoc-refresh dvc-diff-cookie)))
-                               dvc-diff-cookie)
+                               ;; (ewoc-refresh dvc-fileinfo-ewoc)))
+                               dvc-fileinfo-ewoc)
                      ))
                  (dvc-show-changes-buffer
                   output 'tla--parse-other (capture buffer))
@@ -1532,20 +1537,22 @@ the root of the projects is displayed."
           (message "No changes in %s" (capture root)))
         (with-current-buffer (capture buffer)
           (let ((inhibit-read-only t))
-            (dvc-diff-delete-messages)
-            (ewoc-enter-last dvc-diff-cookie
-                             (list 'message (concat "* No changes in "
-                                                    (capture root) ".\n\n")))
+            (dvc-fileinfo-delete-messages)
+            (ewoc-enter-last dvc-fileinfo-ewoc
+                             (make-dvc-fileinfo-message
+                              :text (concat "* No changes in "
+                                            (capture root) ".\n\n")))
             (when (capture master-buffer)
               (with-current-buffer (capture master-buffer)
-                (ewoc-map (lambda (x)
-                            (when (and (eq (car x) 'subtree)
-                                       (eq (cadr x) (capture buffer)))
-                              (setcar (cdr (cddr x)) 'no-changes))
+                (ewoc-map (lambda (fi)
+                            (let ((x (dvc-fileinfo-legacy-data fi)))
+                              (when (and (eq (car x) 'subtree)
+                                         (eq (cadr x) (capture buffer)))
+                                (setcar (cdr (cddr x)) 'no-changes)))
                             )
-                          ;; (ewoc-refresh dvc-diff-cookie)))
-                          dvc-diff-cookie)))
-            (ewoc-refresh dvc-diff-cookie))))
+                          ;; (ewoc-refresh dvc-fileinfo-ewoc)))
+                          dvc-fileinfo-ewoc)))
+            (ewoc-refresh dvc-fileinfo-ewoc))))
      :error
      (dvc-capturing-lambda (output error status arguments)
         (if (/= 1 status)
@@ -1579,14 +1586,14 @@ the root of the projects is displayed."
                                   tla-arch-branch 'diff
                                   ,(capture root))))))))
                 (with-current-buffer (capture buffer)
-                  (dvc-diff-delete-messages)
+                  (dvc-fileinfo-delete-messages)
                   (ewoc-enter-last
-                   dvc-diff-cookie
-                   (list 'message
-                         (concat "* error in process:\n"
-                                 (dvc-buffer-content output)
-                                 (dvc-buffer-content error))))
-                  (ewoc-refresh dvc-diff-cookie)
+                   dvc-fileinfo-ewoc
+                   (make-dvc-fileinfo-message
+                    :text (concat "* error in process:\n"
+                                  (dvc-buffer-content output)
+                                  (dvc-buffer-content error))))
+                  (ewoc-refresh dvc-fileinfo-ewoc)
                   (message "Error in diff process"))))
           (dvc-show-changes-buffer output
                                    (if (eq tla-arch-branch 'tla)
@@ -1596,11 +1603,12 @@ the root of the projects is displayed."
                                    "^[^*\\.]")
           (when (capture master-buffer)
             (with-current-buffer (capture master-buffer)
-              (ewoc-map (lambda (x)
-                          (when (and (eq (car x) 'subtree)
-                                     (eq (cadr x) (capture buffer)))
-                            (setcar (cdddr x) 'changes)))
-                        dvc-diff-cookie)))))
+              (ewoc-map (lambda (fi)
+                          (let ((x (dvc-fileinfo-legacy-data fi)))
+                            (when (and (eq (car x) 'subtree)
+                                       (eq (cadr x) (capture buffer)))
+                              (setcar (cdddr x) 'changes))))
+                        dvc-fileinfo-ewoc)))))
      )))
 
 (defconst tla-verbose-format-spec
@@ -1629,25 +1637,28 @@ the root of the projects is displayed."
               (let ((file (match-string 1)))
                 (with-current-buffer changes-buffer
                   (ewoc-enter-last
-                   dvc-diff-cookie
-                   (list 'file (tla-unescape file)
-                         modif dir)))))
+                   dvc-fileinfo-ewoc
+                   (make-dvc-fileinfo-legacy
+                    :data (list 'file (tla-unescape file)
+                                modif dir))))))
           (while (looking-at "^$") (forward-line 1))
           (while (looking-at "^ +\\([^ ].*\\)$")
             (let ((file (match-string 1)))
               (with-current-buffer changes-buffer
                 (ewoc-enter-last
-                 dvc-diff-cookie
-                 (list 'file (tla-unescape file)
-                       modif dir)))
+                 dvc-fileinfo-ewoc
+                 (make-dvc-fileinfo-legacy
+                    :data (list 'file (tla-unescape file)
+                                modif dir))))
               (forward-line 1)))
           (while (looking-at "^--- /dev/null\n\\+\\+\\+ mod/\\(.*\\)$")
             (let ((file (match-string 1)))
               (with-current-buffer changes-buffer
                 (ewoc-enter-last
-                 dvc-diff-cookie
-                 (list 'file (tla-unescape file)
-                       modif dir)))
+                 dvc-fileinfo-ewoc
+                 (make-dvc-fileinfo-legacy
+                    :data (list 'file (tla-unescape file)
+                                modif dir))))
               (forward-line 1)
               (re-search-forward "^\\(---\\|$\\|\\*\\)" nil t)
               (beginning-of-line))))))
@@ -1680,12 +1691,14 @@ CHANGES-BUFFER is the target buffer."
                 (setq origname file)
                 (setq file tmp)))
           (with-current-buffer changes-buffer
-            (ewoc-enter-last dvc-diff-cookie
-                             (list 'file
-                                   file status modif
-                                   (if (file-directory-p file)
-                                       "/" " ")
-                                   origname)))
+            (ewoc-enter-last
+             dvc-fileinfo-ewoc
+             (make-dvc-fileinfo-legacy
+              :data (list 'file
+                          file status modif
+                          (if (file-directory-p file)
+                              "/" " ")
+                          origname))))
           (forward-line 1)))))
   (save-excursion
     (goto-char (point-min))
@@ -1696,11 +1709,13 @@ CHANGES-BUFFER is the target buffer."
       (while (looking-at "[ \t]*\\([^ \t\n]+\\)$")
         (let ((file (match-string-no-properties 1)))
           (with-current-buffer changes-buffer
-            (ewoc-enter-last dvc-diff-cookie
-                             (list 'file
-                                   file "C" " "
-                                   (if (file-directory-p file)
-                                       "/" " "))))
+            (ewoc-enter-last
+             dvc-fileinfo-ewoc
+             (make-dvc-fileinfo-legacy
+              :data (list 'file
+                          file "C" " "
+                          (if (file-directory-p file)
+                              "/" " ")))))
           (forward-line 1))))))
 
 (defun tla--parse-other (changes-buffer)
@@ -1718,8 +1733,8 @@ CHANGES-BUFFER is the target buffer."
         (let ((msg (buffer-substring-no-properties
                     (point) (line-end-position))))
           (with-current-buffer changes-buffer
-            (ewoc-enter-last dvc-diff-cookie
-                             (list 'message msg))))
+            (ewoc-enter-last dvc-fileinfo-ewoc
+                             (make-dvc-fileinfo-message :text msg))))
       (let ((file (match-string 4))
             (modif (match-string 1))
             (dir (match-string 2))
@@ -1764,16 +1779,20 @@ CHANGES-BUFFER is the target buffer."
                  (setq baz-modif " ")))
           (with-current-buffer changes-buffer
             (if newname
-                (ewoc-enter-last dvc-diff-cookie
-                                 (list 'file
-                                       (tla-unescape newname)
-                                       baz-status baz-modif dir
-                                       (tla-unescape file)))
-              (ewoc-enter-last dvc-diff-cookie
-                               (list 'file
-                                     (tla-unescape file)
-                                     baz-status
-                                     baz-modif dir)))))))
+                (ewoc-enter-last
+                 dvc-fileinfo-ewoc
+                 (make-dvc-fileinfo-legacy
+                    :data (list 'file
+                                (tla-unescape newname)
+                                baz-status baz-modif dir
+                                (tla-unescape file))))
+              (ewoc-enter-last
+               dvc-fileinfo-ewoc
+               (make-dvc-fileinfo-legacy
+                :data (list 'file
+                            (tla-unescape file)
+                            baz-status
+                            baz-modif dir))))))))
     (forward-line 1)))
 
 (defun tla--parse-baz-diff (changes-buffer)
@@ -1790,18 +1809,20 @@ CHANGES-BUFFER is the target buffer."
           (dvc-trace "entering file %S in ewoc (orig=%S, renamed=%S, added=%S)"
                       newname origname renamed added)
           (with-current-buffer changes-buffer
-            (ewoc-enter-last dvc-diff-cookie
-                             (list 'file
-                                   newname
-                                   (cond (added   "A")
-                                         (renamed "R")
-                                         (t " "))
-                                   (cond (added " ")
-                                         (t "M"))
-                                   " " ; dir
-                                   (when (and renamed
-                                              (not added))
-                                     origname)))))))))
+            (ewoc-enter-last
+             dvc-fileinfo-ewoc
+             (make-dvc-fileinfo-legacy
+              :data (list 'file
+                          newname
+                          (cond (added   "A")
+                                (renamed "R")
+                                (t " "))
+                          (cond (added " ")
+                                (t "M"))
+                          " " ; dir
+                          (when (and renamed
+                                     (not added))
+                            origname))))))))))
 
 (defun tla-changes-save (directory)
   "Run \"tla changes -o\" to create a changeset.

@@ -228,7 +228,7 @@ new file.")
                                         status-list))))
             (with-current-buffer changes-buffer
               (dolist (elem (xgit-parse-status-sort (nreverse status-list)))
-                (ewoc-enter-last dvc-diff-cookie elem)))))))))
+                (ewoc-enter-last dvc-fileinfo-ewoc elem)))))))))
 
 (defun xgit-dvc-status (&optional verbose)
   "Run git status."
@@ -313,17 +313,19 @@ This reset the index to HEAD, but doesn't touch files."
                            (looking-at "^new file")))
              (removed (looking-at "^deleted file")))
         (with-current-buffer changes-buffer
-          (ewoc-enter-last dvc-diff-cookie
-                           (list 'file
-                                 name
-                                 (cond (added   "A")
-                                       (removed "D")
-                                       (t " "))
-                                 (cond ((or added removed) " ")
-                                       (t "M"))
-                                 " " ; dir. directories are not
-                                     ; tracked in git
-                                 nil)))))))
+          (ewoc-enter-last
+           dvc-fileinfo-ewoc
+           (make-dvc-fileinfo-legacy
+            :data (list 'file
+                        name
+                        (cond (added   "A")
+                              (removed "D")
+                              (t " "))
+                        (cond ((or added removed) " ")
+                              (t "M"))
+                        " " ; dir. directories are not
+                            ; tracked in git
+                        nil))))))))
 
 (defun xgit-diff-1 (against-rev path dont-switch base-rev)
   (let* ((cur-dir (or path default-directory))
