@@ -110,13 +110,13 @@ instead."
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
         (ewoc-enter-first
-         dvc-diff-cookie
-         (list 'message
-               (concat "* Running baz status in tree " root
-                       "...\n\n")))
-        (ewoc-enter-last dvc-diff-cookie
-                         (list 'searching-subtrees))
-        (ewoc-refresh dvc-diff-cookie)))
+         dvc-fileinfo-ewoc
+         (make-dvc-fileinfo-message
+          :text (concat "* Running baz status in tree " root
+                        "...\n\n")))
+        (ewoc-enter-last dvc-fileinfo-ewoc
+                         (make-dvc-fileinfo-legacy :data (list 'searching-subtrees)))
+        (ewoc-refresh dvc-fileinfo-ewoc)))
     (dvc-save-some-buffers)
     (baz--status-internal root buffer nil)
     (tla--run-tla-async
@@ -141,15 +141,16 @@ instead."
                      (set (make-local-variable
                            'tla--changes-buffer-master-buffer)
                           buffer-lex))
-                   (ewoc-enter-after dvc-diff-cookie
+                   (ewoc-enter-after dvc-fileinfo-ewoc
                                      subtree-message
-                                     (list 'subtree buffer-sub subtree
-                                           nil))
+                                     (make-dvc-fileinfo-legacy
+                                      :data (list 'subtree buffer-sub subtree
+                                                  nil)))
                    (baz--status-internal
                     subtree
                     buffer-sub
                     buffer-lex)))
-               (tla--ewoc-delete dvc-diff-cookie subtree-message))
+               (tla--ewoc-delete dvc-fileinfo-ewoc subtree-message))
              (recenter))))))))
 
 
@@ -180,12 +181,13 @@ instead."
       (setq dvc-buffer-refresh-function 'baz-dvc-status))
     (when master-buffer
       (with-current-buffer master-buffer
-        (ewoc-map (lambda (x)
-                    (when (and (eq (car x) 'subtree)
-                               (eq (cadr x) buffer))
-                      (setcar (cdddr x) 'changes))
+        (ewoc-map (lambda (fi)
+                    (let ((x (dvc-fileinfo-legacy-data fi)))
+                      (when (and (eq (car x) 'subtree)
+                                 (eq (cadr x) buffer))
+                        (setcar (cdddr x) 'changes)))
                     )
-                  dvc-diff-cookie)))))
+                  dvc-fileinfo-ewoc)))))
 
 (defun baz--status-internal (root buffer master-buffer)
   "Internal function to run \"baz status\".
@@ -219,20 +221,22 @@ the root of the projects is displayed."
              (message "No changes in %s" root-lex))
            (with-current-buffer -current-buffer--lex
              (let ((inhibit-read-only t))
-               (dvc-diff-delete-messages)
-               (ewoc-enter-last dvc-diff-cookie
-                                (list 'message (concat "* No changes in "
-                                                       root-lex ".\n\n")))
+               (dvc-fileinfo-delete-messages)
+               (ewoc-enter-last
+                dvc-fileinfo-ewoc
+                (make-dvc-fileinfo-message
+                 :text (concat "* No changes in "
+                               root-lex ".\n\n")))
                (when master-buffer-lex
                  (with-current-buffer master-buffer-lex
-                   (ewoc-map (lambda (x)
-                               (when (and (eq (car x) 'subtree)
-                                          (eq (cadr x) buffer-lex))
-                                 (setcar (cdddr x) 'no-changes))
+                   (ewoc-map (lambda (fi)
+                               (let ((x (dvc-fileinfo-legacy-data fi)))
+                                 (when (and (eq (car x) 'subtree)
+                                            (eq (cadr x) buffer-lex))
+                                   (setcar (cdddr x) 'no-changes)))
                                )
-                             ;; (ewoc-refresh dvc-diff-cookie)))
-                             dvc-diff-cookie)))
-               (ewoc-refresh dvc-diff-cookie))))))
+                             dvc-fileinfo-ewoc)))
+               (ewoc-refresh dvc-fileinfo-ewoc))))))
      :error
      (lexical-let ((root-lex root) (buffer-lex buffer) (master-buffer-lex
                                                         master-buffer))

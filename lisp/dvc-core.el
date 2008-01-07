@@ -200,7 +200,7 @@ otherwise the result depends on SELECTION-MODE:
           nil)
 
          ((eq selection-mode 'all-if-none-marked)
-          (dvc-diff-all-files))
+          (dvc-fileinfo-all-files))
 
          (t (list (dvc-get-file-info-at-point))))))
 
