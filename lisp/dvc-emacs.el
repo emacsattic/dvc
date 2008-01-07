@@ -1,6 +1,6 @@
-;;; dvc-emacs.el --- Compatibility stuff for stable version of GNU Emacs
+;;; dvc-emacs.el --- Compatibility stuff for old version of GNU Emacs
 
-;; Copyright (C) 2004, 2007 by all contributors
+;; Copyright (C) 2004, 2007 - 2008 by all contributors
 
 ;; This file is part of DVC.
 ;;
@@ -21,11 +21,10 @@
 
 ;;; Commentary:
 
-;; GNU Emacs is a creature; it grows day by day.  Some part of DVC is
-;; based on a CVS version of GNU Emacs.  Therefore DVC didn't work
-;; well on the stable version of GNU Emacs(21.x). This file provides
-;; functions making DVC running on the stable version of GNU Emacs.
-;; The most of all code comes from the CVS version of GNU Emacs.
+;; GNU Emacs is a creature; it grows day by day. DVC assumes GNU Emacs
+;; 22, and in the future may use features from a non-released version.
+;; But many people are still using Emacs 21, so this file provides
+;; functions from the later versions used by DVC.
 
 ;;; Code:
 
@@ -35,6 +34,7 @@
     (equal (selected-window)
            (active-minibuffer-window))))
 
+;; These have different names in Gnu Emacs and XEmacs; see dvc-xemacs.el
 (defalias 'dvc-make-overlay 'make-overlay)
 (defalias 'dvc-delete-overlay 'delete-overlay)
 (defalias 'dvc-overlay-put 'overlay-put)
@@ -52,7 +52,13 @@
 (defconst dvc-mouse-face-prop 'mouse-face)
 
 ;; Provide compatibility code for Emacs 21
-;; from CVS Emacs
+;; features from Emacs 22
+(if (not (boundp 'delay-mode-hooks))
+    (defvar delay-mode-hooks nil))
+
+(if (not (fboundp 'redisplay))
+    (defun redisplay (foo) nil))
+
 (if (fboundp 'line-number-at-pos)
     (defalias 'dvc-line-number-at-pos 'line-number-at-pos)
   (defun dvc-line-number-at-pos (&optional pos)
