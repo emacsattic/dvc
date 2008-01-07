@@ -322,7 +322,7 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
              (delete-region (point) (line-beginning-position 2)))
            (insert-char ?\n 2)
            (forward-line -2)
-           (indent-relative-maybe))
+           (indent-relative))
           (t
            ;; Make a new entry.
            (if dvc-log-insert-last
