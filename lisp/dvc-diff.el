@@ -750,7 +750,7 @@ Useful to clear diff buffers after a commit."
              (error "cannot add a log entry for more than one file")
            (dvc-diff-add-log-entry))))
 
-      ((rename-source rename-target)
+      ((copy-source copy-target rename-source rename-target)
        ;; typically nothing to do; just need commit
        (ding)
        (dvc-fileinfo-next))

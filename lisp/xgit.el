@@ -153,15 +153,24 @@ The first match is the original file, and the second match is the
 new file.")
 
 (defun xgit-parse-status-sort (status-list)
-  "Sort STATUS-LIST in the order A, M, R, C, D, ?."
-  (let ((order '(("A" . 1) ("M" . 2) ("R" . 3) ("C" . 4) ("D" . 5)
-                 ("?" . 6))))
+  "Sort STATUS-LIST according to :status in the order
+added, modified, renamed, copied, deleted, unknown."
+  (let ((order '((added . 1) (modified . 2)
+                 (rename-source . 3) (rename-target . 3)
+                 (copy-source . 4) (copy-target . 4)
+                 (deleted . 5) (unknown . 6)))
+        (get (lambda (item)
+               (catch 'status
+                 (while item
+                   (if (eq (car item) :status)
+                       (throw 'status (cadr item))
+                     (setq item (cddr item))))))))
     (sort status-list
-          #'(lambda (a b)
-              (let ((ao (cdr (assoc (car (cddr a)) order)))
-                    (bo (cdr (assoc (car (cddr b)) order))))
-                (and (integerp ao) (integerp bo)
-                     (< ao bo)))))))
+          (dvc-capturing-lambda (a b)
+            (let ((ao (cdr (assq (funcall (capture get) a) order)))
+                  (bo (cdr (assq (funcall (capture get) b) order))))
+              (and (integerp ao) (integerp bo)
+                   (< ao bo)))))))
 
 (defun xgit-parse-status  (changes-buffer)
   (dvc-trace "xgit-parse-status (dolist)")
@@ -174,14 +183,13 @@ new file.")
           (let ((buffer-read-only)
                 (grouping "")
                 status-string
-                file status modif dir orig
+                file status modif dir
                 status-list)
             (while (re-search-forward xgit-status-line-regexp nil t)
               (setq status-string (match-string 1)
                     file (match-string 2)
-                    modif " "
-                    dir nil
-                    orig nil)
+                    indexed t
+                    dir nil)
               (cond ((or (null file) (string= "" file))
                      (when (string= status-string "Untracked files")
                        (let ((end
@@ -194,41 +202,58 @@ new file.")
                                                    end t)
                            (when (match-beginning 1)
                              (setq status-list
-                                   (cons (list 'file (match-string 1) "?")
+                                   (cons (list :file (match-string 1)
+                                               :status 'unknown
+                                               :indexed t)
                                          status-list))))
                          (forward-line -1)))
                      (setq grouping status-string
                            status nil))
                     ((string= status-string "modified")
-                     (setq status "M")
+                     (setq status 'modified)
                      (when (string= grouping "Changed but not updated")
-                       (setq modif "?")))
+                       (setq indexed nil)))
                     ((string= status-string "new file")
-                     (setq status "A"))
+                     (setq status 'added))
                     ((string= status-string "deleted")
-                     (setq status "D")
+                     (setq status 'deleted)
                      (when (string= grouping "Changed but not updated")
-                       (setq modif "?")))
+                       (setq indexed nil)))
                     ((string= status-string "renamed")
-                     (setq status "R")
+                     (setq status nil)
                      (when (string-match xgit-status-renamed-regexp file)
-                       (setq orig (match-string 1 file)
-                             file (match-string 2 file)
-                             dir " ")))
+                       (let ((orig (match-string 1 file))
+                             (new (match-string 2 file)))
+                         (setq status-list
+                               (cons
+                                (list :file new :dir " "
+                                      :status 'rename-target :indexed t)
+                                (cons (list :file orig :dir dir
+                                            :status 'rename-source :indexed t)
+                                      status-list))))))
                     ((string= status-string "copied")
-                     (setq status "C")
+                     (setq status nil)
                      (when (string-match xgit-status-renamed-regexp file)
-                       (setq orig (match-string 1 file)
-                             file (match-string 2 file)
-                             dir " ")))
+                       (let ((orig (match-string 1 file))
+                             (new (match-string 2 file)))
+                         (setq status-list
+                               (cons
+                                (list :file new :dir " "
+                                      :status 'copy-target :indexed t)
+                                (cons (list :file orig :dir dir
+                                            :status 'copy-source :indexed t)
+                                      status-list))))))
                     (t
                      (setq status nil)))
               (when status
-                (setq status-list (cons (list 'file file status modif dir orig)
-                                        status-list))))
+                (setq status-list
+                      (cons (list :file file :dir dir
+                                  :status status :indexed indexed)
+                            status-list))))
             (with-current-buffer changes-buffer
               (dolist (elem (xgit-parse-status-sort (nreverse status-list)))
-                (ewoc-enter-last dvc-fileinfo-ewoc elem)))))))))
+                (ewoc-enter-last dvc-fileinfo-ewoc
+                                 (apply #'make-dvc-fileinfo-file elem))))))))))
 
 (defun xgit-dvc-status (&optional verbose)
   "Run git status."
