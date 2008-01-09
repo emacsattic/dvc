@@ -275,20 +275,8 @@ WIDGET must be of type tla--widget-*-node."
   :menu nil
   :marks " "
   :keep '(:marks :open)
-  :open-subtree (cond
-                 ((fboundp 'tree-widget-action)
-                  'tla--tree-widget-node-open-subtree-for-tree-widget-action)
-                 ((fboundp 'tree-widget-open-node)
-                  'tree-widget-open-node)
-                 (t
-		  'tla--tree-widget-node-toggle-subtree-for-tree-widget-v1))
-  :close-subtree (cond
-                  ((fboundp 'tree-widget-action)
-                   'tla--tree-widget-node-close-subtree-for-tree-widget-action)
-                  ((fboundp 'tree-widget-open-node)
-                   'tree-widget-close-node)
-                  (t
-                   'tla--tree-widget-node-toggle-subtree-for-tree-widget-v1)))
+  :open-subtree 'tla--tree-widget-node-open-subtree
+  :close-subtree 'tla--tree-widget-node-close-subtree)
 
 (defvar tla--widget-node-map
   (let ((map (copy-keymap dvc-cmenu-map-template)))
@@ -527,19 +515,29 @@ by FORCE."
           (tla--widget-node-toggle-subtree-internal
            full-widget force t))))))
 
-(defun tla--tree-widget-node-open-subtree-for-tree-widget-action (widget)
-  "Open tree node function used in `tla-browse' with tree-widget bundled to
-development version of GNU Emacs."
-  (let ((parent (widget-get widget :parent)))
-    (unless (widget-get parent :open)
-      (tree-widget-action parent))))
+(defun tla--tree-widget-node-open-subtree (widget)
+  "Open tree node function used in `tla-browse'."
+  (cond
+   ((fboundp 'tree-widget-action)
+    (let ((parent (widget-get widget :parent)))
+      (unless (widget-get parent :open)
+        (tree-widget-action parent))))
+   ((fboundp 'tree-widget-open-node)
+    'tree-widget-open-node)
+   (t
+    'tla--tree-widget-node-toggle-subtree-for-tree-widget-v1)))
 
-(defun tla--tree-widget-node-close-subtree-for-tree-widget-action (widget)
-  "Close tree node function used in `tla-browse' with tree-widget bundled to
-development version of GNU Emacs."
-  (let ((parent (widget-get widget :parent)))
-    (when (widget-get parent :open)
-      (tree-widget-action parent))))
+(defun tla--tree-widget-node-close-subtree (widget)
+  "Close tree node function used in `tla-browse'."
+  (cond
+   ((fboundp 'tree-widget-action)
+    (let ((parent (widget-get widget :parent)))
+      (when (widget-get parent :open)
+        (tree-widget-action parent))))
+   ((fboundp 'tree-widget-open-node)
+    'tree-widget-close-node)
+   (t
+    'tla--tree-widget-node-toggle-subtree-for-tree-widget-v1)))
 
 (defun tla--tree-widget-node-toggle-subtree-for-tree-widget-v1 (widget)
   "Toggle tree node function used in `tla-browse' with tree-widget ver.1.0.5.
