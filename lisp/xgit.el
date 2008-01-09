@@ -605,6 +605,7 @@ FILE is filename in the repository at DIR."
                         (progn
                           (with-current-buffer (capture buffer)
                             (let ((inhibit-read-only t))
+                              (buffer-disable-undo)
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))
