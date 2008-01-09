@@ -298,12 +298,18 @@ reused."
             (set-buffer (nth 1 (car diff-status-buffers)))
             (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
 
-           (t ;; multiple; give up. IMPROVEME: could prompt
-            (if dvc-buffer-current-active-dvc
-                (error "More than one dvc-diff or dvc-status buffer for %s in %s; can't tell which to use. Please close some."
-                       dvc-buffer-current-active-dvc default-directory)
-              (error "More than one dvc-diff or dvc-status buffer for %s; can't tell which to use. Please close some."
-                     default-directory))))))
+           (t ;; multiple: choose one
+            (if (memq (current-buffer)
+                      (mapcar #'(lambda (item) (nth 1 item))
+                              diff-status-buffers))
+                (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil)
+
+              ;; give up. IMPROVEME: could prompt
+              (if dvc-buffer-current-active-dvc
+                  (error "More than one dvc-diff or dvc-status buffer for %s in %s; can't tell which to use. Please close some."
+                         dvc-buffer-current-active-dvc default-directory)
+                (error "More than one dvc-diff or dvc-status buffer for %s; can't tell which to use. Please close some."
+                       default-directory)))))))
 
       (1 ;; Just reuse the buffer. In this call, we can't use
          ;; dvc-buffer-current-active-dvc from the current buffer,
