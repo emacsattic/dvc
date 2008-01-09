@@ -59,8 +59,8 @@ The elements must all be of class dvc-fileinfo-root.")
                 ;; (concat dir file) gives a valid path.
   status	;; Symbol; see dvc-fileinfo-status-image for list
   (indexed t)   ;; Whether changes made to the file have been recorded
-                ;; in the index.  Use t if the VCS does not support an
-                ;; index.
+                ;; in the index.  Use t if the back-end does not
+                ;; support an index.
   more-status   ;; String; whatever else the backend has to say
   )
 

@@ -298,7 +298,7 @@ reused."
             (set-buffer (nth 1 (car diff-status-buffers)))
             (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
 
-           (t ;; multiple: choose one
+           (t ;; multiple: choose current buffer
             (if (memq (current-buffer)
                       (mapcar #'(lambda (item) (nth 1 item))
                               diff-status-buffers))
