@@ -452,6 +452,8 @@ of the commit. Additionally the destination email address can be specified."
                  (ewoc-enter-last dvc-fileinfo-ewoc
                                   (make-dvc-fileinfo-message :text msg)))
                (cond
+                 ((string-equal msg "added:")
+                  (setq current-status 'added))
                  ((string-equal msg "conflicts:")
                   (setq current-status 'conflict))
                  ((string-equal msg "modified:")
