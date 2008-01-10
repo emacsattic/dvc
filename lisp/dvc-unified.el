@@ -1,6 +1,6 @@
 ;;; dvc-unified.el --- The unification layer for dvc
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -127,11 +127,11 @@ BASE and MODIFIED must be revision ID.
 The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
 
 ;;;###autoload
-(define-dvc-unified-command dvc-file-diff (file &optional base modified
-                                                dont-switch)
+(define-dvc-unified-command dvc-file-diff (file &optional base modified dont-switch)
   "Display the changes in FILE (default current buffer file)
 between BASE (default last-revision) and MODIFIED (default
-workspace version)."
+workspace version).
+If DONT-SWITCH is non-nil, just show the diff buffer, don't select it."
   ;; use dvc-diff-diff to default file to dvc-get-file-info-at-point
   (interactive (list buffer-file-name)))
 
@@ -271,6 +271,7 @@ user prefix) puts log edit buffer in a separate frame. Optional
 NO-INIT if non-nil suppresses initialization of buffer if one is
 reused."
   (interactive "P")
+  (setq other-frame (Xor other-frame dvc-log-edit-other-frame))
   ;; Reuse an existing log-edit buffer if possible.
   ;;
   ;; If this is invoked from a status or diff buffer,
@@ -297,12 +298,18 @@ reused."
             (set-buffer (nth 1 (car diff-status-buffers)))
             (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))
 
-           (t ;; multiple; give up. IMPROVEME: could prompt
-            (if dvc-buffer-current-active-dvc
-                (error "More than one dvc-diff or dvc-status buffer for %s in %s; can't tell which to use. Please close some."
-                       dvc-buffer-current-active-dvc default-directory)
-              (error "More than one dvc-diff or dvc-status buffer for %s; can't tell which to use. Please close some."
-                     default-directory))))))
+           (t ;; multiple: choose one
+            (if (memq (current-buffer)
+                      (mapcar #'(lambda (item) (nth 1 item))
+                              diff-status-buffers))
+                (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil)
+
+              ;; give up. IMPROVEME: could prompt
+              (if dvc-buffer-current-active-dvc
+                  (error "More than one dvc-diff or dvc-status buffer for %s in %s; can't tell which to use. Please close some."
+                         dvc-buffer-current-active-dvc default-directory)
+                (error "More than one dvc-diff or dvc-status buffer for %s; can't tell which to use. Please close some."
+                       default-directory)))))))
 
       (1 ;; Just reuse the buffer. In this call, we can't use
          ;; dvc-buffer-current-active-dvc from the current buffer,
@@ -429,8 +436,8 @@ local database, as appropriate for the current back-end."
   "Merge with OTHER.
 If OTHER is nil, merge heads in current database, or merge from
 remembered database.
-If OTHER is a string, it identifies a (local or remote)
-database to merge into the current database or workspace."
+If OTHER is a string, it identifies a (local or remote) database or
+branch to merge into the current database, branch, or workspace."
   (interactive))
 
 ;;;###autoload

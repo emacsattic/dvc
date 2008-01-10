@@ -112,7 +112,7 @@ Commands:
 (defun xgit-annotate-hide-revinfo ()
   "Hide revision information when it is same as previous line's info."
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (while (< (point) (point-max))
       (_xgit-annotate-hide-revinfo))))
 

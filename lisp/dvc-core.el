@@ -200,7 +200,7 @@ otherwise the result depends on SELECTION-MODE:
           nil)
 
          ((eq selection-mode 'all-if-none-marked)
-          (dvc-diff-all-files))
+          (dvc-fileinfo-all-files))
 
          (t (list (dvc-get-file-info-at-point))))))
 
@@ -1156,16 +1156,6 @@ REVISION-ID is as specified in docs/DVC-API."
            buffer))
 
         (t (error "TODO: dvc-revision-get-file-in-buffer type %S" type)))))
-
-(defun dvc-revision-get-previous-revision (file revision-id)
-"Default function to fill the current buffer with the content of
-the revision of a FILE previous to REVISION-ID.
-
-REVISION-ID is documented in docs/DVC-API."
-  (dvc-trace "get-prev-rev. revision=%S" revision)
-  (dvc-revision-get-file-in-buffer
-   file
-   (dvc-revision-nth-ancestor revision 1)))
 
 (defun dvc-dvc-revision-nth-ancestor (revision n)
   "Default function to get the n-th ancestor of REVISION."

@@ -618,7 +618,7 @@ insert into current buffer."
               (xmtn-automate--append-encoded-strings command)
               (insert "e\n"))
 
-            (dvc-trace "to mtn automate stdio: '%s'" (buffer-substring (point-min) (point-max)))
+            (dvc-trace "mtn automate: '%s'" (buffer-substring (point-min) (point-max)))
 
             (process-send-region (xmtn-automate--session-process session)
                                  (point-min) (point-max))))

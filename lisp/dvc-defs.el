@@ -90,20 +90,19 @@ the first one found; dvc-select-priority sets the search order."
   :type 'boolean
   :group 'dvc)
 
-;; [Matthieu Moy] This was redundant with
-;; `dvc-do-not-prompt-for-save'. I'm keeping the commented code so
-;; that people looking for the option can find it here. Since this one
-;; has not been in DVC for a long time, I'm not adding a backward
-;; compatibility option.
-;;
-;;(defcustom dvc-confirm-save-buffers t
-;; "*If non-nil, prompt for confirmation when saving buffers."
-;;  :type 'boolean
-;;  :group 'dvc)
-
 (defcustom dvc-log-last-n nil
   "*If non-nil, limit log listings to last n entries."
   :type '(choice boolean integer)
+  :group 'dvc)
+
+(defcustom dvc-status-display-known nil
+  "If non-nil, display files with 'known' status in dvc-status buffer."
+  :type 'boolean
+  :group 'dvc)
+
+(defcustom dvc-status-display-ignored nil
+  "If non-nil, display files with 'ignored' status in dvc-status buffer."
+  :type 'boolean
   :group 'dvc)
 
 ;; --------------------------------------------------------------------------------
@@ -179,87 +178,92 @@ the first one found; dvc-select-priority sets the search order."
 
 (defface dvc-ignored
   '((t (:inherit font-lock-comment-face)))
-  "Face to highlight precious entries"
+  "Face to highlight precious entries."
   :group 'dvc-faces)
 
 (defface dvc-unrecognized
   '((t (:inherit font-lock-warning-face)))
-  "Face to highlight unrecognized entries"
+  "Face to highlight unrecognized entries."
   :group 'dvc-faces)
 
 (defface dvc-duplicate
   '((t (:inherit font-lock-warning-face)))
-  "Face to highlight files with duplicate IDs"
+  "Face to highlight files with duplicate IDs."
   :group 'dvc-faces)
 
 (defface dvc-source
   '((t (:inherit font-lock-string-face)))
-  "Face to highlight source code entries"
+  "Face to highlight source code entries."
   :group 'dvc-faces)
 
 (defface dvc-nested-tree
   '((t (:inherit font-lock-type-face)))
-  "Face to highlight nested trees"
+  "Face to highlight nested trees."
   :group 'dvc-faces)
 
 (defface dvc-to-add
   '((t (:inherit font-lock-comment-face)))
-  "Face to highlight a file that should probably be added to the archive"
+  "Face to highlight a file that should probably be added to the archive."
   :group 'dvc-faces)
 
 (defface dvc-broken-link
   '((t (:inherit font-lock-warning-face)))
-  "Face to highlight a broken link"
+  "Face to highlight a broken link."
   :group 'dvc-faces)
 
 (defface dvc-unmerged
   '((t (:inherit font-lock-keyword-face)))
-  "Face to highlight unmerged patches"
+  "Face to highlight unmerged patches."
   :group 'dvc-faces)
 
 (defface dvc-header
   '((t (:inherit font-lock-function-name-face)))
-  "Face to highlight header in log mode for example"
+  "Face to highlight header in log mode for example."
   :group 'dvc-faces)
 
 (defface dvc-conflict
   '((t (:inherit font-lock-warning-face)))
-  "Face to highlight conflicts"
+  "Face to highlight conflicts."
   :group 'dvc-faces)
 
 (defface dvc-unknown
   '((t (:inherit font-lock-variable-name-face)))
-  "Face to highlight unknown status modification"
+  "Face to highlight unknown status modification."
   :group 'dvc-faces)
 
 (defface dvc-modified
   '((t (:inherit font-lock-function-name-face)))
-  "Face to highlight modified files"
+  "Face to highlight modified files."
+  :group 'dvc-faces)
+
+(defface dvc-copy
+  '((t (:inherit font-lock-function-name-face)))
+  "Face to highlight copied files/directories."
   :group 'dvc-faces)
 
 (defface dvc-move
   '((t (:inherit font-lock-function-name-face)))
-  "Face to highlight moved files/directory"
+  "Face to highlight moved files/directories."
   :group 'dvc-faces)
 
 (defface dvc-deleted
   '((t (:inherit font-lock-warning-face)))
-  "Face to highlight deleted files"
+  "Face to highlight deleted files."
   :group 'dvc-faces)
 
 (defface dvc-added
   '((t (:inherit font-lock-constant-face)))
-  "Face to highlight added files"
+  "Face to highlight added files."
   :group 'dvc-faces)
 
 (defface dvc-meta-info
   '((t (:inherit font-lock-comment-face)))
-  "Face to highlight files with meta-info changes"
+  "Face to highlight files with meta-info changes."
   :group 'dvc-faces)
 
 (defface dvc-messages
   '((t (:inherit font-lock-function-name-face)))
-  "Face to highlight messages in DVC buffers"
+  "Face to highlight messages in DVC buffers."
   :group 'dvc-faces)
 
 (defface dvc-highlight

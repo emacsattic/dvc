@@ -78,7 +78,7 @@
 (defun xdarcs-parse-whatsnew  (changes-buffer)
   (dvc-trace "xdarcs-parse-whatsnew (dolist)")
   (let ((status-list
-         (split-string (dvc-buffer-content output) "\n")))
+         (split-string (dvc-buffer-content (current-buffer)) "\n")))
     (with-current-buffer changes-buffer
       (setq dvc-header (format "darcs whatsnew --look-for-adds for %s\n" default-directory))
       (let ((buffer-read-only)
@@ -108,12 +108,14 @@
                    (setq modif nil
                          status nil)))
             (when (or modif status)
-              (ewoc-enter-last dvc-diff-cookie
-                               (list 'file
-                                     ;; Skip the status and "./" in the filename
-                                     (substring elem 4)
-                                     status
-                                     modif)))))))))
+              (ewoc-enter-last
+               dvc-fileinfo-ewoc
+               (make-dvc-fileinfo-legacy
+                :data (list 'file
+                            ;; Skip the status and "./" in the filename
+                            (substring elem 4)
+                            status
+                            modif))))))))))
 
 ;;;###autoload
 (defun xdarcs-whatsnew (&optional path)
@@ -143,7 +145,6 @@
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-error-in-process (capture buffer)
                                     "Error in diff process"
-                                    (capture root)
                                     output error))))))
 
 ;;;###autoload
