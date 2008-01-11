@@ -1,6 +1,6 @@
 ;;; dvc-core.el --- Core functions for distributed version control
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions From:
@@ -204,6 +204,9 @@ otherwise the result depends on SELECTION-MODE:
 
          (t (list (dvc-get-file-info-at-point))))))
 
+   ;; If other modes are added here, dvc-log-edit must be updated to
+   ;; support them as well.
+
    (t
     ;; Some other mode. We assume it has no notion of "marked files",
     ;; so there are none marked. The only file name available is
@@ -282,6 +285,7 @@ operation, then customize the `dvc-confirm-file-op-method' function."
 
 (defun dvc-dvc-files-to-commit ()
   ;;todo: set the correct modifier, one of dvc-modified, dvc-added, dvc-move, now use only nil
+  ;; FIXME: this is only used by dvc-log-insert-commit-file-list; should just merge this code there.
   (let ((files
          (with-current-buffer dvc-partner-buffer (dvc-current-file-list 'all-if-none-marked))))
     (mapcar (lambda (arg) (cons nil arg)) files)))

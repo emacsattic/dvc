@@ -269,7 +269,8 @@ the current active back-end."
   "Edit the log before commiting. Optional OTHER_FRAME (default
 user prefix) puts log edit buffer in a separate frame. Optional
 NO-INIT if non-nil suppresses initialization of buffer if one is
-reused."
+reused.
+`default-directory' must be the tree root."
   (interactive "P")
   (setq other-frame (Xor other-frame dvc-log-edit-other-frame))
   ;; Reuse an existing log-edit buffer if possible.
@@ -286,9 +287,10 @@ reused."
   (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
     (case (length log-edit-buffers)
       (0 ;; Need to create a new log-edit buffer. In the log-edit
-         ;; buffer, dvc-partner-buffer must be set to a dvc-diff or
-         ;; dvc-status buffer. So if we are not currently in one of
-         ;; those, find one.
+         ;; buffer, dvc-partner-buffer must be set to a buffer with a
+         ;; mode that dvc-current-file-list supports. That is
+         ;; currently dvc-diff-mode or dired-mode; we don't have a way
+         ;; to find dired-mode buffers, so we ignore those.
        (let ((diff-status-buffers
               (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
                       (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory))))
