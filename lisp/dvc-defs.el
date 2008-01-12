@@ -147,6 +147,13 @@ the first one found; dvc-select-priority sets the search order."
   "Face to highlight a marked entry in DVC buffers"
   :group 'dvc-faces)
 
+(defface dvc-excluded
+  '((((type tty) (class color)) (:foreground "orchid" :weight light))
+    (((class color) (background light)) (:foreground "orchid"))
+    (((class color) (background dark)) (:foreground "gold")))
+  "Face to highlight an excluded entry in DVC buffers"
+  :group 'dvc-faces)
+
 (defface dvc-bookmark-name
   '((t (:inherit dvc-repository-name)))
   "Face to highlight DVC revision names."
