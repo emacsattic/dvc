@@ -144,6 +144,8 @@ Pretty-print ELEM."
     (define-key map [?=]                                      'dvc-diff-diff)
     (define-key map dvc-keyvec-add                            'dvc-add-files)
     (define-key map "\M-d"                                    'dvc-diff-dtrt)
+    (define-key map "E"                                       'dvc-fileinfo-toggle-exclude)
+    (define-key map "\M-e"                                    'dvc-edit-exclude)
     (define-key map [?h]                                      'dvc-buffer-pop-to-partner-buffer)
     (define-key map dvc-keyvec-logs                           'dvc-log)
     (define-key map "l"                                       'dvc-diff-log)
@@ -157,7 +159,7 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-previous                       'dvc-diff-prev)
     (define-key map dvc-keyvec-revert                         'dvc-revert-files)
     (define-key map dvc-keyvec-quit                           'dvc-buffer-quit)
-    (define-key map dvc-keyvec-remove                         'dvc-remove-files)
+    (define-key map dvc-keyvec-remove                         'dvc-fileinfo-remove-files)
     (define-key map [?d]                                      'dvc-remove-files); as in dired
     (define-key map dvc-keyvec-mark                           'dvc-diff-mark-file)
     (define-key map dvc-keyvec-unmark                         'dvc-diff-unmark-file)
