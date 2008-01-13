@@ -1,6 +1,6 @@
 ;;; dvc-bookmarks.el --- The bookmark system for DVC
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -173,7 +173,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
 With prefix argument ARG, reload the bookmarks file from disk."
   (interactive "P")
   (dvc-bookmarks-load-from-file arg)
-  (switch-to-buffer (get-buffer-create "*dvc-bookmarks*"))
+  (dvc-switch-to-buffer (get-buffer-create "*dvc-bookmarks*"))
   (let ((cur-pos (point)))
     (toggle-read-only 0)
     (erase-buffer)

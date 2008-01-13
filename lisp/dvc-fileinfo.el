@@ -54,13 +54,14 @@ The elements must all be of class dvc-fileinfo-root.")
             (:include dvc-fileinfo-root)
 	    (:copier nil))
   mark   	;; t/nil.
+  exclude       ;; t/nil. If t, don't commit unless also mark = t.
   dir		;; Directory the file resides in, relative to dvc-root.
   file	     	;; File name sans directory.
                 ;; (concat dir file) gives a valid path.
   status	;; Symbol; see dvc-fileinfo-status-image for list
   (indexed t)   ;; Whether changes made to the file have been recorded
-                ;; in the index.  Use t if the VCS does not support an
-                ;; index.
+                ;; in the index.  Use t if the back-end does not
+                ;; support an index.
   more-status   ;; String; whatever else the backend has to say
   )
 
@@ -136,13 +137,15 @@ The elements must all be of class dvc-fileinfo-root.")
                      " "
                      (dvc-fileinfo-file-dir fileinfo)
                      (dvc-fileinfo-file-file fileinfo)))
-              (face (if (dvc-fileinfo-file-mark fileinfo)
-                        'dvc-marked
-                      (dvc-fileinfo-choose-face (dvc-fileinfo-file-status fileinfo)))))
+              (face (cond
+                     ((dvc-fileinfo-file-mark fileinfo) 'dvc-marked)
+                     ((dvc-fileinfo-file-exclude fileinfo) 'dvc-excluded)
+                     (t (dvc-fileinfo-choose-face (dvc-fileinfo-file-status fileinfo))))))
          (insert " ")
-         (if (dvc-fileinfo-file-mark fileinfo)
-             (insert dvc-mark)
-           (insert " "))
+         (cond
+          ((dvc-fileinfo-file-mark fileinfo) (insert dvc-mark))
+          ((dvc-fileinfo-file-exclude fileinfo) (insert dvc-exclude))
+          (t (insert " ")))
 
          (insert " ")
          (insert (dvc-face-add line face))
@@ -361,6 +364,19 @@ in that directory. Then move to previous ewoc entry."
                  nil)))
             dvc-fileinfo-ewoc))
 
+(defun dvc-fileinfo-toggle-exclude ()
+  "Toggle exclude for file under point. Does not edit default exclude file."
+  (interactive)
+  (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
+         (fileinfo (ewoc-data current)))
+    (typecase fileinfo
+      (dvc-fileinfo-file
+       (setf (dvc-fileinfo-file-exclude fileinfo) (not (dvc-fileinfo-file-exclude fileinfo)))
+       (ewoc-invalidate dvc-fileinfo-ewoc current))
+
+      (otherwise
+       (error "not on a file or directory")))))
+
 (defun dvc-fileinfo-next (&optional no-ding)
   "Move to the next ewoc entry. If optional NO-DING, don't ding
 if there is no next."
@@ -415,9 +431,10 @@ if there is no prev."
       (error "Can't find file %s in list" file))))
 
 (defun dvc-fileinfo-marked-elems ()
-  "Return list of fileinfo structs that are marked files."
+  "Return list of ewoc elements that are marked files."
   ;; This does _not_ include legacy fileinfo structs; they do not
-  ;; contain a mark field.
+  ;; contain a mark field. We are planning to eventually eliminate
+  ;; dvc-buffer-marked-file-list and legacy fileinfos.
   (let ((elem (ewoc-nth dvc-fileinfo-ewoc 0))
         result)
     (while elem
@@ -425,6 +442,20 @@ if there is no prev."
         (if (and (dvc-fileinfo-file-p fi)
                  (dvc-fileinfo-file-mark fi))
           (setq result (append result (list elem))))
+        (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
+    result))
+
+(defun dvc-fileinfo-excluded-files ()
+  "Return list of filenames that are excluded files."
+  ;; This does _not_ include legacy fileinfo structs; they do not
+  ;; contain an excluded field.
+  (let ((elem (ewoc-nth dvc-fileinfo-ewoc 0))
+        result)
+    (while elem
+      (let ((fi (ewoc-data elem)))
+        (if (and (dvc-fileinfo-file-p fi)
+                 (dvc-fileinfo-file-exclude fi))
+          (setq result (append result (list (dvc-fileinfo-path fi)))))
         (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
     result))
 
@@ -487,6 +518,50 @@ If OTHER-FRAME (default prefix) xor `dvc-log-edit-other-frame' is
 non-nil, show log-edit buffer in other frame."
   (interactive "P")
   (dvc-fileinfo-add-log-entry-1 (dvc-fileinfo-current-fileinfo) other-frame))
+
+(defun dvc-fileinfo-remove-files ()
+  "Remove current files. If status `unknown', delete from
+workspace. Otherwise, call `dvc-remove-files'."
+  (interactive)
+  (let ((elems (or (dvc-fileinfo-marked-elems)
+                   (list (ewoc-locate dvc-fileinfo-ewoc))))
+        (inhibit-read-only t)
+        known-files)
+
+    (while elems
+      (let ((fileinfo (ewoc-data (car elems))))
+        (typecase fileinfo
+          (dvc-fileinfo-file
+           (if (equal 'unknown (dvc-fileinfo-file-status fileinfo))
+               (progn
+                 (delete-file (dvc-fileinfo-path fileinfo))
+                 (ewoc-delete dvc-fileinfo-ewoc (car elems)))
+             (add-to-list 'known-files (car elems))))
+
+          (dvc-fileinfo-legacy
+           ;; Assume files are known
+           (add-to-list known-files fileinfo))
+
+          (otherwise
+           ;; just ignore
+           nil))
+        (setq elems (cdr elems))))
+
+    (if known-files
+        (progn
+          (apply 'dvc-remove-files (mapcar (lambda (elem) (dvc-fileinfo-path (ewoc-data elem))) known-files))
+          (mapc
+           (lambda (elem)
+             (let ((fileinfo (ewoc-data elem)))
+               (etypecase fileinfo
+                 (dvc-fileinfo-file
+                  (setf (dvc-fileinfo-file-status fileinfo) 'deleted)
+                  (ewoc-invalidate dvc-fileinfo-ewoc elem))
+
+                 (dvc-fileinfo-legacy
+                  ;; Don't have enough info to update this
+                  nil))))
+             known-files)))))
 
 (defun dvc-fileinfo--do-rename (fi-source fi-target elems)
   (dvc-rename (dvc-fileinfo-path fi-source)

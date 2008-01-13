@@ -1,6 +1,6 @@
 ;;; xgit.el --- git interface for dvc
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2008 by all contributors
 
 ;; Author: Stefan Reichoer <stefan@xsteve.at>
 ;; Contributions from:
@@ -183,8 +183,9 @@ added, modified, renamed, copied, deleted, unknown."
           (let ((buffer-read-only)
                 (grouping "")
                 status-string
-                file status modif dir
-                status-list)
+                file status dir
+                status-list
+                indexed)
             (while (re-search-forward xgit-status-line-regexp nil t)
               (setq status-string (match-string 1)
                     file (match-string 2)
@@ -228,7 +229,7 @@ added, modified, renamed, copied, deleted, unknown."
                                (cons
                                 (list :file new :dir " "
                                       :status 'rename-target :indexed t)
-                                (cons (list :file orig :dir dir
+                                (cons (list :file orig :dir " "
                                             :status 'rename-source :indexed t)
                                       status-list))))))
                     ((string= status-string "copied")
@@ -240,7 +241,7 @@ added, modified, renamed, copied, deleted, unknown."
                                (cons
                                 (list :file new :dir " "
                                       :status 'copy-target :indexed t)
-                                (cons (list :file orig :dir dir
+                                (cons (list :file orig :dir " "
                                             :status 'copy-source :indexed t)
                                       status-list))))))
                     (t
@@ -605,6 +606,7 @@ FILE is filename in the repository at DIR."
                         (progn
                           (with-current-buffer (capture buffer)
                             (let ((inhibit-read-only t))
+                              (buffer-disable-undo)
                               (erase-buffer)
                               (insert-buffer-substring output)
                               (goto-char (point-min))

@@ -1,6 +1,6 @@
 ;;; dvc-core.el --- Core functions for distributed version control
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions From:
@@ -47,7 +47,7 @@
 ;; --------------------------------------------------------------------------------
 
 (defconst dvc-mark (dvc-face-add "*" 'dvc-mark) "Fontified string used for marking.")
-
+(defconst dvc-exclude (dvc-face-add "E" 'dvc-mark) "Fontified string used for excluded files.")
 
 ;; --------------------------------------------------------------------------------
 ;; Internal variables
@@ -193,7 +193,7 @@ otherwise the result depends on SELECTION-MODE:
    ((eq major-mode 'dired-mode)
     (dired-get-marked-files))
 
-   ((eq major-mode 'dvc-diff-mode)
+   ((derived-mode-p 'dvc-diff-mode)
     (or (remove nil dvc-buffer-marked-file-list)
         (cond
          ((eq selection-mode 'nil-if-none-marked)
@@ -203,6 +203,9 @@ otherwise the result depends on SELECTION-MODE:
           (dvc-fileinfo-all-files))
 
          (t (list (dvc-get-file-info-at-point))))))
+
+   ;; If other modes are added here, dvc-log-edit must be updated to
+   ;; support them as well.
 
    (t
     ;; Some other mode. We assume it has no notion of "marked files",
@@ -282,6 +285,7 @@ operation, then customize the `dvc-confirm-file-op-method' function."
 
 (defun dvc-dvc-files-to-commit ()
   ;;todo: set the correct modifier, one of dvc-modified, dvc-added, dvc-move, now use only nil
+  ;; FIXME: this is only used by dvc-log-insert-commit-file-list; should just merge this code there.
   (let ((files
          (with-current-buffer dvc-partner-buffer (dvc-current-file-list 'all-if-none-marked))))
     (mapcar (lambda (arg) (cons nil arg)) files)))

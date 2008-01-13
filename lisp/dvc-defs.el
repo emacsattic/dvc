@@ -1,6 +1,6 @@
 ;;; dvc-defs.el --- Common definitions for DVC
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributors: Matthieu Moy, <Matthieu.Moy@imag.fr>
@@ -147,6 +147,13 @@ the first one found; dvc-select-priority sets the search order."
   "Face to highlight a marked entry in DVC buffers"
   :group 'dvc-faces)
 
+(defface dvc-excluded
+  '((((type tty) (class color)) (:foreground "orchid" :weight light))
+    (((class color) (background light)) (:foreground "orchid"))
+    (((class color) (background dark)) (:foreground "gold")))
+  "Face to highlight an excluded entry in DVC buffers"
+  :group 'dvc-faces)
+
 (defface dvc-bookmark-name
   '((t (:inherit dvc-repository-name)))
   "Face to highlight DVC revision names."
@@ -242,8 +249,9 @@ the first one found; dvc-select-priority sets the search order."
   :group 'dvc-faces)
 
 (defface dvc-move
-  '((t (:inherit font-lock-function-name-face)))
-  "Face to highlight moved files/directories."
+  '((t (:inherit font-lock-constant-face)))
+  ;; Same font as dvc-added, different from dvc-modified, so it stands out in a typical list.
+  "Face to highlight moved files/directory."
   :group 'dvc-faces)
 
 (defface dvc-deleted
