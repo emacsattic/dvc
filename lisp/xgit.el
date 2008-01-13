@@ -183,7 +183,7 @@ added, modified, renamed, copied, deleted, unknown."
           (let ((buffer-read-only)
                 (grouping "")
                 status-string
-                file status modif dir
+                file status dir
                 status-list
                 indexed)
             (while (re-search-forward xgit-status-line-regexp nil t)
@@ -229,7 +229,7 @@ added, modified, renamed, copied, deleted, unknown."
                                (cons
                                 (list :file new :dir " "
                                       :status 'rename-target :indexed t)
-                                (cons (list :file orig :dir dir
+                                (cons (list :file orig :dir " "
                                             :status 'rename-source :indexed t)
                                       status-list))))))
                     ((string= status-string "copied")
@@ -241,7 +241,7 @@ added, modified, renamed, copied, deleted, unknown."
                                (cons
                                 (list :file new :dir " "
                                       :status 'copy-target :indexed t)
-                                (cons (list :file orig :dir dir
+                                (cons (list :file orig :dir " "
                                             :status 'copy-source :indexed t)
                                       status-list))))))
                     (t
