@@ -490,7 +490,8 @@ the file before saving."
          for (from to) in (xmtn--revision-rename revision)
          do (assert (eql (not (likely-dir-p from))
                          (not (likely-dir-p to))))
-         do (add-entry to 'renamed (likely-dir-p to) from))
+         do (add-entry to 'rename-target (likely-dir-p to) from)
+         do (add-entry from 'rename-source (likely-dir-p from) to))
         (loop
          for (path) in (xmtn--revision-add-dir revision)
          do (add-entry path 'added t))
@@ -614,6 +615,16 @@ the file before saving."
 ;;;###autoload
 (defun xmtn-dvc-command-version ()
   (fourth (xmtn--command-version xmtn-executable)))
+
+(defvar xmtn-dvc-automate-version nil
+  "Cached value of mtn automate interface version.")
+
+(defun xmtn-dvc-automate-version ()
+  "Return mtn automate version as a number."
+  (if xmtn-dvc-automate-version
+      xmtn-dvc-automate-version
+    (setq xmtn-dvc-automate-version
+          (string-to-number (xmtn--command-output-line nil '("automate" "interface_version"))))))
 
 (defun xmtn--unknown-files-future (root)
   (xmtn--command-output-lines-future root '("ls" "unknown")))
@@ -810,7 +821,13 @@ the file before saving."
           ((status-buffer status-buffer)
            (root root))
         (xmtn--run-command-async
-         root `("automate" "inventory")
+         root `("automate" "inventory"
+                ,@(and (>= (xmtn-dvc-automate-version) 7.1)
+                       (not dvc-status-display-known)
+                            '("--no-unchanged"))
+                ,@(and (>= (xmtn-dvc-automate-version) 7.1)
+                       (not dvc-status-display-ignored)
+                       '("--no-ignored")))
          :finished (lambda (output error status arguments)
                      ;; Don't use `dvc-show-changes-buffer' here because
                      ;; it attempts to do some regexp stuff for us that we

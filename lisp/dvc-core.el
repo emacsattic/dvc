@@ -204,6 +204,14 @@ otherwise the result depends on SELECTION-MODE:
 
          (t (list (dvc-get-file-info-at-point))))))
 
+   ((eq major-mode 'dvc-bookmark-mode)
+        (cond
+         ((eq selection-mode 'nil-if-none-marked)
+          nil)
+
+         (t
+          (error "selection-mode %s not implemented for dvc bookmark buffer" selection-mode))))
+
    ;; If other modes are added here, dvc-log-edit must be updated to
    ;; support them as well.
 
