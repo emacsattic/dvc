@@ -61,36 +61,43 @@
 
 ;; Annotate customization
 (defcustom dvc-annotate-color-map
-  (if (and (tty-display-color-p) (<= (display-color-cells) 8))
+  (if (or (and (fboundp 'tty-display-color-p) (tty-display-color-p)
+               (<= (display-color-cells) 8))
+          ;; XEmacs 21
+          (and (fboundp 'display-color-p) (display-color-p)
+               (eq (device-or-frame-type (frame-device)) 'tty)))
       ;; A custom sorted TTY colormap
       (let* ((colors
           (sort
            (delq nil
-             (mapcar (lambda (x)
-                   (if (not (or
-                     (string-equal (car x) "white")
-                     (string-equal (car x) "black") ))
-                   (car x)))
-                 (tty-color-alist)))
+                 (mapcar (lambda (x)
+                           (if (not (or
+                                     (string-equal (car x) "white")
+                                     (string-equal (car x) "black") ))
+                               (car x)))
+                         (or (and (fboundp 'tty-color-alist)
+                                  (tty-color-alist))
+                             (and (fboundp 'tty-color-list)
+                                  (mapcar #'list (tty-color-list))))))
            (lambda (a b)
-         (cond
-          ((or (string-equal a "red") (string-equal b "blue")) t)
-          ((or (string-equal b "red") (string-equal a "blue")) nil)
-          ((string-equal a "yellow") t)
-          ((string-equal b "yellow") nil)
-          ((string-equal a "cyan") t)
-          ((string-equal b "cyan") nil)
-          ((string-equal a "green") t)
-          ((string-equal b "green") nil)
-          ((string-equal a "magenta") t)
-          ((string-equal b "magenta") nil)
-          (t (string< a b))))))
-         (date 20.)
-         (delta (/ (- 360. date) (1- (length colors)))))
-    (mapcar (lambda (x)
-          (prog1
-              (cons date x)
-            (setq date (+ date delta)))) colors))
+             (cond
+              ((or (string-equal a "red") (string-equal b "blue")) t)
+              ((or (string-equal b "red") (string-equal a "blue")) nil)
+              ((string-equal a "yellow") t)
+              ((string-equal b "yellow") nil)
+              ((string-equal a "cyan") t)
+              ((string-equal b "cyan") nil)
+              ((string-equal a "green") t)
+              ((string-equal b "green") nil)
+              ((string-equal a "magenta") t)
+              ((string-equal b "magenta") nil)
+              (t (string< a b))))))
+             (date 20.)
+             (delta (/ (- 360. date) (1- (length colors)))))
+        (mapcar (lambda (x)
+                  (prog1
+                      (cons date x)
+                    (setq date (+ date delta)))) colors))
     ;; Normal colormap: hue stepped from 0-240deg, value=1., saturation=0.75
     '(( 20. . "#FF3F3F")
       ( 40. . "#FF6C3F")
