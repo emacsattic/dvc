@@ -1,5 +1,6 @@
 ;;; xmtn-run.el --- Functions for runnning monotone commands
 
+;; Copyright (C) 2008 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -221,6 +222,10 @@ Signals an error if more (or fewer) than one line is output."
 
 (defun xmtn--minimum-required-command-version ()
   '(0 37))
+
+(defun xmtn--have-no-ignore ()
+  "Non-nil if mtn automate inventory supports --no-ignore, --no-unknown, --no-unchanged options."
+  (>= (xmtn-dvc-automate-version) 7.0))
 
 (defvar xmtn--*cached-command-version* nil)
 (defvar xmtn--*command-version-cached-for-executable* nil)

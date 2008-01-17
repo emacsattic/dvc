@@ -785,6 +785,7 @@ the file before saving."
          'status
          root
          'xmtn)))
+    (dvc-save-some-buffers root)
     (dvc-switch-to-buffer-maybe status-buffer)
     (dvc-kill-process-maybe status-buffer)
     ;; Attempt to make sure the sentinels have a chance to run.
@@ -822,10 +823,10 @@ the file before saving."
            (root root))
         (xmtn--run-command-async
          root `("automate" "inventory"
-                ,@(and (>= (xmtn-dvc-automate-version) 7.1)
+                ,@(and xmtn--have-no-ignore
                        (not dvc-status-display-known)
-                            '("--no-unchanged"))
-                ,@(and (>= (xmtn-dvc-automate-version) 7.1)
+                       '("--no-unchanged"))
+                ,@(and xmtn--have-no-ignore
                        (not dvc-status-display-ignored)
                        '("--no-ignored")))
          :finished (lambda (output error status arguments)
@@ -981,13 +982,16 @@ the file before saving."
        (let ((default-directory root))
          (mapcan (lambda (file-name)
                    (if (or (file-symlink-p file-name)
+                           (xmtn--have-no-ignore)
                            (not (file-directory-p file-name)))
                        (list (xmtn--perl-regexp-for-file-name file-name))
+
+                     ;; If mtn automate inventory doesn't support
+                     ;; --no-ignore, it also recurses into unknown
+                     ;; directories, so we need to ignore files in
+                     ;; this directory as well as the directory
+                     ;; itself.
                      (setq file-name (directory-file-name file-name))
-                     ;; For a file-name that is a directory, add not
-                     ;; just "^file-name$", but also "^file-name/", so
-                     ;; that files inside the directory will also be
-                     ;; ignored.  This is usually What I Mean.
                      (list
                       (xmtn--perl-regexp-for-file-name file-name)
                       (xmtn--perl-regexp-for-files-in-directory file-name))))
