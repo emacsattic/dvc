@@ -1,6 +1,6 @@
 ;;; dvc-buffers.el --- Buffer management for DVC
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -136,6 +136,13 @@ BUFFER should be the buffer to add."
       (push (list dvc (list type to-add))
             dvc-buffers-tree))))
 
+(defun dvc-create-buffer (name)
+  "Create a buffer for a dvc-mode.
+`create-file-buffer' is used to allow uniquify to modify the name."
+  (with-current-buffer (create-file-buffer name)
+    (setq list-buffers-directory (concat default-directory name))
+    (current-buffer)))
+
 (defun dvc-get-buffer-create (dvc type &optional path)
   "Get a buffer of type TYPE for the path PATH.
 
@@ -168,7 +175,7 @@ See also `dvc-get-buffer'"
                           (let ((default-directory
                                   (or (file-name-directory path)
                                       default-directory)))
-                            (generate-new-buffer name)))))
+                            (dvc-create-buffer name)))))
                    (with-current-buffer buffer
                      (if (featurep 'xemacs)
                          (dvc-install-buffer-menu))

@@ -362,7 +362,7 @@ the file before saving."
     ;; Due the possibility of race conditions, this check doesn't
     ;; guarantee the operation will succeed.
     (unless (funcall (xmtn--tree-consistent-p-future root))
-      (error "Tree inconsistent, unable to commit"))
+      (error "There are missing files, unable to commit"))
     ;; mtn ls changed doesn't work while the tree is inconsistent, so
     ;; we can't run the two futures in parallel.  (Or maybe we could,
     ;; if a future that is never forced would never report errors in
@@ -823,10 +823,10 @@ the file before saving."
            (root root))
         (xmtn--run-command-async
          root `("automate" "inventory"
-                ,@(and xmtn--have-no-ignore
+                ,@(and (xmtn--have-no-ignore)
                        (not dvc-status-display-known)
                        '("--no-unchanged"))
-                ,@(and xmtn--have-no-ignore
+                ,@(and (xmtn--have-no-ignore)
                        (not dvc-status-display-ignored)
                        '("--no-ignored")))
          :finished (lambda (output error status arguments)
