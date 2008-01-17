@@ -102,8 +102,7 @@ USING CONFIGURE
    than installing it, then add the following to your .xemacs/init.el
    file.
 
-     (add-to-list 'load-path "/path/to/dvc/lisp/")
-     (load-file "/path/to/dvc/lisp/auto-autoloads.el")
+     (load-file "/path/to/dvc/dvc-load.el")
 
 4) Integration of Xtla with Gnus
 
