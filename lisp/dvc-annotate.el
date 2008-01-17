@@ -65,6 +65,7 @@
                (<= (display-color-cells) 8))
           ;; XEmacs 21
           (and (fboundp 'display-color-p) (display-color-p)
+               (fboundp 'device-or-frame-type)
                (eq (device-or-frame-type (frame-device)) 'tty)))
       ;; A custom sorted TTY colormap
       (let* ((colors
