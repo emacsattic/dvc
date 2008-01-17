@@ -1,6 +1,6 @@
 ;;; dvc-revlist.el --- Revision list in DVC
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -35,7 +35,7 @@
   )
 
 (require 'dvc-ui)
-
+(require 'uniquify)
 
 ;; Display parameters
 (defvar dvc-revlist-brief nil)
@@ -379,6 +379,8 @@ Commands are:
   (set-buffer-modified-p nil)
   (set (make-local-variable 'dvc-get-revision-info-at-point-function)
        'dvc-revlist-get-rev-at-point))
+
+(add-to-list 'uniquify-list-buffers-directory-modes 'dvc-revlist-mode)
 
 (defun dvc-revlist-create-buffer (back-end type location refresh-fn brief last-n)
   "Create (or reuse) and return a buffer to display a revision list.

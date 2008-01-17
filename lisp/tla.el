@@ -1,6 +1,6 @@
 ;;; tla.el --- Arch interface for emacs
 
-;; Copyright (C) 2003-2007 by all contributors
+;; Copyright (C) 2003-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -1601,6 +1601,7 @@ the root of the projects is displayed."
                                    (capture buffer)
                                    (capture master-buffer)
                                    "^[^*\\.]")
+          ;; FIXME: DVC does not currently support nested trees
           (when (capture master-buffer)
             (with-current-buffer (capture master-buffer)
               (ewoc-map (lambda (fi)

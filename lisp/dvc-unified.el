@@ -293,9 +293,12 @@ reused.
          ;; to find dired-mode buffers, so we ignore those.
        (let ((diff-status-buffers
               (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
-                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory))))
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)))
+             (activated-from-bookmark-buffer (eq major-mode 'dvc-bookmarks-mode)))
          (case (length diff-status-buffers)
-           (0 (error "Must have a DVC diff or status buffer before calling dvc-log-edit"))
+           (0 (if (not activated-from-bookmark-buffer)
+                  (error "Must have a DVC diff or status buffer before calling dvc-log-edit")
+                (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil)))
            (1
             (set-buffer (nth 1 (car diff-status-buffers)))
             (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil))

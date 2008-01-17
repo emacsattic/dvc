@@ -33,7 +33,9 @@
 (require 'dvc-defs)
 (require 'dvc-core)
 (require 'dvc-fileinfo)
-(eval-when-compile (require 'cl))
+(require 'uniquify)
+(eval-when-compile
+  (require 'cl))
 
 (defvar dvc-diff-base nil
   "BASE revision-id for the changes currently displayed.")
@@ -144,6 +146,8 @@ Pretty-print ELEM."
     (define-key map [?=]                                      'dvc-diff-diff)
     (define-key map dvc-keyvec-add                            'dvc-add-files)
     (define-key map "\M-d"                                    'dvc-diff-dtrt)
+    (define-key map "E"                                       'dvc-fileinfo-toggle-exclude)
+    (define-key map "\M-e"                                    'dvc-edit-exclude)
     (define-key map [?h]                                      'dvc-buffer-pop-to-partner-buffer)
     (define-key map dvc-keyvec-logs                           'dvc-log)
     (define-key map "l"                                       'dvc-diff-log)
@@ -157,7 +161,7 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-previous                       'dvc-diff-prev)
     (define-key map dvc-keyvec-revert                         'dvc-revert-files)
     (define-key map dvc-keyvec-quit                           'dvc-buffer-quit)
-    (define-key map dvc-keyvec-remove                         'dvc-remove-files)
+    (define-key map dvc-keyvec-remove                         'dvc-fileinfo-remove-files)
     (define-key map [?d]                                      'dvc-remove-files); as in dired
     (define-key map dvc-keyvec-mark                           'dvc-diff-mark-file)
     (define-key map dvc-keyvec-unmark                         'dvc-diff-unmark-file)
@@ -229,6 +233,10 @@ Pretty-print ELEM."
      ["Ignore File Extensions" dvc-ignore-file-extensions t]
      ["Edit Ignore File" dvc-edit-ignore-files t]
      )
+    ("Exclude"
+     ["Exclude File" dvc-fileinfo-toggle-exclude t]
+     ["Edit Exclude File" dvc-edit-exclude t]
+     )
     ,dvc-diff-file-menu-list
     ))
 
@@ -248,6 +256,7 @@ Pretty-print ELEM."
 ;; `define-derived-mode'), and rely on it for as many features as
 ;; possible (one can, for example, extend the menu and keymap). See
 ;; `xgit-diff-mode' in xgit.el for a good example.
+;; Remember to add the new mode to uniquify-list-buffers-directory-modes
 (define-derived-mode dvc-diff-mode fundamental-mode "dvc-diff"
   "Major mode to display changesets. Derives from `diff-mode'.
 
@@ -274,6 +283,8 @@ Commands:
   (dvc-install-buffer-menu)
   (toggle-read-only 1)
   (set-buffer-modified-p nil))
+
+(add-to-list 'uniquify-list-buffers-directory-modes 'dvc-diff-mode)
 
 (defun dvc-diff-generic-refresh ()
   "Refresh the diff buffer."
@@ -592,7 +603,9 @@ dvc-prepare-changes-buffer).
 If NO-SWITCH is nil, don't switch to the created buffer.
 
 If non-nil, HEADER-END-REGEXP is a regexp matching the first line
-which is not part of the diff header."
+which is not part of the diff header.
+
+CMD, if non-nil, is appended to dvc-header."
   ;; We assume default-directory is correct, rather than calling
   ;; dvc-tree-root, because dvc-tree-root might prompt if there is
   ;; more than one back-end present. Similarly, we assume

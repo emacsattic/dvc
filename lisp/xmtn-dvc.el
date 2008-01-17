@@ -1,6 +1,7 @@
 ;;; xmtn-dvc.el --- DVC backend for monotone
 
-;; Copyright (C) 2006, 2007 Christian M. Ohler
+;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
 ;; Keywords: tools
@@ -349,8 +350,11 @@ the file before saving."
              ;; therefore the semantics of relative file names.
              (with-current-buffer dvc-partner-buffer
                (xmtn--normalize-file-names root files)))))
+         (excluded-files
+          (with-current-buffer dvc-partner-buffer
+            (xmtn--normalize-file-names root (dvc-fileinfo-excluded-files))))
          (branch (xmtn--tree-default-branch root)))
-    ;; Saving the buffer will automatically flush the log edit hints.
+    ;; Saving the buffer will automatically delete any log edit hints.
     (save-buffer)
     (dvc-save-some-buffers root)
     ;; Need to do this after `dvc-save-some-buffers'.
@@ -358,7 +362,7 @@ the file before saving."
     ;; Due the possibility of race conditions, this check doesn't
     ;; guarantee the operation will succeed.
     (unless (funcall (xmtn--tree-consistent-p-future root))
-      (error "Tree inconsistent, unable to commit"))
+      (error "There are missing files, unable to commit"))
     ;; mtn ls changed doesn't work while the tree is inconsistent, so
     ;; we can't run the two futures in parallel.  (Or maybe we could,
     ;; if a future that is never forced would never report errors in
@@ -390,11 +394,14 @@ the file before saving."
        `("commit" ,(concat "--message-file=" commit-message-file)
          ,(concat "--branch=" branch)
          ,@(case normalized-files
-             (all '())
+             (all
+              (if excluded-files
+                  (mapcar (lambda (file) (concat "--exclude=" file)) excluded-files)
+                '()))
              (t (list*
-                 ;; This is the right thing for directory renames
-                 ;; marked in diff buffer.  I don't know yet whether
-                 ;; it's the right thing in other cases.
+                 ;; Since we are specifying files explicitly, don't
+                 ;; recurse into specified directories. Also commit
+                 ;; normally excluded files if they are selected.
                  "--depth=0"
                  "--" normalized-files))))
        :error (lambda (output error status arguments)
@@ -439,66 +446,71 @@ the file before saving."
   nil)
 
 (defun xmtn--parse-diff-for-dvc (changes-buffer)
-  (flet ((add-entry (path status dir &optional orig-path)
-           (with-current-buffer changes-buffer
-             (ewoc-enter-last
-              dvc-fileinfo-ewoc
-              (if dir
-                  (make-dvc-fileinfo-dir
-                   :mark nil
-                   :dir (file-name-directory path)
-                   :file (file-name-nondirectory path)
-                   :status status
-                   :more-status "")
-                (make-dvc-fileinfo-file
-                 :mark nil
-                 :dir (file-name-directory path)
-                 :file (file-name-nondirectory path)
-                 :status status
-                 :more-status (if orig-path
-                                  (concat "from " orig-path)
-                                ""))))))
-         (likely-dir-p (path) (string-match "/\\'" path)))
-    ;; First parse the basic_io contained in dvc-header, if any.
-    (let ((revision
-           (with-temp-buffer
-             (insert dvc-header)
-             (goto-char (point-min))
-             (while (re-search-forward "^# ?" nil t)
-               (replace-match ""))
-             (goto-char (point-min))
-             (xmtn-basic-io-skip-blank-lines)
-             (delete-region (point-min) (point))
-             (xmtn-basic-io-with-stanza-parser
-              (parser (current-buffer))
-              (xmtn--parse-partial-revision parser)))))
-      (loop
-       for (path) in (xmtn--revision-delete revision)
-       do (add-entry path 'deleted (likely-dir-p path)))
-      (loop
-       for (from to) in (xmtn--revision-rename revision)
-       do (assert (eql (not (likely-dir-p from))
-                       (not (likely-dir-p to))))
-       do (add-entry to 'renamed (likely-dir-p to) from))
-      (loop
-       for (path) in (xmtn--revision-add-dir revision)
-       do (add-entry path 'added t))
-      (loop
-       for (path contents)
-       in (xmtn--revision-add-file revision)
-       do (add-entry path 'added nil))
-      (loop
-       for (path from-contents to-contents)
-       in (xmtn--revision-patch-file revision)
-       do (add-entry path 'modified nil))
-      ;; Do nothing about clear-attr and set-attr.
-      ))
-  ;; This would suppress mtn's revision basic_io junk at the top.  Not
-  ;; sure if anyone needs it.  But since we also delete the file
-  ;; content ids from the diff headings, I'd rather at least keep them
-  ;; there.
-  ;;(setq dvc-header "")
-  nil)
+  (let ((excluded-files (dvc-default-excluded-files)))
+    (flet ((add-entry
+            (path status dir &optional orig-path)
+            (with-current-buffer changes-buffer
+              (ewoc-enter-last
+               dvc-fileinfo-ewoc
+               (if dir
+                   (make-dvc-fileinfo-dir
+                    :mark nil
+                    :exclude (not (null (member path excluded-files)))
+                    :dir (file-name-directory path)
+                    :file (file-name-nondirectory path)
+                    :status status
+                    :more-status "")
+                 (make-dvc-fileinfo-file
+                  :mark nil
+                  :exclude (not (null (member path excluded-files)))
+                  :dir (file-name-directory path)
+                  :file (file-name-nondirectory path)
+                  :status status
+                  :more-status (if orig-path
+                                   (concat "from " orig-path)
+                                 ""))))))
+           (likely-dir-p (path) (string-match "/\\'" path)))
+      ;; First parse the basic_io contained in dvc-header, if any.
+      (let ((revision
+             (with-temp-buffer
+               (insert dvc-header)
+               (goto-char (point-min))
+               (while (re-search-forward "^# ?" nil t)
+                 (replace-match ""))
+               (goto-char (point-min))
+               (xmtn-basic-io-skip-blank-lines)
+               (delete-region (point-min) (point))
+               (xmtn-basic-io-with-stanza-parser
+                (parser (current-buffer))
+                (xmtn--parse-partial-revision parser)))))
+        (loop
+         for (path) in (xmtn--revision-delete revision)
+         do (add-entry path 'deleted (likely-dir-p path)))
+        (loop
+         for (from to) in (xmtn--revision-rename revision)
+         do (assert (eql (not (likely-dir-p from))
+                         (not (likely-dir-p to))))
+         do (add-entry to 'rename-target (likely-dir-p to) from)
+         do (add-entry from 'rename-source (likely-dir-p from) to))
+        (loop
+         for (path) in (xmtn--revision-add-dir revision)
+         do (add-entry path 'added t))
+        (loop
+         for (path contents)
+         in (xmtn--revision-add-file revision)
+         do (add-entry path 'added nil))
+        (loop
+         for (path from-contents to-contents)
+         in (xmtn--revision-patch-file revision)
+         do (add-entry path 'modified nil))
+        ;; Do nothing about clear-attr and set-attr.
+        ))
+    ;; This would suppress mtn's revision basic_io junk at the top.  Not
+    ;; sure if anyone needs it.  But since we also delete the file
+    ;; content ids from the diff headings, I'd rather at least keep them
+    ;; there.
+    ;;(setq dvc-header "")
+    nil))
 
 ;;;###autoload
 (defun xmtn-show-base-revision ()
@@ -604,6 +616,16 @@ the file before saving."
 (defun xmtn-dvc-command-version ()
   (fourth (xmtn--command-version xmtn-executable)))
 
+(defvar xmtn-dvc-automate-version nil
+  "Cached value of mtn automate interface version.")
+
+(defun xmtn-dvc-automate-version ()
+  "Return mtn automate version as a number."
+  (if xmtn-dvc-automate-version
+      xmtn-dvc-automate-version
+    (setq xmtn-dvc-automate-version
+          (string-to-number (xmtn--command-output-line nil '("automate" "interface_version"))))))
+
 (defun xmtn--unknown-files-future (root)
   (xmtn--command-output-lines-future root '("ls" "unknown")))
 
@@ -622,7 +644,8 @@ the file before saving."
     (attrs   "attrs  ")))
 
 (defun xmtn--status-process-entry (ewoc path status changes old-path-or-null
-                                        old-type new-type fs-type)
+                                        old-type new-type fs-type
+                                        excluded-files)
   "Create a file entry in ewoc."
   ;; Don't display root directory (""); if requested, don't
   ;; display known or ignored files.
@@ -680,6 +703,7 @@ the file before saving."
            (ewoc-enter-last ewoc
                             (make-dvc-fileinfo-dir
                              :mark nil
+                             :exclude (not (null (member path excluded-files)))
                              :dir (file-name-directory path)
                              :file (file-name-nondirectory path)
                              :status main-status
@@ -689,6 +713,7 @@ the file before saving."
            (ewoc-enter-last ewoc
                             (make-dvc-fileinfo-file
                              :mark nil
+                             :exclude (not (null (member path excluded-files)))
                              :dir (file-name-directory path)
                              :file (file-name-nondirectory path)
                              :status main-status
@@ -760,6 +785,7 @@ the file before saving."
          'status
          root
          'xmtn)))
+    (dvc-save-some-buffers root)
     (dvc-switch-to-buffer-maybe status-buffer)
     (dvc-kill-process-maybe status-buffer)
     ;; Attempt to make sure the sentinels have a chance to run.
@@ -796,7 +822,13 @@ the file before saving."
           ((status-buffer status-buffer)
            (root root))
         (xmtn--run-command-async
-         root `("automate" "inventory")
+         root `("automate" "inventory"
+                ,@(and (xmtn--have-no-ignore)
+                       (not dvc-status-display-known)
+                       '("--no-unchanged"))
+                ,@(and (xmtn--have-no-ignore)
+                       (not dvc-status-display-ignored)
+                       '("--no-ignored")))
          :finished (lambda (output error status arguments)
                      ;; Don't use `dvc-show-changes-buffer' here because
                      ;; it attempts to do some regexp stuff for us that we
@@ -806,7 +838,8 @@ the file before saving."
                        (ewoc-refresh dvc-fileinfo-ewoc)
                        (xmtn--redisplay t)
                        (dvc-fileinfo-delete-messages)
-                       (lexical-let ((changesp nil))
+                       (lexical-let ((excluded-files (dvc-default-excluded-files))
+                                     (changesp nil))
                          (xmtn-basic-io-with-stanza-parser
                           (parser output)
                           (xmtn--parse-inventory
@@ -819,7 +852,8 @@ the file before saving."
                                                              changes
                                                              old-path-or-null
                                                              old-type new-type
-                                                             fs-type)
+                                                             fs-type
+                                                             excluded-files)
                                (setq changesp t)))))
                          (when (not changesp)
                            ;; Calling `dvc-diff-no-changes' here is part
@@ -948,13 +982,16 @@ the file before saving."
        (let ((default-directory root))
          (mapcan (lambda (file-name)
                    (if (or (file-symlink-p file-name)
+                           (xmtn--have-no-ignore)
                            (not (file-directory-p file-name)))
                        (list (xmtn--perl-regexp-for-file-name file-name))
+
+                     ;; If mtn automate inventory doesn't support
+                     ;; --no-ignore, it also recurses into unknown
+                     ;; directories, so we need to ignore files in
+                     ;; this directory as well as the directory
+                     ;; itself.
                      (setq file-name (directory-file-name file-name))
-                     ;; For a file-name that is a directory, add not
-                     ;; just "^file-name$", but also "^file-name/", so
-                     ;; that files inside the directory will also be
-                     ;; ignored.  This is usually What I Mean.
                      (list
                       (xmtn--perl-regexp-for-file-name file-name)
                       (xmtn--perl-regexp-for-files-in-directory file-name))))
