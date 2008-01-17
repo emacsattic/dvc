@@ -98,6 +98,12 @@ USING CONFIGURE
    That's it! Restart Emacs and read the info or start using DVC. For
    example, look at the DVC submenu in the Tools menu.
 
+   If you would prefer to run DVC from its source directory rather
+   than installing it, then add the following to your .xemacs/init.el
+   file.
+
+     (load-file "/path/to/dvc/dvc-load.el")
+
 4) Integration of Xtla with Gnus
 
    If you use Gnus and Xtla (support for tla and baz in DVC), you

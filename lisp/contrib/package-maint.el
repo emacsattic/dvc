@@ -244,11 +244,12 @@ remove load-file and cus-load-file if not specified."
 (defun package-maint-load-files (files)
   "Load FILES"
   (dolist (file files)
-	(condition-case nil
+	(condition-case err
 		(load (expand-file-name file srcdir) t t t)
 	  (error
-	   (message (format "error loading %s" (expand-file-name file srcdir)))
-       (backtrace)))))
+	   (message (format "Error loading %s: %s"
+			    (expand-file-name file srcdir) err))
+	   (backtrace)))))
 
 (defun package-maint-get-file-dep (file)
   "Return a list with CAR the FILE and CDR the list of FILES required.
