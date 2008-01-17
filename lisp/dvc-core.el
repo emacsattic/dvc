@@ -62,6 +62,13 @@
 ;; Various helper functions
 ;; --------------------------------------------------------------------------------
 
+;; list-buffers-directory is used by uniquify to get the directory for
+;; the buffer when buffer-file-name is nil, as it is for many dvc
+;; buffers (dvc-diff-mode, etc). It needs to survive
+;; kill-all-local-variables, so we declare it permanent local.
+(make-variable-buffer-local 'list-buffers-directory)
+(put 'list-buffers-directory 'permanent-local t)
+
 (defun dvc-find-tree-root-file-first (file-or-dir &optional location)
   "Find FILE-OR-DIR upward in the file system from LOCATION.
 Finding is continued upward to \"/\" until FILE-OR-DIR can be found.
@@ -203,6 +210,14 @@ otherwise the result depends on SELECTION-MODE:
           (dvc-fileinfo-all-files))
 
          (t (list (dvc-get-file-info-at-point))))))
+
+   ((eq major-mode 'dvc-bookmark-mode)
+        (cond
+         ((eq selection-mode 'nil-if-none-marked)
+          nil)
+
+         (t
+          (error "selection-mode %s not implemented for dvc bookmark buffer" selection-mode))))
 
    ;; If other modes are added here, dvc-log-edit must be updated to
    ;; support them as well.

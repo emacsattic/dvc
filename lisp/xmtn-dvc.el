@@ -362,7 +362,7 @@ the file before saving."
     ;; Due the possibility of race conditions, this check doesn't
     ;; guarantee the operation will succeed.
     (unless (funcall (xmtn--tree-consistent-p-future root))
-      (error "Tree inconsistent, unable to commit"))
+      (error "There are missing files, unable to commit"))
     ;; mtn ls changed doesn't work while the tree is inconsistent, so
     ;; we can't run the two futures in parallel.  (Or maybe we could,
     ;; if a future that is never forced would never report errors in
@@ -490,7 +490,8 @@ the file before saving."
          for (from to) in (xmtn--revision-rename revision)
          do (assert (eql (not (likely-dir-p from))
                          (not (likely-dir-p to))))
-         do (add-entry to 'renamed (likely-dir-p to) from))
+         do (add-entry to 'rename-target (likely-dir-p to) from)
+         do (add-entry from 'rename-source (likely-dir-p from) to))
         (loop
          for (path) in (xmtn--revision-add-dir revision)
          do (add-entry path 'added t))
@@ -614,6 +615,16 @@ the file before saving."
 ;;;###autoload
 (defun xmtn-dvc-command-version ()
   (fourth (xmtn--command-version xmtn-executable)))
+
+(defvar xmtn-dvc-automate-version nil
+  "Cached value of mtn automate interface version.")
+
+(defun xmtn-dvc-automate-version ()
+  "Return mtn automate version as a number."
+  (if xmtn-dvc-automate-version
+      xmtn-dvc-automate-version
+    (setq xmtn-dvc-automate-version
+          (string-to-number (xmtn--command-output-line nil '("automate" "interface_version"))))))
 
 (defun xmtn--unknown-files-future (root)
   (xmtn--command-output-lines-future root '("ls" "unknown")))
@@ -774,6 +785,7 @@ the file before saving."
          'status
          root
          'xmtn)))
+    (dvc-save-some-buffers root)
     (dvc-switch-to-buffer-maybe status-buffer)
     (dvc-kill-process-maybe status-buffer)
     ;; Attempt to make sure the sentinels have a chance to run.
@@ -810,7 +822,13 @@ the file before saving."
           ((status-buffer status-buffer)
            (root root))
         (xmtn--run-command-async
-         root `("automate" "inventory")
+         root `("automate" "inventory"
+                ,@(and (xmtn--have-no-ignore)
+                       (not dvc-status-display-known)
+                       '("--no-unchanged"))
+                ,@(and (xmtn--have-no-ignore)
+                       (not dvc-status-display-ignored)
+                       '("--no-ignored")))
          :finished (lambda (output error status arguments)
                      ;; Don't use `dvc-show-changes-buffer' here because
                      ;; it attempts to do some regexp stuff for us that we
@@ -964,13 +982,16 @@ the file before saving."
        (let ((default-directory root))
          (mapcan (lambda (file-name)
                    (if (or (file-symlink-p file-name)
+                           (xmtn--have-no-ignore)
                            (not (file-directory-p file-name)))
                        (list (xmtn--perl-regexp-for-file-name file-name))
+
+                     ;; If mtn automate inventory doesn't support
+                     ;; --no-ignore, it also recurses into unknown
+                     ;; directories, so we need to ignore files in
+                     ;; this directory as well as the directory
+                     ;; itself.
                      (setq file-name (directory-file-name file-name))
-                     ;; For a file-name that is a directory, add not
-                     ;; just "^file-name$", but also "^file-name/", so
-                     ;; that files inside the directory will also be
-                     ;; ignored.  This is usually What I Mean.
                      (list
                       (xmtn--perl-regexp-for-file-name file-name)
                       (xmtn--perl-regexp-for-files-in-directory file-name))))

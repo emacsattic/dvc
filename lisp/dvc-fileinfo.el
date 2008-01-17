@@ -536,7 +536,8 @@ workspace. Otherwise, call `dvc-remove-files'."
                (progn
                  (delete-file (dvc-fileinfo-path fileinfo))
                  (ewoc-delete dvc-fileinfo-ewoc (car elems)))
-             (add-to-list 'known-files (car elems))))
+             ;; `add-to-list' gets a stack overflow here
+             (setq known-files (cons (car elems) known-files))))
 
           (dvc-fileinfo-legacy
            ;; Assume files are known
