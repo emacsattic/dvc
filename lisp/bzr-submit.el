@@ -108,7 +108,7 @@ If INCLUDE-ADDED is specified, include files that are newly-added."
         item)
     (while (progn
              (and table
-                  (setq item (completing-read prompt table nil t))
+                  (setq item (dvc-completing-read prompt table nil t))
                   (stringp item)
                   (not (string= item ""))))
       (setq chosen (cons item chosen))

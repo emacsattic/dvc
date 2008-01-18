@@ -180,7 +180,11 @@ An example setting is:
       (setq doit (y-or-n-p (format "%s from %s to %s? " (if (eq merge-or-pull 'merge) "Merge" "Pull") url path))))
     (when doit
       (unless merge-or-pull
-        (setq merge-or-pull (cdr (assoc (completing-read (format "Merge or pull from %s: " url) '("Merge" "Pull")) '(("Merge" . merge) ("Pull" . pull))))))
+        (setq merge-or-pull (cdr (assoc
+                                  (dvc-completing-read
+                                   (format "Merge or pull from %s: " url)
+                                   '("Merge" "Pull"))
+                                  '(("Merge" . merge) ("Pull" . pull))))))
       (unless path
         (setq path (dvc-read-directory-name (format "%s from %s to: " (if (eq merge-or-pull 'merge) "Merge" "Pull") url))))
       (let ((default-directory path))

@@ -38,6 +38,7 @@
 (require 'xgit-log)
 (eval-when-compile (require 'cl))
 (require 'xgit-annotate)
+(require 'cus-edit)
 
 ;;;###autoload
 (defun xgit-init (&optional dir)
@@ -329,7 +330,7 @@ This reset the index to HEAD, but doesn't touch files."
   "Mode redefining a few commands for diff."
   )
 
-(add-to-list 'uniquify-list-buffers-directory-modes 'xgit-diff-mode)
+(dvc-add-uniquify-directory-mode 'xgit-diff-mode)
 
 (defun xgit-parse-diff (changes-buffer)
   (save-excursion

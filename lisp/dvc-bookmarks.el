@@ -320,7 +320,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (interactive)
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-data))
   (let ((buffer-read-only nil))
-    (ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
+    (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
 
 (defun dvc-bookmarks-save ()
   "Save `dvc-bookmark-alist' to the file `dvc-bookmarks-file-name'."
@@ -368,7 +368,8 @@ If FORCE is non-nil, reload the file even if it was loaded before."
 
 (defun dvc-bookmarks-jump ()
   (interactive)
-  (dvc-bookmark-goto-name (ido-completing-read "Jump to dvc bookmark: " (dvc-bookmark-names))))
+  (dvc-bookmark-goto-name (dvc-completing-read "Jump to dvc bookmark: "
+                                               (dvc-bookmark-names))))
 
 (defun dvc-bookmarks-get-partners (&optional entry-data)
   (unless entry-data
@@ -389,8 +390,9 @@ If FORCE is non-nil, reload the file even if it was loaded before."
 (defun dvc-bookmarks-remove-partner ()
   (interactive)
   (let* ((cur-data (dvc-bookmarks-current-data))
-         (partner-to-remove (ido-completing-read (format "Remove partner from %s: " (car cur-data))
-                                                 (dvc-bookmarks-get-partners))))
+         (partner-to-remove (dvc-completing-read
+                             (format "Remove partner from %s: " (car cur-data))
+                             (dvc-bookmarks-get-partners))))
     (delete (list 'partner partner-to-remove) cur-data)))
 
 (defun dvc-bookmarks-toggle-partner-visibility ()

@@ -358,7 +358,9 @@ cleaning old .elc and reverse dependencies if needed."
 
 (defun package-maint-make-cus-load ()
   "Make custom load file in current directory."
-  (when (package-maint-list-changed-sources package-maint-files)
+  (if (not (package-maint-list-changed-sources package-maint-files))
+      ;; Consume remaining command line args to avoid errors
+      (setq command-line-args-left nil)
     (load "cus-dep")
     (let ((cusload-base-file package-maint-cus-load-file))
       (if (fboundp 'custom-make-dependencies)
@@ -370,8 +372,10 @@ cleaning old .elc and reverse dependencies if needed."
 
 (defun package-maint-make-auto-load ()
   "Make autoloads file in current directory."
-  (when (or (not (file-exists-p package-maint-load-file))
-	    (package-maint-list-changed-sources package-maint-files))
+  (if (and (file-exists-p package-maint-load-file)
+	   (null (package-maint-list-changed-sources package-maint-files)))
+      ;; Consume remaining command line args to avoid errors
+      (setq command-line-args-left nil)
     (require 'autoload)
     (unless (make-autoload '(define-derived-mode child parent name
 			      "docstring" body)

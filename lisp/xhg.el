@@ -309,7 +309,9 @@ If DONT-SWITCH, don't switch to the diff buffer"
   "Run hg pull."
   (interactive (list (let* ((completions (xhg-paths 'both))
                             (initial-input (car (member "default" completions))))
-                       (completing-read "Pull from hg repository: " completions nil nil initial-input))))
+                       (dvc-completing-read
+                        "Pull from hg repository: "
+                        completions nil nil initial-input))))
   (dvc-run-dvc-async 'xhg (list "pull" (when update-after-pull "--update") src)
                      :error 'xhg-pull-finish-function
                      :finished 'xhg-pull-finish-function))
@@ -330,7 +332,9 @@ If DONT-SWITCH, don't switch to the diff buffer"
   "Run hg incoming."
   (interactive (list (let* ((completions (xhg-paths 'both))
                             (initial-input (car (member "default" completions))))
-                       (completing-read "Show incoming from hg repository: " completions nil nil initial-input))
+                       (dvc-completing-read
+                        "Show incoming from hg repository: "
+                        completions nil nil initial-input))
                      nil ;; show-patch
                      nil ;; no-merges
                      ))

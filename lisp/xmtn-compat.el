@@ -63,20 +63,22 @@
 (defsubst xmtn--process-get (process propname)
   (getf (gethash process xmtn--*process-plists*) propname nil))
 
-(defun xmtn--set-process-query-on-exit-flag (process value)
+(defmacro xmtn--set-process-query-on-exit-flag (process value)
   (if (fboundp 'set-process-query-on-exit-flag)
-      (set-process-query-on-exit-flag process value)
-    (process-kill-without-query process value)
-    value))
+      `(set-process-query-on-exit-flag ,process ,value)
+    `(progn
+       (process-kill-without-query ,process ,value)
+       ,value)))
 
-(defsubst xmtn--insert-buffer-substring-no-properties (from-buffer
+(defmacro xmtn--insert-buffer-substring-no-properties (from-buffer
                                                        &optional start end)
   (if (fboundp 'insert-buffer-substring-no-properties)
-      (insert-buffer-substring-no-properties from-buffer start end)
-    (insert (with-current-buffer from-buffer
-              (buffer-substring-no-properties (or start (point-min))
-                                              (or end (point-max)))))
-    nil))
+      `(insert-buffer-substring-no-properties ,from-buffer ,start ,end)
+    `(progn
+       (insert (with-current-buffer ,from-buffer
+                 (buffer-substring-no-properties (or ,start (point-min))
+                                                 (or ,end (point-max)))))
+       nil)))
 
 (defun xmtn--lwarn (tag level message &rest args)
   (if (fboundp 'lwarn)
@@ -110,9 +112,9 @@
                  ,@body))
            (message "%sdone" ,message))))))
 
-(defun xmtn--set-buffer-multibyte (flag)
+(defmacro xmtn--set-buffer-multibyte (flag)
   (when (fboundp 'set-buffer-multibyte)
-    (set-buffer-multibyte flag)))
+    `(set-buffer-multibyte ,flag)))
 
 ;;; This should probably use `redisplay' if available, but that's not
 ;;; important.

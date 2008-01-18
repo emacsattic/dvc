@@ -343,7 +343,9 @@
 
 ;;;###autoload
 (defcustom dvc-prefix-key [(control x) ?V]
-  "Prefix key for the DVC commands in the global keymap."
+  "Prefix key for the DVC commands in the global keymap.
+
+If you wish to disable the prefix key, set this variable to nil."
   :type '(choice (const [(control x) ?V])
                  (const [(control x) ?T])
                  (const [(control x) ?t])
@@ -352,6 +354,7 @@
                  (const [(hyper v)])
                  (const [(super t)])
                  (const [(hyper t)])
+                 (const :tag "None" nil)
                  (sexp))
   :group 'tla-bindings
   :set  (lambda (var value)
@@ -361,7 +364,19 @@
           (global-set-key (symbol-value var) dvc-global-keymap)))
 
 ;;;###autoload
-(global-set-key dvc-prefix-key dvc-global-keymap)
+(defun dvc-enable-prefix-key ()
+  "Install the DVC prefix key globally."
+  (interactive)
+  (when dvc-prefix-key
+    (global-set-key dvc-prefix-key dvc-global-keymap)))
+
+;;;###autoload
+(dvc-enable-prefix-key)
+
+;; It is important that DVC has this key, so steal it from other
+;; programs, but give the user a chance to override this.
+;;;###autoload
+(add-hook 'after-init-hook 'dvc-enable-prefix-key t)
 
 ;;;###autoload
 (define-key ctl-x-4-map [?T] 'dvc-add-log-entry)

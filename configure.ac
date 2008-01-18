@@ -201,8 +201,11 @@ TEST
     AC_MSG_CHECKING([checking emacs-version of ${EMACS_PROG}])
     cat > conftest.el <<TEST
 (if (featurep 'xemacs )
-     (princ (format "%d.%d.%d"
-                 emacs-major-version emacs-minor-version emacs-patch-level))
+     (princ (format "%d.%d%s"
+                 emacs-major-version emacs-minor-version
+                 (if (numberp emacs-patch-level)
+                     (concat "." (number-to-string emacs-patch-level))
+                   "")))
   (princ (format "%s" emacs-version)))
 TEST
     EMACS_VERSION=`${EMACS_PROG} --no-site-file --batch -l conftest.el | ${GREP} .`
@@ -223,20 +226,14 @@ TEST
       if test "$EMACS_FLAVOR" = "xemacs"; then
           datadir="\$(prefix)/lib"
           lispdir="${datadir}/${EMACS_FLAVOR}/site-packages/lisp/dvc"
+          if test ! -d "${lispdir}"; then
+             if test -d "${theprefix}/share/${EMACS_FLAVOR}/site-lisp"; then
+                lispdir="\$(prefix)/lib/${EMACS_FLAVOR}/site-packages/lisp/dvc"
+             fi
+          fi
       else
           lispdir="${datadir}/${EMACS_FLAVOR}/site-lisp/dvc"
       fi
-      for thedir in share lib; do
-  	potential=
-  	if test -d ${theprefix}/${thedir}/${EMACS_FLAVOR}/site-lisp; then
-             if test "$EMACS_FLAVOR" = "xemacs"; then
-  	         lispdir="\$(prefix)/${thedir}/${EMACS_FLAVOR}/site-packages/lisp/dvc"
-             else
-                 lispdir="${datadir}/${EMACS_FLAVOR}/site-lisp/dvc"
-             fi
-  	   break
-  	fi
-      done
     fi
     AC_MSG_RESULT($lispdir)
     AC_SUBST(lispdir)

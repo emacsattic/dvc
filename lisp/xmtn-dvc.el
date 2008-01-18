@@ -1342,7 +1342,7 @@ finished."
                   (let ((temp-file (concat temp-dir "/" corresponding-file)))
                     (make-directory (file-name-directory temp-file) t)
                     (with-temp-file temp-file
-                      (set-buffer-multibyte nil)
+                      (xmtn--set-buffer-multibyte nil)
                       (setq buffer-file-coding-system 'binary)
                       (xmtn--insert-file-contents-by-name root backend-id corresponding-file (current-buffer)))
                     (let ((output-buffer (current-buffer)))

@@ -289,6 +289,12 @@ slash.  If PATH is nil, then nil is returned."
              (replace-regexp-in-string "/+$" "/" expanded)
            expanded))))
 
+(defun dvc-add-uniquify-directory-mode (mode)
+  "Add MODE to `uniquify-list-buffers-directory-modes'."
+  (require 'uniquify)
+  (when (boundp 'uniquify-list-buffers-directory-modes)
+    (add-to-list 'uniquify-list-buffers-directory-modes mode)))
+
 (defvar dvc-temp-directory "/tmp"
   "Temporary directory for some DVC operations.")
 
@@ -307,6 +313,30 @@ Strips the final newline if there is one."
             (if (eq (char-before) ?\n)
                 (- (point) 1)
               (point))))))
+
+;; Some Emacsen do not have ewoc-delete
+(if (fboundp 'ewoc-delete)
+    (defalias 'dvc-ewoc-delete 'ewoc-delete)
+  (defun dvc-ewoc-delete (ewoc &rest nodes)
+    "Delete NODES from EWOC."
+    (ewoc--set-buffer-bind-dll-let* ewoc
+        ((L nil) (R nil) (last (ewoc--last-node ewoc)))
+      (dolist (node nodes)
+        ;; If we are about to delete the node pointed at by last-node,
+        ;; set last-node to nil.
+        (when (eq last node)
+          (setf last nil (ewoc--last-node ewoc) nil))
+        (delete-region (ewoc--node-start-marker node)
+                       (ewoc--node-start-marker (ewoc--node-next dll node)))
+        (set-marker (ewoc--node-start-marker node) nil)
+        (setf L (ewoc--node-left  node)
+              R (ewoc--node-right node)
+              ;; Link neighbors to each other.
+              (ewoc--node-right L) R
+              (ewoc--node-left  R) L
+              ;; Forget neighbors.
+              (ewoc--node-left  node) nil
+              (ewoc--node-right node) nil)))))
 
 ;; this is no longer needed, because ewoc-create takes now the argument nosep:
 ;; (defun ewoc-create (pretty-printer &optional header footer nosep)
@@ -648,6 +678,13 @@ containing (symbol description)."
     (error (if comment
                (concat comment "; " msg)
              msg))))
+
+(defun dvc-completing-read (&rest args)
+  "Read a string in the minibuffer, with completion.
+Set `dvc-completing-read-function' to determine which function to use.
+
+See `completing-read' for a description of ARGS."
+  (apply dvc-completing-read-function args))
 
 (defun dvc-default-excluded-files ()
   "Return a list of strings (normally file names relative to tree
