@@ -63,11 +63,12 @@
 (defsubst xmtn--process-get (process propname)
   (getf (gethash process xmtn--*process-plists*) propname nil))
 
-(defun xmtn--set-process-query-on-exit-flag (process value)
+(defmacro xmtn--set-process-query-on-exit-flag (process value)
   (if (fboundp 'set-process-query-on-exit-flag)
-      (set-process-query-on-exit-flag process value)
-    (process-kill-without-query process value)
-    value))
+      `(set-process-query-on-exit-flag ,process ,value)
+    `(progn
+       (process-kill-without-query ,process ,value)
+       ,value)))
 
 (defmacro xmtn--insert-buffer-substring-no-properties (from-buffer
                                                        &optional start end)
@@ -111,9 +112,9 @@
                  ,@body))
            (message "%sdone" ,message))))))
 
-(defun xmtn--set-buffer-multibyte (flag)
+(defmacro xmtn--set-buffer-multibyte (flag)
   (when (fboundp 'set-buffer-multibyte)
-    (set-buffer-multibyte flag)))
+    `(set-buffer-multibyte ,flag)))
 
 ;;; This should probably use `redisplay' if available, but that's not
 ;;; important.
