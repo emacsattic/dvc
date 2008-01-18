@@ -36,7 +36,9 @@
   (require 'cl)
   (require 'dvc-unified)
   (when (featurep 'xemacs)
-    (require 'un-define)))
+    (condition-case nil
+        (require 'un-define)
+      (error nil))))
 
 (define-coding-system-alias 'xmtn--monotone-normal-form 'utf-8-unix)
 

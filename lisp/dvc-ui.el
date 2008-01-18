@@ -380,8 +380,8 @@
 ;;
 ;;;###autoload
 (easy-menu-add-item
- (or (dvc-do-in-gnu-emacs menu-bar-tools-menu) nil)
- (or (dvc-do-in-xemacs '("Tools")) nil)
+ (and (boundp 'menu-bar-tools-menu) (dvc-do-in-gnu-emacs menu-bar-tools-menu))
+ (dvc-do-in-xemacs '("Tools"))
  '("DVC"
    ["Browse Archives" tla-archives t]
    ["Show Bookmarks" tla-bookmarks t]
