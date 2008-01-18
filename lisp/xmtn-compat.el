@@ -69,14 +69,15 @@
     (process-kill-without-query process value)
     value))
 
-(defsubst xmtn--insert-buffer-substring-no-properties (from-buffer
+(defmacro xmtn--insert-buffer-substring-no-properties (from-buffer
                                                        &optional start end)
   (if (fboundp 'insert-buffer-substring-no-properties)
-      (insert-buffer-substring-no-properties from-buffer start end)
-    (insert (with-current-buffer from-buffer
-              (buffer-substring-no-properties (or start (point-min))
-                                              (or end (point-max)))))
-    nil))
+      `(insert-buffer-substring-no-properties ,from-buffer ,start ,end)
+    `(progn
+       (insert (with-current-buffer ,from-buffer
+                 (buffer-substring-no-properties (or ,start (point-min))
+                                                 (or ,end (point-max)))))
+       nil)))
 
 (defun xmtn--lwarn (tag level message &rest args)
   (if (fboundp 'lwarn)
