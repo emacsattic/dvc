@@ -226,20 +226,14 @@ TEST
       if test "$EMACS_FLAVOR" = "xemacs"; then
           datadir="\$(prefix)/lib"
           lispdir="${datadir}/${EMACS_FLAVOR}/site-packages/lisp/dvc"
+          if test ! -d "${lispdir}"; then
+             if test -d "${theprefix}/share/${EMACS_FLAVOR}/site-lisp"; then
+                lispdir="\$(prefix)/lib/${EMACS_FLAVOR}/site-packages/lisp/dvc"
+             fi
+          fi
       else
           lispdir="${datadir}/${EMACS_FLAVOR}/site-lisp/dvc"
       fi
-      for thedir in share lib; do
-  	potential=
-  	if test -d ${theprefix}/${thedir}/${EMACS_FLAVOR}/site-lisp; then
-             if test "$EMACS_FLAVOR" = "xemacs"; then
-  	         lispdir="\$(prefix)/${thedir}/${EMACS_FLAVOR}/site-packages/lisp/dvc"
-             else
-                 lispdir="${datadir}/${EMACS_FLAVOR}/site-lisp/dvc"
-             fi
-  	   break
-  	fi
-      done
     fi
     AC_MSG_RESULT($lispdir)
     AC_SUBST(lispdir)
