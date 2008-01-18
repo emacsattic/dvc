@@ -29,6 +29,7 @@
 
 ;;; Code:
 
+(require 'dvc-revlist)
 
 (defstruct (xgit-revision-st)
   hash

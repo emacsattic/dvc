@@ -26,6 +26,7 @@
 
 ;;; Code:
 
+(require 'dvc-revision)
 
 (eval-when-compile (require 'cl))
 

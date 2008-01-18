@@ -35,6 +35,8 @@
 (eval-and-compile
   (require 'font-lock))
 
+(require 'dvc-site)
+
 (defmacro dvc-first-set (arg1 arg2)
   "Returns ARG1 if set, non-nil, and not the empty string.
 Otherwise, return ARG2. ARG1 must be a variable."
