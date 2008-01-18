@@ -38,6 +38,7 @@
 (require 'xgit-log)
 (eval-when-compile (require 'cl))
 (require 'xgit-annotate)
+(require 'cus-edit)
 
 ;;;###autoload
 (defun xgit-init (&optional dir)
