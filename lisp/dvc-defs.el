@@ -105,6 +105,14 @@ the first one found; dvc-select-priority sets the search order."
   :type 'boolean
   :group 'dvc)
 
+(defcustom dvc-completing-read-function (if (fboundp 'ido-completing-read)
+                                            'ido-completing-read
+                                          'completing-read)
+  "Function to call when prompting user to choose between a list of options.
+This should take the same arguments as `completing-read'."
+  :type 'function
+  :group 'dvc)
+
 ;; --------------------------------------------------------------------------------
 ;; Keybindings
 ;; --------------------------------------------------------------------------------

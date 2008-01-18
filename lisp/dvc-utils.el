@@ -679,6 +679,13 @@ containing (symbol description)."
                (concat comment "; " msg)
              msg))))
 
+(defun dvc-completing-read (&rest args)
+  "Read a string in the minibuffer, with completion.
+Set `dvc-completing-read-function' to determine which function to use.
+
+See `completing-read' for a description of ARGS."
+  (apply dvc-completing-read-function args))
+
 (defun dvc-default-excluded-files ()
   "Return a list of strings (normally file names relative to tree
   root) from the file \".dvc-exclude\" in `default-directory'."

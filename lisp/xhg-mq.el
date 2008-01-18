@@ -231,8 +231,8 @@ When called with a prefix argument run hg qpush -a."
   (interactive (list
                 (let ((unapplied (xhg-qunapplied)))
                   (if unapplied
-                      (completing-read "Delete mq patch: " unapplied nil t
-                                       (car (member (xhg-mq-patch-name-at-point) unapplied)))
+                      (dvc-completing-read "Delete mq patch: " unapplied nil t
+                                           (car (member (xhg-mq-patch-name-at-point) unapplied)))
                     (message "No unapplied patch to delete from the mq series file")
                     nil))))
   (when patch
@@ -326,7 +326,7 @@ When called with a prefix argument run hg qpush -a."
 that is used in the generated email."
   (interactive (list
                 (let ((series (xhg-qseries)))
-                  (completing-read "Send mq patch via mail: " series nil t
+                  (dvc-completing-read "Send mq patch via mail: " series nil t
                                        (car (member (xhg-mq-patch-name-at-point) series))))))
   (let ((file-name)
         (destination-email "")
