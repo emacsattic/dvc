@@ -391,7 +391,7 @@ that is used in the generated email."
             (goto-char (point-min))
             (when (re-search-forward (concat "^" p "$") nil t)
               (message "Patch %s no longer present" p)
-              (ewoc-delete xhg-mq-cookie (ewoc-locate xhg-mq-cookie)))))
+              (dvc-ewoc-delete xhg-mq-cookie (ewoc-locate xhg-mq-cookie)))))
         (when top
           (goto-char (point-min))
           (when (re-search-forward (concat "^" top "$") nil t)

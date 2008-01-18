@@ -320,7 +320,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (interactive)
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-data))
   (let ((buffer-read-only nil))
-    (ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
+    (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
 
 (defun dvc-bookmarks-save ()
   "Save `dvc-bookmark-alist' to the file `dvc-bookmarks-file-name'."

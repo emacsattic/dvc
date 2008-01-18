@@ -214,12 +214,6 @@ with `dvc-read-directory-name'."
                        (format "Insert arch tag to \"%s\"? " file)))
         (tla-tag-insert)))))
 
-(defun tla--ewoc-delete (cookie elem)
-  "Remove element from COOKIE the element ELEM."
-  (when elem
-    (ewoc-filter cookie
-                 '(lambda (x) (not (eq x (ewoc-data elem)))))))
-
 (defun tla--insert-right-justified (string count &optional face)
   "Insert a string with a right-justification.
 
@@ -1342,8 +1336,8 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
                                          :data (list 'subtree buffer-sub subtree
                                                      nil)))
                       ,(or expression-rec expression)))
-                  (tla--ewoc-delete dvc-fileinfo-ewoc
-                                    subtree-message))))))))))
+                  (dvc-ewoc-delete dvc-fileinfo-ewoc
+                                   subtree-message))))))))))
 
 (tla-recursive-command tla-changes-rec (&optional summary against)
                        (tla--changes-command)
@@ -3835,7 +3829,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                           output (capture node) cookie
                           'tla-revision-compute-merged-by
                           )
-                         (tla--ewoc-delete cookie to-delete)
+                         (dvc-ewoc-delete cookie to-delete)
                          (ewoc-refresh dvc-revlist-cookie)
                          (let ((loc (if deleted
                                         (ewoc-next
@@ -3898,7 +3892,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                                (deleted (eq cur (capture to-delete))))
                           (tla-bookmarks-missing-parse-changes
                            output (capture parent-node))
-                          (tla--ewoc-delete dvc-revlist-cookie (capture to-delete))
+                          (dvc-ewoc-delete dvc-revlist-cookie (capture to-delete))
                           (ewoc-refresh dvc-revlist-cookie)
                           (let ((loc (if deleted
                                          (ewoc-next
@@ -3915,7 +3909,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                                   (cur (ewoc-locate
                                         dvc-revlist-cookie))
                                   (deleted (eq cur (capture to-delete))))
-                             (tla--ewoc-delete dvc-revlist-cookie (capture to-delete))
+                             (dvc-ewoc-delete dvc-revlist-cookie (capture to-delete))
                              (ewoc-refresh dvc-revlist-cookie)
                              (let ((loc (if deleted
                                             (ewoc-next
@@ -4338,7 +4332,7 @@ Commands:
          (next (ewoc-next cookie elem)))
     (unless next
       (error "Can't go lower"))
-    (tla--ewoc-delete cookie elem)
+    (dvc-ewoc-delete cookie elem)
     (goto-char (ewoc-location
                 (ewoc-enter-after cookie next data)))
     (let ((list tla-bookmarks-alist)
@@ -4364,7 +4358,7 @@ Commands:
          (previous (ewoc-prev cookie elem)))
     (unless previous
       (error "Can't go upper"))
-    (tla--ewoc-delete cookie elem)
+    (dvc-ewoc-delete cookie elem)
     (goto-char (ewoc-location
                 (ewoc-enter-before cookie previous data)))
     (let ((list tla-bookmarks-alist)
@@ -4563,7 +4557,7 @@ If FORCE is non-nil, don't ask for confirmation."
   (let* ((data (ewoc-data elem)))
     (when (or force
               (yes-or-no-p (format "Delete bookmark \"%s\"? " (car data))))
-      (tla--ewoc-delete tla-bookmarks-cookie elem)
+      (dvc-ewoc-delete tla-bookmarks-cookie elem)
       (let ((list tla-bookmarks-alist)
             newlist)
         (while list
