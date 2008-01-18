@@ -289,6 +289,12 @@ slash.  If PATH is nil, then nil is returned."
              (replace-regexp-in-string "/+$" "/" expanded)
            expanded))))
 
+(defun dvc-add-uniquify-directory-mode (mode)
+  "Add MODE to `uniquify-list-buffers-directory-modes'."
+  (require 'uniquify)
+  (when (boundp 'uniquify-list-buffers-directory-modes)
+    (add-to-list 'uniquify-list-buffers-directory-modes mode)))
+
 (defvar dvc-temp-directory "/tmp"
   "Temporary directory for some DVC operations.")
 
