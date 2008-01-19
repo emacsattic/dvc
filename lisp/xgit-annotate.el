@@ -25,6 +25,7 @@
 
 ;;; Code:
 (require 'dvc-annotate)
+(require 'rect)
 
 (defvar xgit-annotate-mode-map
   (let ((map (make-sparse-keymap)))

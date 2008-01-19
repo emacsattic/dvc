@@ -232,7 +232,7 @@ then use that value instead of the cache or searching."
                    ;; name in setting `dvc-select-priority', so
                    ;; perhaps this is better.
                    (let ((selection
-                          (completing-read
+                          (dvc-completing-read
                             (concat "back-end ("
                                     (mapconcat (lambda (option) (symbol-name (car option))) options ", ")
                                     "): ")
@@ -273,9 +273,10 @@ then use that value instead of the cache or searching."
 The given value is stored in `dvc-current-active-dvc-cache'."
   (interactive (list (dvc-uniquify-file-name
                       (dvc-read-directory-name "Set dvc for path: " nil nil t))
-                     (intern (completing-read "dvc: "
-                                              (map t 'symbol-name
-                                                   (append '(None) dvc-registered-backends))))))
+                     (intern (dvc-completing-read
+                              "dvc: "
+                              (map t 'symbol-name
+                                   (append '(None) dvc-registered-backends))))))
   (when (eq dvc 'None)
     (message "Removing %s from dvc-current-active-dvc-cache" directory)
     (setq dvc nil))

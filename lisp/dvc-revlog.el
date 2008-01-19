@@ -26,7 +26,6 @@
 ;;; Code:
 
 (require 'dvc-ui)
-(require 'uniquify)
 
 (defvar dvc-revlog-mode-map
   (let ((map (make-sparse-keymap)))
@@ -50,7 +49,7 @@ Commands are:
   (dvc-install-buffer-menu)
   (toggle-read-only 1))
 
-(add-to-list 'uniquify-list-buffers-directory-modes 'dvc-revlog-mode)
+(dvc-add-uniquify-directory-mode 'dvc-revlog-mode)
 
 (defun dvc-revlog-show-revision (back-end source-buffer buffer-name)
   "Use the content of SOURCE-BUFFER to display a revlog.

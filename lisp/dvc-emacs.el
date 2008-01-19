@@ -82,30 +82,6 @@ Return the name of the directory."
 
 (defalias 'dvc-make-temp-dir 'dvc-emacs-make-temp-dir)
 
-;; Emacs 21 has ewoc, but not ewoc-delete
-(require 'ewoc)
-(if (not (fboundp 'ewoc-delete))
-  (defun ewoc-delete (ewoc &rest nodes)
-    "Delete NODES from EWOC."
-    (ewoc--set-buffer-bind-dll-let* ewoc
-        ((L nil) (R nil) (last (ewoc--last-node ewoc)))
-      (dolist (node nodes)
-        ;; If we are about to delete the node pointed at by last-node,
-        ;; set last-node to nil.
-        (when (eq last node)
-          (setf last nil (ewoc--last-node ewoc) nil))
-        (delete-region (ewoc--node-start-marker node)
-                       (ewoc--node-start-marker (ewoc--node-next dll node)))
-        (set-marker (ewoc--node-start-marker node) nil)
-        (setf L (ewoc--node-left  node)
-              R (ewoc--node-right node)
-              ;; Link neighbors to each other.
-              (ewoc--node-right L) R
-              (ewoc--node-left  R) L
-              ;; Forget neighbors.
-              (ewoc--node-left  node) nil
-              (ewoc--node-right node) nil)))))
-
 (provide 'dvc-emacs)
 ;; Local Variables:
 ;; End:

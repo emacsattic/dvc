@@ -245,9 +245,10 @@ function TEST, and check that the list of tla commands ran by calling
 TEST is the same as the one expected, stored in
 `tla-tests-command-alist'"
   (interactive
-   (list (intern (completing-read "Test to run: "
-                                  (mapcar (lambda (x) (list (symbol-name x)))
-                                          (apropos-internal "^tla-test-"))))))
+   (list (intern (dvc-completing-read
+                  "Test to run: "
+                  (mapcar (lambda (x) (list (symbol-name x)))
+                          (apropos-internal "^tla-test-"))))))
   (tla-autoconf-compute)
   (let ((default-directory tla-tests-scratch-dir)
         (init-features (cdr (assoc test tla-tests-init-alist))))

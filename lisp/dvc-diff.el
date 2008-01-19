@@ -33,7 +33,6 @@
 (require 'dvc-defs)
 (require 'dvc-core)
 (require 'dvc-fileinfo)
-(require 'uniquify)
 (eval-when-compile
   (require 'cl))
 
@@ -256,7 +255,10 @@ Pretty-print ELEM."
 ;; `define-derived-mode'), and rely on it for as many features as
 ;; possible (one can, for example, extend the menu and keymap). See
 ;; `xgit-diff-mode' in xgit.el for a good example.
-;; Remember to add the new mode to uniquify-list-buffers-directory-modes
+;;
+;; Remember to add the new mode to
+;; `uniquify-list-buffers-directory-modes' using
+;; `dvc-add-uniquify-directory-mode'.
 (define-derived-mode dvc-diff-mode fundamental-mode "dvc-diff"
   "Major mode to display changesets. Derives from `diff-mode'.
 
@@ -284,7 +286,7 @@ Commands:
   (toggle-read-only 1)
   (set-buffer-modified-p nil))
 
-(add-to-list 'uniquify-list-buffers-directory-modes 'dvc-diff-mode)
+(dvc-add-uniquify-directory-mode 'dvc-diff-mode)
 
 (defun dvc-diff-generic-refresh ()
   "Refresh the diff buffer."

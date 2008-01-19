@@ -244,7 +244,7 @@ point is not on a file element line."
       (progn
         ;; binding inhibit-read-only doesn't seem to work here
         (toggle-read-only 0)
-        (ewoc-delete dvc-fileinfo-ewoc (ewoc-locate dvc-fileinfo-ewoc))
+        (dvc-ewoc-delete dvc-fileinfo-ewoc (ewoc-locate dvc-fileinfo-ewoc))
         (toggle-read-only 1))
     ;; marked files
     (setq dvc-buffer-marked-file-list nil)
@@ -466,13 +466,12 @@ if there is no prev."
   (if (null elems)
       t
     (let (status)
-      (mapc
-       (lambda (elem)
-         (let ((fileinfo (ewoc-data elem)))
-           (if status
-               (if (not (equal status (dvc-fileinfo-file-status fileinfo)))
-                   (error "cannot Do The Right Thing on files with different status"))
-             (setq status (dvc-fileinfo-file-status fileinfo))))))
+      (dolist (elem elems)
+        (let ((fileinfo (ewoc-data elem)))
+          (if status
+              (if (not (equal status (dvc-fileinfo-file-status fileinfo)))
+                  (error "cannot Do The Right Thing on files with different status"))
+            (setq status (dvc-fileinfo-file-status fileinfo)))))
       status)))
 
 ;;; actions
@@ -535,7 +534,7 @@ workspace. Otherwise, call `dvc-remove-files'."
            (if (equal 'unknown (dvc-fileinfo-file-status fileinfo))
                (progn
                  (delete-file (dvc-fileinfo-path fileinfo))
-                 (ewoc-delete dvc-fileinfo-ewoc (car elems)))
+                 (dvc-ewoc-delete dvc-fileinfo-ewoc (car elems)))
              ;; `add-to-list' gets a stack overflow here
              (setq known-files (cons (car elems) known-files))))
 

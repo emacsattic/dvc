@@ -35,7 +35,6 @@
   )
 
 (require 'dvc-ui)
-(require 'uniquify)
 
 ;; Display parameters
 (defvar dvc-revlist-brief nil)
@@ -380,7 +379,7 @@ Commands are:
   (set (make-local-variable 'dvc-get-revision-info-at-point-function)
        'dvc-revlist-get-rev-at-point))
 
-(add-to-list 'uniquify-list-buffers-directory-modes 'dvc-revlist-mode)
+(dvc-add-uniquify-directory-mode 'dvc-revlist-mode)
 
 (defun dvc-revlist-create-buffer (back-end type location refresh-fn brief last-n)
   "Create (or reuse) and return a buffer to display a revision list.

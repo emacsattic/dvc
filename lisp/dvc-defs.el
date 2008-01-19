@@ -35,6 +35,8 @@
 (eval-and-compile
   (require 'font-lock))
 
+(require 'dvc-site)
+
 (defmacro dvc-first-set (arg1 arg2)
   "Returns ARG1 if set, non-nil, and not the empty string.
 Otherwise, return ARG2. ARG1 must be a variable."
@@ -108,6 +110,14 @@ the first one found; dvc-select-priority sets the search order."
 (defcustom dvc-status-display-ignored nil
   "If non-nil, display files with 'ignored' status in dvc-status buffer."
   :type 'boolean
+  :group 'dvc)
+
+(defcustom dvc-completing-read-function (if (fboundp 'ido-completing-read)
+                                            'ido-completing-read
+                                          'completing-read)
+  "Function to call when prompting user to choose between a list of options.
+This should take the same arguments as `completing-read'."
+  :type 'function
   :group 'dvc)
 
 ;; --------------------------------------------------------------------------------

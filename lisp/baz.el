@@ -150,7 +150,7 @@ instead."
                     subtree
                     buffer-sub
                     buffer-lex)))
-               (tla--ewoc-delete dvc-fileinfo-ewoc subtree-message))
+               (dvc-ewoc-delete dvc-fileinfo-ewoc subtree-message))
              (recenter))))))))
 
 
