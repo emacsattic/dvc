@@ -196,6 +196,11 @@ AC_DEFUN([DVC_PROG_EMACS],
 (princ (format "%s" (if (featurep 'xemacs ) 'xemacs 'emacs)))
 TEST
     EMACS_FLAVOR=`${EMACS_PROG} --no-site-file --batch -l conftest.el | ${GREP} .`
+    if test "x${EMACS_FLAVOR}" = "xxemacs"; then
+        SITEFLAG=-no-site-file
+    else
+        SITEFLAG=--no-site-file
+    fi
     AC_MSG_RESULT([${EMACS_FLAVOR}])
     # EMACS VERSION ###############################################
     AC_MSG_CHECKING([checking emacs-version of ${EMACS_PROG}])
@@ -208,7 +213,7 @@ TEST
                    "")))
   (princ (format "%s" emacs-version)))
 TEST
-    EMACS_VERSION=`${EMACS_PROG} --no-site-file --batch -l conftest.el | ${GREP} .`
+    EMACS_VERSION=`${EMACS_PROG} ${SITEFLAG} --batch -l conftest.el | ${GREP} .`
     # EMACS DEPENDENT SETTINGS ####################################
     # We may add a version check here ...
     AC_MSG_RESULT([${EMACS_VERSION}])
@@ -247,6 +252,7 @@ TEST
     AC_SUBST(EMACS_PROG)
     AC_SUBST(EMACS_FLAVOR)
     AC_SUBST(EMACS_VERSION)
+    AC_SUBST(SITEFLAG)
 ])
 
 # copied from gnus aclocal.m4
@@ -254,9 +260,9 @@ AC_DEFUN([DVC_BUILD_FLAGS], [
   AC_MSG_CHECKING([wich options to pass on to (X)Emacs])
   if test "x$FLAGS" = "x"; then
     if test "x$EMACS_FLAVOR" = "xxemacs"; then
-      FLAGS="-batch -no-autoloads -l \$(srcdir)/dvc-build.el"
+      FLAGS="-batch ${SITEFLAG} -no-autoloads -l \$(srcdir)/dvc-build.el"
     else
-      FLAGS="-batch -q -no-site-file -no-init-file -l \$(srcdir)/dvc-build.el"
+      FLAGS="-batch -q ${SITEFLAG} -no-init-file -l \$(srcdir)/dvc-build.el"
     fi
   else
     FLAGS=$FLAGS
@@ -284,7 +290,7 @@ AC_DEFUN([DVC_PATH_INFO_DIR], [
 ])
 
 AC_DEFUN([DVC_HAS_TREE_WIDGET],
-  [ AC_MSG_CHECKING([checking wether tree-widget is in the load-path])
+  [ AC_MSG_CHECKING([checking whether tree-widget is in the load-path])
     OTHERDIRS_LIST='"'`echo ${OTHERDIRS} | sed 's/ /" "/g'`'"'
     cat > conftest.el << TEST
 (mapcar (lambda (x) (add-to-list 'load-path x))
@@ -293,7 +299,7 @@ AC_DEFUN([DVC_HAS_TREE_WIDGET],
     (princ "yes")
     (princ "no"))
 TEST
-    HAS_TREE_WIDGET=`${EMACS_PROG} --no-site-file --batch -l conftest.el | ${GREP} .`
+    HAS_TREE_WIDGET=`${EMACS_PROG} ${SITEFLAG} --batch -l conftest.el | ${GREP} .`
     AC_MSG_RESULT([${HAS_TREE_WIDGET}])
     if test "x${HAS_TREE_WIDGET}" = "xno" ; then
       AC_MSG_WARN([*** tree-widget.el not found in 'load-path.])
