@@ -92,6 +92,11 @@ the first one found; dvc-select-priority sets the search order."
   :type 'boolean
   :group 'dvc)
 
+(defcustom dvc-confirm-update t
+  "*If non-nil, prompt for confirmation in dvc-update."
+  :type 'boolean
+  :group 'dvc)
+
 (defcustom dvc-log-last-n nil
   "*If non-nil, limit log listings to last n entries."
   :type '(choice boolean integer)
