@@ -158,7 +158,10 @@ When `last-command' was `dvc-pull', run `xhg-missing'."
   (interactive)
   (let* ((completions (xhg-paths 'both))
          (initial-input (car (member "default" completions)))
-         (source-path (if (string= initial-input "default") initial-input (completing-read "Pull from hg repository: " completions nil nil initial-input))))
+         (source-path (if (string= initial-input "default") initial-input
+                        (dvc-completing-read
+                         "Pull from hg repository: "
+                         completions nil nil initial-input))))
     (xhg-pull source-path xhg-dvc-pull-runs-update)))
 
 (defalias 'xhg-dvc-revlog-get-revision 'xhg-revlog-get-revision)

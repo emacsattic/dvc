@@ -214,12 +214,6 @@ with `dvc-read-directory-name'."
                        (format "Insert arch tag to \"%s\"? " file)))
         (tla-tag-insert)))))
 
-(defun tla--ewoc-delete (cookie elem)
-  "Remove element from COOKIE the element ELEM."
-  (when elem
-    (ewoc-filter cookie
-                 '(lambda (x) (not (eq x (ewoc-data elem)))))))
-
 (defun tla--insert-right-justified (string count &optional face)
   "Insert a string with a right-justification.
 
@@ -1342,8 +1336,8 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
                                          :data (list 'subtree buffer-sub subtree
                                                      nil)))
                       ,(or expression-rec expression)))
-                  (tla--ewoc-delete dvc-fileinfo-ewoc
-                                    subtree-message))))))))))
+                  (dvc-ewoc-delete dvc-fileinfo-ewoc
+                                   subtree-message))))))))))
 
 (tla-recursive-command tla-changes-rec (&optional summary against)
                        (tla--changes-command)
@@ -2458,7 +2452,7 @@ changeset."
 
 DIR-LIST is intended to be the result of
 `tla--get-undo-changeset-names'."
-  (completing-read "Select changeset: " (mapcar 'list dir-list) nil nil (car dir-list)))
+  (dvc-completing-read "Select changeset: " (mapcar 'list dir-list) nil nil (car dir-list)))
 
 
 (defun tla-redo (&optional target)
@@ -2939,7 +2933,7 @@ as the place where changelog is got."
 (defun tla-help (command)
   "Run tla COMMAND -H."
   (interactive
-   (list (completing-read
+   (list (dvc-completing-read
           "Get help for: "
           (tla--run-tla-sync
            '("help")
@@ -3184,12 +3178,12 @@ Prompt the user with PROMPT if given."
   (let ((list-lib (tla--revision-library-list)))
     (if (null (cdr list-lib))
         (car list-lib)
-      (completing-read (or prompt
-                           (format "Revision library (default %s): "
-                                   (car list-lib)))
-                       (mapcar 'list (tla--revision-library-list))
-                       nil t nil 'tla--library-history
-                       (car list-lib)))))
+      (dvc-completing-read (or prompt
+                               (format "Revision library (default %s): "
+                                       (car list-lib)))
+                           (mapcar 'list (tla--revision-library-list))
+                           nil t nil 'tla--library-history
+                           (car list-lib)))))
 
 (defun tla-library-config (&optional arg)
   "Run tla library-config.
@@ -3198,12 +3192,12 @@ When called with prefix argument ARG, let the user change the config."
   (interactive "P")
   (let ((rev-lib (tla--read-revision-library))
         (config-param (when arg
-                        (completing-read "tla library config "
-                                         (mapcar 'list '("--greedy"
-                                                         "--sparse"
-                                                         "--non-greedy"
-                                                         "--non-sparse"))
-                                         nil t "--"))))
+                        (dvc-completing-read "tla library config "
+                                             (mapcar 'list '("--greedy"
+                                                             "--sparse"
+                                                             "--non-greedy"
+                                                             "--non-sparse"))
+                                             nil t "--"))))
     (tla--run-tla-sync (list "library-config" config-param rev-lib)
                        :finished 'dvc-null-handler)
     (message (dvc-get-process-output))))
@@ -3259,7 +3253,7 @@ When called with prefix argument ARG: Ask the user for the new tagging method."
 (defun tla--id-tagging-method-read (old-method)
   "Read id tagging method.
 If OLD-METHOD is given, use it as the default method."
-  (completing-read
+  (dvc-completing-read
    (if old-method
        (format "New id tagging method (default %s): " old-method)
      "New id tagging method: ")
@@ -3713,7 +3707,7 @@ default if it exists."
         dir))
      (arg
       ;; multiple local trees.
-      (let ((dir (completing-read
+      (let ((dir (dvc-completing-read
                   (format "Local tree for \"%s\": "
                           (car bookmark))
                   (mapcar (lambda (x) (cons x nil))
@@ -3835,7 +3829,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                           output (capture node) cookie
                           'tla-revision-compute-merged-by
                           )
-                         (tla--ewoc-delete cookie to-delete)
+                         (dvc-ewoc-delete cookie to-delete)
                          (ewoc-refresh dvc-revlist-cookie)
                          (let ((loc (if deleted
                                         (ewoc-next
@@ -3898,7 +3892,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                                (deleted (eq cur (capture to-delete))))
                           (tla-bookmarks-missing-parse-changes
                            output (capture parent-node))
-                          (tla--ewoc-delete dvc-revlist-cookie (capture to-delete))
+                          (dvc-ewoc-delete dvc-revlist-cookie (capture to-delete))
                           (ewoc-refresh dvc-revlist-cookie)
                           (let ((loc (if deleted
                                          (ewoc-next
@@ -3915,7 +3909,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                                   (cur (ewoc-locate
                                         dvc-revlist-cookie))
                                   (deleted (eq cur (capture to-delete))))
-                             (tla--ewoc-delete dvc-revlist-cookie (capture to-delete))
+                             (dvc-ewoc-delete dvc-revlist-cookie (capture to-delete))
                              (ewoc-refresh dvc-revlist-cookie)
                              (let ((loc (if deleted
                                             (ewoc-next
@@ -4338,7 +4332,7 @@ Commands:
          (next (ewoc-next cookie elem)))
     (unless next
       (error "Can't go lower"))
-    (tla--ewoc-delete cookie elem)
+    (dvc-ewoc-delete cookie elem)
     (goto-char (ewoc-location
                 (ewoc-enter-after cookie next data)))
     (let ((list tla-bookmarks-alist)
@@ -4364,7 +4358,7 @@ Commands:
          (previous (ewoc-prev cookie elem)))
     (unless previous
       (error "Can't go upper"))
-    (tla--ewoc-delete cookie elem)
+    (dvc-ewoc-delete cookie elem)
     (goto-char (ewoc-location
                 (ewoc-enter-before cookie previous data)))
     (let ((list tla-bookmarks-alist)
@@ -4452,7 +4446,7 @@ Accepts prefix argument ARG for future extension."
                                (format "Local tree for '%s'?: "
                                        (car bookmark)) nil nil t))
                              ((not (null (cdr local-trees)))
-                              (completing-read
+                              (dvc-completing-read
                                (format "Local tree for '%s'?: "
                                        (car bookmark))
                                local-trees nil t))
@@ -4563,7 +4557,7 @@ If FORCE is non-nil, don't ask for confirmation."
   (let* ((data (ewoc-data elem)))
     (when (or force
               (yes-or-no-p (format "Delete bookmark \"%s\"? " (car data))))
-      (tla--ewoc-delete tla-bookmarks-cookie elem)
+      (dvc-ewoc-delete tla-bookmarks-cookie elem)
       (let ((list tla-bookmarks-alist)
             newlist)
         (while list
@@ -4786,7 +4780,7 @@ BOOKMARK."
                                                (cdr x))))
                                  bookmarks)))
          (choices-alist (mapcar (lambda (x) (list x)) choices))
-         (partner (completing-read "Partner to remove: " choices-alist)))
+         (partner (dvc-completing-read "Partner to remove: " choices-alist)))
     (dolist (bookmark bookmarks)
       (tla-bookmarks-delete-partner bookmark partner t))
     (tla-bookmarks-save-to-file)
@@ -4820,7 +4814,8 @@ BOOKMARK."
                                                  (cdr x))))
                                  bookmarks)))
          (choices-alist (mapcar (lambda (x) (list x)) choices))
-         (local-tree (completing-read "Local tree to remove: " choices-alist)))
+         (local-tree (dvc-completing-read "Local tree to remove: "
+                                          choices-alist)))
     (dolist (bookmark bookmarks)
       (tla-bookmarks-delete-tree bookmark local-tree t))
     (tla-bookmarks-save-to-file)
@@ -4846,9 +4841,9 @@ BOOKMARK."
   (let* ((bookmarks (or tla-bookmarks-marked-list
                         (list (ewoc-data (ewoc-locate
                                           tla-bookmarks-cookie)))))
-         (group (completing-read "Group of bookmarks: "
-                                 (mapcar (lambda (x) (list x))
-                                         (tla-bookmarks-list-groups)))))
+         (group (dvc-completing-read "Group of bookmarks: "
+                                     (mapcar (lambda (x) (list x))
+                                             (tla-bookmarks-list-groups)))))
     (dolist (bookmark bookmarks)
       (tla-bookmarks-add-group bookmark group t)))
   (tla-bookmarks-save-to-file)
@@ -4868,7 +4863,7 @@ BOOKMARK."
                                                  (cdr x))))
                                  bookmarks)))
          (choices-alist (mapcar (lambda (x) (list x)) choices))
-         (group (completing-read "Group to remove: " choices-alist)))
+         (group (dvc-completing-read "Group to remove: " choices-alist)))
     (dolist (bookmark bookmarks)
       (tla-bookmarks-delete-group bookmark group t)))
   (tla-bookmarks-save-to-file)
@@ -4877,9 +4872,10 @@ BOOKMARK."
 
 (defun tla-bookmarks-select-by-group (group)
   "Select all bookmarks in GROUP."
-  (interactive (list (completing-read "Group to select: "
-                                      (mapcar (lambda (x) (list x))
-                                              (tla-bookmarks-list-groups)))))
+  (interactive (list (dvc-completing-read
+                      "Group to select: "
+                      (mapcar (lambda (x) (list x))
+                              (tla-bookmarks-list-groups)))))
   (dolist (bookmark tla-bookmarks-alist)
     (when (member group (cdr (assoc 'groups bookmark)))
       (add-to-list 'tla-bookmarks-marked-list bookmark))

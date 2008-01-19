@@ -35,7 +35,7 @@ EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" $(EMAC
 SYMLINKS = @SYMLINKS@
 LINKPATH = @LINKPATH@
 
-all: dvc-version.el clean-some autoloads
+all: dvc-version.el dvc-site.el clean-some autoloads
 	$(EMACS_COMP) -f package-maint-compile
 
 all-verbose: dvc-version.el clean-some autoloads
@@ -138,3 +138,6 @@ dvc-version.el: $(SRCS:%=@srcdir@/%)
 	echo "(provide 'dvc-version)" >> $@
 	chmod -w $@
 endif
+
+dvc-site.el: ../config.status dvc-site.el.in
+	(cd .. ; ./config.status lisp/$@)

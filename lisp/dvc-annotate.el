@@ -59,14 +59,26 @@
 ;; -------------------------------------------------
 ;;
 
+(defmacro dvc-annotate-8color-tty-p ()
+  "Determine whether we are on a tty that uses 8 or less colors."
+  (cond ((fboundp 'tty-display-color-p)
+         `(and (tty-display-color-p)
+               (<= (display-color-cells) 8)))
+        ((and (fboundp 'display-color-p) (fboundp 'device-or-frame-type))
+         ;; XEmacs 21
+         `(and (display-color-p)
+               (eq (device-or-frame-type (frame-device)) 'tty)))))
+
+(defmacro dvc-annotate-tty-color-alist ()
+  "Return a list of colors, each element of which is a list."
+  (cond ((fboundp 'tty-color-alist)
+         `(tty-color-alist))
+        ((fboundp 'tty-color-list)
+         `(mapcar #'list (tty-color-list)))))
+
 ;; Annotate customization
 (defcustom dvc-annotate-color-map
-  (if (or (and (fboundp 'tty-display-color-p) (tty-display-color-p)
-               (<= (display-color-cells) 8))
-          ;; XEmacs 21
-          (and (fboundp 'display-color-p) (display-color-p)
-               (fboundp 'device-or-frame-type)
-               (eq (device-or-frame-type (frame-device)) 'tty)))
+  (if (dvc-annotate-8color-tty-p)
       ;; A custom sorted TTY colormap
       (let* ((colors
           (sort
@@ -76,10 +88,7 @@
                                      (string-equal (car x) "white")
                                      (string-equal (car x) "black") ))
                                (car x)))
-                         (or (and (fboundp 'tty-color-alist)
-                                  (tty-color-alist))
-                             (and (fboundp 'tty-color-list)
-                                  (mapcar #'list (tty-color-list))))))
+                         (dvc-annotate-tty-color-alist)))
            (lambda (a b)
              (cond
               ((or (string-equal a "red") (string-equal b "blue")) t)
@@ -252,7 +261,8 @@ The annotations are relative to the current time, unless overridden by OFFSET."
              (if dvc-annotate-background
                  (set-face-background tmp-face
                           dvc-annotate-background))
-             (if dvc-annotate-face-misc-attribute
+             (if (and (not (featurep 'xemacs))
+                      dvc-annotate-face-misc-attribute)
                  (dolist (attr dvc-annotate-face-misc-attribute)
                    (set-face-attribute tmp-face nil
                            (car attr) (cdr attr))))

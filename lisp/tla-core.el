@@ -1654,7 +1654,7 @@ following commands are available:
           (sit-for 2)
           (message nil)))
 
-      (setq result (completing-read
+      (setq result (dvc-completing-read
                     (or prompt "Location: ")
                     'tla--name-read-complete
                     nil nil result
