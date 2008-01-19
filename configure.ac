@@ -191,7 +191,7 @@ AC_DEFUN([DVC_PROG_EMACS],
       AC_MSG_ERROR([*** No Emacs program found.])
     fi
     # EMACS TYPE ##################################################
-    AC_MSG_CHECKING([checking emacs-type of ${EMACS_PROG}])
+    AC_MSG_CHECKING([emacs-type of ${EMACS_PROG}])
     cat > conftest.el <<TEST
 (princ (format "%s" (if (featurep 'xemacs ) 'xemacs 'emacs)))
 TEST
@@ -203,7 +203,7 @@ TEST
     fi
     AC_MSG_RESULT([${EMACS_FLAVOR}])
     # EMACS VERSION ###############################################
-    AC_MSG_CHECKING([checking emacs-version of ${EMACS_PROG}])
+    AC_MSG_CHECKING([emacs-version of ${EMACS_PROG}])
     cat > conftest.el <<TEST
 (if (featurep 'xemacs )
      (princ (format "%d.%d%s"
@@ -290,7 +290,7 @@ AC_DEFUN([DVC_PATH_INFO_DIR], [
 ])
 
 AC_DEFUN([DVC_HAS_TREE_WIDGET],
-  [ AC_MSG_CHECKING([checking whether tree-widget is in the load-path])
+  [ AC_MSG_CHECKING([whether tree-widget is in the load-path])
     OTHERDIRS_LIST='"'`echo ${OTHERDIRS} | sed 's/ /" "/g'`'"'
     cat > conftest.el << TEST
 (mapcar (lambda (x) (add-to-list 'load-path x))
