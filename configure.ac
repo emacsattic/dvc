@@ -257,7 +257,7 @@ TEST
 
 # copied from gnus aclocal.m4
 AC_DEFUN([DVC_BUILD_FLAGS], [
-  AC_MSG_CHECKING([wich options to pass on to (X)Emacs])
+  AC_MSG_CHECKING([which options to pass on to (X)Emacs])
   if test "x$FLAGS" = "x"; then
     if test "x$EMACS_FLAVOR" = "xxemacs"; then
       FLAGS="-batch ${SITEFLAG} -no-autoloads -l \$(srcdir)/dvc-build.el"
