@@ -553,7 +553,9 @@ the file before saving."
 
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id &optional dont-switch)
-  ;; See dvc-unified.el dvc-delta for doc string. Note that neither id can be local-tree.
+  ;; See dvc-unified.el dvc-delta for doc string. That says that
+  ;; neither id can be local-tree. However, we also use this as the
+  ;; implementation of xmtn-dvc-diff, so we need to handle local-tree.
   (let ((root (dvc-tree-root)))
     (lexical-let ((buffer (dvc-prepare-changes-buffer from-revision-id to-revision-id
                                                       'diff root 'xmtn))
@@ -564,10 +566,30 @@ the file before saving."
             (to-resolved (xmtn--resolve-revision-id root to-revision-id)))
         (let ((rev-specs
                `(,(xmtn-match from-resolved
+                    ((local-tree $path)
+                     ;; FROM-REVISION-ID is not a committed revision, but the
+                     ;; workspace.  mtn diff can't directly handle
+                     ;; this case.
+                     (error "not implemented"))
+
                     ((revision $hash-id)
                      (concat "--revision=" hash-id)))
 
                  ,@(xmtn-match to-resolved
+                     ((local-tree $path)
+                      (assert (xmtn--same-tree-p root path))
+
+                      ;; mtn diff will abort if there are missing
+                      ;; files. But checking for that is a slow
+                      ;; operation, so allow user to bypass it. We use
+                      ;; dvc-confirm-update rather than a separate
+                      ;; option, because dvc-confirm-update will be
+                      ;; set t for the same reason this would.
+                      (if dvc-confirm-update
+                          (unless (funcall (xmtn--tree-consistent-p-future root))
+                            (error "There are missing files in local tree; unable to diff. Try dvc-status.")))
+                      `())
+
                      ((revision $hash-id)
                       `(,(concat "--revision=" hash-id)))))))
 
