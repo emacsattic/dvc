@@ -139,5 +139,7 @@ dvc-version.el: $(SRCS:%=@srcdir@/%)
 	chmod -w $@
 endif
 
-dvc-site.el: ../config.status dvc-site.el.in
+dvc-site.el.in: ../config.status
+	(cd .. ; ./configu.status listp/$@)
+dvc-site.el: ../config.status
 	(cd .. ; ./config.status lisp/$@)
