@@ -533,6 +533,24 @@ the file before saving."
 (defun xmtn-dvc-diff (&optional base-rev path dont-switch)
   (xmtn-dvc-delta base-rev (list 'xmtn (list 'local-tree (xmtn-tree-root path))) dont-switch))
 
+(defvar xmtn-diff-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?P] 'xmtn-propagate-from)
+    (define-key map [?H] 'xmtn-view-heads-revlist)
+    map))
+
+(easy-menu-define xmtn-diff-mode-menu xmtn-diff-mode-map
+  "Mtn specific diff menu."
+  `("DVC-Mtn"
+    ["Propagate branch" xmtn-propagate-from t]
+    ["View Heads" xmtn-view-heads-revlist t]
+    ))
+
+(define-derived-mode xmtn-diff-mode dvc-diff-mode "xmtn-diff"
+  "Add back-end-specific commands for dvc-diff.")
+
+(dvc-add-uniquify-directory-mode 'xmtn-diff-mode)
+
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id &optional dont-switch)
   ;; See dvc-unified.el dvc-delta for doc string. Note that neither id can be local-tree.
@@ -811,7 +829,7 @@ the file before saving."
                      (with-current-buffer status-buffer
                        (ewoc-enter-last dvc-fileinfo-ewoc (make-dvc-fileinfo-message :text "Parsing inventory..."))
                        (ewoc-refresh dvc-fileinfo-ewoc)
-                       (xmtn--redisplay t)
+                       (dvc-redisplay t)
                        (dvc-fileinfo-delete-messages)
                        (lexical-let ((excluded-files (dvc-default-excluded-files))
                                      (changesp nil))

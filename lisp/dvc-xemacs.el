@@ -1,6 +1,9 @@
 ;;; dvc-xemacs.el --- Compatibility stuff for XEmacs
+;;;
+;;; This file should be loaded when using XEmacs; load
+;;; dvc-emacs.el when using Gnu Emacs.
 
-;; Copyright (C) 2004-2006 by all contributors
+;; Copyright (C) 2004-2006, 2008 by all contributors
 
 ;; Author: Robert Widhopf-Fenk <hack@robf.de>
 
@@ -21,21 +24,7 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
 
-;;; Commentary:
-
-;; Unfortunately GNU and XEmacs are only 98% compatible on the level of lisp
-;; code.  This file provides functions currently missing in XEmacs.  You
-;; should not rely on anything within this file, since functions, etc. will
-;; be removed when they become available in XEmacs or conflict with other
-;; packages.  Instead of hacking other DVC files with (if (featurep 'xemacs)
-;; ...) we should rely on compatible lisp.
-
-
-
-;;; History:
-;;
-;; This started with a few functions protected by (fboundp ) in
-;; xtla.el, and was splitted afterwards. It's now part of DVC
+;;; Policy: see dvc-emacs.el for policy on what goes in this file.
 
 ;;; Code:
 
@@ -344,6 +333,7 @@ The current buffer must be a minibuffer."
 (unless (functionp 'diff-hunk-prev)
   (defalias 'diff-hunk-prev 'diff-prev-hunk))
 
+;; FIXME: move to dvc-utils?
 (defun dvc-xmas-make-temp-dir (prefix)
   "Make a temporary directory using PREFIX.
 Return the name of the directory."
@@ -401,6 +391,29 @@ Return the name of the directory."
 
 
 (defvar allow-remote-paths nil)
+
+(if (fboundp 'ewoc-delete)
+    (defalias 'dvc-ewoc-delete 'ewoc-delete)
+  (defun dvc-ewoc-delete (ewoc &rest nodes)
+    "Delete NODES from EWOC."
+    (ewoc--set-buffer-bind-dll-let* ewoc
+        ((L nil) (R nil) (last (ewoc--last-node ewoc)))
+      (dolist (node nodes)
+        ;; If we are about to delete the node pointed at by last-node,
+        ;; set last-node to nil.
+        (when (eq last node)
+          (setf last nil (ewoc--last-node ewoc) nil))
+        (delete-region (ewoc--node-start-marker node)
+                       (ewoc--node-start-marker (ewoc--node-next dll node)))
+        (set-marker (ewoc--node-start-marker node) nil)
+        (setf L (ewoc--node-left  node)
+              R (ewoc--node-right node)
+              ;; Link neighbors to each other.
+              (ewoc--node-right L) R
+              (ewoc--node-left  R) L
+              ;; Forget neighbors.
+              (ewoc--node-left  node) nil
+              (ewoc--node-right node) nil)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (provide 'dvc-xemacs)
