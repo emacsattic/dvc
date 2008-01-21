@@ -325,7 +325,7 @@ file; otherwise visit the modified file."
                 (t (error "Not on a recognized location")))))))
 
       ;; not in the ewoc part
-      (dvc-diff-diff-goto-source other-file))))
+      (diff-goto-source other-file))))
 
 (defun dvc-diff-scroll-or-diff (up-or-down)
   "If file-diff buffer is visible, scroll. Otherwise, show it."
@@ -343,33 +343,6 @@ file; otherwise visit the modified file."
 (defun dvc-diff-scroll-down-or-diff ()
   (interactive)
   (dvc-diff-scroll-or-diff 'scroll-down))
-
-(defun dvc-diff-diff-goto-source (other-file)
-  "Almost the same as `diff-goto-source'.
-But the target file is transformed by `tla--changes-what-changed-original-file'
-to handle files in what-changed directory.
-OTHER-FILE if non-nil means visit the original
-file; otherwise visit the modified file."
-  (let ((dvc-original-file-exists-p (symbol-function
-                                     'file-exists-p))
-        (dvc-original-find-file-noselect (symbol-function
-                                          'find-file-noselect)))
-    (flet ((file-exists-p (file)
-                          (unless (string= "/dev/null" file)
-                            (funcall
-                             dvc-original-file-exists-p
-                             ;; FIXME: make this generic.
-                             ;; <DVC>-diff-get-filename
-                             (tla--changes-what-changed-original-file file))))
-           (find-file-noselect (file &optional nowarn rawfile wildcards)
-             (if (featurep 'xemacs)
-                 (funcall dvc-original-find-file-noselect
-                          (tla--changes-what-changed-original-file file)
-                          nowarn rawfile)
-               (funcall dvc-original-find-file-noselect
-                        (tla--changes-what-changed-original-file file)
-                        nowarn rawfile wildcards))))
-      (diff-goto-source other-file))))
 
 (defun dvc-diff-diff-or-list ()
   "Jump between list entry and corresponding diff hunk.
@@ -592,12 +565,15 @@ This is just a lint trap.")
 (defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch
                                        header-end-regexp cmd)
-  "Show the *{dvc}-changes* buffer built from the *{dvc}-process* BUFFER.
+  "Show the *{dvc}-diff* buffer built from the *{dvc}-process* BUFFER.
 default-directory of process buffer must be a tree root.
 
-PARSER is a function to parse the diff and fill in the ewoc list;
-it will be called with one arg, the changes buffer. Data to be
-parsed will be in current buffer.
+PARSER is a function to parse the diff and fill in the
+dvc-fileinfo-ewoc list; it will be called with one arg,
+OUTPUT-BUFFER. Data to be parsed will be in current buffer.
+dvc-header will have been set as described below. After PARSER is
+called, dvc-header is set as the dvc-fileinfo-ewoc header, and
+OUTPUT-BUFFER contents are set as the dvc-fileinfo-ewoc footer.
 
 Display changes in OUTPUT-BUFFER (must be non-nil; create with
 dvc-prepare-changes-buffer).
@@ -605,9 +581,10 @@ dvc-prepare-changes-buffer).
 If NO-SWITCH is nil, don't switch to the created buffer.
 
 If non-nil, HEADER-END-REGEXP is a regexp matching the first line
-which is not part of the diff header.
+which is not part of the diff header. Lines preceding
+HEADER-END-REGEXP are copied into dvc-header.
 
-CMD, if non-nil, is appended to dvc-header."
+CMD, if non-nil, is prepended to dvc-header."
   ;; We assume default-directory is correct, rather than calling
   ;; dvc-tree-root, because dvc-tree-root might prompt if there is
   ;; more than one back-end present. Similarly, we assume
@@ -626,8 +603,7 @@ CMD, if non-nil, is appended to dvc-header."
         (goto-char (point-min))
         (when cmd
           (setq dvc-header
-                (concat dvc-header
-                        (dvc-face-add cmd 'dvc-header) "\n"
+                (concat (dvc-face-add cmd 'dvc-header) "\n"
                         (dvc-face-add (make-string  72 ?\ ) 'dvc-separator))))
         (when header-end-regexp
           (setq dvc-header

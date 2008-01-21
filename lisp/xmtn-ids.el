@@ -1,5 +1,6 @@
 ;;; xmtn-ids.el --- Resolver routines for xmtn revision ids
 
+;; Copyright (C) 2008 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -30,7 +31,7 @@
 ;; This simplifies the code and may be useful.
 ;;
 ;; REVISION-ID :: (xmtn BACKEND-ID)
-;; 
+;;
 ;; BACKEND-ID :: BACKEND-REVISION
 ;;             | (revision BACKEND-REVISION)
 ;;   ;; An already commited revision
@@ -53,9 +54,9 @@
 ;;             | (previous-revision BACKEND-ID)
 ;;   ;; Parent of BACKEND-ID.  (DVC requires this extension but
 ;;   ;; doesn't document it.)
-;; 
+;;
 ;; PATH :: string
-;; 
+;;
 ;; NUM :: number
 ;;
 ;; BACKEND-REVISION :: a 40-char string containing mtn's hash of 40 hex digits
@@ -76,6 +77,10 @@
   (require 'cl)
   (require 'xmtn-automate)
   (require 'xmtn-match))
+
+(defun xmtn--revision-hash-id (revision-id)
+  "Return the hash-id from a REVISION-ID"
+  (car (cdadr revision-id)))
 
 (defun xmtn--resolve-revision-id (root revision-id)
   "Resolve REVISION-ID to a RESOLVED-BACKEND-ID.
