@@ -438,7 +438,8 @@ the file before saving."
   nil)
 
 (defun xmtn--parse-diff-for-dvc (changes-buffer)
-  (let ((excluded-files (dvc-default-excluded-files)))
+  (let ((excluded-files (dvc-default-excluded-files))
+        matched)
     (flet ((add-entry
             (path status dir &optional orig-path)
             (with-current-buffer changes-buffer
@@ -447,14 +448,14 @@ the file before saving."
                (if dir
                    (make-dvc-fileinfo-dir
                     :mark nil
-                    :exclude (not (null (member path excluded-files)))
+                    :exclude (dvc-match-excluded excluded-files path)
                     :dir (file-name-directory path)
                     :file (file-name-nondirectory path)
                     :status status
                     :more-status "")
                  (make-dvc-fileinfo-file
                   :mark nil
-                  :exclude (not (null (member path excluded-files)))
+                  :exclude (dvc-match-excluded excluded-files path)
                   :dir (file-name-directory path)
                   :file (file-name-nondirectory path)
                   :status status
@@ -718,7 +719,7 @@ the file before saving."
            (ewoc-enter-last ewoc
                             (make-dvc-fileinfo-dir
                              :mark nil
-                             :exclude (not (null (member path excluded-files)))
+                             :exclude (dvc-match-excluded excluded-files path)
                              :dir (file-name-directory path)
                              :file (file-name-nondirectory path)
                              :status main-status
@@ -728,7 +729,7 @@ the file before saving."
            (ewoc-enter-last ewoc
                             (make-dvc-fileinfo-file
                              :mark nil
-                             :exclude (not (null (member path excluded-files)))
+                             :exclude (dvc-match-excluded excluded-files path)
                              :dir (file-name-directory path)
                              :file (file-name-nondirectory path)
                              :status main-status
