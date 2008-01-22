@@ -261,7 +261,6 @@ arg; root. Result is of the form:
           (buffer (dvc-revlist-create-buffer
                    'xmtn 'log root 'xmtn--revlist-refresh first-line-only-p last-n)))
       (with-current-buffer buffer
-        (dvc-revlist-mode)
         (setq xmtn--revlist-*info-generator-fn* info-generator-fn)
         (xmtn--revlist-refresh))
       (xmtn--display-buffer-maybe buffer nil)))
@@ -298,8 +297,8 @@ arg; root. Result is of the form:
         (let ((branch (xmtn--tree-default-branch root)))
           (list branch
                 (list
-                 (if last-n
-                     (format "Log for branch %s (last %d entries):" branch last-n)
+                 (if dvc-revlist-last-n
+                     (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
                    (format "Log for branch %s (all entries):" branch)))
                 '()
                 (xmtn--expand-selector
