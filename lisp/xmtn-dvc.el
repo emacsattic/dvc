@@ -411,7 +411,12 @@ the file before saving."
                    ;; that.  (Calling `dvc-log-close' would.)
                    (delete-file commit-message-file)
                    (kill-buffer log-edit-buffer)
-                   (dvc-diff-clear-buffers 'xmtn default-directory "* Just committed! Please refresh buffer\n")))
+                   (dvc-diff-clear-buffers 'xmtn
+                                           default-directory
+                                           "* Just committed! Please refresh buffer"
+                                           (xmtn--status-header
+                                            default-directory
+                                            (xmtn--get-base-revision-hash-id-or-null default-directory)))))
       ;; Show message _after_ spawning command to override DVC's
       ;; debugging message.
       (message "%s..." progress-message))
@@ -858,31 +863,26 @@ the file before saving."
                      (ewoc-refresh dvc-fileinfo-ewoc)
                      (dvc-redisplay t)
                      (dvc-fileinfo-delete-messages)
-                     (lexical-let ((excluded-files (dvc-default-excluded-files))
-                                   (changesp nil))
+                     (let ((excluded-files (dvc-default-excluded-files)))
                        (xmtn-basic-io-with-stanza-parser
                         (parser output)
                         (xmtn--parse-inventory
                          parser
                          (lambda (path status changes old-path-or-null
                                        old-type new-type fs-type)
-                           (when
-                               (xmtn--status-process-entry dvc-fileinfo-ewoc
-                                                           path status
-                                                           changes
-                                                           old-path-or-null
-                                                           old-type new-type
-                                                           fs-type
-                                                           excluded-files)
-                             (setq changesp t)))))
-                       (when (not changesp)
-                         ;; Calling `dvc-diff-no-changes' here is part
-                         ;; of the protocol, so we do it, even though
-                         ;; its output is not very pretty (printing an
-                         ;; asterisk, repeating the root directory and
-                         ;; adding two newlines to the end of the
-                         ;; buffer is redundant in our layout).
-                         (dvc-diff-no-changes status-buffer "No changes in %s" root)))))
+                           (xmtn--status-process-entry dvc-fileinfo-ewoc
+                                                       path status
+                                                       changes
+                                                       old-path-or-null
+                                                       old-type new-type
+                                                       fs-type
+                                                       excluded-files))))
+                       (when (not (ewoc-locate dvc-fileinfo-ewoc))
+                         (ewoc-enter-last dvc-fileinfo-ewoc
+                                          (make-dvc-fileinfo-message
+                                           :text (concat " no changes")))
+                         (ewoc-refresh dvc-fileinfo-ewoc)
+                         ))))
        :error (lambda (output error status arguments)
                 (dvc-diff-error-in-process
                  status-buffer

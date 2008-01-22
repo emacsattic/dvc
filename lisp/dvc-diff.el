@@ -672,8 +672,8 @@ diff parser."
       (recenter)))
     (message msg))
 
-(defun dvc-diff-clear-buffers (dvc root msg)
-  "Clears all DVC diff and status buffers with root ROOT, insert message MSG.
+(defun dvc-diff-clear-buffers (dvc root msg &optional header)
+  "Clears all DVC diff and status buffers with root ROOT, insert MSG and optional HEADER.
 Useful to clear diff buffers after a commit."
   (dvc-trace "dvc-diff-clear-buffers (%S %S)" root msg)
   ;; Don't need to clear 'revision-diff; that is not changed by a commit
@@ -688,7 +688,9 @@ Useful to clear diff buffers after a commit."
            (lambda (fileinfo)
              (and (dvc-fileinfo-legacy-p fileinfo)
                   (eq (car (dvc-fileinfo-legacy-data fileinfo)) 'subtree))))
-          (ewoc-set-hf dvc-fileinfo-ewoc "" "")
+          (if header
+              (ewoc-set-hf dvc-fileinfo-ewoc header "")
+            (ewoc-set-hf dvc-fileinfo-ewoc "" ""))
           (ewoc-enter-first dvc-fileinfo-ewoc (make-dvc-fileinfo-message :text msg))
           (ewoc-refresh dvc-fileinfo-ewoc))))))
 
