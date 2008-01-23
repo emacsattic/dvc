@@ -63,7 +63,7 @@
 (defun xgit-add (file)
   "Add FILE to the current git project."
   (interactive (list (dvc-confirm-read-file-name "Add file or directory: ")))
-  (xgit-add-files file))
+  (xgit-dvc-add-files file))
 
 ;;;###autoload
 (defun xgit-dvc-add-files (&rest files)
