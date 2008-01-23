@@ -1,5 +1,6 @@
 ;;; xmtn-compat.el --- xmtn compatibility with different Emacs versions
 
+;; Copyright (C) 2008 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -115,14 +116,6 @@
 (defmacro xmtn--set-buffer-multibyte (flag)
   (when (fboundp 'set-buffer-multibyte)
     `(set-buffer-multibyte ,flag)))
-
-;;; This should probably use `redisplay' if available, but that's not
-;;; important.
-(defun xmtn--redisplay (&optional force)
-  (if force
-      (let ((redisplay-dont-pause t))
-        (sit-for 0))
-    (sit-for 0)))
 
 (provide 'xmtn-compat)
 

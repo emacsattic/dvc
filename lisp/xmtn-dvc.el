@@ -533,9 +533,29 @@ the file before saving."
 (defun xmtn-dvc-diff (&optional base-rev path dont-switch)
   (xmtn-dvc-delta base-rev (list 'xmtn (list 'local-tree (xmtn-tree-root path))) dont-switch))
 
+(defvar xmtn-diff-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?P] 'xmtn-propagate-from)
+    (define-key map [?H] 'xmtn-view-heads-revlist)
+    map))
+
+(easy-menu-define xmtn-diff-mode-menu xmtn-diff-mode-map
+  "Mtn specific diff menu."
+  `("DVC-Mtn"
+    ["Propagate branch" xmtn-propagate-from t]
+    ["View Heads" xmtn-view-heads-revlist t]
+    ))
+
+(define-derived-mode xmtn-diff-mode dvc-diff-mode "xmtn-diff"
+  "Add back-end-specific commands for dvc-diff.")
+
+(dvc-add-uniquify-directory-mode 'xmtn-diff-mode)
+
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id &optional dont-switch)
-  ;; See dvc-unified.el dvc-delta for doc string. Note that neither id can be local-tree.
+  ;; See dvc-unified.el dvc-delta for doc string. That says that
+  ;; neither id can be local-tree. However, we also use this as the
+  ;; implementation of xmtn-dvc-diff, so we need to handle local-tree.
   (let ((root (dvc-tree-root)))
     (lexical-let ((buffer (dvc-prepare-changes-buffer from-revision-id to-revision-id
                                                       'diff root 'xmtn))
@@ -546,10 +566,30 @@ the file before saving."
             (to-resolved (xmtn--resolve-revision-id root to-revision-id)))
         (let ((rev-specs
                `(,(xmtn-match from-resolved
+                    ((local-tree $path)
+                     ;; FROM-REVISION-ID is not a committed revision, but the
+                     ;; workspace.  mtn diff can't directly handle
+                     ;; this case.
+                     (error "not implemented"))
+
                     ((revision $hash-id)
                      (concat "--revision=" hash-id)))
 
                  ,@(xmtn-match to-resolved
+                     ((local-tree $path)
+                      (assert (xmtn--same-tree-p root path))
+
+                      ;; mtn diff will abort if there are missing
+                      ;; files. But checking for that is a slow
+                      ;; operation, so allow user to bypass it. We use
+                      ;; dvc-confirm-update rather than a separate
+                      ;; option, because dvc-confirm-update will be
+                      ;; set t for the same reason this would.
+                      (if dvc-confirm-update
+                          (unless (funcall (xmtn--tree-consistent-p-future root))
+                            (error "There are missing files in local tree; unable to diff. Try dvc-status.")))
+                      `())
+
                      ((revision $hash-id)
                       `(,(concat "--revision=" hash-id)))))))
 
@@ -811,7 +851,7 @@ the file before saving."
                      (with-current-buffer status-buffer
                        (ewoc-enter-last dvc-fileinfo-ewoc (make-dvc-fileinfo-message :text "Parsing inventory..."))
                        (ewoc-refresh dvc-fileinfo-ewoc)
-                       (xmtn--redisplay t)
+                       (dvc-redisplay t)
                        (dvc-fileinfo-delete-messages)
                        (lexical-let ((excluded-files (dvc-default-excluded-files))
                                      (changesp nil))
