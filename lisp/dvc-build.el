@@ -133,7 +133,9 @@
 dvc-custom.el if GNU Emacs"
   (with-temp-file package-maint-load-file
     (insert-file-contents package-maint-load-file)
-    (insert-file-contents (expand-file-name "dvc-preload.el" srcdir))))
+    (unless (looking-at
+             ";; Code to insert at the beginning of dvc-autoloads.el")
+      (insert-file-contents (expand-file-name "dvc-preload.el" srcdir)))))
 
 ;; Remove unneeded files from compilation
 (package-maint-remove-files no-compile-files)
