@@ -78,10 +78,28 @@ This is used by `dvc-fileinfo-printer-text'."
     (missing        "missing      ")
     (modified       "modified     ")
     (copy-source    "copy         ")
-    (copy-target    "        ==>  ")
+    (copy-target    "         ==> ")
     (rename-source  "rename       ")
-    (rename-target  "        ==>  ")
+    (rename-target  "         ==> ")
     (unknown        "unknown      ")))
+
+(defun dvc-fileinfo-status-image-terse (status)
+  "String image of STATUS.
+This is used by `dvc-fileinfo-printer-terse'."
+  (ecase status
+    (added          "A")
+    (conflict       "X")
+    (deleted        "D")
+    (ignored        "G")
+    (invalid        "I")
+    (known          "-")
+    (missing        "S")
+    (modified       "M")
+    (copy-source    "C")
+    (copy-target    'target)
+    (rename-source  "R")
+    (rename-target  'target)
+    (unknown        "?")))
 
 (defun dvc-fileinfo-choose-face-text (status)
   "Return a face appropriate for STATUS.
@@ -100,6 +118,8 @@ This is used by `dvc-fileinfo-printer-text'."
     (rename-source 'dvc-move)
     (rename-target 'dvc-move)
     (unknown       'dvc-unknown)))
+
+(defalias 'dvc-fileinfo-choose-face-terse 'dvc-fileinfo-choose-face-text)
 
 (defstruct (dvc-fileinfo-dir
             (:include dvc-fileinfo-file)
@@ -176,6 +196,49 @@ indicate statuses."
       (dvc-fileinfo-message
        (insert (dvc-fileinfo-message-text fileinfo)))
       )))
+
+(defun dvc-fileinfo-printer-terse (fileinfo)
+  "Ewoc pretty-printer for dvc-fileinfo types which uses a single letter
+to indicate statuses."
+  (let ((inhibit-read-only t))
+    (etypecase fileinfo
+      (dvc-fileinfo-file ;; also matches dvc-fileinfo-dir
+       (let* ((image (dvc-fileinfo-status-image-terse
+                      (dvc-fileinfo-file-status fileinfo)))
+              (indexed (if (or (dvc-fileinfo-file-indexed fileinfo)
+                               (eq (dvc-fileinfo-file-status fileinfo)
+                                   'unknown))
+                           " " "?"))
+              (line (if (stringp image)
+                        (concat image indexed " "
+                                (dvc-fileinfo-file-dir fileinfo)
+                                (dvc-fileinfo-file-file fileinfo))
+                      (concat "   ==>  "
+                              (dvc-fileinfo-file-dir fileinfo)
+                              (dvc-fileinfo-file-file fileinfo))))
+              (face (cond
+                     ((dvc-fileinfo-file-mark fileinfo) 'dvc-marked)
+                     ((dvc-fileinfo-file-exclude fileinfo) 'dvc-excluded)
+                     (t (dvc-fileinfo-choose-face-terse
+                         (dvc-fileinfo-file-status fileinfo))))))
+         (cond
+          ((dvc-fileinfo-file-mark fileinfo) (insert dvc-mark))
+          ((dvc-fileinfo-file-exclude fileinfo) (insert dvc-exclude))
+          (t (insert " ")))
+
+         (insert " ")
+         (insert (dvc-face-add line face))
+         (if (> (length (dvc-fileinfo-file-more-status fileinfo)) 0)
+             (progn
+               (newline)
+               (insert "      ")
+               (insert (dvc-fileinfo-file-more-status fileinfo))))))
+
+      (dvc-fileinfo-legacy
+       (dvc-diff-printer (dvc-fileinfo-legacy-data fileinfo)) )
+
+      (dvc-fileinfo-message
+       (insert (dvc-fileinfo-message-text fileinfo))))))
 
 (defun dvc-fileinfo-current-fileinfo ()
   "Return the fileinfo (a dvc-fileinfo-file, or

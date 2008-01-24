@@ -123,8 +123,8 @@ the status of the tree.
 Another option is 'terse, which uses a single letter to indicate
 the status of each file."
   :group 'dvc
-  :type '(choice (const 'text)
-                 (const 'terse)
+  :type '(choice (const text)
+                 (const terse)
                  (symbol :tag "Other")))
 
 (defcustom dvc-completing-read-function (if (and (boundp 'ido-mode)
