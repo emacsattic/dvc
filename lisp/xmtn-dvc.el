@@ -686,8 +686,15 @@ the file before saving."
                       'modified
                     'known))))
 
+            indexed                   ; used by terse status interface
             more-status
             need-more-status)
+
+        (setq indexed
+              (if (eq status 'missing)
+                  ;; in terse mode, missing is represented as "D?"
+                  nil
+                t))
 
         (setq need-more-status
               (if (and (eq status (list main-status)) (eq changes nil))
@@ -722,6 +729,7 @@ the file before saving."
                              :dir (file-name-directory path)
                              :file (file-name-nondirectory path)
                              :status main-status
+                             :indexed indexed
                              :more-status more-status)))
           ((file none)
            ;; 'none' indicates a dropped (deleted) file
@@ -732,6 +740,7 @@ the file before saving."
                              :dir (file-name-directory path)
                              :file (file-name-nondirectory path)
                              :status main-status
+                             :indexed indexed
                              :more-status more-status)))
           (t
            (error "path %s fs-type %s old-type %s new-type %s" path fs-type old-type new-type))

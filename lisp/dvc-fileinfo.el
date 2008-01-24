@@ -1,4 +1,5 @@
-;;; dvc-fileinfo.el --- An ewoc structure for displaying file information for DVC
+;;; dvc-fileinfo.el --- An ewoc structure for displaying file information
+;;; for DVC
 
 ;; Copyright (C) 2007, 2008 by all contributors
 
@@ -52,21 +53,22 @@ The elements must all be of class dvc-fileinfo-root.")
 
 (defstruct (dvc-fileinfo-file
             (:include dvc-fileinfo-root)
-	    (:copier nil))
-  mark   	;; t/nil.
+            (:copier nil))
+  mark          ;; t/nil.
   exclude       ;; t/nil. If t, don't commit unless also mark = t.
-  dir		;; Directory the file resides in, relative to dvc-root.
-  file	     	;; File name sans directory.
+  dir           ;; Directory the file resides in, relative to dvc-root.
+  file          ;; File name sans directory.
                 ;; (concat dir file) gives a valid path.
-  status	;; Symbol; see dvc-fileinfo-status-image for list
+  status        ;; Symbol; see dvc-fileinfo-status-image for list
   (indexed t)   ;; Whether changes made to the file have been recorded
                 ;; in the index.  Use t if the back-end does not
                 ;; support an index.
   more-status   ;; String; whatever else the backend has to say
   )
 
-(defun dvc-fileinfo-status-image (status)
-  "String image of STATUS."
+(defun dvc-fileinfo-status-image-full (status)
+  "String image of STATUS.
+This is used by `dvc-fileinfo-printer-full'."
   (ecase status
     (added          "added        ")
     (conflict       "conflict     ")
@@ -76,14 +78,33 @@ The elements must all be of class dvc-fileinfo-root.")
     (known          "known        ")
     (missing        "missing      ")
     (modified       "modified     ")
-    (copy-source    "copy-source  ")
-    (copy-target    "copy-target  ")
-    (rename-source  "rename-source")
-    (rename-target  "rename-target")
+    (copy-source    "copy         ")
+    (copy-target    "         ==> ")
+    (rename-source  "rename       ")
+    (rename-target  "         ==> ")
     (unknown        "unknown      ")))
 
-(defun dvc-fileinfo-choose-face (status)
-  "Return a face appropriate for STATUS."
+(defun dvc-fileinfo-status-image-terse (status)
+  "String image of STATUS.
+This is used by `dvc-fileinfo-printer-terse'."
+  (ecase status
+    (added          "A")
+    (conflict       "X")
+    (deleted        "D")
+    (ignored        "G")
+    (invalid        "I")
+    (known          "-")
+    (missing        "D")
+    (modified       "M")
+    (copy-source    "C")
+    (copy-target    'target)
+    (rename-source  "R")
+    (rename-target  'target)
+    (unknown        "?")))
+
+(defun dvc-fileinfo-choose-face-full (status)
+  "Return a face appropriate for STATUS.
+This is used by `dvc-fileinfo-printer-full'."
   (ecase status
     (added         'dvc-added)
     (conflict      'dvc-conflict)
@@ -99,15 +120,17 @@ The elements must all be of class dvc-fileinfo-root.")
     (rename-target 'dvc-move)
     (unknown       'dvc-unknown)))
 
+(defalias 'dvc-fileinfo-choose-face-terse 'dvc-fileinfo-choose-face-full)
+
 (defstruct (dvc-fileinfo-dir
             (:include dvc-fileinfo-file)
-	    (:copier nil))
+            (:copier nil))
   ;; no extra slots
   )
 
 (defstruct (dvc-fileinfo-message
             (:include dvc-fileinfo-root)
-	    (:copier nil))
+            (:copier nil))
   text ;; String
   )
 
@@ -128,19 +151,32 @@ The elements must all be of class dvc-fileinfo-root.")
   )
 
 (defun dvc-fileinfo-printer (fileinfo)
-  "Ewoc pretty-printer for dvc-fileinfo types."
+  (let* ((interface (or dvc-fileinfo-printer-interface 'text))
+         (fun (intern (concat "dvc-fileinfo-printer-"
+                              (symbol-name interface)))))
+    ;; Allow people to use a complete function name if they like
+    (when (and (not (fboundp fun))
+               (fboundp interface))
+      (setq fun interface))
+    (funcall fun fileinfo)))
+
+(defun dvc-fileinfo-printer-full (fileinfo)
+  "Ewoc pretty-printer for dvc-fileinfo types which uses full text to
+indicate statuses."
   (let ((inhibit-read-only t))
     (etypecase fileinfo
       (dvc-fileinfo-file ;; also matches dvc-fileinfo-dir
        (let* ((line (concat
-                     (dvc-fileinfo-status-image (dvc-fileinfo-file-status fileinfo))
+                     (dvc-fileinfo-status-image-full
+                      (dvc-fileinfo-file-status fileinfo))
                      " "
                      (dvc-fileinfo-file-dir fileinfo)
                      (dvc-fileinfo-file-file fileinfo)))
               (face (cond
                      ((dvc-fileinfo-file-mark fileinfo) 'dvc-marked)
                      ((dvc-fileinfo-file-exclude fileinfo) 'dvc-excluded)
-                     (t (dvc-fileinfo-choose-face (dvc-fileinfo-file-status fileinfo))))))
+                     (t (dvc-fileinfo-choose-face-full
+                         (dvc-fileinfo-file-status fileinfo))))))
          (insert " ")
          (cond
           ((dvc-fileinfo-file-mark fileinfo) (insert dvc-mark))
@@ -159,8 +195,50 @@ The elements must all be of class dvc-fileinfo-root.")
        (dvc-diff-printer (dvc-fileinfo-legacy-data fileinfo)) )
 
       (dvc-fileinfo-message
-       (insert (dvc-fileinfo-message-text fileinfo)))
-      )))
+       (insert (dvc-fileinfo-message-text fileinfo))))))
+
+(defun dvc-fileinfo-printer-terse (fileinfo)
+  "Ewoc pretty-printer for dvc-fileinfo types which uses a single letter
+to indicate statuses."
+  (let ((inhibit-read-only t))
+    (etypecase fileinfo
+      (dvc-fileinfo-file ;; also matches dvc-fileinfo-dir
+       (let* ((image (dvc-fileinfo-status-image-terse
+                      (dvc-fileinfo-file-status fileinfo)))
+              (indexed (if (or (dvc-fileinfo-file-indexed fileinfo)
+                               (eq (dvc-fileinfo-file-status fileinfo)
+                                   'unknown))
+                           " " "?"))
+              (line (if (stringp image)
+                        (concat image indexed " "
+                                (dvc-fileinfo-file-dir fileinfo)
+                                (dvc-fileinfo-file-file fileinfo))
+                      (concat "   ==>  "
+                              (dvc-fileinfo-file-dir fileinfo)
+                              (dvc-fileinfo-file-file fileinfo))))
+              (face (cond
+                     ((dvc-fileinfo-file-mark fileinfo) 'dvc-marked)
+                     ((dvc-fileinfo-file-exclude fileinfo) 'dvc-excluded)
+                     (t (dvc-fileinfo-choose-face-terse
+                         (dvc-fileinfo-file-status fileinfo))))))
+         (cond
+          ((dvc-fileinfo-file-mark fileinfo) (insert dvc-mark))
+          ((dvc-fileinfo-file-exclude fileinfo) (insert dvc-exclude))
+          (t (insert " ")))
+
+         (insert " ")
+         (insert (dvc-face-add line face))
+         (if (> (length (dvc-fileinfo-file-more-status fileinfo)) 0)
+             (progn
+               (newline)
+               (insert "      ")
+               (insert (dvc-fileinfo-file-more-status fileinfo))))))
+
+      (dvc-fileinfo-legacy
+       (dvc-diff-printer (dvc-fileinfo-legacy-data fileinfo)) )
+
+      (dvc-fileinfo-message
+       (insert (dvc-fileinfo-message-text fileinfo))))))
 
 (defun dvc-fileinfo-current-fileinfo ()
   "Return the fileinfo (a dvc-fileinfo-file, or
@@ -188,7 +266,8 @@ error if point is not on a file or directory."
          (error "not on a file or directory"))))))
 
 (defun dvc-fileinfo-file-or-legacy-file-p (fileinfo)
-  "Return t if FILEINFO is a dvc-fileinfo-file, or a dvc-fileinfo-legacy containing a 'file."
+  "Return t if FILEINFO is a dvc-fileinfo-file, or a dvc-fileinfo-legacy
+containing a 'file."
   (or (dvc-fileinfo-file-p fileinfo)
       (and (dvc-fileinfo-legacy-p fileinfo)
            (eq 'file (car (dvc-fileinfo-legacy-data fileinfo))))))
@@ -197,7 +276,8 @@ error if point is not on a file or directory."
   "Return directory and file from fileinfo, as a string."
   (etypecase fileinfo
     (dvc-fileinfo-file
-     (concat (dvc-fileinfo-file-dir fileinfo) (dvc-fileinfo-file-file fileinfo)))
+     (concat (dvc-fileinfo-file-dir fileinfo)
+             (dvc-fileinfo-file-file fileinfo)))
 
     (dvc-fileinfo-legacy
      (let ((data (dvc-fileinfo-legacy-data fileinfo)))
@@ -223,7 +303,8 @@ point is not on a file element line."
     (ewoc-map
      (lambda (fileinfo)
        (when (dvc-fileinfo-file-or-legacy-file-p fileinfo)
-         ;; we use 'add-to-list', because some back-ends put files in the ewoc more than once
+         ;; we use 'add-to-list', because some back-ends put files in
+         ;; the ewoc more than once
          (add-to-list 'result (dvc-fileinfo-path fileinfo)))
        nil)
      dvc-fileinfo-ewoc)
@@ -262,7 +343,8 @@ point is not on a file element line."
         (if mark
             (progn
               (add-to-list 'dvc-buffer-marked-file-list file))
-          (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list)))
+          (setq dvc-buffer-marked-file-list
+                (delete file dvc-buffer-marked-file-list)))
         (etypecase fileinfo
           (dvc-fileinfo-dir
            (dvc-fileinfo-mark-dir file mark)
@@ -285,7 +367,8 @@ point is not on a file element line."
               dvc-fileinfo-ewoc)))
 
 (defun dvc-fileinfo-mark-file-1 (mark)
-  "Set the mark for file under point to MARK. If a directory, mark all files in that directory."
+  "Set the mark for file under point to MARK. If a directory, mark all files
+in that directory."
   (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
          (fileinfo (ewoc-data current)))
     (etypecase fileinfo
@@ -294,7 +377,8 @@ point is not on a file element line."
          (setf (dvc-fileinfo-file-mark fileinfo) mark)
          (if mark
              (add-to-list 'dvc-buffer-marked-file-list file)
-           (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list)))
+           (setq dvc-buffer-marked-file-list
+                 (delete file dvc-buffer-marked-file-list)))
          (ewoc-invalidate dvc-fileinfo-ewoc current)
          (dvc-fileinfo-mark-dir file mark)))
 
@@ -303,7 +387,8 @@ point is not on a file element line."
          (setf (dvc-fileinfo-file-mark fileinfo) mark)
          (if mark
              (add-to-list 'dvc-buffer-marked-file-list file)
-           (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list)))
+           (setq dvc-buffer-marked-file-list
+                 (delete file dvc-buffer-marked-file-list)))
          (ewoc-invalidate dvc-fileinfo-ewoc current)))
 
       (dvc-fileinfo-message
@@ -339,7 +424,8 @@ in that directory. Then move to previous ewoc entry."
               (etypecase fileinfo
                 (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
                  (setf (dvc-fileinfo-file-mark fileinfo) t)
-                 (add-to-list 'dvc-buffer-marked-file-list (dvc-fileinfo-path fileinfo))
+                 (add-to-list 'dvc-buffer-marked-file-list
+                              (dvc-fileinfo-path fileinfo))
                  ;; return non-nil so this element is refreshed
                  t)
 
@@ -371,7 +457,8 @@ in that directory. Then move to previous ewoc entry."
          (fileinfo (ewoc-data current)))
     (typecase fileinfo
       (dvc-fileinfo-file
-       (setf (dvc-fileinfo-file-exclude fileinfo) (not (dvc-fileinfo-file-exclude fileinfo)))
+       (setf (dvc-fileinfo-file-exclude fileinfo)
+             (not (dvc-fileinfo-file-exclude fileinfo)))
        (ewoc-invalidate dvc-fileinfo-ewoc current))
 
       (otherwise
@@ -470,7 +557,8 @@ if there is no prev."
         (let ((fileinfo (ewoc-data elem)))
           (if status
               (if (not (equal status (dvc-fileinfo-file-status fileinfo)))
-                  (error "cannot Do The Right Thing on files with different status"))
+                  (error (concat "cannot Do The Right Thing on files with"
+                                 " different status")))
             (setq status (dvc-fileinfo-file-status fileinfo)))))
       status)))
 
@@ -549,7 +637,10 @@ workspace. Otherwise, call `dvc-remove-files'."
 
     (if known-files
         (progn
-          (apply 'dvc-remove-files (mapcar (lambda (elem) (dvc-fileinfo-path (ewoc-data elem))) known-files))
+          (apply 'dvc-remove-files
+                 (mapcar (lambda (elem)
+                           (dvc-fileinfo-path (ewoc-data elem)))
+                         known-files))
           (mapc
            (lambda (elem)
              (let ((fileinfo (ewoc-data elem)))
@@ -593,7 +684,8 @@ One file must have status `missing', the other `unknown'."
       (dvc-fileinfo--do-rename (nth 1 fis) (nth 0 fis) elems))
 
      (t
-      (error "must rename from a file with status `missing' to a file with status `unknown'")))))
+      (error (concat "must rename from a file with status `missing' to a"
+                     " file with status `unknown'"))))))
 
 (defun dvc-fileinfo-rename-possible (marked-elems)
   "Return nil if `dvc-fileinfo-rename' will throw an error for
