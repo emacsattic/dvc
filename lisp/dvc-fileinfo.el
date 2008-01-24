@@ -94,7 +94,7 @@ This is used by `dvc-fileinfo-printer-terse'."
     (ignored        "G")
     (invalid        "I")
     (known          "-")
-    (missing        "S")
+    (missing        "D")
     (modified       "M")
     (copy-source    "C")
     (copy-target    'target)
