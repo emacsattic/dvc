@@ -65,8 +65,9 @@ The elements must all be of class dvc-fileinfo-root.")
   more-status   ;; String; whatever else the backend has to say
   )
 
-(defun dvc-fileinfo-status-image (status)
-  "String image of STATUS."
+(defun dvc-fileinfo-status-image-text (status)
+  "String image of STATUS.
+This is used by `dvc-fileinfo-printer-text'."
   (ecase status
     (added          "added        ")
     (conflict       "conflict     ")
@@ -76,14 +77,15 @@ The elements must all be of class dvc-fileinfo-root.")
     (known          "known        ")
     (missing        "missing      ")
     (modified       "modified     ")
-    (copy-source    "copy-source  ")
-    (copy-target    "copy-target  ")
-    (rename-source  "rename-source")
-    (rename-target  "rename-target")
+    (copy-source    "copy         ")
+    (copy-target    "        ==>  ")
+    (rename-source  "rename       ")
+    (rename-target  "        ==>  ")
     (unknown        "unknown      ")))
 
-(defun dvc-fileinfo-choose-face (status)
-  "Return a face appropriate for STATUS."
+(defun dvc-fileinfo-choose-face-text (status)
+  "Return a face appropriate for STATUS.
+This is used by `dvc-fileinfo-printer-text'."
   (ecase status
     (added         'dvc-added)
     (conflict      'dvc-conflict)
@@ -128,19 +130,32 @@ The elements must all be of class dvc-fileinfo-root.")
   )
 
 (defun dvc-fileinfo-printer (fileinfo)
-  "Ewoc pretty-printer for dvc-fileinfo types."
+  (let* ((interface (or dvc-fileinfo-printer-interface 'text))
+         (fun (intern (concat "dvc-fileinfo-printer-"
+                              (symbol-name interface)))))
+    ;; Allow people to use a complete function name if they like
+    (when (and (not (fboundp fun))
+               (fboundp interface))
+      (setq fun interface))
+    (funcall fun fileinfo)))
+
+(defun dvc-fileinfo-printer-text (fileinfo)
+  "Ewoc pretty-printer for dvc-fileinfo types which uses full text to
+indicate statuses."
   (let ((inhibit-read-only t))
     (etypecase fileinfo
       (dvc-fileinfo-file ;; also matches dvc-fileinfo-dir
        (let* ((line (concat
-                     (dvc-fileinfo-status-image (dvc-fileinfo-file-status fileinfo))
+                     (dvc-fileinfo-status-image-text
+                      (dvc-fileinfo-file-status fileinfo))
                      " "
                      (dvc-fileinfo-file-dir fileinfo)
                      (dvc-fileinfo-file-file fileinfo)))
               (face (cond
                      ((dvc-fileinfo-file-mark fileinfo) 'dvc-marked)
                      ((dvc-fileinfo-file-exclude fileinfo) 'dvc-excluded)
-                     (t (dvc-fileinfo-choose-face (dvc-fileinfo-file-status fileinfo))))))
+                     (t (dvc-fileinfo-choose-face-text
+                         (dvc-fileinfo-file-status fileinfo))))))
          (insert " ")
          (cond
           ((dvc-fileinfo-file-mark fileinfo) (insert dvc-mark))

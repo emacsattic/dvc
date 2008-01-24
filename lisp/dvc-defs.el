@@ -107,6 +107,19 @@ the first one found; dvc-select-priority sets the search order."
   :type 'boolean
   :group 'dvc)
 
+(defcustom dvc-fileinfo-printer-interface 'text
+  "How to display info about the working tree in DVC status buffers.
+
+The default is 'text, which uses explanatory text when listing
+the status of the tree.
+
+Another option is 'terse, which uses a single letter to indicate
+the status of each file."
+  :group 'dvc
+  :type '(choice (const 'text)
+                 (const 'terse)
+                 (symbol :tag "Other")))
+
 (defcustom dvc-completing-read-function (if (fboundp 'ido-completing-read)
                                             'ido-completing-read
                                           'completing-read)
