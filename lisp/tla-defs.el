@@ -1250,7 +1250,8 @@ baz is the command name for bazaar, a branch of tla."
   "*Branch of GNU Arch to use.
 Currently supported are 'tla and 'baz."
   :type '(choice (const baz)
-                 (const tla))
+                 (const tla)
+                 (const :tag "No tla variant installed" none))
   :group 'xtla)
 
 (defcustom tla-install-command-help-system t

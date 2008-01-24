@@ -128,11 +128,15 @@ arch managed tree (but return nil)."
 
 (defun tla--run-tla-async (arguments &rest keys)
   "Run tla asynchronously. See `dvc-run-dvc-async'"
-  (apply 'dvc-run-dvc-async tla-arch-branch arguments keys))
+  (if (and tla-arch-branch (not (eq tla-arch-branch 'none)))
+      (apply 'dvc-run-dvc-async tla-arch-branch arguments keys)
+    (error "No tla variant is installed on your system")))
 
 (defun tla--run-tla-sync (arguments &rest keys)
   "Run tla synchronously. See `dvc-run-dvc-sync'"
-  (apply 'dvc-run-dvc-sync tla-arch-branch arguments keys))
+  (if (and tla-arch-branch (not (eq tla-arch-branch 'none)))
+      (apply 'dvc-run-dvc-sync tla-arch-branch arguments keys)
+    (error "No tla variant is installed on your system")))
 
 ;; ----------------------------------------------------------------------------
 ;; Arch name manipulators
