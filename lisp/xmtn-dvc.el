@@ -693,8 +693,8 @@ the file before saving."
         (setq indexed
               (if (eq status 'missing)
                   ;; in terse mode, missing is represented as "D?"
-                  t
-                nil))
+                  nil
+                t))
 
         (setq need-more-status
               (if (and (eq status (list main-status)) (eq changes nil))
