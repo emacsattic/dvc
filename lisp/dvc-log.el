@@ -1,4 +1,4 @@
-;;; dvc-log.el --- Manipulation of the log before commiting
+;;; dvc-log.el --- Manipulation of the log before committing
 
 ;; Copyright (C) 2005-2008 by all contributors
 
