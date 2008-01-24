@@ -8884,8 +8884,7 @@ that visits the link."
 (defun tla-find-file-hook ()
   "Hook executed when opening a file.
 Follow symlinked files/directories to the actual location of a file.
-Enter smerge mode if the file has conflicts (detected by the presence
-of a .rej file)."
+See also `dvc-find-file-hook'."
   (let (link file result)
     (when (and (if (boundp 'vc-ignore-vc-files)
                    (not vc-ignore-vc-files)

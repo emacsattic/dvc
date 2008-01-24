@@ -1,6 +1,6 @@
 ;;; dvc-ui.el --- User interface (keybinding, menus) for DVC
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -468,7 +468,9 @@ turn off visualization."
   nil)
 
 (defun dvc-find-file-hook ()
-  "Set dvc-show-active-dvc-string, after loading a file."
+  "Set dvc-show-active-dvc-string, after loading a file.  Enter
+smerge mode if the file has conflicts (detected by
+<dvc>-dvc-file-has-conflict-p)."
   (when (dvc-current-active-dvc)
     (dvc-actualize-modeline)
     (when (dvc-call "dvc-file-has-conflict-p" (buffer-file-name))

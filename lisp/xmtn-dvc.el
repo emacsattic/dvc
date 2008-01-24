@@ -357,18 +357,10 @@ the file before saving."
     ;; Saving the buffer will automatically delete any log edit hints.
     (save-buffer)
     (dvc-save-some-buffers root)
-    ;; Need to do this after `dvc-save-some-buffers'.
-    ;;
-    ;; Due the possibility of race conditions, this check doesn't
-    ;; guarantee the operation will succeed.
-    (unless (funcall (xmtn--tree-consistent-p-future root))
-      (error "There are missing files, unable to commit"))
-    ;; mtn ls changed doesn't work while the tree is inconsistent, so
-    ;; we can't run the two futures in parallel.  (Or maybe we could,
-    ;; if a future that is never forced would never report errors in
-    ;; its process.)
-    (unless (funcall (xmtn--tree-has-changes-p-future root))
-      (error "No changes to commit"))
+    ;; We used to check for things that would make commit fail;
+    ;; missing files, nothing to commit. But that just slows things
+    ;; down in the typical case; better to just handle the error
+    ;; message, which is way more informative anyway.
     (lexical-let* ((progress-message
                     (case normalized-files
                       (all (format "Committing all files in %s" root))
@@ -541,12 +533,30 @@ the file before saving."
 (defun xmtn-dvc-diff (&optional base-rev path dont-switch)
   (xmtn-dvc-delta base-rev (list 'xmtn (list 'local-tree (xmtn-tree-root path))) dont-switch))
 
+(defvar xmtn-diff-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?P] 'xmtn-propagate-from)
+    (define-key map [?H] 'xmtn-view-heads-revlist)
+    map))
+
+(easy-menu-define xmtn-diff-mode-menu xmtn-diff-mode-map
+  "Mtn specific diff menu."
+  `("DVC-Mtn"
+    ["Propagate branch" xmtn-propagate-from t]
+    ["View Heads" xmtn-view-heads-revlist t]
+    ))
+
+(define-derived-mode xmtn-diff-mode dvc-diff-mode "xmtn-diff"
+  "Add back-end-specific commands for dvc-diff.")
+
+(dvc-add-uniquify-directory-mode 'xmtn-diff-mode)
+
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id &optional dont-switch)
-  ;; See dvc-unified.el dvc-delta for doc string
+  ;; See dvc-unified.el dvc-delta for doc string. That says that
+  ;; neither id can be local-tree. However, we also use this as the
+  ;; implementation of xmtn-dvc-diff, so we need to handle local-tree.
   (let ((root (dvc-tree-root)))
-    ;; FIXME: should specify 'revision-diff for type if to-revision-id is local-tree.
-    ;; Then need to bind default-directory (see bzr-delta; dvc-prepare-changes-buffer should do that).
     (lexical-let ((buffer (dvc-prepare-changes-buffer from-revision-id to-revision-id
                                                       'diff root 'xmtn))
                   (dont-switch dont-switch))
@@ -557,8 +567,9 @@ the file before saving."
         (let ((rev-specs
                `(,(xmtn-match from-resolved
                     ((local-tree $path)
-                     ;; FROM-REVISION-ID is the workspace. mtn diff
-                     ;; can't handle this case.
+                     ;; FROM-REVISION-ID is not a committed revision, but the
+                     ;; workspace.  mtn diff can't directly handle
+                     ;; this case.
                      (error "not implemented"))
 
                     ((revision $hash-id)
@@ -569,10 +580,14 @@ the file before saving."
                       (assert (xmtn--same-tree-p root path))
 
                       ;; mtn diff will abort if there are missing
-                      ;; files, so check for that first, and give a
-                      ;; nicer error message.
-                      (unless (funcall (xmtn--tree-consistent-p-future root))
-                        (error "There are missing files in local tree; unable to diff. Try dvc-status."))
+                      ;; files. But checking for that is a slow
+                      ;; operation, so allow user to bypass it. We use
+                      ;; dvc-confirm-update rather than a separate
+                      ;; option, because dvc-confirm-update will be
+                      ;; set t for the same reason this would.
+                      (if dvc-confirm-update
+                          (unless (funcall (xmtn--tree-consistent-p-future root))
+                            (error "There are missing files in local tree; unable to diff. Try dvc-status.")))
                       `())
 
                      ((revision $hash-id)
@@ -836,7 +851,7 @@ the file before saving."
                      (with-current-buffer status-buffer
                        (ewoc-enter-last dvc-fileinfo-ewoc (make-dvc-fileinfo-message :text "Parsing inventory..."))
                        (ewoc-refresh dvc-fileinfo-ewoc)
-                       (xmtn--redisplay t)
+                       (dvc-redisplay t)
                        (dvc-fileinfo-delete-messages)
                        (lexical-let ((excluded-files (dvc-default-excluded-files))
                                      (changesp nil))
@@ -1167,13 +1182,13 @@ finished."
   (check-type revision-hash-id xmtn--hash-id)
   (xmtn--command-output-lines-future root `("disapprove" ,revision-hash-id)))
 
-(defun xmtn--do-update (root target-revision-hash-id changes-p-future)
+(defun xmtn--do-update (root target-revision-hash-id changes-p)
   (check-type root string)
   (check-type target-revision-hash-id xmtn--hash-id)
   (let ((progress-message (format "Updating tree %s to revision %s"
                                   root target-revision-hash-id))
         (command `("update" ,(concat "--revision=" target-revision-hash-id))))
-    (if (funcall changes-p-future)
+    (if changes-p
         (progn (message "%s" progress-message)
                (xmtn--run-command-that-might-invoke-merger root command))
       (message "%s..." progress-message)
@@ -1183,28 +1198,38 @@ finished."
   nil)
 
 (defun xmtn--update-after-confirmation (root target-revision-hash-id)
+  ;; mtn will just give an innocuous message if already updated, which
+  ;; the user won't see. So check that here - it's fast.
   (when (equal (xmtn--get-base-revision-hash-id root) target-revision-hash-id)
     (error "Tree %s is already based on target revision %s"
            root target-revision-hash-id))
   (dvc-save-some-buffers root)
-  ;; Due to the possibility of race conditions, this check doesn't
-  ;; guarantee the operation will succeed.
-  (unless (funcall (xmtn--tree-consistent-p-future root))
-    (error "Tree is inconsistent, unable to update"))
-  ;; tree-has-changes-p will break if tree is inconsistent; can't
-  ;; spawn them in parallel.
-  (let ((changes-p-future (xmtn--tree-has-changes-p-future root)))
-    (unless (y-or-n-p
-             (format (concat "Update tree %s to revision %s? ")
-                     root target-revision-hash-id))
-      (error "Aborted update"))
-    (when (funcall changes-p-future)
-      (unless (yes-or-no-p
-               (format (concat
-                        "Tree %s contains uncommitted changes.  Update anyway? ")
-                       root))
-        (error "Aborted update")))
-    (xmtn--do-update root target-revision-hash-id changes-p-future))
+  (let (changes-p)
+    (if dvc-confirm-update
+        (progn
+          ;; tree-has-changes-p and update will break if tree is
+          ;; inconsistent, so check that first. But it's a slow check,
+          ;; so don't bother if not confirming; error message from
+          ;; update is clear.
+          (unless (funcall (xmtn--tree-consistent-p-future root))
+            (error "Tree is inconsistent, unable to update"))
+          (unless (y-or-n-p
+                   (format (concat "Update tree %s to revision %s? ")
+                           root target-revision-hash-id))
+            (error "Aborted update"))
+
+          ;; has-changes-p is also a slow check. xmtn--do-update will
+          ;; show a "possible merger" window if changes-p is true;
+          ;; experienced users who set dvc-confirm-update don't need
+          ;; that.
+          (setq changes-p (funcall (xmtn--tree-has-changes-p-future root)))
+          (when changes-p
+            (unless (yes-or-no-p
+                     (format (concat
+                              "Tree %s contains uncommitted changes.  Update anyway? ")
+                             root))
+              (error "Aborted update")))))
+    (xmtn--do-update root target-revision-hash-id changes-p))
   nil)
 
 ;;;###autoload
@@ -1216,8 +1241,8 @@ finished."
         (case (length heads)
           (0 (assert nil))
           (1
-           (xmtn--update-after-confirmation root
-                                            (first heads)))
+           (xmtn--update-after-confirmation root (first heads)))
+
           (t
            ;; Should probably prompt user to choose one head, but let's
            ;; keep it simple for now.

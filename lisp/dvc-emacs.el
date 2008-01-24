@@ -1,4 +1,8 @@
-;;; dvc-emacs.el --- Compatibility stuff for old version of GNU Emacs
+;;; dvc-emacs.el --- Compatibility stuff for old versions of GNU Emacs
+;;; and for XEmacs.
+;;;
+;;; This file should be loaded when using Gnu Emacs; load
+;;; dvc-xemacs.el when using XEmacs.
 
 ;; Copyright (C) 2004, 2007 - 2008 by all contributors
 
@@ -19,12 +23,52 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
 
-;;; Commentary:
+;;; Policy:
+;;
+;; The DVC baseline environment is the current release of Gnu Emacs.
+;; However, we also support at least one previous release of Gnu
+;; Emacs, and the current release of XEmacs.
+;;
+;; There is current Gnu Emacs code used in DVC that is not present in
+;; XEmacs or previous releases of Gnu Emacs.
+;;
+;; This file provides versions of that code that work with previous
+;; versions of Gnu Emacs. dvc-xemacs.el provides versions of that code
+;; that work with XEmacs.
+;;
+;; There are also functions in Gnu Emacs code used in DVC that have
+;; different names in XEmacs. This file and dvc-xemacs.el provide
+;; common names for those functions.
+;;
+;; There may also be functions in Gnu Emacs that have the same name as
+;; functions in XEmacs, in which case this file provides a common name
+;; to sort things out.
+;;
+;; In all cases, the code provided here should use names prefixed with
+;; `dvc-'. This is to allow for the possibility that other packages
+;; also provide the same function, but the code is broken in some way.
+;; Our version will work with DVC; theirs will work with their
+;; package. DVC code must use the dvc- prefixed name.
+;;
+;; It might be that some code is truly _not_ broken, but it's much
+;; easier to just use the dvc- prefix than to prove that.
+;;
+;; Some implementations will be duplicated here and in dvc-xemacs.el.
+;; That is ok; they may need to diverge if bugs are discovered, and
+;; they will most likely be reduced to aliases at different times.
 
-;; GNU Emacs is a creature; it grows day by day. DVC assumes GNU Emacs
-;; 22, and in the future may use features from a non-released version.
-;; But many people are still using Emacs 21, so this file provides
-;; functions from the later versions used by DVC.
+;; DVC developers should normally use Gnu Emacs 22 or XEmacs. In
+;; addition, they should occasionally compile with Gnu Emacs 21, or
+;; earlier versions of XEmacs, to verify compatibility.
+;;
+;; As the current release of Gnu Emacs ages, it may be that there are
+;; features in the development head of Emacs that would be useful in
+;; DVC. Such features can also be provided here.
+
+;; In the future, when we drop support for Gnu Emacs 21, some of the
+;; functions provided here can be deleted, and the DVC code that uses
+;; it changed to use the Gnu Emacs release name. That will make that
+;; code somewhat clearer.
 
 ;;; Code:
 
@@ -51,13 +95,38 @@
 (defalias 'dvc-put-text-property 'put-text-property)
 (defconst dvc-mouse-face-prop 'mouse-face)
 
-;; Provide compatibility code for Emacs 21
-;; features from Emacs 22
-(if (not (boundp 'delay-mode-hooks))
-    (defvar delay-mode-hooks nil))
+;; Provide features from Emacs 22 for Emacs 21
 
-(if (not (fboundp 'redisplay))
-    (defun redisplay (foo) nil))
+(if (fboundp 'ewoc-delete)
+    (defalias 'dvc-ewoc-delete 'ewoc-delete)
+  (defun dvc-ewoc-delete (ewoc &rest nodes)
+    "Delete NODES from EWOC."
+    (ewoc--set-buffer-bind-dll-let* ewoc
+        ((L nil) (R nil) (last (ewoc--last-node ewoc)))
+      (dolist (node nodes)
+        ;; If we are about to delete the node pointed at by last-node,
+        ;; set last-node to nil.
+        (when (eq last node)
+          (setf last nil (ewoc--last-node ewoc) nil))
+        (delete-region (ewoc--node-start-marker node)
+                       (ewoc--node-start-marker (ewoc--node-next dll node)))
+        (set-marker (ewoc--node-start-marker node) nil)
+        (setf L (ewoc--node-left  node)
+              R (ewoc--node-right node)
+              ;; Link neighbors to each other.
+              (ewoc--node-right L) R
+              (ewoc--node-left  R) L
+              ;; Forget neighbors.
+              (ewoc--node-left  node) nil
+              (ewoc--node-right node) nil)))))
+
+(if (fboundp 'redisplay)
+    (defalias 'dvc-redisplay 'redisplay)
+  (defun dvc-redisplay (&optional force)
+    (if force
+        (let ((redisplay-dont-pause t))
+          (sit-for 0))
+      (sit-for 0))))
 
 (if (fboundp 'line-number-at-pos)
     (defalias 'dvc-line-number-at-pos 'line-number-at-pos)
@@ -72,6 +141,7 @@ If POS is nil, use current buffer location."
         (forward-line 0)
         (1+ (count-lines start (point)))))))
 
+;; FIXME: move to dvc-utils?
 (defun dvc-emacs-make-temp-dir (prefix)
   "Make a temporary directory using PREFIX.
 Return the name of the directory."
@@ -83,8 +153,5 @@ Return the name of the directory."
 (defalias 'dvc-make-temp-dir 'dvc-emacs-make-temp-dir)
 
 (provide 'dvc-emacs)
-;; Local Variables:
-;; End:
-
 ;;; dvc-emacs.el ends here
 
