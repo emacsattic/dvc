@@ -843,9 +843,7 @@ the file before saving."
       (ewoc-enter-last dvc-fileinfo-ewoc (make-dvc-fileinfo-message :text "Running monotone..."))
       (ewoc-refresh dvc-fileinfo-ewoc))
 
-    (lexical-let*
-        ((status-buffer status-buffer)
-         (root root))
+    (lexical-let* ((status-buffer status-buffer))
       (xmtn--run-command-async
        root `("automate" "inventory"
               ,@(and (xmtn--have-no-ignore)
@@ -881,8 +879,7 @@ the file before saving."
                          (ewoc-enter-last dvc-fileinfo-ewoc
                                           (make-dvc-fileinfo-message
                                            :text (concat " no changes")))
-                         (ewoc-refresh dvc-fileinfo-ewoc)
-                         ))))
+                         (ewoc-refresh dvc-fileinfo-ewoc)))))
        :error (lambda (output error status arguments)
                 (dvc-diff-error-in-process
                  status-buffer
