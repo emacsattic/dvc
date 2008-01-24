@@ -114,17 +114,21 @@ order."
   :type 'boolean
   :group 'dvc)
 
-(defcustom dvc-fileinfo-printer-interface 'text
+(defcustom dvc-fileinfo-printer-interface 'full
   "How to display info about the working tree in DVC status buffers.
 
 The default is 'text, which uses explanatory text when listing
 the status of the tree.
 
 Another option is 'terse, which uses a single letter to indicate
-the status of each file."
+the status of each file.
+
+Alternatively, you may set this to the name of a custom function
+which, given a fileinfo argument, produces the status list in the
+current buffer."
   :group 'dvc
-  :type '(choice (const text)
-                 (const terse)
+  :type '(choice (const :tag "Full" full)
+                 (const :tag "Terse" terse)
                  (symbol :tag "Other")))
 
 (defcustom dvc-completing-read-function (if (and (boundp 'ido-mode)
