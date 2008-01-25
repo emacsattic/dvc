@@ -458,10 +458,9 @@ If PATH is specified, it will be passed to `dvc-get-buffer-create'."
       (dvc-process-buffer-mode))))
 
 (defun dvc-show-error-buffer (buffer &optional type mode)
-  "Pops up the error buffer.
-Works like `dvc-show-last-process-buffer', but displays BUFFER, of type
-'errors if TYPE is not specified.
-If MODE is specified, the buffer will use that mode."
+  "Pops up a new buffer displaying contents of BUFFER.
+New buffer has type TYPE (default 'errors), mode MODE (default
+`dvc-process-buffer-mode')."
   (when (buffer-live-p buffer)
     (let ((content (with-current-buffer buffer
                      (buffer-string))))

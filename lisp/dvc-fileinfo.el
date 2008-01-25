@@ -151,7 +151,9 @@ This is used by `dvc-fileinfo-printer-full'."
   )
 
 (defun dvc-fileinfo-printer (fileinfo)
-  (let* ((interface (or dvc-fileinfo-printer-interface 'text))
+  "Ewoc pretty-printer for dvc-fileinfo types. Actual pretty-printer
+is specified by `dvc-fileinfo-printer-interface'."
+  (let* ((interface (or dvc-fileinfo-printer-interface 'full))
          (fun (intern (concat "dvc-fileinfo-printer-"
                               (symbol-name interface)))))
     ;; Allow people to use a complete function name if they like

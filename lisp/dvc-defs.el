@@ -115,9 +115,9 @@ order."
   :group 'dvc)
 
 (defcustom dvc-fileinfo-printer-interface 'full
-  "How to display info about the working tree in DVC status buffers.
+  "How to display info about the working tree in DVC diff and status buffers.
 
-The default is 'text, which uses explanatory text when listing
+The default is 'full, which uses explanatory text when listing
 the status of the tree.
 
 Another option is 'terse, which uses a single letter to indicate

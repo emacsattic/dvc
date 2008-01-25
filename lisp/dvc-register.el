@@ -177,11 +177,15 @@ Overrides the search for a control directory in
 Currently supported dvc's can be found in
 `dvc-registered-backends'. If `dvc-prompt-active-dvc' is nil,
 `dvc-select-priority' specifies the priority, if more than one
-back-end is in use for `default-directory'. If
-`dvc-prompt-active-dvc' is non-nil, `dvc-select-priority'
+back-end is in use for `default-directory'.
+
+If `dvc-prompt-active-dvc' is non-nil, `dvc-registered-backends'
 specifies the list of back-ends to test for, and the user is
-prompted when more than one is found. The values are cached in
-`dvc-current-active-dvc-cache'.
+prompted when more than one is found. Note that
+`dvc-registered-backends' defaults to all backends that DVC
+supports; it may be customized to only those used.
+
+The value found for each directory is cached in `dvc-current-active-dvc-cache'.
 
 If NOCACHE is non-nil, ignore the cache for this call, but still
 cache the result (useful for correcting an incorrect cache entry).
@@ -198,7 +202,7 @@ then use that value instead of the cache or searching."
                             dvc-current-active-dvc-cache))))
         (unless dvc
           (if dvc-prompt-active-dvc
-              (let ((dvc-list dvc-select-priority)
+              (let ((dvc-list dvc-registered-backends)
                     (options)
                     (tree-root-func))
                 (while dvc-list
