@@ -16,7 +16,7 @@
 (add-to-list 'load-path "@abs_top_builddir@/lisp")
 (unless (locate-library "ewoc")
   (add-to-list 'load-path "@abs_top_builddir@/lisp/contrib"))
-(add-to-list 'Info-default-directory-list "@abs_top_builddir@/info")
+(add-to-list 'Info-default-directory-list "@abs_top_builddir@/texinfo")
 
 (if (featurep 'dvc-core)
     (dvc-reload)
