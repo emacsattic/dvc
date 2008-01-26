@@ -30,6 +30,7 @@
 
 ;; FIXME: defined here because package-maint.el is part of DVC for now.
 (setq srcdir (or (getenv "srcdir") "."))
+(setq builddir (or (getenv "builddir") "."))
 (setq contribdir (or (getenv "contribdir") (concat srcdir "/contrib")))
 (setq otherdirs (or (getenv "otherdirs") ""))
 
@@ -67,6 +68,10 @@
 
 ;; List of files to compile: default to $(srcdir)/*.el
 (setq package-maint-files (directory-files srcdir nil "^[^=].*\\.el$"))
+
+;; dvc-site.el may not be in the list when @srcdir@
+;; is not builddir.
+(add-to-list 'package-maint-files (expand-file-name builddir "dvc-site.el"))
 
 ;; List of files to remove from package-maint-files
 (setq no-compile-files '("dvc-build.el" "dvc-preload.el"))

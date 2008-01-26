@@ -13,6 +13,9 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_DATA = @INSTALL_DATA@
 
+top_builddir = @top_builddir@
+builddir = @builddir@
+
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 
@@ -30,7 +33,7 @@ FLAGS = @FLAGS@
 
 OTHERDIRS = @OTHERDIRS@
 
-EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" $(EMACS_PROG) $(FLAGS)
+EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" builddir="$(builddir)" $(EMACS_PROG) $(FLAGS)
 
 SYMLINKS = @SYMLINKS@
 LINKPATH = @LINKPATH@
@@ -139,7 +142,5 @@ dvc-version.el: $(SRCS:%=@srcdir@/%)
 	chmod -w $@
 endif
 
-dvc-site.el.in: ../config.status
-	(cd .. ; ./configu.status listp/$@)
 dvc-site.el: ../config.status
 	(cd .. ; ./config.status lisp/$@)
