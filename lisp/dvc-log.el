@@ -1,4 +1,4 @@
-;;; dvc-log.el --- Manipulation of the log before commiting
+;;; dvc-log.el --- Manipulation of the log before committing
 
 ;; Copyright (C) 2005-2008 by all contributors
 
@@ -245,11 +245,7 @@ from the ediff control buffer."
   (interactive "P")
   (let ((dvc-temp-current-active-dvc dvc-buffer-current-active-dvc))
     (set-buffer ediff-buffer-B) ; DVC puts workspace version here
-
-    ;; We don't set add-log-file-name-function globally because
-    ;; dvc-diff-mode needs a different one.
-    (let ((add-log-file-name-function 'dvc-add-log-file-name))
-      (dvc-add-log-entry-internal other-frame))))
+    (dvc-add-log-entry-internal other-frame)))
 
 (defun dvc-add-log-entry-internal (other-frame)
   "Similar to `add-change-log-entry'.
@@ -258,8 +254,12 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
   ;; This is mostly copied from add-log.el.  Perhaps it would be better to
   ;; split add-change-log-entry into several functions and then use them, but
   ;; that wouldn't work with older versions of Emacs.
+  ;;
+  ;; We don't set add-log-file-name-function globally because
+  ;; dvc-diff-mode needs a different one.
   (if (not (featurep 'add-log)) (require 'add-log))
   (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+         (add-log-file-name-function 'dvc-add-log-file-name)
          (defun (add-log-current-defun))
          (buf-file-name (if (and (boundp 'add-log-buffer-file-name-function)
                                  add-log-buffer-file-name-function)

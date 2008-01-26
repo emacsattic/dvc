@@ -314,30 +314,6 @@ Strips the final newline if there is one."
                 (- (point) 1)
               (point))))))
 
-;; Some Emacsen do not have ewoc-delete
-(if (fboundp 'ewoc-delete)
-    (defalias 'dvc-ewoc-delete 'ewoc-delete)
-  (defun dvc-ewoc-delete (ewoc &rest nodes)
-    "Delete NODES from EWOC."
-    (ewoc--set-buffer-bind-dll-let* ewoc
-        ((L nil) (R nil) (last (ewoc--last-node ewoc)))
-      (dolist (node nodes)
-        ;; If we are about to delete the node pointed at by last-node,
-        ;; set last-node to nil.
-        (when (eq last node)
-          (setf last nil (ewoc--last-node ewoc) nil))
-        (delete-region (ewoc--node-start-marker node)
-                       (ewoc--node-start-marker (ewoc--node-next dll node)))
-        (set-marker (ewoc--node-start-marker node) nil)
-        (setf L (ewoc--node-left  node)
-              R (ewoc--node-right node)
-              ;; Link neighbors to each other.
-              (ewoc--node-right L) R
-              (ewoc--node-left  R) L
-              ;; Forget neighbors.
-              (ewoc--node-left  node) nil
-              (ewoc--node-right node) nil)))))
-
 ;; this is no longer needed, because ewoc-create takes now the argument nosep:
 ;; (defun ewoc-create (pretty-printer &optional header footer nosep)
 ;; If you need that behaviour: set dvc-ewoc-create-needs-newline to t
@@ -688,15 +664,27 @@ See `completing-read' for a description of ARGS."
 
 (defun dvc-default-excluded-files ()
   "Return a list of strings (normally file names relative to tree
-  root) from the file \".dvc-exclude\" in `default-directory'."
+root) from the file \".dvc-exclude\" in `default-directory'.
+Shell wildcards are converted to regexp, for use with
+`dvc-match-excluded'."
   (if (file-readable-p ".dvc-exclude")
       (with-temp-buffer
         (insert-file-contents ".dvc-exclude")
         (let (result)
           (while (< (point) (point-max))
-            (setq result (append result (list (buffer-substring (point) (point-at-eol)))))
+            (setq result (append result (list (wildcard-to-regexp (buffer-substring (point) (point-at-eol))))))
             (forward-line 1))
           result))))
+
+(defun dvc-match-excluded (excluded-files file)
+  "Non-nil if any element of EXCLUDED-FILES matches FILE,
+according to `string-match'."
+  (let (matched)
+    (dolist (file-regexp excluded-files matched)
+      (setq matched
+            (or matched
+                (string-match file-regexp file))))
+    (not (null matched))))
 
 (defun dvc-edit-exclude ()
   "Edit the file \".dvc-exclude\" in `default-directory'."

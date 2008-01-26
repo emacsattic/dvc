@@ -1,5 +1,6 @@
 ;;; xmtn-revlist.el --- Interactive display of revision histories for monotone
 
+;; Copyright (C) 2008 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -256,10 +257,10 @@ arg; root. Result is of the form:
 (defun xmtn--setup-revlist (root info-generator-fn first-line-only-p last-n)
   ;; Adapted from `dvc-build-revision-list'.
   (xmtn-automate-with-session (nil root)
-    (let ((buffer (dvc-revlist-create-buffer
+    (let ((dvc-temp-current-active-dvc 'xmtn)
+          (buffer (dvc-revlist-create-buffer
                    'xmtn 'log root 'xmtn--revlist-refresh first-line-only-p last-n)))
       (with-current-buffer buffer
-        (dvc-revlist-mode)
         (setq xmtn--revlist-*info-generator-fn* info-generator-fn)
         (xmtn--revlist-refresh))
       (xmtn--display-buffer-maybe buffer nil)))
@@ -296,8 +297,8 @@ arg; root. Result is of the form:
         (let ((branch (xmtn--tree-default-branch root)))
           (list branch
                 (list
-                 (if last-n
-                     (format "Log for branch %s (last %d entries):" branch last-n)
+                 (if dvc-revlist-last-n
+                     (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
                    (format "Log for branch %s (all entries):" branch)))
                 '()
                 (xmtn--expand-selector

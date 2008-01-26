@@ -1,6 +1,6 @@
 ;;; dvc-register.el --- Registration of DVC back-ends
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from: Matthieu Moy <Matthieu.Moy@imag.fr>
@@ -177,11 +177,15 @@ Overrides the search for a control directory in
 Currently supported dvc's can be found in
 `dvc-registered-backends'. If `dvc-prompt-active-dvc' is nil,
 `dvc-select-priority' specifies the priority, if more than one
-back-end is in use for `default-directory'. If
-`dvc-prompt-active-dvc' is non-nil, `dvc-select-priority'
+back-end is in use for `default-directory'.
+
+If `dvc-prompt-active-dvc' is non-nil, `dvc-registered-backends'
 specifies the list of back-ends to test for, and the user is
-prompted when more than one is found. The values are cached in
-`dvc-current-active-dvc-cache'.
+prompted when more than one is found. Note that
+`dvc-registered-backends' defaults to all backends that DVC
+supports; it may be customized to only those used.
+
+The value found for each directory is cached in `dvc-current-active-dvc-cache'.
 
 If NOCACHE is non-nil, ignore the cache for this call, but still
 cache the result (useful for correcting an incorrect cache entry).
@@ -198,7 +202,7 @@ then use that value instead of the cache or searching."
                             dvc-current-active-dvc-cache))))
         (unless dvc
           (if dvc-prompt-active-dvc
-              (let ((dvc-list dvc-select-priority)
+              (let ((dvc-list dvc-registered-backends)
                     (options)
                     (tree-root-func))
                 (while dvc-list
@@ -206,25 +210,24 @@ then use that value instead of the cache or searching."
                   (when (fboundp tree-root-func)
                     (let ((current-root (funcall tree-root-func nil t)))
                       (when current-root
-                        (setq options (cons (list (car dvc-list) current-root) options)))))
+                        ;; WORKAROUND: ido-completing-read requires
+                        ;; strings, not symbols, in the options list.
+                        (setq options (cons (list (symbol-name (car dvc-list)) current-root) options)))))
                   (setq dvc-list (cdr dvc-list)))
                 (case (length options)
                   (0
-                   ;; FIXME: we'd like to abort with a nice error
-                   ;; message here, but some places (ie
-                   ;; dvc-find-file-hook) expect
-                   ;; dvc-current-active-dvc to silently return nil if
-                   ;; there is no back-end found.
-;;                    (error (concat "No active back-end found for %s. Check setting of `dvc-select-priority';"
-;;                                   " it must contain all back-ends to consider.")
-;;                           default-directory))
+                   ;; FIXME: In most situations we'd like to abort
+                   ;; with a nice error message here, but in others
+                   ;; (ie dvc-find-file-hook) we need to silently
+                   ;; return nil if there is no back-end found. Need
+                   ;; another arg.
                    (setq dvc nil))
 
                   (1
-                   (setq dvc (caar options)))
+                   (setq dvc (intern (caar options))))
 
                   (t
-                   ;; FIXME: we should use (dvc-variable (car option)
+                   ;; We should use (dvc-variable (car option)
                    ;; "backend-name") in the prompt and completion
                    ;; list, but we can't go from that name back to the
                    ;; dvc symbol; dvc-register-dvc needs to build an
@@ -234,7 +237,7 @@ then use that value instead of the cache or searching."
                    (let ((selection
                           (dvc-completing-read
                             (concat "back-end ("
-                                    (mapconcat (lambda (option) (symbol-name (car option))) options ", ")
+                                    (mapconcat (lambda (option) (car option)) options ", ")
                                     "): ")
                             options nil t)))
                      (setq dvc (intern selection))

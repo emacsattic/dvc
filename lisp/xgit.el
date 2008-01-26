@@ -63,7 +63,7 @@
 (defun xgit-add (file)
   "Add FILE to the current git project."
   (interactive (list (dvc-confirm-read-file-name "Add file or directory: ")))
-  (xgit-add-files file))
+  (xgit-dvc-add-files file))
 
 ;;;###autoload
 (defun xgit-dvc-add-files (&rest files)
@@ -190,8 +190,7 @@ added, modified, renamed, copied, deleted, unknown."
             (while (re-search-forward xgit-status-line-regexp nil t)
               (setq status-string (match-string 1)
                     file (match-string 2)
-                    indexed t
-                    dir nil)
+                    indexed t)
               (cond ((or (null file) (string= "" file))
                      (when (string= status-string "Untracked files")
                        (let ((end
@@ -228,9 +227,9 @@ added, modified, renamed, copied, deleted, unknown."
                              (new (match-string 2 file)))
                          (setq status-list
                                (cons
-                                (list :file new :dir " "
+                                (list :file new :dir nil
                                       :status 'rename-target :indexed t)
-                                (cons (list :file orig :dir " "
+                                (cons (list :file orig :dir nil
                                             :status 'rename-source :indexed t)
                                       status-list))))))
                     ((string= status-string "copied")
@@ -240,16 +239,16 @@ added, modified, renamed, copied, deleted, unknown."
                              (new (match-string 2 file)))
                          (setq status-list
                                (cons
-                                (list :file new :dir " "
+                                (list :file new :dir nil
                                       :status 'copy-target :indexed t)
-                                (cons (list :file orig :dir " "
+                                (cons (list :file orig :dir nil
                                             :status 'copy-source :indexed t)
                                       status-list))))))
                     (t
                      (setq status nil)))
               (when status
                 (setq status-list
-                      (cons (list :file file :dir dir
+                      (cons (list :file file :dir nil
                                   :status status :indexed indexed)
                             status-list))))
             (with-current-buffer changes-buffer
