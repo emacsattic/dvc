@@ -55,11 +55,6 @@
 ;; The name of our package
 (setq package-maint-pkg "dvc")
 
-;; dvc-version.el is generated in lispdir, not in load-path
-;; load it manually if it exists.
-(if (file-exists-p "dvc-version.el")
-    (load-file "dvc-version.el"))
-
 ;; Avoid free-vars
 (setq package-maint-compile-warnings '(unresolved callargs redefine))
 
@@ -68,6 +63,11 @@
 
 ;; List of files to compile: default to $(srcdir)/*.el
 (setq package-maint-files (directory-files srcdir nil "^[^=].*\\.el$"))
+
+;; dvc-version.el is generated in lispdir, not in load-path
+;; load it manually if it exists.
+(if (file-exists-p "dvc-version.el")
+    (add-to-list 'package-maint-files (expand-file-name builddir "dvc-version.el")))
 
 ;; dvc-site.el may not be in the list when @srcdir@
 ;; is not builddir.
