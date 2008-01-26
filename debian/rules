@@ -18,7 +18,8 @@ configure/dvc::
 	$(MAKE) info
 
 install/dvc::
-	install -m 644 config.status Makefile* $(DEB_DESTDIR)$(LISPDIR)/dvc/
+	install -m 744 config.status $(DEB_DESTDIR)$(LISPDIR)/dvc/
+	install -m 644 Makefile* $(DEB_DESTDIR)$(LISPDIR)/dvc/
 	install -m 644 lisp/Makefile* $(DEB_DESTDIR)$(LISPDIR)/dvc/lisp/
-	install -m 644 lisp/Makefile* lisp/*.el $(DEB_DESTDIR)$(LISPDIR)/dvc/lisp/
+	install -m 644 lisp/Makefile* lisp/*.el lisp/dvc-site.el.in $(DEB_DESTDIR)$(LISPDIR)/dvc/lisp/
 	install -m 644 lisp/contrib/*.el $(DEB_DESTDIR)$(LISPDIR)/dvc/lisp/contrib/
