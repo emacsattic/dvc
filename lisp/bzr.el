@@ -963,6 +963,22 @@ LAST-REVISION looks like
       (message "bzr whoami: %s" whoami))
     whoami))
 
+(defun bzr-nick (&optional new-nick)
+  "Run bzr nick.
+When called with a prefix argument, ask for the new nick-name, otherwise
+display the current one."
+  (interactive "P")
+  (let ((nick (dvc-run-dvc-sync 'bzr (list "nick")
+                                   :finished 'dvc-output-buffer-handler)))
+    (if (not new-nick)
+        (progn
+          (when (interactive-p)
+            (message "bzr nick: %s" nick))
+          nick)
+      (when (interactive-p)
+        (setq new-nick (read-string (format "Change nick from '%s' to: " nick) nil nil nick)))
+      (dvc-run-dvc-sync 'bzr (list "nick" new-nick)))))
+
 (defun bzr-info ()
   "Run bzr info."
   (interactive)
