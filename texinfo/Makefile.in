@@ -5,7 +5,7 @@
 RM   = @RM@
 XARGS = @XARGS@
 ETAGS = @ETAGS@
-ARCH = @ARCH@
+BZR = @BZR@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -101,17 +101,18 @@ distclean: clean
 
 .PHONY: pdf dvi html info clean distclean install-pkg uninstall-pkg all
 
-ARCH_DIR_EXISTS=${shell if [ -r '@top_srcdir@/{arch}' ]; then printf "%s" yes; else printf "%s" no; fi }
+BZR_DIR_EXISTS=${shell if [ -r '@top_srcdir@/.bzr' ]; then printf "%s" yes; else printf "%s" no; fi }
+BZR_REVISION_CMD=cd @top_srcdir@ && $(BZR) version-info --custom --template "{revision_id}\n"
 
-ifeq ($(ARCH_DIR_EXISTS),yes)
-dvc-version.texinfo: @top_srcdir@/{arch}
+ifeq ($(BZR_DIR_EXISTS),yes)
+dvc-version.texinfo: @top_srcdir@/.bzr
 	$(RM) -f $@
 	printf "%s" "@verbatim " >> $@
 	if [ "x$(RELEASE_ID)" != "x" ]; then                         \
 		printf "%s (%s)" $(RELEASE_ID)                       \
-		`$(ARCH) logs -f -d "@top_srcdir@" | tail -1` >> $@; \
+		`$(BZR_REVISION_CMD)` >> $@;                         \
 	else                                                         \
-		$(ARCH) logs -f -d "@top_srcdir@" | tail -1 >> $@;   \
+		($(BZR_REVISION_CMD)) >> $@;                         \
 	fi
 	@echo >> $@
 	@echo "@end verbatim" >> $@
