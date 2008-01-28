@@ -1292,7 +1292,7 @@ finished."
        (local-branch (xmtn--tree-default-branch root))
        (cmd (concat "propagate " other " " local-branch)))
     (lexical-let
-        (display-buffer (current-buffer))
+        ((display-buffer (current-buffer)))
       (message "%s..." cmd)
       (xmtn--run-command-that-might-invoke-merger
        root (list "propagate" other local-branch)
