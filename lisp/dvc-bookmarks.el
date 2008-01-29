@@ -107,6 +107,8 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "Rp"     'dvc-bookmarks-remove-partner)
     (define-key map "Tp"     'dvc-bookmarks-toggle-partner-visibility)
     (define-key map "An"     'dvc-bookmarks-add-nickname)
+    (define-key map "Am"     'dvc-bookmarks-add-push-location) ;; mnemonic: Add mirror
+    (define-key map "Rm"     'dvc-bookmarks-remove-push-location)
     map)
   "Keymap used in `dvc-bookmarks-mode'.")
 
@@ -125,6 +127,8 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ["Add partner" dvc-bookmarks-add-partner t]
     ["Remove partner" dvc-bookmarks-remove-partner t]
     ["Add/edit partner Nickname" dvc-bookmarks-add-nickname t]
+    ["Add Push location" dvc-bookmarks-add-push-location t]
+    ["Remove Push location" dvc-bookmarks-remove-push-location t]
     "--"
     ("Toggle visibility"
      ["Partners"    dvc-bookmarks-toggle-partner-visibility
@@ -208,6 +212,9 @@ With prefix argument ARG, reload the bookmarks file from disk."
 
 (defun dvc-bookmarks-current-value (key)
   (cadr (assoc key (cdr (dvc-bookmarks-current-data)))))
+
+(defun dvc-bookmarks-current-key-value (key)
+  (assoc key (cdr (dvc-bookmarks-current-data))))
 
 (defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
   "Add a DVC bookmark"
@@ -438,6 +445,32 @@ If FORCE is non-nil, reload the file even if it was loaded before."
               (setcdr (nthcdr 1 e) (cons (read-string (format "Nickname for %s: " partner-at-point)) nil)) ;;(add-to-list 'e "Nickname" t)
             (setcar (nthcdr 2 e) (read-string (format "Nickname for %s: " partner-at-point) (nth 2 e))))
           (message "Added nickname %s to the partner %s" (nth 2 e) partner-at-point))))))
+
+(defun dvc-bookmarks-add-push-location ()
+  (interactive)
+  (let* ((push-locations (dvc-bookmarks-current-value 'push-locations))
+         (cur-data (dvc-bookmarks-current-data))
+         (push-location (read-string (format "Add push location to '%s': " (car cur-data)))))
+    (setq ddd cur-data)
+    (if (not (member push-location push-locations))
+        (progn
+          (if (null push-locations)
+              (progn
+                (setq push-locations (list 'push-locations (list push-location)))
+                (setcdr cur-data (append (cdr cur-data) (list push-locations))))
+            (setcdr push-locations (append (cdr push-locations) (list push-location)))))
+      (message "%s is already a push-location for %s" push-location (car cur-data)))))
+
+(defun dvc-bookmarks-remove-push-location ()
+  (interactive)
+  (let* ((push-locations (dvc-bookmarks-current-key-value 'push-locations))
+         (cur-data (dvc-bookmarks-current-data))
+         (location-to-remove (dvc-completing-read "Remove push location: " (cadr push-locations)))
+         (new-push-locations (delete location-to-remove (cadr push-locations))))
+    (if new-push-locations
+        (setcdr push-locations (list new-push-locations))
+      (delete push-locations cur-data))))
+
 
 ;; (dvc-bookmarks-load-from-file t)
 
