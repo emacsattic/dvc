@@ -388,6 +388,23 @@ If DONT-SWITCH, don't switch to the diff buffer"
       (message "Mercurial version: %s" version))
     version))
 
+;;;###autoload
+(defun xhg-branch (&optional new-name)
+  "Run hg branch.
+When called with a prefix argument, ask for the new branch-name, otherwise
+display the current one."
+  (interactive "P")
+  (let ((branch (dvc-run-dvc-sync 'xhg (list "branch")
+                                   :finished 'dvc-output-buffer-handler)))
+    (if (not new-name)
+        (progn
+          (when (interactive-p)
+            (message "xhg branch: %s" branch))
+          branch)
+      (when (interactive-p)
+        (setq new-name (read-string (format "Change branch from '%s' to: " branch) nil nil branch)))
+      (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
+
 ;;todo: add support to specify a rev
 (defun xhg-manifest ()
   "Run hg manifest."
