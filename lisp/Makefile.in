@@ -109,7 +109,7 @@ autoloads:
 
 ##############################################################################
 BZR_DIR_EXISTS=${shell if [ -r '@top_srcdir@/.bzr' ]; then printf "%s" yes; else printf "%s" no; fi }
-BZR_REVISION_CMD=cd @top_srcdir@ && $(BZR) version-info --custom --template "{revision_id}\n"
+BZR_REVISION_CMD=cd @top_srcdir@ && $(BZR) version-info | sed -ne 's/^revision-id: //p'
 
 ifeq ($(BZR_DIR_EXISTS),yes)
 dvc-version.el: @top_srcdir@/.bzr $(SRCS:%=@srcdir@/%)
