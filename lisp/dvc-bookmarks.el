@@ -362,6 +362,25 @@ If FORCE is non-nil, reload the file even if it was loaded before."
       (setq names (append names (dvc-bookmark-name-1 entry))))
     names))
 
+(defun dvc-bookmark-local-tree-mapping-1 (entry)
+  (cond ((assoc 'children entry)
+         (let ((tree-mapping))
+           (dolist (child (cdr (assoc 'children entry)))
+             (add-to-list 'tree-mapping (car (dvc-bookmark-local-tree-mapping-1 child))))
+           tree-mapping))
+        (t
+         (list (list (dvc-uniquify-file-name (cadr (assoc 'local-tree (cdr entry)))) (car entry))))))
+
+;; (dvc-bookmark-local-tree-mapping)
+
+(defun dvc-bookmark-local-tree-mapping ()
+  "Return an alist that maps from working copies to bookmark names."
+  (let ((tree-mapping))
+    (dolist (entry dvc-bookmark-alist)
+      (setq tree-mapping (append tree-mapping (dvc-bookmark-local-tree-mapping-1 entry))))
+    tree-mapping))
+
+
 (defun dvc-bookmark-goto-name (name)
   (let ((cur-pos (point))
         (name-list (split-string name "/"))
@@ -470,6 +489,19 @@ If FORCE is non-nil, reload the file even if it was loaded before."
     (if new-push-locations
         (setcdr push-locations (list new-push-locations))
       (delete push-locations cur-data))))
+
+;;;###autoload
+(defun dvc-bookmarks-current-push-locations ()
+  (let* ((tree-mapping (dvc-bookmark-local-tree-mapping))
+         (bookmark-name (cadr (assoc (dvc-tree-root) tree-mapping)))
+         (push-locations))
+    (when bookmark-name
+      (save-window-excursion
+        (with-current-buffer "*dvc-bookmarks*"
+          (dvc-bookmark-goto-name bookmark-name)
+          (setq push-locations (dvc-bookmarks-current-value 'push-locations)))))
+    ;;(message "bookmark-name: %s -> push-locations: %S" bookmark-name push-locations)
+    push-locations))
 
 
 ;; (dvc-bookmarks-load-from-file t)
