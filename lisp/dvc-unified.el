@@ -96,6 +96,18 @@ not &rest."
                                           ,@(remove '&optional args)))))
 
 ;;;###autoload
+(defun dvc-clone (&optional dvc source-path)
+  "Ask for the DVC to use and clone SOURCE-PATH."
+  (interactive)
+  (when (interactive-p)
+    (setq dvc (intern (dvc-completing-read
+                       "Clone, using dvc: "
+                       (map t 'symbol-name
+                            dvc-registered-backends))))
+    (setq source-path (read-string (format "%S-clone from path: " dvc))))
+  (funcall (dvc-function dvc "dvc-clone") source-path))
+
+;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
   "Display the changes from BASE-REV to the local tree in PATH.
 BASE-REV (a revision-id) defaults to base revision of the
