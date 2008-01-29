@@ -449,6 +449,16 @@ local database, as appropriate for the current back-end."
   (interactive))
 
 ;;;###autoload
+(defun dvc-push ()
+  "Push changes to a remote location."
+  (interactive)
+  (let ((bookmarked-locations (dvc-bookmarks-current-push-locations)))
+    (when bookmarked-locations
+      (dolist (location bookmarked-locations)
+        (message "pushing to: %s" location)
+        (dvc-call "dvc-push" location)))))
+
+;;;###autoload
 (define-dvc-unified-command dvc-merge (&optional other)
   "Merge with OTHER.
 If OTHER is nil, merge heads in current database, or merge from

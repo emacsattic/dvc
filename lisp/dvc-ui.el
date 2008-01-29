@@ -311,6 +311,8 @@
     (define-key map [?l] 'dvc-changelog)
     (define-key map [(meta ?l)] 'tla-tree-lint)
     (define-key map [?C]                     'dvc-clone)
+    (define-key map [?F]                     'dvc-pull)
+    (define-key map [?P]                     'dvc-push)
     (define-key map dvc-keyvec-update        'dvc-update)
     (define-key map [?m]                     'dvc-missing)
     (define-key map [?M]                     'dvc-merge)
