@@ -1,6 +1,6 @@
 ;;; dvc-gnus.el --- dvc integration to gnus
 
-;; Copyright (C) 2003-2006 by all contributors
+;; Copyright (C) 2003-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -193,6 +193,8 @@ Otherwise `dvc-gnus-apply-patch' is called."
 When called with no prefix arg, set N := 2.
 First is checked, if it is a tla changeset created with DVC.
 If that is the case, `tla-gnus-article-view-patch' is called.
+The next check looks at commit notification mails for bzr, when
+such a message is detected, `bzr-gnus-article-view-patch' is called.
 Otherwise `dvc-gnus-view-patch' is called."
   (interactive "p")
   (unless current-prefix-arg
@@ -202,15 +204,21 @@ Otherwise `dvc-gnus-view-patch' is called."
       (gnus-summary-select-article-buffer)
       (goto-char (point-min))
       (if (or (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
-	      (progn (goto-char (point-min))
-		     (and (search-forward "Revision: " nil t)
-			  (search-forward "Archive: " nil t))))
-	  (setq patch-type 'tla)
-	(setq patch-type 'dvc)))
+              (progn (goto-char (point-min))
+                 (and (search-forward "Revision: " nil t)
+                  (search-forward "Archive: " nil t))))
+          (setq patch-type 'tla)
+        (goto-char (point-min))
+        ;; Committed revision 129 to http://my-arch.org/branch1
+        (if (re-search-forward "^Committed revision [0-9]+ to " nil t)
+            (setq patch-type 'bzr)
+          (setq patch-type 'dvc))))
     (cond ((eq patch-type 'tla)
-	   (tla-gnus-article-view-patch n))
-	  (t
-	   (gnus-article-part-wrapper n 'dvc-gnus-view-patch)))))
+           (tla-gnus-article-view-patch n))
+          ((eq patch-type 'bzr)
+           (bzr-gnus-article-view-patch n))
+          (t
+           (gnus-article-part-wrapper n 'dvc-gnus-view-patch)))))
 
 (defvar dvc-apply-patch-mapping nil)
 ;;e.g.: (add-to-list 'dvc-apply-patch-mapping '("psvn" "~/work/myprg/psvn"))
@@ -238,7 +246,7 @@ the patch sould be applied."
   "Apply the patch corresponding to HANDLE."
   (dvc-gnus-article-extract-log-message)
   (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
-	(window-conf (current-window-configuration))
+        (window-conf (current-window-configuration))
         (patch-buff))
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
@@ -256,7 +264,7 @@ the patch sould be applied."
   "View the patch corresponding to HANDLE."
   (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
         (cur-buf (current-buffer))
-	(window-conf (current-window-configuration))
+        (window-conf (current-window-configuration))
         (patch-buff))
     (mm-save-part-to-file handle dvc-patch-name)
     (gnus-summary-select-article-buffer)
