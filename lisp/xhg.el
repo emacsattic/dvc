@@ -338,7 +338,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; show-patch
                      nil ;; no-merges
                      ))
-  (let ((buffer (dvc-get-buffer-create 'xhg 'log)))
+  (let ((window-conf (current-window-configuration))
+        (buffer (dvc-get-buffer-create 'xhg 'log)))
     (dvc-switch-to-buffer-maybe buffer t)
     (let ((inhibit-read-only t))
       (erase-buffer))
@@ -353,7 +354,17 @@ If DONT-SWITCH, don't switch to the diff buffer"
                                (insert-buffer-substring output)
                                (goto-char (point-min))
                                (insert (format "hg incoming for %s\n\n" default-directory))
-                               (toggle-read-only 1))))))))
+                               (toggle-read-only 1)))))
+                       :error
+                       (dvc-capturing-lambda (output error status arguments)
+                         (with-current-buffer output
+                           (goto-char (point-min))
+                           (forward-line 2)
+                           (if (looking-at "no changes found")
+                               (progn
+                                 (message "No changes found")
+                                 (set-window-configuration (capture window-conf)))
+                             (dvc-default-error-function output error status arguments)))))))
 
 ;;;###autoload
 (defun xhg-merge (&optional revision)
