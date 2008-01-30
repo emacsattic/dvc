@@ -97,6 +97,16 @@
 
 ;; Provide features from Emacs 22 for Emacs 21
 
+(if (fboundp 'derived-mode-p)
+    (defalias 'dvc-derived-mode-p derived-mode-p)
+  (defun dvc-derived-mode-p (&rest modes)
+    "Non-nil if the current major mode is derived from one of MODES.
+Uses the `derived-mode-parent' property of the symbol to trace backwards."
+    (let ((parent major-mode))
+      (while (and (not (memq parent modes))
+                  (setq parent (get parent 'derived-mode-parent))))
+      parent)))
+
 (if (fboundp 'ewoc-delete)
     (defalias 'dvc-ewoc-delete 'ewoc-delete)
   (defun dvc-ewoc-delete (ewoc &rest nodes)
