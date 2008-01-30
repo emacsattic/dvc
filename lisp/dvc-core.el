@@ -89,14 +89,7 @@ This function may be useful to find \{arch\} and/or _darcs directories."
                                            file-or-dir))))
       (setq pwd-stack (cons pwd pwd-stack))
       (setq new-pwd
-            (expand-file-name (concat (file-name-as-directory pwd) "..")))
-
-      ;; In Emacs 22, (expand-file-name "c:/..") returns "c:/". But in
-      ;; Emacs 21, it returns "c:/..". So fix that here.
-      (if (and (memq system-type '(ms-dos windows-nt))
-               (< emacs-major-version 22))
-          (if (equal (substring new-pwd -2 (length new-pwd)) "..")
-              (setq new-pwd (substring new-pwd 0 -2))))
+            (dvc-expand-file-name (concat (file-name-as-directory pwd) "..")))
 
       ;; detect MS-Windows roots (c:/, d:/, ...)
       (setq pwd (if (string= new-pwd pwd) "/" new-pwd)))

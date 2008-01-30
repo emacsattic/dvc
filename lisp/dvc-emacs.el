@@ -131,6 +131,19 @@ Uses the `derived-mode-parent' property of the symbol to trace backwards."
               (ewoc--node-left  node) nil
               (ewoc--node-right node) nil)))))
 
+;; In Emacs 22, (expand-file-name "c:/..") returns "c:/". But in Emacs
+;; 21, it returns "c:/..". So fix that here. We don't use
+;; dvc-expand-file-name everywhere in DVC, to simplify deleting it
+;; later. We only use it when this case is likely to be encountered.
+(if (and (memq system-type '(ms-dos windows-nt))
+         (< emacs-major-version 22))
+    (defun dvc-expand-file-name (name &optional default-directory)
+      (let ((result (expand-file-name name default-directory)))
+        (if (equal (substring result -2 (length result)) "..")
+            (setq result (substring result 0 -2)))
+        result))
+  (defalias 'dvc-expand-file-name 'expand-file-name))
+
 (if (fboundp 'line-number-at-pos)
     (defalias 'dvc-line-number-at-pos 'line-number-at-pos)
   (defun dvc-line-number-at-pos (&optional pos)
