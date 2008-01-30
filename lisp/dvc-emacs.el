@@ -99,7 +99,7 @@
 ;; alphabetical by symbol name
 
 (if (fboundp 'derived-mode-p)
-    (defalias 'dvc-derived-mode-p derived-mode-p)
+    (defalias 'dvc-derived-mode-p 'derived-mode-p)
   (defun dvc-derived-mode-p (&rest modes)
     "Non-nil if the current major mode is derived from one of MODES.
 Uses the `derived-mode-parent' property of the symbol to trace backwards."
