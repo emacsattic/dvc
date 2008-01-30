@@ -41,6 +41,7 @@
 (eval-when-compile (require 'dired))
 (eval-and-compile (require 'dvc-lisp))
 
+(defvar dvc-sh-executable "sh" "The shell that is used for dvc interaction.")
 
 ;; --------------------------------------------------------------------------------
 ;; Various constants
@@ -669,7 +670,7 @@ arguments.
               ;; MS Windows.
               (start-process
                (dvc-variable dvc "executable") output-buf
-               "sh" "-c"
+               dvc-sh-executable "-c"
                (format "%s 2> %s"
                        command error-file))))
            (process-event
@@ -754,7 +755,7 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
         (let ((status (let ((process-environment
                              (funcall (dvc-function dvc "prepare-environment")
                                       process-environment)))
-                        (call-process "sh" nil output-buf nil "-c"
+                        (call-process dvc-sh-executable nil output-buf nil "-c"
                                       (format "%s 2> %s"
                                               command
                                               error-file)))))
