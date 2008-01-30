@@ -210,10 +210,10 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (cadr (assoc key (cdr (dvc-bookmarks-current-data)))))
 
 (defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
-  "Add a DVC bookmark"
+  "Add a DVC bookmark named BOOKMARK-NAME, directory BOOKMARK-LOCAL-DIR."
   (interactive
    (let* ((bmk-name (read-string "DVC bookmark name: "))
-          (bmk-loc (dvc-read-directory-name (format "Set DVC bookmark %s in directory: " bmk-name))))
+          (bmk-loc (dvc-read-directory-name (format "DVC bookmark %s directory: " bmk-name))))
      (list bmk-name bmk-loc)))
   (let* ((elem (list bookmark-name (list 'local-tree bookmark-local-dir)))
          (data (list (car elem) 0 elem)))
