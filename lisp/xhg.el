@@ -338,7 +338,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; show-patch
                      nil ;; no-merges
                      ))
-  (let ((buffer (dvc-get-buffer-create 'xhg 'log)))
+  (let ((window-conf (current-window-configuration))
+        (buffer (dvc-get-buffer-create 'xhg 'log)))
     (dvc-switch-to-buffer-maybe buffer t)
     (let ((inhibit-read-only t))
       (erase-buffer))
@@ -353,7 +354,17 @@ If DONT-SWITCH, don't switch to the diff buffer"
                                (insert-buffer-substring output)
                                (goto-char (point-min))
                                (insert (format "hg incoming for %s\n\n" default-directory))
-                               (toggle-read-only 1))))))))
+                               (toggle-read-only 1)))))
+                       :error
+                       (dvc-capturing-lambda (output error status arguments)
+                         (with-current-buffer output
+                           (goto-char (point-min))
+                           (forward-line 2)
+                           (if (looking-at "no changes found")
+                               (progn
+                                 (message "No changes found")
+                                 (set-window-configuration (capture window-conf)))
+                             (dvc-default-error-function output error status arguments)))))))
 
 ;;;###autoload
 (defun xhg-merge (&optional revision)
@@ -376,6 +387,23 @@ If DONT-SWITCH, don't switch to the diff buffer"
     (when (interactive-p)
       (message "Mercurial version: %s" version))
     version))
+
+;;;###autoload
+(defun xhg-branch (&optional new-name)
+  "Run hg branch.
+When called with a prefix argument, ask for the new branch-name, otherwise
+display the current one."
+  (interactive "P")
+  (let ((branch (dvc-run-dvc-sync 'xhg (list "branch")
+                                   :finished 'dvc-output-buffer-handler)))
+    (if (not new-name)
+        (progn
+          (when (interactive-p)
+            (message "xhg branch: %s" branch))
+          branch)
+      (when (interactive-p)
+        (setq new-name (read-string (format "Change branch from '%s' to: " branch) nil nil branch)))
+      (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
 
 ;;todo: add support to specify a rev
 (defun xhg-manifest ()
