@@ -35,20 +35,10 @@
 
 ;;;###autoload
 (defun xgit-insinuate-gnus ()
-  "Integrate Xgit into Gnus.
-The following keybindings are installed for gnus-summary:
-K t s `xgit-gnus-article-view-status-for-apply-patch'
-K t v `xgit-gnus-article-view-patch'
-
-The following keybindings are ignored:
-K t l"
+  "Integrate Xgit into Gnus."
   (interactive)
-  (dvc-gnus-initialize-keymap)
-  (define-key gnus-summary-dvc-submap [?s]
-    'xgit-gnus-article-view-status-for-apply-patch)
-  (define-key gnus-summary-dvc-submap [?v]
-    'xgit-gnus-article-view-patch)
-  (define-key gnus-summary-dvc-submap [?l] 'ignore))
+  ;; bindings are set up by dvc-insinuate-gnus
+  )
 
 (defcustom xgit-apply-patch-mapping nil
   "*Working directories in which patches should be applied.
