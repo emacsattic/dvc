@@ -96,6 +96,7 @@
 (defconst dvc-mouse-face-prop 'mouse-face)
 
 ;; Provide features from Emacs 22 for Emacs 21
+;; alphabetical by symbol name
 
 (if (fboundp 'derived-mode-p)
     (defalias 'dvc-derived-mode-p derived-mode-p)
@@ -130,14 +131,6 @@ Uses the `derived-mode-parent' property of the symbol to trace backwards."
               (ewoc--node-left  node) nil
               (ewoc--node-right node) nil)))))
 
-(if (fboundp 'redisplay)
-    (defalias 'dvc-redisplay 'redisplay)
-  (defun dvc-redisplay (&optional force)
-    (if force
-        (let ((redisplay-dont-pause t))
-          (sit-for 0))
-      (sit-for 0))))
-
 (if (fboundp 'line-number-at-pos)
     (defalias 'dvc-line-number-at-pos 'line-number-at-pos)
   (defun dvc-line-number-at-pos (&optional pos)
@@ -150,6 +143,15 @@ If POS is nil, use current buffer location."
         (goto-char opoint)
         (forward-line 0)
         (1+ (count-lines start (point)))))))
+
+(if (fboundp 'redisplay)
+    (defalias 'dvc-redisplay 'redisplay)
+  (defun dvc-redisplay (&optional force)
+    (if force
+        (let ((redisplay-dont-pause t))
+          (sit-for 0))
+      (sit-for 0))))
+
 
 ;; FIXME: move to dvc-utils?
 (defun dvc-emacs-make-temp-dir (prefix)
