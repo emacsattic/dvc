@@ -7,7 +7,7 @@ RM   = @RM@
 LS   = @LS@
 XARGS = @XARGS@
 ETAGS = @ETAGS@
-ARCH = @ARCH@
+BZR = @BZR@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -108,19 +108,20 @@ autoloads:
 
 
 ##############################################################################
-ARCH_DIR_EXISTS=${shell if [ -r '@top_srcdir@/{arch}' ]; then printf "%s" yes; else printf "%s" no; fi }
+BZR_DIR_EXISTS=${shell if [ -r '@top_srcdir@/.bzr' ]; then printf "%s" yes; else printf "%s" no; fi }
+BZR_REVISION_CMD=cd @top_srcdir@ && $(BZR) version-info | sed -ne 's/^revision-id: //p'
 
-ifeq ($(ARCH_DIR_EXISTS),yes)
-dvc-version.el: @top_srcdir@/{arch} $(SRCS:%=@srcdir@/%)
+ifeq ($(BZR_DIR_EXISTS),yes)
+dvc-version.el: @top_srcdir@/.bzr $(SRCS:%=@srcdir@/%)
 	$(RM) -f $@
 	echo ';; do not edit -- automatically generated file' > $@
 	echo ';; do not delete -- needed for bug reports' >> $@
 	printf "%s" '(defconst dvc-version "' >> $@
 	if [ "x$(RELEASE_ID)" != "x" ]; then \
 		printf "%s (%s)" $(RELEASE_ID) \
-		`$(ARCH) logs -f -d @top_srcdir@ | tail -1` >> $@; \
+		`$(BZR_REVISION_CMD)` >> $@; \
 	else \
-		printf "%s" `$(ARCH) logs -f -d @top_srcdir@ | tail -1` >> $@; \
+		printf "%s" `$(BZR_REVISION_CMD)` >> $@; \
 	fi
 	echo '")' >> $@
 	echo "(provide 'dvc-version)" >> $@
@@ -130,7 +131,7 @@ dvc-version.el: $(SRCS:%=@srcdir@/%)
 	$(RM) -f $@
 	echo ';; do not edit -- automatically generated file' > $@
 	echo ';; do not delete -- needed for bug reports' >> $@
-	@echo "*** Warning: Unknown Xtla arch release"
+	@echo "*** Warning: Unknown bzr release"
 	printf "%s" '(defconst dvc-version "' >> $@
 	if [ "x$(RELEASE_ID)" != "x" ]; then \
 		printf "%s" "$(RELEASE_ID)" >> $@; \

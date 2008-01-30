@@ -96,6 +96,18 @@ not &rest."
                                           ,@(remove '&optional args)))))
 
 ;;;###autoload
+(defun dvc-clone (&optional dvc source-path)
+  "Ask for the DVC to use and clone SOURCE-PATH."
+  (interactive)
+  (when (interactive-p)
+    (setq dvc (intern (dvc-completing-read
+                       "Clone, using dvc: "
+                       (map t 'symbol-name
+                            dvc-registered-backends))))
+    (setq source-path (read-string (format "%S-clone from path: " dvc))))
+  (funcall (dvc-function dvc "dvc-clone") source-path))
+
+;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
   "Display the changes from BASE-REV to the local tree in PATH.
 BASE-REV (a revision-id) defaults to base revision of the
@@ -435,6 +447,16 @@ some back-ends, it may also be a remote repository."
   "Pull changes from the remote source to the working copy or
 local database, as appropriate for the current back-end."
   (interactive))
+
+;;;###autoload
+(defun dvc-push ()
+  "Push changes to a remote location."
+  (interactive)
+  (let ((bookmarked-locations (dvc-bookmarks-current-push-locations)))
+    (when bookmarked-locations
+      (dolist (location bookmarked-locations)
+        (message "pushing to: %s" location)
+        (dvc-call "dvc-push" location)))))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-merge (&optional other)

@@ -330,20 +330,22 @@ TODO: DONT-SWITCH is currently ignored."
          (dvc-show-changes-buffer output 'bzr-parse-diff
                                   (capture buffer)))))))
 
-(defun bzr-delta (base modified &optional dont-switch)
+(defun bzr-delta (base modified &optional dont-switch extra-arg)
   "Run bzr diff -r BASE..MODIFIED.
 
 TODO: dont-switch is currently ignored."
   (dvc-trace "base, modified=%S, %S; dir=%S" base modified default-directory)
-  (let ((base-str (bzr-revision-id-to-string base))
-        (modified-str (bzr-revision-id-to-string modified))
-        (buffer (dvc-prepare-changes-buffer
-                 base modified
-                 'revision-diff
-                 (concat (bzr-revision-id-to-string base)
-                         ".."
-                         (bzr-revision-id-to-string modified))
-                 'bzr)))
+  (let* ((base-str (bzr-revision-id-to-string base))
+         (modified-str (bzr-revision-id-to-string modified))
+         (extra-string (if extra-arg (format ", %s" extra-arg) ""))
+         (buffer (dvc-prepare-changes-buffer
+                  base modified
+                  'revision-diff
+                  (concat (bzr-revision-id-to-string base)
+                          ".."
+                          (bzr-revision-id-to-string modified)
+                          extra-string)
+                  'bzr)))
     (when dvc-switch-to-buffer-first
       (dvc-switch-to-buffer buffer))
     (let ((default-directory
@@ -354,7 +356,8 @@ TODO: dont-switch is currently ignored."
                   (t default-directory))))
       (dvc-run-dvc-async
        'bzr `("diff"
-              "--revision" ,(concat base-str ".." modified-str))
+              "--revision" ,(concat base-str ".." modified-str)
+              ,extra-arg)
        :finished
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-no-changes (capture buffer)
