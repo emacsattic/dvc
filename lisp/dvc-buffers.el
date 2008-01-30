@@ -553,32 +553,32 @@ New buffer has type TYPE (default 'errors), mode MODE (default
   (if (featurep 'xemacs)
       ;; See dvc-xemacs-buffers-menu in dvc-xemacs.el
       (dvc-do-in-xemacs
-	(add-submenu nil (list "DVC-Buffers"
+        (add-submenu nil (list "DVC-Buffers"
                                :filter 'dvc-xemacs-buffers-menu) nil))
     ;; GNU Emacs
     (dvc-do-in-gnu-emacs
       (let ((dvc-menu (or (lookup-key global-map [menu-bar tools dvc])
                           (lookup-key global-map [menu-bar tools DVC]))))
-	(when (and dvc-menu (not (integerp dvc-menu)))
-	  (define-key-after
-	    dvc-menu
-	    [dvc-buffers]
-	    (cons "DVC-Buffers"
+        (when (and dvc-menu (not (integerp dvc-menu)))
+          (define-key-after
+            dvc-menu
+            [dvc-buffers]
+            (cons "DVC-Buffers"
                   (dvc-buffers-menu)))))
       (let ((map (and
-		  (current-local-map)
-		  (or (lookup-key (current-local-map) [menu-bar])
-		      (define-key (current-local-map) [menu-bar]
-			(make-keymap))))))
-	(when map
-	  (apply (if (functionp 'define-key-after)
-		     'define-key-after
-		   'define-key)
-		 map
-		 [dvc-buffers]
-		 (cons "DVC-Buffers"
+                  (current-local-map)
+                  (or (lookup-key (current-local-map) [menu-bar])
+                      (define-key (current-local-map) [menu-bar]
+                        (make-keymap))))))
+        (when map
+          (apply (if (functionp 'define-key-after)
+                     'define-key-after
+                   'define-key)
+                 map
+                 [dvc-buffers]
+                 (cons "DVC-Buffers"
                        (dvc-buffers-menu))
-		 nil)))
+                 nil)))
       (add-hook 'menu-bar-update-hook 'dvc-install-buffer-menu nil t))))
 
 (defvar dvc-buffer-previous-window-config nil
@@ -625,6 +625,7 @@ just bury it."
              (if (> number 1) "s" "")))
   (setq dvc-buffers-tree nil))
 
+(defvar dvc-save-some-buffers-ignored-modes '(dvc-log-edit-mode))
 (defun dvc-save-some-buffers (&optional tree)
   "Save all buffers visiting a file in TREE."
   (interactive)
@@ -635,7 +636,7 @@ just bury it."
       (error "Not in a project tree"))
     (dolist (buffer (buffer-list))
       (with-current-buffer buffer
-        (when (buffer-modified-p)
+        (when (and (buffer-modified-p) (not (member major-mode dvc-save-some-buffers-ignored-modes)))
           (let ((file (buffer-file-name)))
             (when file
               (let ((root (dvc-uniquify-file-name
