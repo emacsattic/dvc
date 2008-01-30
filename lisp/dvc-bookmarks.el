@@ -95,6 +95,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "\C-y"   'dvc-bookmarks-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "s"      'dvc-bookmarks-status)
+    (define-key map "d"      'dvc-bookmarks-diff)
     (define-key map "c"      'dvc-bookmarks-log-edit)
     (define-key map "l"      'dvc-bookmarks-changelog)
     (define-key map "L"      'dvc-bookmarks-log)
@@ -107,6 +108,8 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "Rp"     'dvc-bookmarks-remove-partner)
     (define-key map "Tp"     'dvc-bookmarks-toggle-partner-visibility)
     (define-key map "An"     'dvc-bookmarks-add-nickname)
+    (define-key map "Am"     'dvc-bookmarks-add-push-location) ;; mnemonic: Add mirror
+    (define-key map "Rm"     'dvc-bookmarks-remove-push-location)
     map)
   "Keymap used in `dvc-bookmarks-mode'.")
 
@@ -114,6 +117,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
   "`dvc-bookmarks-mode' menu"
   `("dvc-bookmarks"
     ["Go to working copy" dvc-bookmarks-goto t]
+    ["DVC diff" dvc-bookmarks-diff t]
     ["DVC status" dvc-bookmarks-status t]
     ["DVC changelog" dvc-bookmarks-changelog t]
     ["DVC log" dvc-bookmarks-log t]
@@ -125,6 +129,8 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ["Add partner" dvc-bookmarks-add-partner t]
     ["Remove partner" dvc-bookmarks-remove-partner t]
     ["Add/edit partner Nickname" dvc-bookmarks-add-nickname t]
+    ["Add Push location" dvc-bookmarks-add-push-location t]
+    ["Remove Push location" dvc-bookmarks-remove-push-location t]
     "--"
     ("Toggle visibility"
      ["Partners"    dvc-bookmarks-toggle-partner-visibility
@@ -209,11 +215,14 @@ With prefix argument ARG, reload the bookmarks file from disk."
 (defun dvc-bookmarks-current-value (key)
   (cadr (assoc key (cdr (dvc-bookmarks-current-data)))))
 
+(defun dvc-bookmarks-current-key-value (key)
+  (assoc key (cdr (dvc-bookmarks-current-data))))
+
 (defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
-  "Add a DVC bookmark"
+  "Add a DVC bookmark named BOOKMARK-NAME, directory BOOKMARK-LOCAL-DIR."
   (interactive
    (let* ((bmk-name (read-string "DVC bookmark name: "))
-          (bmk-loc (dvc-read-directory-name (format "Set DVC bookmark %s in directory: " bmk-name))))
+          (bmk-loc (dvc-read-directory-name (format "DVC bookmark %s directory: " bmk-name))))
      (list bmk-name bmk-loc)))
   (let* ((elem (list bookmark-name (list 'local-tree bookmark-local-dir)))
          (data (list (car elem) 0 elem)))
@@ -245,10 +254,19 @@ With prefix argument ARG, reload the bookmarks file from disk."
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-status ()
+  "Run `dvc-status' for bookmark at point."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (dvc-status local-tree)
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-diff ()
+  "Run `dvc-diff' for bookmark at point."
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (dvc-diff nil local-tree)
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-log-edit ()
@@ -355,6 +373,25 @@ If FORCE is non-nil, reload the file even if it was loaded before."
       (setq names (append names (dvc-bookmark-name-1 entry))))
     names))
 
+(defun dvc-bookmark-local-tree-mapping-1 (entry)
+  (cond ((assoc 'children entry)
+         (let ((tree-mapping))
+           (dolist (child (cdr (assoc 'children entry)))
+             (add-to-list 'tree-mapping (car (dvc-bookmark-local-tree-mapping-1 child))))
+           tree-mapping))
+        (t
+         (list (list (dvc-uniquify-file-name (cadr (assoc 'local-tree (cdr entry)))) (car entry))))))
+
+;; (dvc-bookmark-local-tree-mapping)
+
+(defun dvc-bookmark-local-tree-mapping ()
+  "Return an alist that maps from working copies to bookmark names."
+  (let ((tree-mapping))
+    (dolist (entry dvc-bookmark-alist)
+      (setq tree-mapping (append tree-mapping (dvc-bookmark-local-tree-mapping-1 entry))))
+    tree-mapping))
+
+
 (defun dvc-bookmark-goto-name (name)
   (let ((cur-pos (point))
         (name-list (split-string name "/"))
@@ -438,6 +475,45 @@ If FORCE is non-nil, reload the file even if it was loaded before."
               (setcdr (nthcdr 1 e) (cons (read-string (format "Nickname for %s: " partner-at-point)) nil)) ;;(add-to-list 'e "Nickname" t)
             (setcar (nthcdr 2 e) (read-string (format "Nickname for %s: " partner-at-point) (nth 2 e))))
           (message "Added nickname %s to the partner %s" (nth 2 e) partner-at-point))))))
+
+(defun dvc-bookmarks-add-push-location ()
+  (interactive)
+  (let* ((push-locations (dvc-bookmarks-current-value 'push-locations))
+         (cur-data (dvc-bookmarks-current-data))
+         (push-location (read-string (format "Add push location to '%s': " (car cur-data)))))
+    (setq ddd cur-data)
+    (if (not (member push-location push-locations))
+        (progn
+          (if (null push-locations)
+              (progn
+                (setq push-locations (list 'push-locations (list push-location)))
+                (setcdr cur-data (append (cdr cur-data) (list push-locations))))
+            (setcdr push-locations (append (cdr push-locations) (list push-location)))))
+      (message "%s is already a push-location for %s" push-location (car cur-data)))))
+
+(defun dvc-bookmarks-remove-push-location ()
+  (interactive)
+  (let* ((push-locations (dvc-bookmarks-current-key-value 'push-locations))
+         (cur-data (dvc-bookmarks-current-data))
+         (location-to-remove (dvc-completing-read "Remove push location: " (cadr push-locations)))
+         (new-push-locations (delete location-to-remove (cadr push-locations))))
+    (if new-push-locations
+        (setcdr push-locations (list new-push-locations))
+      (delete push-locations cur-data))))
+
+;;;###autoload
+(defun dvc-bookmarks-current-push-locations ()
+  (let* ((tree-mapping (dvc-bookmark-local-tree-mapping))
+         (bookmark-name (cadr (assoc (dvc-tree-root) tree-mapping)))
+         (push-locations))
+    (when bookmark-name
+      (save-window-excursion
+        (with-current-buffer "*dvc-bookmarks*"
+          (dvc-bookmark-goto-name bookmark-name)
+          (setq push-locations (dvc-bookmarks-current-value 'push-locations)))))
+    ;;(message "bookmark-name: %s -> push-locations: %S" bookmark-name push-locations)
+    push-locations))
+
 
 ;; (dvc-bookmarks-load-from-file t)
 

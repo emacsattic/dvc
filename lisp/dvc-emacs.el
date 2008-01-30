@@ -96,6 +96,17 @@
 (defconst dvc-mouse-face-prop 'mouse-face)
 
 ;; Provide features from Emacs 22 for Emacs 21
+;; alphabetical by symbol name
+
+(if (fboundp 'derived-mode-p)
+    (defalias 'dvc-derived-mode-p 'derived-mode-p)
+  (defun dvc-derived-mode-p (&rest modes)
+    "Non-nil if the current major mode is derived from one of MODES.
+Uses the `derived-mode-parent' property of the symbol to trace backwards."
+    (let ((parent major-mode))
+      (while (and (not (memq parent modes))
+                  (setq parent (get parent 'derived-mode-parent))))
+      parent)))
 
 (if (fboundp 'ewoc-delete)
     (defalias 'dvc-ewoc-delete 'ewoc-delete)
@@ -120,13 +131,18 @@
               (ewoc--node-left  node) nil
               (ewoc--node-right node) nil)))))
 
-(if (fboundp 'redisplay)
-    (defalias 'dvc-redisplay 'redisplay)
-  (defun dvc-redisplay (&optional force)
-    (if force
-        (let ((redisplay-dont-pause t))
-          (sit-for 0))
-      (sit-for 0))))
+;; In Emacs 22, (expand-file-name "c:/..") returns "c:/". But in Emacs
+;; 21, it returns "c:/..". So fix that here. We don't use
+;; dvc-expand-file-name everywhere in DVC, to simplify deleting it
+;; later. We only use it when this case is likely to be encountered.
+(if (and (memq system-type '(ms-dos windows-nt))
+         (< emacs-major-version 22))
+    (defun dvc-expand-file-name (name &optional default-directory)
+      (let ((result (expand-file-name name default-directory)))
+        (if (equal (substring result -2 (length result)) "..")
+            (setq result (substring result 0 -2)))
+        result))
+  (defalias 'dvc-expand-file-name 'expand-file-name))
 
 (if (fboundp 'line-number-at-pos)
     (defalias 'dvc-line-number-at-pos 'line-number-at-pos)
@@ -140,6 +156,15 @@ If POS is nil, use current buffer location."
         (goto-char opoint)
         (forward-line 0)
         (1+ (count-lines start (point)))))))
+
+(if (fboundp 'redisplay)
+    (defalias 'dvc-redisplay 'redisplay)
+  (defun dvc-redisplay (&optional force)
+    (if force
+        (let ((redisplay-dont-pause t))
+          (sit-for 0))
+      (sit-for 0))))
+
 
 ;; FIXME: move to dvc-utils?
 (defun dvc-emacs-make-temp-dir (prefix)

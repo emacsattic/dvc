@@ -572,7 +572,7 @@ non-nil, show log-edit buffer in other frame."
   (dvc-log-edit other-frame t)
   (undo-boundary)
   (goto-char (point-max))
-  (newline)
+  (newline 2)
   (insert "* ")
   (insert (dvc-fileinfo-path fileinfo))
   (insert ": ")

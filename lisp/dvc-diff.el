@@ -292,7 +292,8 @@ Commands:
   "Refresh the diff buffer."
   (interactive)
   (if (eq (dvc-revision-get-type dvc-diff-modified) 'local-tree)
-      (dvc-diff dvc-diff-base)
+      ;; Don't specify dvc-diff-base here; it may have changed due to an update
+      (dvc-diff)
     (error "Don't know how to refresh buffer")))
 
 (defun dvc-diff-in-ewoc-p ()
@@ -615,6 +616,7 @@ CMD, if non-nil, is prepended to dvc-header."
                                 (point))))))
         (beginning-of-line)
         (funcall parser changes-buffer)
+        ;; Footer is back-end output from point to end-of-buffer; should be the diff output.
         (let ((footer (concat
                        (dvc-face-add (make-string  72 ?\ ) 'dvc-separator)
                        "\n\n"
