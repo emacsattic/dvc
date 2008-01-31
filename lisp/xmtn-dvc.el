@@ -1286,11 +1286,18 @@ finished."
 
 (defun xmtn-propagate-from (other)
   "Propagate from OTHER branch to local tree branch."
-  (interactive "MPropagate from branch: ")
+  (interactive '(nil))
   (let*
       ((root (dvc-tree-root))
        (local-branch (xmtn--tree-default-branch root))
        (cmd (concat "propagate " other " " local-branch)))
+
+    (if (not other)
+        (setq other (read-from-minibuffer "Propagate from branch: ")))
+
+    (if (not (yes-or-no-p (concat "Propagate from " other " to " local-branch "? ")))
+        (error "user abort"))
+
     (lexical-let
         ((display-buffer (current-buffer)))
       (message "%s..." cmd)
