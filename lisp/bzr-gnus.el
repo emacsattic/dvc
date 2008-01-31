@@ -79,8 +79,8 @@ with the branch location."
           ;; bzr diff -r128..129 http://my-arch.org/branch1
           ;; Note: this command needs at least bzr v1.1
           (setq diff-buffer
-                (bzr-delta `(bzr (revision-spec (remote nil ,(number-to-string (- (string-to-number revnr) 1)))))
-                           `(bzr (revision-spec (remote nil ,revnr)))
+                (bzr-delta `(bzr (revision (local "" ,(- (string-to-number revnr) 1))))
+                           `(bzr (revision (local "" ,(string-to-number revnr))))
                            nil
                            archive-location))
           (save-excursion

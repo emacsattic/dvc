@@ -481,7 +481,6 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (let* ((push-locations (dvc-bookmarks-current-value 'push-locations))
          (cur-data (dvc-bookmarks-current-data))
          (push-location (read-string (format "Add push location to '%s': " (car cur-data)))))
-    (setq ddd cur-data)
     (if (not (member push-location push-locations))
         (progn
           (if (null push-locations)

@@ -107,6 +107,7 @@ Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
         (message "Extracted the patch log message from '%s'" dvc-memorized-log-header)))))
   (gnus-article-show-summary))
 
+(defvar dvc-gnus-override-window-config nil)
 (defun dvc-gnus-article-apply-patch (n)
   "Apply MIME part N, as patchset.
 When called with no prefix arg, set N := 2.
@@ -158,7 +159,10 @@ Otherwise `dvc-gnus-apply-patch' is called."
           ((eq patch-type 'bzr-merge-or-pull)
            (bzr-merge-or-pull-from-url bzr-merge-or-pull-url))
           (t
-           (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)))))
+           (let ((dvc-gnus-override-window-config))
+             (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)
+             (when dvc-gnus-override-window-config
+               (set-window-configuration dvc-gnus-override-window-config)))))))
 
 (defun dvc-gnus-article-view-missing ()
   "Apply MIME part N, as patchset.
@@ -218,7 +222,10 @@ Otherwise `dvc-gnus-view-patch' is called."
           ((eq patch-type 'bzr)
            (bzr-gnus-article-view-patch n))
           (t
-           (gnus-article-part-wrapper n 'dvc-gnus-view-patch)))))
+           (let ((dvc-gnus-override-window-config))
+             (gnus-article-part-wrapper n 'dvc-gnus-view-patch)
+             (when dvc-gnus-override-window-config
+               (set-window-configuration dvc-gnus-override-window-config)))))))
 
 (defvar dvc-apply-patch-mapping nil)
 ;;e.g.: (add-to-list 'dvc-apply-patch-mapping '("psvn" "~/work/myprg/psvn"))
@@ -250,15 +257,15 @@ the patch sould be applied."
         (patch-buff))
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
-    ;; [Matthieu Moy] this should probably be just diff-mode.
-    (dvc-diff-mode)
+    (diff-mode)
     (dvc-buffer-push-previous-window-config window-conf)
     (toggle-read-only 1)
     (setq patch-buff (current-buffer))
     (delete-other-windows)
     (let ((default-directory (dvc-gnus-suggest-apply-patch-directory)))
       (flet ((ediff-get-default-file-name () default-directory))
-        (ediff-patch-file 2 patch-buff)))))
+        (ediff-patch-file 2 patch-buff))))
+    (setq dvc-gnus-override-window-config (current-window-configuration)))
 
 (defun dvc-gnus-view-patch (handle)
   "View the patch corresponding to HANDLE."
@@ -270,8 +277,8 @@ the patch sould be applied."
     (gnus-summary-select-article-buffer)
     (split-window-vertically)
     (find-file-other-window dvc-patch-name)
-    ;; [Matthieu Moy] this should probably be just diff-mode.
-    (dvc-diff-mode)
+    (diff-mode)
+    (setq dvc-gnus-override-window-config (current-window-configuration))
     (dvc-buffer-push-previous-window-config window-conf)
     (toggle-read-only 1)
     (other-window -1)
