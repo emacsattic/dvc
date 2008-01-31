@@ -41,6 +41,7 @@
 (eval-when-compile (require 'dired))
 (eval-and-compile (require 'dvc-lisp))
 
+(defvar dvc-sh-executable "sh" "The shell that is used for dvc interaction.")
 
 ;; --------------------------------------------------------------------------------
 ;; Various constants
@@ -89,14 +90,7 @@ This function may be useful to find \{arch\} and/or _darcs directories."
                                            file-or-dir))))
       (setq pwd-stack (cons pwd pwd-stack))
       (setq new-pwd
-            (expand-file-name (concat (file-name-as-directory pwd) "..")))
-
-      ;; In Emacs 22, (expand-file-name "c:/..") returns "c:/". But in
-      ;; Emacs 21, it returns "c:/..". So fix that here.
-      (if (and (memq system-type '(ms-dos windows-nt))
-               (< emacs-major-version 22))
-          (if (equal (substring new-pwd -2 (length new-pwd)) "..")
-              (setq new-pwd (substring new-pwd 0 -2))))
+            (dvc-expand-file-name (concat (file-name-as-directory pwd) "..")))
 
       ;; detect MS-Windows roots (c:/, d:/, ...)
       (setq pwd (if (string= new-pwd pwd) "/" new-pwd)))
@@ -678,7 +672,7 @@ arguments.
               ;; MS Windows.
               (start-process
                (dvc-variable dvc "executable") output-buf
-               "sh" "-c"
+               dvc-sh-executable "-c"
                (format "%s 2> %s"
                        command error-file))))
            (process-event
@@ -763,7 +757,7 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
         (let ((status (let ((process-environment
                              (funcall (dvc-function dvc "prepare-environment")
                                       process-environment)))
-                        (call-process "sh" nil output-buf nil "-c"
+                        (call-process dvc-sh-executable nil output-buf nil "-c"
                                       (format "%s 2> %s"
                                               command
                                               error-file)))))

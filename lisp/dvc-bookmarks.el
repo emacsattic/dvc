@@ -95,6 +95,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "\C-y"   'dvc-bookmarks-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "s"      'dvc-bookmarks-status)
+    (define-key map "d"      'dvc-bookmarks-diff)
     (define-key map "c"      'dvc-bookmarks-log-edit)
     (define-key map "l"      'dvc-bookmarks-changelog)
     (define-key map "L"      'dvc-bookmarks-log)
@@ -116,6 +117,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
   "`dvc-bookmarks-mode' menu"
   `("dvc-bookmarks"
     ["Go to working copy" dvc-bookmarks-goto t]
+    ["DVC diff" dvc-bookmarks-diff t]
     ["DVC status" dvc-bookmarks-status t]
     ["DVC changelog" dvc-bookmarks-changelog t]
     ["DVC log" dvc-bookmarks-log t]
@@ -252,10 +254,19 @@ With prefix argument ARG, reload the bookmarks file from disk."
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-status ()
+  "Run `dvc-status' for bookmark at point."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (dvc-status local-tree)
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-diff ()
+  "Run `dvc-diff' for bookmark at point."
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (dvc-diff nil local-tree)
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-log-edit ()
@@ -470,7 +481,6 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (let* ((push-locations (dvc-bookmarks-current-value 'push-locations))
          (cur-data (dvc-bookmarks-current-data))
          (push-location (read-string (format "Add push location to '%s': " (car cur-data)))))
-    (setq ddd cur-data)
     (if (not (member push-location push-locations))
         (progn
           (if (null push-locations)
