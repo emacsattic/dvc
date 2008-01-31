@@ -1,6 +1,6 @@
 ;;; xhg.el --- Mercurial interface for dvc
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -46,7 +46,7 @@
   (dvc-run-dvc-sync 'xhg (list "init" dir)
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
-                                 (message "hg init finished"))))
+                                 (message "hg init %s finished" dir))))
 
 ;;;###autoload
 (defun xhg-dvc-add-files (&rest files)

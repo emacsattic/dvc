@@ -40,6 +40,27 @@
 ;; --------------------------------------------------------------------------------
 
 ;;;###autoload
+(defun dvc-init ()
+  "Initialize a new repository.
+It currently supports the initialization for bzr, xhg, tla.
+Note: this function is only useful when called interactively."
+  (interactive)
+  (when (interactive-p)
+    (let ((supported-variants (map t 'symbol-name dvc-registered-backends))
+          (working-dir (dvc-uniquify-file-name default-directory))
+          (dvc))
+      ;; hide backends that don't provide an init function
+      (mapcar '(lambda (elem) (setq supported-variants (delete elem supported-variants))) '("xdarcs" "xmtn" "xgit" "baz"))
+      (add-to-list 'supported-variants "bzr-repo")
+      (setq dvc (intern (dvc-completing-read
+                         (format "Init a repository for '%s', using dvc: " working-dir)
+                         (sort supported-variants 'string-lessp))))
+      (cond ((string= dvc "bzr-repo")
+             (call-interactively 'bzr-init-repository))
+            (t
+             (funcall (dvc-function dvc "dvc-init") working-dir))))))
+
+;;;###autoload
 (defun dvc-add-files (&rest files)
   "Add FILES to the currently active dvc. FILES is a list of
 strings including path from root; interactive defaults

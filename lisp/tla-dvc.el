@@ -1,6 +1,6 @@
 ;;; tla-dvc.el --- The dvc layer for xtla
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributors: Matthieu Moy, <Matthieu.Moy@imag.fr>
@@ -134,6 +134,8 @@
 (defalias 'tla-dvc-file-has-conflict-p 'tla-file-has-conflict-p)
 
 (defalias 'tla-dvc-resolved 'tla-resolved)
+
+(defalias 'tla-dvc-init 'tla-start-project)
 
 (provide 'tla-dvc)
 ;;; tla-dvc.el ends here

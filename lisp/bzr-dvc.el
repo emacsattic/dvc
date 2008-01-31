@@ -34,6 +34,8 @@
 ;;;###autoload
 (dvc-register-dvc 'bzr "Bazaar 2")
 ;;;###autoload
+(defalias 'bzr-dvc-init 'bzr-init)
+;;;###autoload
 (defalias 'bzr-dvc-inventory 'bzr-inventory)
 ;;;###autoload
 (defalias 'bzr-dvc-missing 'bzr-missing)
