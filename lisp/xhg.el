@@ -1,6 +1,6 @@
 ;;; xhg.el --- Mercurial interface for dvc
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -46,7 +46,7 @@
   (dvc-run-dvc-sync 'xhg (list "init" dir)
                      :finished (dvc-capturing-lambda
                                    (output error status arguments)
-                                 (message "hg init finished"))))
+                                 (message "hg init %s finished" dir))))
 
 ;;;###autoload
 (defun xhg-dvc-add-files (&rest files)
@@ -568,6 +568,70 @@ otherwise: Return a list of two element sublists containing alias, path"
                     :finished
                     (lambda (output error status arguments)
                       (message "hg update complete for %s" default-directory)))
+
+
+;; --------------------------------------------------------------------------------
+;; hg serve functionality
+;; --------------------------------------------------------------------------------
+
+(defvar xhg-serve-parameter-list (make-hash-table :test 'equal)
+  "A hash table that holds the mapping from work directory roots to
+extra parameters used for hg serve.
+The extra parameters are given as alist. The following example shows the supported settings:
+'((port 8235) (name \"my-project\"))")
+
+(defun xhg-serve-register-serve-parameter-list (working-copy-root parameter-list &optional start-server)
+  "Register a mapping from a work directory root to a parameter list for hg serve.
+When START-SERVER is given, start the server immediately.
+Example usage:
+ (xhg-serve-register-serve-parameter-list \"~/proj/simple-counter-1/\" '((port 8100) (name \"simple-counter\")))"
+  (puthash (dvc-uniquify-file-name working-copy-root) parameter-list xhg-serve-parameter-list)
+  (when start-server
+    (let ((default-directory (dvc-uniquify-file-name working-copy-root)))
+      (xhg-serve))))
+
+(defun xhg-serve ()
+  "Run hg serve --daemon.
+See `xhg-serve-register-serve-parameter-list' to register specific parameters for the server process."
+  (interactive)
+  (let* ((tree-root (dvc-tree-root))
+         (server-status-dir (concat tree-root ".xhg-serve/"))
+         (parameter-alist (gethash (dvc-uniquify-file-name tree-root) xhg-serve-parameter-list))
+         (port (or (cadr (assoc 'port parameter-alist)) 8000))
+         (name (cadr (assoc 'name parameter-alist)))
+         (errorlog (concat server-status-dir "error.log"))
+         (accesslog (concat server-status-dir "access.log"))
+         (pid-file (concat server-status-dir "server.pid")))
+    (when (numberp port)
+      (setq port (number-to-string port)))
+    (unless (file-directory-p server-status-dir)
+      (make-directory server-status-dir))
+    (dvc-run-dvc-sync 'xhg (list "serve" "--daemon" (when port "--port") port (when name "--name") name
+                                 "--pid-file" pid-file "--accesslog" accesslog "--errorlog" errorlog)
+                      :finished (dvc-capturing-lambda (output error status arguments)
+                                  (message "hg server started for %s, using port %s" tree-root port)))))
+
+(defun xhg-serve-kill ()
+  "Kill a hg serve process started with `xhg-serve'."
+  (interactive)
+  (let* ((tree-root (dvc-tree-root))
+         (server-status-dir (concat tree-root ".xhg-serve/"))
+         (pid-file (concat server-status-dir "server.pid"))
+         (pid)
+         (kill-status))
+    (if (file-readable-p pid-file)
+        (with-current-buffer
+          (find-file-noselect pid-file)
+          (setq pid (buffer-substring-no-properties (point-min) (- (point-max) 1)))
+          (kill-buffer (current-buffer)))
+      (message "no hg serve pid file found - aborting"))
+    (when pid
+      (setq kill-status (call-process "kill" nil nil nil pid))
+      (if (eq kill-status 0)
+          (progn
+            (delete-file pid-file)
+            (message "hg serve process killed."))
+        (message "kill hg serve process failed, return status: %d" kill-status)))))
 
 ;; --------------------------------------------------------------------------------
 ;; dvc revision support

@@ -310,6 +310,7 @@
     ;; dvc: l runs changelog, M-l runs tree-lint for Arch
     (define-key map [?l] 'dvc-changelog)
     (define-key map [(meta ?l)] 'tla-tree-lint)
+    (define-key map [?I]                     'dvc-init)
     (define-key map [?C]                     'dvc-clone)
     (define-key map [?F]                     'dvc-pull)
     (define-key map [?P]                     'dvc-push)
@@ -401,33 +402,34 @@ If you wish to disable the prefix key, set this variable to nil."
  (and (boundp 'menu-bar-tools-menu) (dvc-do-in-gnu-emacs menu-bar-tools-menu))
  (dvc-do-in-xemacs '("Tools"))
  '("DVC"
-   ["Browse Archives" tla-archives t]
-   ["Show Bookmarks" tla-bookmarks t]
-   ["Start New Project" tla-start-project t]
+   ;; ["Browse Archives" tla-archives t] ;; obsolete
+   ["Show Bookmarks" dvc-bookmarks t]
    "---"
    "Tree Commands:"
    ["View Diff" dvc-diff t]
    ["View Status" dvc-status t]
-   ["View Inventory" tla-inventory t]
-   ["View Tree Lint" tla-tree-lint t]
-   ["Show Tree Revisions" tla-tree-revisions t]
+   ;; ["View Inventory" tla-inventory t]
+   ;; ["View Tree Lint" tla-tree-lint t]
+   ;; ["Show Tree Revisions" tla-tree-revisions t]
    ["Edit Commit Log" dvc-log-edit t]
    "---"
    "File Commands:"
-   ["Insert Arch Tag" tla-tag-insert t]
+   ;; ["Insert Arch Tag" tla-tag-insert t]
    ["Add Log Entry"  dvc-add-log-entry t]
-   ["View File Diff" tla-file-diff t]
-   ["View File Ediff" tla-file-ediff t]
-   ["View Original" tla-file-view-original t]
-   ["View Conflicts" tla-view-conflicts t]
+   ;; ["View File Diff" tla-file-diff t]
+   ;; ["View File Ediff" tla-file-ediff t]
+   ;; ["View Original" tla-file-view-original t]
+   ;; ["View Conflicts" tla-view-conflicts t]
    "---"
-   ("Goto Buffer"
+   ["Initialize repository" dvc-init t]
+   "---"
+   ("Tla Goto Buffer"
     ["View Changes" tla-changes-goto t]
     ["View Status"  baz-status-goto t]
     ["View Inventory" tla-inventory-goto t]
     ["View Tree Lint" tla-tree-lint-goto t]
     ["Show Tree Revisions" tla-tree-revisions-goto t])
-   ("Quick Configuration"
+   ("Tla Quick Configuration"
     ["Three Way Merge" tla-toggle-three-way-merge
      :style toggle :selected tla-three-way-merge]
     ["Show Ancestor in Conflicts" tla-toggle-show-ancestor

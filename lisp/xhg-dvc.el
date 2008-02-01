@@ -1,6 +1,6 @@
 ;;; xhg-dvc.el --- The dvc layer for xhg
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -171,6 +171,8 @@ When `last-command' was `dvc-pull', run `xhg-missing'."
 (defalias 'xhg-dvc-delta 'xhg-delta)
 
 (defalias 'xhg-dvc-clone 'xhg-clone)
+
+(defalias 'xhg-dvc-init 'xhg-init)
 
 (provide 'xhg-dvc)
 ;;; xhg-dvc.el ends here
