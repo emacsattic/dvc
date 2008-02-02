@@ -310,6 +310,7 @@
     ;; dvc: l runs changelog, M-l runs tree-lint for Arch
     (define-key map [?l] 'dvc-changelog)
     (define-key map [(meta ?l)] 'tla-tree-lint)
+    (define-key map [?I]                     'dvc-init)
     (define-key map [?C]                     'dvc-clone)
     (define-key map [?F]                     'dvc-pull)
     (define-key map [?P]                     'dvc-push)
@@ -403,7 +404,6 @@ If you wish to disable the prefix key, set this variable to nil."
  '("DVC"
    ;; ["Browse Archives" tla-archives t] ;; obsolete
    ["Show Bookmarks" dvc-bookmarks t]
-   ;; ["Start New Project" tla-start-project t] ;; TODO: implement a dvc-init function
    "---"
    "Tree Commands:"
    ["View Diff" dvc-diff t]
@@ -420,6 +420,8 @@ If you wish to disable the prefix key, set this variable to nil."
    ;; ["View File Ediff" tla-file-ediff t]
    ;; ["View Original" tla-file-view-original t]
    ;; ["View Conflicts" tla-view-conflicts t]
+   "---"
+   ["Initialize repository" dvc-init t]
    "---"
    ("Tla Goto Buffer"
     ["View Changes" tla-changes-goto t]
