@@ -59,7 +59,7 @@ The elements must all be of class dvc-fileinfo-root.")
   dir           ;; Directory the file resides in, relative to dvc-root.
   file          ;; File name sans directory.
                 ;; (concat dir file) gives a valid path.
-  status        ;; Symbol; see dvc-fileinfo-status-image for list
+  status        ;; Symbol; see dvc-fileinfo-status-image-full for list
   (indexed t)   ;; Whether changes made to the file have been recorded
                 ;; in the index.  Use t if the back-end does not
                 ;; support an index.

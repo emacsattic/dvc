@@ -746,7 +746,7 @@ the file before saving."
         (setq more-status
               (if need-more-status
                   (concat
-                   (mapconcat 'dvc-fileinfo-status-image (delq main-status status) " ")
+                   (mapconcat 'dvc-fileinfo-status-image-full (delq main-status status) " ")
                    (mapconcat 'xmtn--changes-image changes " "))
                 ""))
 
