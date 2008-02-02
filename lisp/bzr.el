@@ -330,6 +330,7 @@ TODO: DONT-SWITCH is currently ignored."
          (dvc-show-changes-buffer output 'bzr-parse-diff
                                   (capture buffer)))))))
 
+;;;###autoload
 (defun bzr-delta (base modified &optional dont-switch extra-arg)
   "Run bzr diff -r BASE..MODIFIED.
 
