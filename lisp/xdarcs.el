@@ -177,10 +177,13 @@
       (dvc-switch-to-buffer buffer))))
 
 ;;;###autoload
-(defun xdarcs-pull ()
-  "Run darcs pull --all"
+(defun xdarcs-pull (&optional other)
+  "Run darcs pull --all.
+If OTHER is nil, pull from the repository most recently pulled
+from or pushed to.  If OTHER is a string, pull from that
+repository."
   (interactive)
-  (dvc-run-dvc-async 'xdarcs (list "pull" "--all")
+  (dvc-run-dvc-async 'xdarcs (list "pull" "--all" other)
                      :error 'xdarcs-pull-finish-function
                      :finished 'xdarcs-pull-finish-function))
 
