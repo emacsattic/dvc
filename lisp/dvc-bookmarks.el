@@ -451,7 +451,7 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (save-excursion
     (let ((partner-url))
       (goto-char (line-beginning-position))
-      (when (looking-at "  Partner \\(.+?\\)\\(  \\[.+\\)?$")
+      (when (looking-at "  +Partner \\(.+?\\)\\(  \\[.+\\)?$")
         (setq partner-url (match-string 1)))
       partner-url)))
 
@@ -459,7 +459,7 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (save-excursion
     (let ((nickname))
       (goto-char (line-beginning-position))
-      (when (looking-at "  Partner \\(.+?\\)  \\[\\(.+\\)?\\]$")
+      (when (looking-at "  +Partner \\(.+?\\)  \\[\\(.+\\)?\\]$")
         (setq nickname (match-string 2)))
       nickname)))
 
