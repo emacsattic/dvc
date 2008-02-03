@@ -1322,7 +1322,7 @@ finished."
     nil)
 
 ;;;###autoload
-(defun xmtn-dvc-pull ()
+(defun xmtn-dvc-pull (&optional other)
   "Implement `dvc-pull' for xmtn."
   (lexical-let*
       ((root (dvc-tree-root))
@@ -1332,7 +1332,7 @@ finished."
     ;; nothing written to stdout from this command, so put both in the
     ;; same buffer.
     ;; FIXME: this output is not useful; need to use automation
-    (xmtn--run-command-async root `("pull")
+    (xmtn--run-command-async root `("pull" ,other)
                              :output-buffer name
                              :error-buffer name
                              :finished

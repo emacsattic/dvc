@@ -153,15 +153,17 @@ When `last-command' was `dvc-pull', run `xhg-missing'."
 (defvar xhg-dvc-pull-runs-update t
   "Whether `xhg-dvc-pull' should call hg pull with the --update flag.")
 
-(defun xhg-dvc-pull ()
+(defun xhg-dvc-pull (&optional other)
   "Run hg pull, when `xhg-dvc-pull-runs-update' is t, use the --update flag."
   (interactive)
-  (let* ((completions (xhg-paths 'both))
-         (initial-input (car (member "default" completions)))
-         (source-path (if (string= initial-input "default") initial-input
-                        (dvc-completing-read
-                         "Pull from hg repository: "
-                         completions nil nil initial-input))))
+  (let ((source-path
+         (or other
+             (let* ((completions (xhg-paths 'both))
+                    (initial-input (car (member "default" completions))))
+               (if (string= initial-input "default") initial-input
+                 (dvc-completing-read
+                  "Pull from hg repository: "
+                  completions nil nil initial-input))))))
     (xhg-pull source-path xhg-dvc-pull-runs-update)))
 
 (defalias 'xhg-dvc-revlog-get-revision 'xhg-revlog-get-revision)

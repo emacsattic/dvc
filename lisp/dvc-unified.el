@@ -464,9 +464,12 @@ some back-ends, it may also be a remote repository."
   (interactive))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-pull ()
-  "Pull changes from the remote source to the working copy or
-local database, as appropriate for the current back-end."
+(define-dvc-unified-command dvc-pull (&optional other)
+  "Pull changes from a remote location.
+If OTHER is nil, pull from a default or remembered location as
+determined by the back-end.  If OTHER is a string, it identifies
+a (local or remote) database or branch to pull into the current
+database, branch or workspace."
   (interactive))
 
 ;;;###autoload

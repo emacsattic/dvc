@@ -100,6 +100,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "L"      'dvc-bookmarks-log)
     (define-key map "Mm"     'dvc-bookmarks-missing)
     (define-key map "Mf"     'dvc-bookmarks-pull)
+    (define-key map "Mp"     'dvc-bookmarks-push)
     (define-key map "Mx"     'dvc-bookmarks-merge)
     (define-key map "."      'dvc-bookmarks-show-info-at-point)
     (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
@@ -121,6 +122,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ["DVC log" dvc-bookmarks-log t]
     ["DVC missing" dvc-bookmarks-missing t]
     ["DVC pull" dvc-bookmarks-pull t]
+    ["DVC push" dvc-bookmarks-push t]
     ["DVC merge" dvc-bookmarks-merge t]
    "--"
     ["Add new bookmark" dvc-bookmarks-add t]
@@ -291,11 +293,27 @@ With prefix argument ARG, reload the bookmarks file from disk."
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-pull ()
+  "Pull from partner at point or default into current bookmark."
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (let ((default-directory local-tree)
+              (partner (dvc-bookmarks-partner-at-point))
+              (nickname (dvc-bookmarks-nickname-at-point)))
+          (message (if partner
+                       (if nickname
+                           (format "Pulling from %s, using URL %s" nickname partner)
+                         (format "Pulling from %s" partner))
+                     "Pulling from default location"))
+          (dvc-pull partner))
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-push ()
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree))
-          (dvc-pull))
+          (dvc-push))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defvar dvc-bookmarks-merge-template "Merged from %s: ")
@@ -441,7 +459,7 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (save-excursion
     (let ((partner-url))
       (goto-char (line-beginning-position))
-      (when (looking-at "  Partner \\(.+?\\)\\(  \\[.+\\)?$")
+      (when (looking-at "  +Partner \\(.+?\\)\\(  \\[.+\\)?$")
         (setq partner-url (match-string 1)))
       partner-url)))
 
@@ -449,7 +467,7 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (save-excursion
     (let ((nickname))
       (goto-char (line-beginning-position))
-      (when (looking-at "  Partner \\(.+?\\)  \\[\\(.+\\)?\\]$")
+      (when (looking-at "  +Partner \\(.+?\\)  \\[\\(.+\\)?\\]$")
         (setq nickname (match-string 2)))
       nickname)))
 
