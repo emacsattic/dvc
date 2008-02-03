@@ -293,11 +293,19 @@ With prefix argument ARG, reload the bookmarks file from disk."
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-pull ()
+  "Pull from partner at point or default into current bookmark."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
-        (let ((default-directory local-tree))
-          (dvc-pull))
+        (let ((default-directory local-tree)
+              (partner (dvc-bookmarks-partner-at-point))
+              (nickname (dvc-bookmarks-nickname-at-point)))
+          (message (if partner
+                       (if nickname
+                           (format "Pulling from %s, using URL %s" nickname partner)
+                         (format "Pulling from %s" partner))
+                     "Pulling from default location"))
+          (dvc-pull partner))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-push ()
