@@ -100,6 +100,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "L"      'dvc-bookmarks-log)
     (define-key map "Mm"     'dvc-bookmarks-missing)
     (define-key map "Mf"     'dvc-bookmarks-pull)
+    (define-key map "Mp"     'dvc-bookmarks-push)
     (define-key map "Mx"     'dvc-bookmarks-merge)
     (define-key map "."      'dvc-bookmarks-show-info-at-point)
     (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
@@ -121,6 +122,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ["DVC log" dvc-bookmarks-log t]
     ["DVC missing" dvc-bookmarks-missing t]
     ["DVC pull" dvc-bookmarks-pull t]
+    ["DVC push" dvc-bookmarks-push t]
     ["DVC merge" dvc-bookmarks-merge t]
    "--"
     ["Add new bookmark" dvc-bookmarks-add t]
@@ -296,6 +298,14 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (if local-tree
         (let ((default-directory local-tree))
           (dvc-pull))
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-push ()
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (let ((default-directory local-tree))
+          (dvc-push))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defvar dvc-bookmarks-merge-template "Merged from %s: ")
