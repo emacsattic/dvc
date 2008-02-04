@@ -223,6 +223,15 @@ With prefix argument ARG, reload the bookmarks file from disk."
 (defun dvc-bookmarks-current-key-value (key)
   (assoc key (cdr (dvc-bookmarks-current-data))))
 
+(defun dvc-bookmarks-marked-data ()
+  (when dvc-bookmarks-marked-entry
+    (save-excursion
+      (dvc-bookmark-goto-name dvc-bookmarks-marked-entry)
+      (dvc-bookmarks-current-data))))
+
+(defun dvc-bookmarks-marked-value (key)
+  (cadr (assoc key (cdr (dvc-bookmarks-marked-data)))))
+
 (defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
   "Add a DVC bookmark"
   (interactive
@@ -293,8 +302,10 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
-        (let ((default-directory local-tree))
-          (dvc-missing (dvc-bookmarks-partner-at-point)))
+        (let ((default-directory local-tree)
+              (partner (or (dvc-bookmarks-partner-at-point) (dvc-bookmarks-marked-value 'local-tree))))
+          (message "Running dvc missing for %s, against %s" (car (dvc-bookmarks-current-data)) partner)
+          (dvc-missing partner))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-pull ()
