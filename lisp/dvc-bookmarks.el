@@ -96,6 +96,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "\C-y"   'dvc-bookmarks-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "s"      'dvc-bookmarks-status)
+    (define-key map "d"      'dvc-bookmarks-diff)
     (define-key map "c"      'dvc-bookmarks-log-edit)
     (define-key map "l"      'dvc-bookmarks-changelog)
     (define-key map "L"      'dvc-bookmarks-log)
@@ -119,6 +120,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
   "`dvc-bookmarks-mode' menu"
   `("dvc-bookmarks"
     ["Go to working copy" dvc-bookmarks-goto t]
+    ["DVC diff" dvc-bookmarks-diff t]
     ["DVC status" dvc-bookmarks-status t]
     ["DVC changelog" dvc-bookmarks-changelog t]
     ["DVC log" dvc-bookmarks-log t]
@@ -233,10 +235,10 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (cadr (assoc key (cdr (dvc-bookmarks-marked-data)))))
 
 (defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
-  "Add a DVC bookmark"
+  "Add a DVC bookmark named BOOKMARK-NAME, directory BOOKMARK-LOCAL-DIR."
   (interactive
    (let* ((bmk-name (read-string "DVC bookmark name: "))
-          (bmk-loc (dvc-read-directory-name (format "Set DVC bookmark %s in directory: " bmk-name))))
+          (bmk-loc (dvc-read-directory-name (format "DVC bookmark %s directory: " bmk-name))))
      (list bmk-name bmk-loc)))
   (let* ((elem (list bookmark-name (list 'local-tree bookmark-local-dir)))
          (data (list (car elem) 0 elem)))
@@ -268,10 +270,19 @@ With prefix argument ARG, reload the bookmarks file from disk."
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-status ()
+  "Run `dvc-status' for bookmark at point."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (dvc-status local-tree)
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-diff ()
+  "Run `dvc-diff' for bookmark at point."
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (dvc-diff nil local-tree)
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-log-edit ()

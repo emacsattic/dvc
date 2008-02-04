@@ -89,10 +89,12 @@ This function may be useful to find \{arch\} and/or _darcs directories."
                     (file-exists-p (concat (file-name-as-directory pwd)
                                            file-or-dir))))
       (setq pwd-stack (cons pwd pwd-stack))
-      ;; HACK: detect MS-Windows roots (c:/, d:/, ...)
       (setq new-pwd
-            (expand-file-name (concat (file-name-as-directory pwd) "..")))
+            (dvc-expand-file-name (concat (file-name-as-directory pwd) "..")))
+
+      ;; detect MS-Windows roots (c:/, d:/, ...)
       (setq pwd (if (string= new-pwd pwd) "/" new-pwd)))
+
     (unless (string= pwd "/")
       (setq pwd (replace-regexp-in-string "\\([^:]\\)/*$" "\\1" pwd))
       (setq pwd (file-name-as-directory pwd))
@@ -201,7 +203,7 @@ otherwise the result depends on SELECTION-MODE:
    ((eq major-mode 'dired-mode)
     (dired-get-marked-files))
 
-   ((derived-mode-p 'dvc-diff-mode)
+   ((dvc-derived-mode-p 'dvc-diff-mode)
     (or (remove nil dvc-buffer-marked-file-list)
         (cond
          ((eq selection-mode 'nil-if-none-marked)
