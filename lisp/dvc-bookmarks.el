@@ -78,6 +78,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
 
 (defvar dvc-bookmarks-loaded nil "Whether `dvc-bookmark-alist' has been loaded from `dvc-bookmarks-file-name'.")
 (defvar dvc-bookmarks-cookie nil "The ewoc cookie for the *dvc-bookmarks* buffer.")
+(defvar dvc-bookmarks-marked-entry nil "A marked bookmark entry for some special operations.")
 
 (defvar dvc-bookmarks-mode-map
   (let ((map (make-sparse-keymap)))
@@ -103,6 +104,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "Mf"     'dvc-bookmarks-pull)
     (define-key map "Mp"     'dvc-bookmarks-push)
     (define-key map "Mx"     'dvc-bookmarks-merge)
+    (define-key map "#"      'dvc-bookmarks-toggle-mark-entry)
     (define-key map "."      'dvc-bookmarks-show-info-at-point)
     (define-key map "\C-x\C-s" 'dvc-bookmarks-save)
     (define-key map "Ap"     'dvc-bookmarks-add-partner)
@@ -142,12 +144,15 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
      ))
 
 (defun dvc-bookmarks-printer (elem)
-  (let ((entry (car elem))
-        (indent (cadr elem))
-        (partners (and dvc-bookmarks-show-partners (dvc-bookmarks-get-partners (nth 2 elem))))
-        (nick-name))
+  (let* ((entry (car elem))
+         (indent (cadr elem))
+         (partners (and dvc-bookmarks-show-partners (dvc-bookmarks-get-partners (nth 2 elem))))
+         (nick-name)
+         (entry-string (format "%s%s" (make-string indent ? ) entry)))
     ;;(dvc-trace "dvc-bookmarks-printer - elem: %S, partners: %S" elem partners)
-    (insert (format "%s%s" (make-string indent ? ) entry))
+    (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
+      (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
+    (insert entry-string)
     (when partners
       (dolist (p partners)
         (setq nick-name (dvc-bookmarks-partner-nickname (nth 2 elem) p))
@@ -219,6 +224,15 @@ With prefix argument ARG, reload the bookmarks file from disk."
 
 (defun dvc-bookmarks-current-key-value (key)
   (assoc key (cdr (dvc-bookmarks-current-data))))
+
+(defun dvc-bookmarks-marked-data ()
+  (when dvc-bookmarks-marked-entry
+    (save-excursion
+      (dvc-bookmark-goto-name dvc-bookmarks-marked-entry)
+      (dvc-bookmarks-current-data))))
+
+(defun dvc-bookmarks-marked-value (key)
+  (cadr (assoc key (cdr (dvc-bookmarks-marked-data)))))
 
 (defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
   "Add a DVC bookmark named BOOKMARK-NAME, directory BOOKMARK-LOCAL-DIR."
@@ -299,8 +313,10 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
-        (let ((default-directory local-tree))
-          (dvc-missing (dvc-bookmarks-partner-at-point)))
+        (let ((default-directory local-tree)
+              (partner (or (dvc-bookmarks-partner-at-point) (dvc-bookmarks-marked-value 'local-tree))))
+          (message "Running dvc missing for %s, against %s" (car (dvc-bookmarks-current-data)) partner)
+          (dvc-missing partner))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-pull ()
@@ -358,6 +374,22 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (let ((buffer-read-only nil))
     (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
 
+(defun dvc-bookmarks-toggle-mark-entry ()
+  "Mark the current bookmark entry."
+  (interactive)
+  (let* ((cur-data (dvc-bookmarks-current-data))
+         (bmk-name (car cur-data))
+         (has-children (dvc-bookmarks-current-value 'children)))
+    ;; (message "bmk-name: %s has-children: %s" bmk-name has-children)
+    (unless has-children
+      (if (string= bmk-name dvc-bookmarks-marked-entry)
+          (progn
+            (message "Unmarking bookmark entry %s" bmk-name)
+            (setq dvc-bookmarks-marked-entry nil))
+        (message "Marking bookmark entry %s" bmk-name)
+        (setq dvc-bookmarks-marked-entry bmk-name))
+      (dvc-bookmarks))))
+
 (defun dvc-bookmarks-save ()
   "Save `dvc-bookmark-alist' to the file `dvc-bookmarks-file-name'."
   (interactive)
@@ -373,7 +405,6 @@ If FORCE is non-nil, reload the file even if it was loaded before."
     (dvc-load-state (dvc-config-file-full-path
                      dvc-bookmarks-file-name t))
     (setq dvc-bookmarks-loaded t)))
-
 
 (defun dvc-bookmark-name-1 (entry &optional parent-name)
   (cond ((assoc 'children entry)
