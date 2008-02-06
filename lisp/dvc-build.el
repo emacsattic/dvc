@@ -142,6 +142,13 @@ dvc-custom.el if GNU Emacs"
              ";; Code to insert at the beginning of dvc-autoloads.el")
       (insert-file-contents (expand-file-name "dvc-preload.el" srcdir)))))
 
+;; Teach make-autoload how to handle define-dvc-unified-command.
+(require 'autoload)
+(require 'dvc-unified)
+(defadvice make-autoload (before handle-define-dvc-unified-command activate)
+  (if (eq (car-safe (ad-get-arg 0)) 'define-dvc-unified-command)
+      (ad-set-arg 0 (macroexpand (ad-get-arg 0)))))
+
 ;; Remove unneeded files from compilation
 (package-maint-remove-files no-compile-files)
 
