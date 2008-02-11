@@ -325,7 +325,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; rev
                      nil ;; pull
                      ))
-  (dvc-run-dvc-async 'xhg (list "clone" src)))
+  (dvc-run-dvc-async 'xhg (list "clone" src dest)))
 
 ;;;###autoload
 (defun xhg-incoming (&optional src show-patch no-merges)
