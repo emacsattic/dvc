@@ -358,8 +358,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
                        :error
                        (dvc-capturing-lambda (output error status arguments)
                          (with-current-buffer output
-                           (goto-char (point-min))
-                           (forward-line 2)
+                           (goto-char (point-max))
+                           (forward-line -1)
                            (if (looking-at "no changes found")
                                (progn
                                  (message "No changes found")
