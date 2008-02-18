@@ -44,6 +44,7 @@
     (define-key map [?V] 'xhg-log-review-previous-diff)
     (define-key map dvc-keyvec-next 'xhg-log-next)
     (define-key map dvc-keyvec-previous 'xhg-log-previous)
+    (define-key map [?\ ] 'xhg-log-dwim-next)
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
 
     ;; the merge group
@@ -111,6 +112,20 @@ Commands:
   (when xhg-log-review-recenter-position-on-next-diff
     (recenter xhg-log-review-recenter-position-on-next-diff)))
 ;; TODO: add (diff-hunk-prev)
+
+(defun xhg-log-dwim-next ()
+  "Either move to the next changeset via `xhg-log-next' or call `scroll-up'.
+When the beginning of the next changeset is already visible, call `xhg-log-next',
+otherwise call `scroll-up'."
+  (interactive)
+  (let* ((start-pos (point))
+         (window-line (count-lines (window-start) start-pos))
+         (window-height (window-body-height))
+         (distance-to-next-changeset (save-window-excursion (xhg-log-next 1) (count-lines start-pos (point)))))
+    (goto-char start-pos)
+    (if (< (- window-height window-line) distance-to-next-changeset)
+        (scroll-up)
+      (xhg-log-next 1))))
 
 (defun xhg-log-revision-at-point ()
   (save-excursion
