@@ -117,7 +117,7 @@ not &rest."
                                           ,@(remove '&optional args)))))
 
 ;;;###autoload
-(defun dvc-clone (&optional dvc source-path)
+(defun dvc-clone (&optional dvc source-path dest-path)
   "Ask for the DVC to use and clone SOURCE-PATH."
   (interactive)
   (when (interactive-p)
@@ -125,8 +125,12 @@ not &rest."
                        "Clone, using dvc: "
                        (map t 'symbol-name
                             dvc-registered-backends))))
-    (setq source-path (read-string (format "%S-clone from path: " dvc))))
-  (funcall (dvc-function dvc "dvc-clone") source-path))
+    (setq source-path (read-string (format "%S-clone from path: " dvc)))
+    (setq dest-path (expand-file-name (dvc-read-directory-name "destination directory: " nil nil nil "<default>"))))
+  (let ((default-directory (or (file-name-directory dest-path) default-directory)))
+    (when (string= (file-name-nondirectory dest-path) "<default>")
+      (setq dest-path nil))
+    (funcall (dvc-function dvc "dvc-clone") source-path dest-path)))
 
 ;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
