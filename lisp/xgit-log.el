@@ -29,6 +29,8 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl))
+
 (require 'dvc-revlist)
 
 (defstruct (xgit-revision-st)

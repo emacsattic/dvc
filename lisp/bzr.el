@@ -64,6 +64,13 @@ This is used by the `bzr-send-commit-notification' function."
   :group 'dvc)
 
 
+(defvar bzr-pull-done-hook '()
+  "*Hooks run after a bzr pull has finished.
+Each hook function is called with these parameters:
+repo-path: The pull source.
+working-copy-dir: The working directory.
+pulled-something: If something was pulled.")
+
 (defun bzr-init (&optional dir)
   "Run bzr init."
   (interactive
@@ -130,7 +137,12 @@ via bzr init-repository."
                          (output error status arguments)
                        (dvc-revert-some-buffers)
                        (message "bzr pull finished => %s"
-                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output)))
+                       (let ((pulled-something))
+                         (with-current-buffer output
+                           (goto-char (point-min))
+                           (setq pulled-something (not (search-forward "No revisions to pull" nil t)))
+                           (run-hook-with-args 'bzr-pull-done-hook (capture repo-path) (capture default-directory) pulled-something))))))
 
 ;;;###autoload
 (defun bzr-push (&optional repo-path)
@@ -330,6 +342,7 @@ TODO: DONT-SWITCH is currently ignored."
          (dvc-show-changes-buffer output 'bzr-parse-diff
                                   (capture buffer)))))))
 
+;;;###autoload
 (defun bzr-delta (base modified &optional dont-switch extra-arg)
   "Run bzr diff -r BASE..MODIFIED.
 

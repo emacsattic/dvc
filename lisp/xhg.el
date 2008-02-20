@@ -325,7 +325,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      nil ;; rev
                      nil ;; pull
                      ))
-  (dvc-run-dvc-async 'xhg (list "clone" src)))
+  (dvc-run-dvc-async 'xhg (list "clone" src dest)))
 
 ;;;###autoload
 (defun xhg-incoming (&optional src show-patch no-merges)
@@ -344,7 +344,7 @@ If DONT-SWITCH, don't switch to the diff buffer"
     (let ((inhibit-read-only t))
       (erase-buffer))
     (xhg-log-mode)
-    (dvc-run-dvc-async 'xhg (list "incoming" src (when show-patch "--patch") (when no-merges "--no-merges"))
+    (dvc-run-dvc-async 'xhg (list "incoming" (when show-patch "--patch") (when no-merges "--no-merges") src)
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
                          (progn
@@ -358,8 +358,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
                        :error
                        (dvc-capturing-lambda (output error status arguments)
                          (with-current-buffer output
-                           (goto-char (point-min))
-                           (forward-line 2)
+                           (goto-char (point-max))
+                           (forward-line -1)
                            (if (looking-at "no changes found")
                                (progn
                                  (message "No changes found")
@@ -580,6 +580,7 @@ extra parameters used for hg serve.
 The extra parameters are given as alist. The following example shows the supported settings:
 '((port 8235) (name \"my-project\"))")
 
+;;;###autoload
 (defun xhg-serve-register-serve-parameter-list (working-copy-root parameter-list &optional start-server)
   "Register a mapping from a work directory root to a parameter list for hg serve.
 When START-SERVER is given, start the server immediately.

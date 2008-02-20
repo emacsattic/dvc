@@ -80,8 +80,8 @@ This is used by `dvc-fileinfo-printer-full'."
     (modified       "modified     ")
     (copy-source    "copy         ")
     (copy-target    "         ==> ")
-    (rename-source  "rename       ")
-    (rename-target  "         ==> ")
+    (rename-source  "rename-source")
+    (rename-target  "rename-target")
     (unknown        "unknown      ")))
 
 (defun dvc-fileinfo-status-image-terse (status)
