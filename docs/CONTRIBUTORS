@@ -110,7 +110,7 @@
                  :contacted yes
                  :changed-elisp no
                  :signed not-yet
-                 :mail-addresses "nebuchadnezzar#asgardr.info")
+                 :mail-addresses "daniel.dehennin@baby-gnu.org")
 
     ;;
     ;; Needs assignment (or investigation into changes made)
