@@ -165,6 +165,10 @@ If POS is nil, use current buffer location."
           (sit-for 0))
       (sit-for 0))))
 
+(if (fboundp 'window-body-height)
+    (defalias 'dvc-window-body-height 'window-body-height)
+  (defalias 'dvc-window-body-height 'window-height))
+
 
 ;; FIXME: move to dvc-utils?
 (defun dvc-emacs-make-temp-dir (prefix)
