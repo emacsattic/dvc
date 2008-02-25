@@ -448,6 +448,10 @@ many generations back we want to go from the given commit ID.")
     (with-current-buffer buffer (goto-char (point-min)))
     buffer))
 
+(defun xgit-fetch (&optional repository)
+  "Call git fetch."
+  (dvc-run-dvc-async 'xgit (list "fetch" repository)))
+
 (defun xgit-split-out-added-files (files)
   "Remove any files that have been newly added to git from FILES.
 This returns a two-element list.

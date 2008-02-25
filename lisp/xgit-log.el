@@ -1,6 +1,6 @@
 ;;; xgit-log.el --- git interface for dvc: mode for git log style output
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -211,7 +211,7 @@ See also `xgit-log-max-count'."
 
 ;; copied and adapted from bzr-log
 ;;;###autoload
-(defun* xgit-log (dir cnt &key log-regexp diff-match rev file since)
+(defun* xgit-log (dir &key cnt log-regexp diff-match rev file since)
   "Run git log for DIR.
 DIR is a directory controlled by Git/Cogito.
 CNT is max number of log to print.  If not specified, uses xgit-log-max-count.

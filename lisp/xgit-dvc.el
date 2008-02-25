@@ -1,6 +1,6 @@
 ;;; xgit-dvc.el --- The dvc layer for git
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -109,6 +109,12 @@ ARG is passed as prefix argument"
 (defalias 'xgit-dvc-last-revision 'xgit-last-revision)
 
 (defalias 'xgit-dvc-annotate-time 'xgit-annotate-time)
+
+(defun xgit-dvc-missing ()
+  "Run 'git fetch origin; git log HEAD..origin'"
+  (interactive)
+  (xgit-fetch "origin")
+  (xgit-log default-directory :rev "HEAD..origin"))
 
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here
