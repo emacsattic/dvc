@@ -491,7 +491,9 @@ the file before saving."
                   :file (file-name-nondirectory path)
                   :status status
                   :more-status (if orig-path
-                                   (concat "from " orig-path)
+                                   (if (eq status 'rename-target)
+                                       (concat "from " orig-path)
+                                     (concat "to " orig-path))
                                  ""))))))
            (likely-dir-p (path) (string-match "/\\'" path)))
 
@@ -692,7 +694,7 @@ the file before saving."
     (content "content")
     (attrs   "attrs  ")))
 
-(defun xmtn--status-process-entry (ewoc path status changes old-path-or-null
+(defun xmtn--status-process-entry (ewoc path status changes old-path new-path
                                         old-type new-type fs-type
                                         excluded-files)
   "Create a file entry in ewoc."
@@ -720,35 +722,57 @@ the file before saving."
                       'modified
                     'known))))
 
-            indexed                   ; used by terse status interface
-            more-status
-            need-more-status)
+            (indexed (not (eq status 'missing))) ;; in terse mode, missing is represented as "D?"
+            (more-status "")
+            basic-need-more-status)
 
-        (setq indexed
-              (if (eq status 'missing)
-                  ;; in terse mode, missing is represented as "D?"
-                  nil
-                t))
+        (setq basic-need-more-status
+              (or (not (equal status (list main-status)))
+                  (not (eq changes nil))))
 
-        (setq need-more-status
-              (if (and (eq status (list main-status)) (eq changes nil))
-                  nil
-                ;; else
-                (case main-status
-                  (modified
-                   (not (and (equal status '(known)) (equal changes '(content)))))
+        (case main-status
+          (added
+           ;; if the file has been modified since is was marked
+           ;; 'added', that's still just 'added', so we never need to
+           ;; do anything here.
+           nil)
 
-                  (added
-                   (not (and (equal status '(added known)) (equal changes '(content)))))
+          ((deleted missing)
+           (if basic-need-more-status
+               (setq more-status
+                     (concat
+                      (mapconcat 'dvc-fileinfo-status-image-full (delq main-status status) " ")
+                      (mapconcat 'xmtn--changes-image changes " ")))))
 
-                  (otherwise t))))
+          ((ignored invalid) nil)
 
-        (setq more-status
-              (if need-more-status
-                  (concat
-                   (mapconcat 'dvc-fileinfo-status-image (delq main-status status) " ")
-                   (mapconcat 'xmtn--changes-image changes " "))
-                ""))
+
+          (rename-source
+           (setq more-status
+                 (concat "to " new-path)))
+
+          (rename-target
+           (setq more-status
+                 (concat "from " old-path)))
+
+          (modified
+           (if (and (equal status '(known))
+                    (equal changes '(content)))
+               ;; just modified, nothing else
+               nil
+             (if basic-need-more-status
+                 (setq more-status
+                       (concat
+                        (mapconcat 'dvc-fileinfo-status-image-full (delq main-status status) " ")
+                        (mapconcat 'xmtn--changes-image changes " "))))))
+
+          (known
+             (if basic-need-more-status
+                 (setq more-status
+                       (concat
+                        (mapconcat 'dvc-fileinfo-status-image-full (delq main-status status) " ")
+                        (mapconcat 'xmtn--changes-image changes " ")))))
+          )
 
         (case (if (equal fs-type 'none)
                    (if (equal old-type 'none)
@@ -817,12 +841,17 @@ the file before saving."
                                    ((string "attrs") 'attrs))))
                   (old-path-or-null (xmtn-match (cdr (assoc "old_path" rest))
                                       (((string $old-path)) old-path)
-                                      (nil nil))))
+                                      (nil nil)))
+                  (new-path-or-null (xmtn-match (cdr (assoc "new_path" rest))
+                                      (((string $new-path)) new-path)
+                                      (nil nil)))
+                  )
              (funcall fn
                       path
                       status
                       changes
                       old-path-or-null
+                      new-path-or-null
                       old-type
                       new-type
                       fs-type))))))
@@ -882,12 +911,12 @@ the file before saving."
                         (parser output)
                         (xmtn--parse-inventory
                          parser
-                         (lambda (path status changes old-path-or-null
+                         (lambda (path status changes old-path new-path
                                        old-type new-type fs-type)
                            (xmtn--status-process-entry dvc-fileinfo-ewoc
                                                        path status
                                                        changes
-                                                       old-path-or-null
+                                                       old-path new-path
                                                        old-type new-type
                                                        fs-type
                                                        excluded-files))))
@@ -1055,12 +1084,13 @@ the file before saving."
                           `("add" "--" ,@file-names)))
 
 (defun xmtn--file-registered-p (root file-name)
+  ;; FIXME: need a better way to implement this
   (let ((normalized-file-name (xmtn--normalize-file-name root file-name)))
     (block parse
       (xmtn--with-automate-command-output-basic-io-parser
        (parser root `("inventory"))
        (xmtn--parse-inventory parser
-                              (lambda (path status changes old-path-or-null
+                              (lambda (path status changes old-path new-path
                                             old-type new-type fs-type)
                                 (when (equal normalized-file-name path)
                                   (return-from parse
@@ -1286,11 +1316,18 @@ finished."
 
 (defun xmtn-propagate-from (other)
   "Propagate from OTHER branch to local tree branch."
-  (interactive "MPropagate from branch: ")
+  (interactive '(nil))
   (let*
       ((root (dvc-tree-root))
        (local-branch (xmtn--tree-default-branch root))
        (cmd (concat "propagate " other " " local-branch)))
+
+    (if (not other)
+        (setq other (read-from-minibuffer "Propagate from branch: ")))
+
+    (if (not (yes-or-no-p (concat "Propagate from " other " to " local-branch "? ")))
+        (error "user abort"))
+
     (lexical-let
         ((display-buffer (current-buffer)))
       (message "%s..." cmd)
@@ -1551,32 +1588,34 @@ finished."
             (funcall file-name-postprocessor result)))))))
 
 (defun xmtn--get-rename-in-workspace-from (root normalized-source-file-name)
+  ;; FIXME: need a better way to implement this
   (check-type normalized-source-file-name string)
   (block parse
     (xmtn--with-automate-command-output-basic-io-parser
      (parser root `("inventory"))
      (xmtn--parse-inventory parser
-                            (lambda (path status changes old-path-or-null
+                            (lambda (path status changes old-path new-path
                                           old-type new-type fs-type)
                               (when (equal normalized-source-file-name
-                                           old-path-or-null)
+                                           old-path)
                                 (return-from parse
                                   path)))))
     normalized-source-file-name))
 
 (defun xmtn--get-rename-in-workspace-to (root normalized-target-file-name)
+  ;; FIXME: need a better way to implement this
   (check-type normalized-target-file-name string)
   (block parse
     (xmtn--with-automate-command-output-basic-io-parser
      (parser root `("inventory" ,normalized-target-file-name))
      (xmtn--parse-inventory parser
-                            (lambda (path status changes old-path-or-null
+                            (lambda (path status changes old-path new-path
                                           old-type new-type fs-type)
-                              (when (and old-path-or-null
+                              (when (and old-path
                                          (equal normalized-target-file-name
                                                 path))
                                 (return-from parse
-                                  old-path-or-null)))))
+                                  old-path)))))
     normalized-target-file-name))
 
 (defun xmtn--manifest-find-file (root manifest normalized-file-name)

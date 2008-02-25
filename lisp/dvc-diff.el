@@ -163,8 +163,10 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-remove                         'dvc-fileinfo-remove-files)
     (define-key map [?d]                                      'dvc-remove-files); as in dired
     (define-key map dvc-keyvec-mark                           'dvc-diff-mark-file)
+    (define-key map dvc-keyvec-mark-all                       'dvc-fileinfo-mark-all)
     (define-key map dvc-keyvec-unmark                         'dvc-diff-unmark-file)
     (define-key map [backspace]                               'dvc-diff-unmark-file-up)
+    (define-key map dvc-keyvec-unmark-all                     'dvc-fileinfo-unmark-all)
     (define-key map [?v]                                      'dvc-diff-view-source)
     (define-key map dvc-keyvec-parent                         'dvc-diff-master-buffer)
     (define-key map [?j]                                      'dvc-diff-diff-or-list)
@@ -220,12 +222,17 @@ Pretty-print ELEM."
   `(["Refresh Buffer" dvc-generic-refresh t]
     ["Edit log before commit" dvc-log-edit t]
     ["Add log entry" dvc-add-log-entry t]
-    ["View other revisions" tla-tree-revisions t]
     ("Merge"
      ["Update" dvc-update t]
      ["Pull" dvc-pull t]
      ["Show missing" dvc-missing t]
      ["Merge" dvc-merge t]
+     )
+    ("Mark"
+     ["Mark File"   dvc-diff-mark-file      t]
+     ["Mark all"    dvc-fileinfo-mark-all   t]
+     ["Unmark File" dvc-diff-unmark-file    t]
+     ["Unmark all"  dvc-fileinfo-unmark-all t]
      )
     ("Ignore"
      ["Ignore Files" dvc-ignore-files t]

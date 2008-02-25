@@ -59,7 +59,7 @@ The elements must all be of class dvc-fileinfo-root.")
   dir           ;; Directory the file resides in, relative to dvc-root.
   file          ;; File name sans directory.
                 ;; (concat dir file) gives a valid path.
-  status        ;; Symbol; see dvc-fileinfo-status-image for list
+  status        ;; Symbol; see dvc-fileinfo-status-image-full for list
   (indexed t)   ;; Whether changes made to the file have been recorded
                 ;; in the index.  Use t if the back-end does not
                 ;; support an index.
@@ -80,8 +80,8 @@ This is used by `dvc-fileinfo-printer-full'."
     (modified       "modified     ")
     (copy-source    "copy         ")
     (copy-target    "         ==> ")
-    (rename-source  "rename       ")
-    (rename-target  "         ==> ")
+    (rename-source  "rename-source")
+    (rename-target  "rename-target")
     (unknown        "unknown      ")))
 
 (defun dvc-fileinfo-status-image-terse (status)
@@ -341,12 +341,14 @@ point is not on a file element line."
 ;; It can't be a normal parameter because this is called via ewoc-map.
   (if (string-equal dir-compare (dvc-fileinfo-file-dir fileinfo))
       (let ((file (dvc-fileinfo-path fileinfo)))
-        (setf (dvc-fileinfo-file-mark fileinfo) mark)
-        (if mark
-            (progn
-              (add-to-list 'dvc-buffer-marked-file-list file))
-          (setq dvc-buffer-marked-file-list
-                (delete file dvc-buffer-marked-file-list)))
+        (if (dvc-fileinfo-file-exclude fileinfo)
+            (if mark
+                (message "not marking %s; excluded" file))
+          (setf (dvc-fileinfo-file-mark fileinfo) mark)
+          (if mark
+              (add-to-list 'dvc-buffer-marked-file-list file)
+            (setq dvc-buffer-marked-file-list
+                  (delete file dvc-buffer-marked-file-list))))
         (etypecase fileinfo
           (dvc-fileinfo-dir
            (dvc-fileinfo-mark-dir file mark)
@@ -376,22 +378,40 @@ in that directory."
     (etypecase fileinfo
       (dvc-fileinfo-dir
        (let ((file (dvc-fileinfo-path fileinfo)))
-         (setf (dvc-fileinfo-file-mark fileinfo) mark)
-         (if mark
-             (add-to-list 'dvc-buffer-marked-file-list file)
-           (setq dvc-buffer-marked-file-list
-                 (delete file dvc-buffer-marked-file-list)))
-         (ewoc-invalidate dvc-fileinfo-ewoc current)
-         (dvc-fileinfo-mark-dir file mark)))
+         (if (dvc-fileinfo-file-exclude fileinfo)
+             (if mark
+                 (progn
+                   ;; we don't throw an error here, because we might
+                   ;; be marking a higher-level directory, and we
+                   ;; don't want to skip the rest of it.
+                   (ding)
+                   (message "not marking %s; excluded" file)))
+           ;; not excluded
+           (setf (dvc-fileinfo-file-mark fileinfo) mark)
+           (if mark
+               (add-to-list 'dvc-buffer-marked-file-list file)
+             (setq dvc-buffer-marked-file-list
+                   (delete file dvc-buffer-marked-file-list)))
+           (ewoc-invalidate dvc-fileinfo-ewoc current)
+           (dvc-fileinfo-mark-dir file mark))))
 
       (dvc-fileinfo-file
        (let ((file (dvc-fileinfo-path fileinfo)))
-         (setf (dvc-fileinfo-file-mark fileinfo) mark)
-         (if mark
-             (add-to-list 'dvc-buffer-marked-file-list file)
-           (setq dvc-buffer-marked-file-list
-                 (delete file dvc-buffer-marked-file-list)))
-         (ewoc-invalidate dvc-fileinfo-ewoc current)))
+         (if (dvc-fileinfo-file-exclude fileinfo)
+             (if mark
+                 (progn
+                   ;; we don't throw an error here, because we might
+                   ;; be marking a higher-level directory, and we
+                   ;; don't want to skip the rest of it.
+                   (ding)
+                   (message "not marking %s; excluded" file)))
+           ;; not excluded
+           (setf (dvc-fileinfo-file-mark fileinfo) mark)
+           (if mark
+               (add-to-list 'dvc-buffer-marked-file-list file)
+             (setq dvc-buffer-marked-file-list
+                   (delete file dvc-buffer-marked-file-list)))
+           (ewoc-invalidate dvc-fileinfo-ewoc current))))
 
       (dvc-fileinfo-message
        (error "not on a file or directory")))))
@@ -425,11 +445,16 @@ in that directory. Then move to previous ewoc entry."
   (ewoc-map (lambda (fileinfo)
               (etypecase fileinfo
                 (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
-                 (setf (dvc-fileinfo-file-mark fileinfo) t)
-                 (add-to-list 'dvc-buffer-marked-file-list
-                              (dvc-fileinfo-path fileinfo))
-                 ;; return non-nil so this element is refreshed
-                 t)
+                 (if (dvc-fileinfo-file-exclude fileinfo)
+                     (progn
+                       (message "not marking %s; excluded" (dvc-fileinfo-path fileinfo))
+                       ;; don't need to refresh
+                       nil)
+                   (setf (dvc-fileinfo-file-mark fileinfo) t)
+                   (add-to-list 'dvc-buffer-marked-file-list
+                                (dvc-fileinfo-path fileinfo))
+                   ;; return non-nil so this element is refreshed
+                   t))
 
                 (dvc-fileinfo-message
                  nil)))
@@ -459,6 +484,8 @@ in that directory. Then move to previous ewoc entry."
          (fileinfo (ewoc-data current)))
     (typecase fileinfo
       (dvc-fileinfo-file
+       (if (dvc-fileinfo-file-mark fileinfo)
+           (error "Cannot exclude marked file"))
        (setf (dvc-fileinfo-file-exclude fileinfo)
              (not (dvc-fileinfo-file-exclude fileinfo)))
        (ewoc-invalidate dvc-fileinfo-ewoc current))
