@@ -191,27 +191,27 @@ See also `xgit-log-max-count'."
 (defun xgit-log-grep (regexp)
   "Limit the log output to ones with log message that matches the specified pattern."
   (interactive "MGrep pattern for Commit Log: ")
-  (xgit-log default-directory :log-regexp regexp))
+  (xgit-log default-directory nil :log-regexp regexp))
 
 (defun xgit-log-file (filename)
   "Limit the log output to ones that changes the specified file."
   (interactive "FFile name: ")
-  (xgit-log default-directory :file filename))
+  (xgit-log default-directory nil :file filename))
 
 (defun xgit-log-diff-grep (string)
   "Limit the logs that contain the change in given string."
   (interactive "MGrep pattern for Commit Diff: ")
-  (xgit-log default-directory :diff-match string))
+  (xgit-log default-directory nil :diff-match string))
 
 (defun xgit-log-revision (rev)
   "Show log for a given hash id."
   (interactive "MID: ")
-  (xgit-log default-directory :cnt 1 :rev rev))
+  (xgit-log default-directory 1 :rev rev))
 
 
 ;; copied and adapted from bzr-log
 ;;;###autoload
-(defun* xgit-log (dir &key cnt log-regexp diff-match rev file since)
+(defun* xgit-log (dir cnt &key log-regexp diff-match rev file since)
   "Run git log for DIR.
 DIR is a directory controlled by Git/Cogito.
 CNT is max number of log to print.  If not specified, uses xgit-log-max-count.
