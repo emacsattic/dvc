@@ -114,7 +114,7 @@ ARG is passed as prefix argument"
   "Run 'git fetch origin; git log HEAD..origin'"
   (interactive)
   (xgit-fetch "origin")
-  (xgit-log default-directory nil :rev "HEAD..origin"))
+  (xgit-changelog "HEAD" "origin" t))
 
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here

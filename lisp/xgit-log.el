@@ -292,10 +292,44 @@ Commands:
        (list 'xgit-changelog-font-lock-keywords t nil nil))
   (set (make-local-variable 'xgit-changelog-review-current-diff-revision) nil))
 
-(defun xgit-changelog ()
-  (interactive)
+(defun xgit-changelog (&optional r1 r2 show-patch file)
+  "Run git log.
+When run interactively, the prefix argument decides, which parameters are queried from the user.
+C-u      : Show patches also, use all revisions
+C-u C-u  : Show patches also, ask for revisions
+positive : Don't show patches, ask for revisions.
+negative : Don't show patches, limit to n revisions."
+  (interactive "P")
+  (when (interactive-p)
+    (cond ((equal current-prefix-arg '(4))
+           (setq show-patch t)
+           (setq r1 nil))
+          ((equal current-prefix-arg '(16))
+           (setq show-patch t)
+           (setq r1 1)))
+    (when (and (numberp r1) (> r1 0))
+      (setq r1 (read-string "git log, R1:"))
+      (setq r2 (read-string "git log, R2:"))))
   (let ((buffer (dvc-get-buffer-create 'xgit 'log))
-        (command-list '("log" "HEAD..origin" "-p")));; TODO: use a non fixed parameter set...
+        (command-list '("log"))
+        (cur-dir default-directory))
+    (when r1
+      (when (numberp r1)
+        (setq r1 (number-to-string r1))))
+    (when r2
+      (when (numberp r2)
+        (setq r2 (number-to-string r2))))
+    (if (and (> (length r2) 0) (> (length r1) 0))
+        (setq command-list (append command-list (list (concat r1 ".." r2))))
+      (when (> (length r1) 0)
+        (let ((r1-num (string-to-number r1)))
+          (if (> r1-num 0)
+              (setq command-list (append command-list (list r1)))
+            (setq command-list
+                  (append command-list
+                          (list (format "--max-count=%d" (abs r1-num)))))))))
+    (when show-patch
+      (setq command-list (append command-list (list "-p"))))
     (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
