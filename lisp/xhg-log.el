@@ -120,9 +120,11 @@ otherwise call `scroll-up'."
   (interactive)
   (let* ((start-pos (point))
          (window-line (count-lines (window-start) start-pos))
-         (window-height (window-body-height))
+         (window-height (dvc-window-body-height))
          (distance-to-next-changeset (save-window-excursion (xhg-log-next 1) (count-lines start-pos (point)))))
     (goto-char start-pos)
+    (when (eq distance-to-next-changeset 0) ; last changeset
+      (setq distance-to-next-changeset (count-lines start-pos (point-max))))
     (if (< (- window-height window-line) distance-to-next-changeset)
         (scroll-up)
       (xhg-log-next 1))))

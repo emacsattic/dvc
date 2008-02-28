@@ -1244,7 +1244,7 @@ the list of marked files, and potentially run a selected file commit."
     (tla--ewoc-collect-elem
      dvc-fileinfo-ewoc
      (lambda (fi)
-       (let ((elem (dvc-fileinfo-legacy-data fi)))
+       (let ((elem (when (dvc-fileinfo-legacy-p fi) (dvc-fileinfo-legacy-data fi))))
          (eq (car elem) 'searching-subtrees))))))
 
 (defvar tla--changes-summary nil
@@ -1318,7 +1318,8 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
                                      (with-current-buffer
                                          output (buffer-string)) "\n"))))
               (with-current-buffer (capture buffer)
-                (let ((subtree-message (car (tla--changes-find-subtree-message))))
+                (let ((subtree-message (car (tla--changes-find-subtree-message)))
+                      (buffer-read-only nil))
                   (dolist (subtree subtrees)
                     (let ((buffer-sub (dvc-get-buffer-create tla-arch-branch
                                        'diff subtree)))
