@@ -1,6 +1,6 @@
 ;;; dvc-state.el --- saving and loading state variables between Emacs sessions
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006-2008 by all contributors
 
 ;; This file is part of DVC.
 ;;
@@ -43,6 +43,7 @@ The file is stored in the `dvc-config-directory'"
   :type '(repeat (symbol))
   :group 'dvc-state)
 
+;;;###autoload
 (defun dvc-save-state (&optional vars state-file pp)
   "Save variables from VARS list to file STATE-FILE.
 The default for VARS is `dvc-state-variables-list'
@@ -76,6 +77,7 @@ The file will contain a setq setting the vars during loading by
       (insert "      )")
       (write-region (point-min) (point-max) state-file))))
 
+;;;###autoload
 (defun dvc-load-state (&optional state-file)
   "Load `dvc-state-file-name`, i.e. evaluate its content."
   (let ((state-file (or state-file
