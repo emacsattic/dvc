@@ -116,5 +116,10 @@ ARG is passed as prefix argument"
   (xgit-fetch "origin")
   (xgit-changelog "HEAD" "origin" t))
 
+(defun xgit-dvc-pull ()
+  "Run 'git pull origin'"
+  (interactive)
+  (xgit-pull "origin"))
+
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here
