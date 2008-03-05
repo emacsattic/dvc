@@ -33,6 +33,7 @@
 (require 'dvc-diff)
 (require 'xhg-core)
 (require 'xhg-log)
+(require 'xhg-mq)
 
 (defvar xhg-export-git-style-patches t "Run hg export --git.")
 
