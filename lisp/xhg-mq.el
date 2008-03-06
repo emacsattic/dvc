@@ -24,8 +24,6 @@
 ;; For more information on mq see:
 ;;   http://www.selenic.com/mercurial/wiki/index.cgi/MqTutorial
 
-(require 'xhg)
-
 ;; The following commands are available for hg's mq:
 ;; qapplied      print the patches already applied
 ;; qclone        clone main and patch repository at same time
