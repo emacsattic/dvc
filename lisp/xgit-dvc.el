@@ -121,5 +121,7 @@ ARG is passed as prefix argument"
   (interactive)
   (xgit-pull "origin"))
 
+(defalias 'xgit-dvc-clone 'xgit-clone)
+
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here
