@@ -283,9 +283,11 @@ If DONT-SWITCH, don't switch to the diff buffer"
 
 (easy-menu-define xhg-mode-menu dvc-diff-mode-map
   "`xhg' menu"
-  (delete nil `("hg"
-                ,(when (boundp 'xhg-mq-submenu) xhg-mq-submenu)
-                )))
+  `("hg"
+    ,xhg-mq-submenu
+    ["Edit project hgrc file" xhg-hgrc-edit-repository-hgrc t]
+    ["Edit global ~/.hgrc file" xhg-hgrc-edit-global-hgrc t]
+    ))
 
 (defun xhg-status-extra-mode-setup ()
   "Do some additonal setup for xhg status buffers."
@@ -804,8 +806,14 @@ LAST-REVISION looks like
     (insert "# -*- hgrc -*-\n\n")))
 
 (defun xhg-hgrc-edit-repository-hgrc ()
+  "Edit the .hg/hgrc file for the current working copy"
   (interactive)
   (xhg-hgrc-open-hgrc-file (concat (xhg-tree-root) ".hg/hgrc")))
+
+(defun xhg-hgrc-edit-global-hgrc ()
+  "Edit the ~/.hgrc file"
+  (interactive)
+  (xhg-hgrc-open-hgrc-file "~/.hgrc"))
 
 ;; Note: this mode is named hgrc-mode and not xhgrc-mode, because
 ;; a similar thing does not exist in mercurial.el yet and
@@ -853,9 +861,8 @@ LAST-REVISION looks like
   (interactive)
   (split-window)
   (other-window 1)
-  (apply (if (featurep 'xemacs) 'manual-entry 'woman) "hgrc")
+  (apply (if (featurep 'xemacs) 'manual-entry 'woman) '("hgrc"))
   (other-window -1))
-
 
 (provide 'xhg)
 ;;; xhg.el ends here
