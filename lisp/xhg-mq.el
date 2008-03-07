@@ -1,6 +1,6 @@
 ;;; xhg-mq.el --- dvc integration for hg's mq
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -25,28 +25,30 @@
 ;;   http://www.selenic.com/mercurial/wiki/index.cgi/MqTutorial
 
 ;; The following commands are available for hg's mq:
-;; qapplied      print the patches already applied
-;; qclone        clone main and patch repository at same time
-;; qcommit       commit changes in the queue repository
-;; qdelete       remove a patch from the series file
-;; qdiff         diff of the current patch
-;; qfold         fold the named patches into the current patch
-;; qheader       Print the header of the topmost or specified patch
-;; qimport       import a patch
-;; qinit         init a new queue repository
-;; qnew          create a new patch
-;; qnext         print the name of the next patch
-;; qpop          pop the current patch off the stack
-;; qprev         print the name of the previous patch
-;; qpush         push the next patch onto the stack
-;; qrefresh      update the current patch
-;; qrename       rename a patch
-;; qrestore      restore the queue state saved by a rev
-;; qsave         save current queue state
-;; qseries       print the entire series file
-;; qtop          print the name of the current patch
-;; qunapplied    print the patches not yet applied
-;; qversion      print the version number of the mq extension
+;; X qapplied      print the patches already applied
+;;   qclone        clone main and patch repository at same time
+;;   qcommit       commit changes in the queue repository
+;; X qdelete       remove a patch from the series file
+;; X qdiff         diff of the current patch
+;;   qfold         fold the named patches into the current patch
+;;   qgoto         push or pop patches until named patch is at top of stack
+;;   qguard        set or print guards for a patch
+;; X qheader       Print the header of the topmost or specified patch
+;;   qimport       import a patch
+;; X qinit         init a new queue repository
+;; X qnew          create a new patch
+;; X qnext         print the name of the next patch
+;; X qpop          pop the current patch off the stack
+;; X qprev         print the name of the previous patch
+;; X qpush         push the next patch onto the stack
+;; X qrefresh      update the current patch
+;; X qrename       rename a patch
+;;   qrestore      restore the queue state saved by a rev
+;;   qsave         save current queue state
+;;   qselect       set or print guarded patches to push
+;; X qseries       print the entire series file
+;; X qtop          print the name of the current patch
+;; X qunapplied    print the patches not yet applied
 
 (defvar xhg-mq-submenu
   '("mq"
@@ -60,6 +62,7 @@
     ["mq series"  xhg-qseries t]
     ["mq delete"  xhg-qdelete t]
     ["mq rename"  xhg-qrename t]
+    ["mq header"  xhg-qheader t]
     "--"
     ["mq init" xhg-qinit t]
     ["mq new"  xhg-qnew t]
@@ -72,6 +75,7 @@
     (define-key map [?S] 'xhg-qseries)
     (define-key map [?s] 'xhg-mq-show-stack)
     (define-key map [?e] 'xhg-mq-edit-series-file)
+    (define-key map [?h] 'xhg-mq-qheader)
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
@@ -250,19 +254,6 @@ When called with a prefix argument run hg qpush -a."
   (message "Running hg qrename %s %s" from to)
   (when (and from to)
     (dvc-run-dvc-sync 'xhg (list "qrename" from to))))
-
-;;;###autoload
-(defun xhg-qversion ()
-  "Run hg qversion."
-  (interactive)
-  (let ((version (dvc-run-dvc-sync 'xhg '("qversion")
-                                   :finished 'dvc-output-buffer-handler))
-        (version-string))
-    (when version
-      (setq version-string (nth 2 (split-string version " "))))
-    (when (interactive-p)
-      (message "Mercurial mq version: %s" version-string))
-    version-string))
 
 ;;;###autoload
 (defun xhg-qtop ()
