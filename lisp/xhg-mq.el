@@ -75,7 +75,8 @@
     (define-key map [?S] 'xhg-qseries)
     (define-key map [?s] 'xhg-mq-show-stack)
     (define-key map [?e] 'xhg-mq-edit-series-file)
-    (define-key map [?h] 'xhg-mq-qheader)
+    (define-key map [?h] 'xhg-qheader)
+    (define-key map [?H] 'xhg-qrefresh-header)
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
@@ -133,6 +134,48 @@ When called with a prefix argument run hg qnew -f."
   (let ((top (xhg-qtop)))
     (dvc-run-dvc-sync 'xhg (list "qrefresh"))
     (message (format "hg qrefresh for %s finished" top))))
+
+;;;###autoload
+(defun xhg-qrefresh-header ()
+  "Run hg qrefresh --message."
+  (interactive)
+  (let ((cur-message (xhg-qheader))
+        (cur-dir default-directory))
+    (dvc-buffer-push-previous-window-config)
+    (pop-to-buffer (get-buffer-create (format "*xhg header for %s*" (xhg-qtop))))
+    (setq default-directory (dvc-tree-root cur-dir))
+    (erase-buffer)
+    (insert cur-message)
+    (xhg-qrefresh-edit-message-mode)
+    (message "Edit the message and hit C-c C-c to accept it.")))
+
+(defun xhg-qrefresh-edit-message-done ()
+  "Use the current buffer content as parameter for hg qrefresh --message."
+  (interactive)
+  (let ((logfile-name (make-temp-file "xhg-qrefresh"))
+        (new-message (buffer-substring-no-properties (point-min) (point-max)))
+        (message-buf))
+    (save-excursion
+      (find-file logfile-name)
+      (setq message-buf (current-buffer))
+      (insert new-message)
+      (save-buffer))
+  (dvc-run-dvc-sync 'xhg (list "qrefresh" "--logfile" logfile-name))
+  (kill-buffer message-buf)
+  (delete-file logfile-name)
+  (let ((dvc-buffer-quit-mode 'kill))
+    (dvc-buffer-quit))))
+
+(defvar xhg-qrefresh-edit-message-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [(control ?c) (control ?c)] 'xhg-qrefresh-edit-message-done)
+    map)
+  "Keymap used in a xhg qrefresh edit message buffer.")
+
+(define-derived-mode xhg-qrefresh-edit-message-mode fundamental-mode
+  "xhg qrefresh edit message"
+  "Major mode to edit the mq header message for the current patch."
+  (dvc-install-buffer-menu))
 
 ;;;###autoload
 (defun xhg-qpop (&optional all)
@@ -290,7 +333,7 @@ When called with a prefix argument run hg qpush -a."
     prev))
 
 ;;;###autoload
-(defun xhg-qheader (patch)
+(defun xhg-qheader (&optional patch)
   "Run hg qheader."
   (interactive
    (list
