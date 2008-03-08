@@ -33,6 +33,7 @@
 (require 'dvc-diff)
 (require 'xhg-core)
 (require 'xhg-log)
+(require 'xhg-mq)
 
 (defvar xhg-export-git-style-patches t "Run hg export --git.")
 
@@ -282,9 +283,11 @@ If DONT-SWITCH, don't switch to the diff buffer"
 
 (easy-menu-define xhg-mode-menu dvc-diff-mode-map
   "`xhg' menu"
-  (delete nil `("hg"
-                ,(when (boundp 'xhg-mq-submenu) xhg-mq-submenu)
-                )))
+  `("hg"
+    ,xhg-mq-submenu
+    ["Edit project hgrc file" xhg-hgrc-edit-repository-hgrc t]
+    ["Edit global ~/.hgrc file" xhg-hgrc-edit-global-hgrc t]
+    ))
 
 (defun xhg-status-extra-mode-setup ()
   "Do some additonal setup for xhg status buffers."
@@ -315,6 +318,28 @@ If DONT-SWITCH, don't switch to the diff buffer"
   (dvc-run-dvc-async 'xhg (list "pull" (when update-after-pull "--update") src)
                      :error 'xhg-pull-finish-function
                      :finished 'xhg-pull-finish-function))
+
+(defun xhg-push-finish-function (output error status arguments)
+  (let ((buffer (dvc-get-buffer-create 'xhg 'push)))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert-buffer-substring output)
+        (toggle-read-only 1)))
+    (let ((dvc-switch-to-buffer-mode 'show-in-other-window))
+      (dvc-switch-to-buffer buffer))))
+
+;;;###autoload
+(defun xhg-push (src)
+  "Run hg push."
+  (interactive (list (let* ((completions (xhg-paths 'both))
+                            (initial-input (car (member "default" completions))))
+                       (dvc-completing-read
+                        "Push to hg repository: "
+                        completions nil nil initial-input))))
+  (dvc-run-dvc-async 'xhg (list "push" src)
+                     :error 'xhg-push-finish-function
+                     :finished 'xhg-push-finish-function))
 
 ;;;###autoload
 (defun xhg-clone (src &optional dest noupdate rev pull)
@@ -354,6 +379,45 @@ If DONT-SWITCH, don't switch to the diff buffer"
                                (insert-buffer-substring output)
                                (goto-char (point-min))
                                (insert (format "hg incoming for %s\n\n" default-directory))
+                               (toggle-read-only 1)))))
+                       :error
+                       (dvc-capturing-lambda (output error status arguments)
+                         (with-current-buffer output
+                           (goto-char (point-max))
+                           (forward-line -1)
+                           (if (looking-at "no changes found")
+                               (progn
+                                 (message "No changes found")
+                                 (set-window-configuration (capture window-conf)))
+                             (dvc-default-error-function output error status arguments)))))))
+
+;;;###autoload
+(defun xhg-outgoing (&optional src show-patch no-merges)
+  "Run hg outgoing."
+  (interactive (list (let* ((completions (xhg-paths 'both))
+                            (initial-input (car (member "default" completions))))
+                       (dvc-completing-read
+                        "Show outgoing to hg repository: "
+                        completions nil nil initial-input))
+                     nil ;; show-patch
+                     nil ;; no-merges
+                     ))
+  (let ((window-conf (current-window-configuration))
+        (buffer (dvc-get-buffer-create 'xhg 'log)))
+    (dvc-switch-to-buffer-maybe buffer t)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (xhg-log-mode)
+    (dvc-run-dvc-async 'xhg (list "outgoing" (when show-patch "--patch") (when no-merges "--no-merges") src)
+                       :finished
+                       (dvc-capturing-lambda (output error status arguments)
+                         (progn
+                           (with-current-buffer (capture buffer)
+                             (let ((inhibit-read-only t))
+                               (erase-buffer)
+                               (insert-buffer-substring output)
+                               (goto-char (point-min))
+                               (insert (format "hg outgoing for %s\n\n" default-directory))
                                (toggle-read-only 1)))))
                        :error
                        (dvc-capturing-lambda (output error status arguments)
@@ -742,8 +806,14 @@ LAST-REVISION looks like
     (insert "# -*- hgrc -*-\n\n")))
 
 (defun xhg-hgrc-edit-repository-hgrc ()
+  "Edit the .hg/hgrc file for the current working copy"
   (interactive)
   (xhg-hgrc-open-hgrc-file (concat (xhg-tree-root) ".hg/hgrc")))
+
+(defun xhg-hgrc-edit-global-hgrc ()
+  "Edit the ~/.hgrc file"
+  (interactive)
+  (xhg-hgrc-open-hgrc-file "~/.hgrc"))
 
 ;; Note: this mode is named hgrc-mode and not xhgrc-mode, because
 ;; a similar thing does not exist in mercurial.el yet and
@@ -791,9 +861,8 @@ LAST-REVISION looks like
   (interactive)
   (split-window)
   (other-window 1)
-  (apply (if (featurep 'xemacs) 'manual-entry 'woman) "hgrc")
+  (apply (if (featurep 'xemacs) 'manual-entry 'woman) '("hgrc"))
   (other-window -1))
-
 
 (provide 'xhg)
 ;;; xhg.el ends here

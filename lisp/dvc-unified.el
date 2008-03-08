@@ -121,12 +121,25 @@ not &rest."
   "Ask for the DVC to use and clone SOURCE-PATH."
   (interactive)
   (when (interactive-p)
-    (setq dvc (intern (dvc-completing-read
-                       "Clone, using dvc: "
-                       (map t 'symbol-name
-                            dvc-registered-backends))))
-    (setq source-path (read-string (format "%S-clone from path: " dvc)))
-    (setq dest-path (expand-file-name (dvc-read-directory-name "destination directory: " nil nil nil "<default>"))))
+    (let* ((ffap-url-regexp
+            (concat
+             "\\`\\("
+             "\\(ftp\\|https?\\|git\\|www\\)://" ; needs host
+             "\\)."				; require one more character
+             ))
+           (url-at-point (ffap-url-at-point))
+           (all-candidates (map t 'symbol-name dvc-registered-backends))
+           (git-is-candidate (looking-back "git clone .+")))
+      (setq dvc (intern (dvc-completing-read
+                         "Clone, using dvc: "
+                         all-candidates
+                         nil t
+                         (cond (git-is-candidate "xgit")
+                               (t nil)))))
+      (setq source-path (read-string (format "%S-clone from path: " dvc) url-at-point))
+      (setq dest-path (expand-file-name (dvc-read-directory-name
+                                         (format "Destination Directory for %S-clone: " dvc)
+                                         nil nil nil "<default>")))))
   (let ((default-directory (or (file-name-directory dest-path) default-directory)))
     (when (string= (file-name-nondirectory dest-path) "<default>")
       (setq dest-path nil))

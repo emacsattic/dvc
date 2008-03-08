@@ -54,10 +54,10 @@
                                   (message "git init finished")))))
 
 ;;;###autoload
-(defun xgit-clone (src)
+(defun xgit-clone (src &optional dest)
   "Run git clone."
   (interactive (list (read-string "git clone from: ")))
-  (dvc-run-dvc-async 'xgit (list "clone" src)))
+  (dvc-run-dvc-async 'xgit (list "clone" src dest)))
 
 ;;;###autoload
 (defun xgit-add (file)

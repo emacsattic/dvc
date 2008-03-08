@@ -257,7 +257,7 @@ FILE is filename in repostory to filter logs by matching filename."
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
 
     ;; the merge group
-    ;; (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
+    (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
     (define-key map (dvc-prefix-merge ?m) 'dvc-missing)
     map)
   "Keymap used in `xgit-changelog-mode'.")
