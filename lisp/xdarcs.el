@@ -1,6 +1,6 @@
 ;;; xdarcs.el --- darcs interface for dvc
 
-;; Copyright (C) 2006, 2007 by all contributors
+;; Copyright (C) 2006, 2007, 2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -148,7 +148,7 @@
                                     output error))))))
 
 ;;;###autoload
-(defun xdarcs-missing ()
+(defun xdarcs-dvc-missing ()
   "Run 'darcs pull --dry-run -s -v' to see what's missing"
   (interactive)
   (let ((buffer (dvc-get-buffer-create 'xdarcs 'missing)))

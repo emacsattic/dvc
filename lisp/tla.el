@@ -5723,7 +5723,7 @@ the entries."
     (tla-categories archive)))
 
 ;;;###autoload
-(defun tla-missing (local-tree location)
+(defun tla-missing-1 (local-tree location)
   "Search in directory LOCAL-TREE for missing patches from LOCATION.
 If the current buffers default directory is in an arch managed tree use that
 one unless called with a prefix arg.  In all other cases prompt for the local
@@ -6411,8 +6411,8 @@ With an prefix ARG, do this for the archive of one of your partners."
   (if arg
       (let ((missing-partner (tla--partner-read-version "Check missing against: ")))
         (when (y-or-n-p (format "Check missing against %s ? " missing-partner))
-          (tla-missing default-directory missing-partner)))
-    (tla-missing default-directory (tla-tree-version))))
+          (tla-missing-1 default-directory missing-partner)))
+    (tla-missing-1 default-directory (tla-tree-version))))
 
 (defun tla-inventory-file-ediff (&optional file)
   "Run `ediff' on FILE."
