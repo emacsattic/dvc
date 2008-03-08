@@ -1295,23 +1295,25 @@ finished."
   nil)
 
 ;;;###autoload
-(defun xmtn-dvc-update ()
+(defun xmtn-dvc-update (&optional revision-id)
   (let ((root (dvc-tree-root)))
     (xmtn-automate-with-session (nil root)
-      (let* ((branch (xmtn--tree-default-branch root))
-             (heads (xmtn--heads root branch)))
-        (case (length heads)
-          (0 (assert nil))
-          (1
-           (xmtn--update-after-confirmation root (first heads)))
+      (if revision-id
+          (xmtn--update-after-confirmation root (xmtn--revision-hash-id revision-id))
 
-          (t
-           ;; Should probably prompt user to choose one head, but let's
-           ;; keep it simple for now.
-           (error (substitute-command-keys
-                   (concat "Branch %s is unmerged (%s heads)."
-                           "  Try \\[dvc-log] and \\[dvc-merge]"))
-                  branch (length heads)))))))
+        (let* ((branch (xmtn--tree-default-branch root))
+               (heads (xmtn--heads root branch)))
+          (case (length heads)
+            (0 (assert nil))
+            (1
+             (xmtn--update-after-confirmation root (first heads)))
+
+            (t
+             ;; User can choose one head from a revlist, or merge them.
+             (error (substitute-command-keys
+                     (concat "Branch %s is unmerged (%s heads)."
+                             "  Try \\[xmtn-view-heads-revlist] and \\[dvc-merge] or \\[dvc-revlist-update]"))
+                    branch (length heads))))))))
   nil)
 
 (defun xmtn-propagate-from (other)

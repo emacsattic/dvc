@@ -489,8 +489,8 @@ If FORCE-PROMPT non-nil (default user prefix arg), prompt for PATH."
   (interactive (list (read-file-name "Save the diff to: "))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-update ()
-  "Update this working copy."
+(define-dvc-unified-command dvc-update (&optional revision-id)
+  "Update this working copy to REVISION-ID (default head of current branch)."
   (interactive))
 
 ;;;###autoload
