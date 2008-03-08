@@ -60,7 +60,7 @@
 ;;
 ;; - Generic Rules:
 ;;
-;; 1. xtla-inventory should have similar key bindings to pcl-cvs.
+;; 1. dvc-status should have similar key bindings to pcl-cvs.
 ;;    If a pcl-cvs's binding is too odd, talk it in dvc dev mailing list.
 ;;
 ;; 2. Define common prefix for command groups like '>'.
@@ -88,7 +88,7 @@
 ;;
 
 ;; t  ?    list all toggles
-;; c       tla-edit-log
+;; c       dvc-edit-log
 ;; RET     Open the thing at point
 ;;
 
@@ -142,11 +142,11 @@
                                         ; that's what you do when you
                                         ; want to commit.
 ;;;###autoload
-(defvar dvc-key-update     ?u)           ; to run tla update
-(defvar dvc-key-replay     ?r)           ; to run tla replay
-(defvar dvc-key-star-merge ?s)           ; to run tla star-merge
+(defvar dvc-key-update     ?u)           ; to run dvc update
+(defvar dvc-key-replay     ?r)           ; to run dvc replay
+(defvar dvc-key-star-merge ?s)           ; to run dvc star-merge
 ;;;###autoload
-(defvar dvc-key-missing    ?m)           ; to run tla missing
+(defvar dvc-key-missing    ?m)           ; to run dvc missing
 
 ;;;###autoload
 (defvar dvc-key-buffer-prefix ?B)   ; perfix for switching XXX buffer
@@ -288,7 +288,7 @@
 ;;
 ;; Global
 ;;
-;; TODO replace all those tla-... by dvc-... !!!
+;; FIXME: replace all those tla-... by dvc-... !!!
 ;;;###autoload
 (defvar dvc-global-keymap
   (let ((map (make-sparse-keymap)))

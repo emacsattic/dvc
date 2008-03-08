@@ -391,6 +391,7 @@ reused.
     ("ignore-file-extensions" (file-list))
     ("ignore-file-extensions-in-dir" (file-list))
     ("log-edit" (&optional OTHER-FRAME))
+    ("missing" (&optional other path force-prompt))
     ("rename" (from-name to-name))
     ("remove-files" (&rest files))
     ("revert-files" (&rest files))

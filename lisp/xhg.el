@@ -766,7 +766,7 @@ LAST-REVISION looks like
 ;; add one to that revision number -> actual-rev+1
 ;; hg log -r actual-rev+1:tip, e.g. hg log -r 5:tip
 ;;;###autoload
-(defun xhg-missing ()
+(defun xhg-missing-1 ()
   "Shows the logs of the new arrived changesets after a pull and before an update."
   (interactive)
   (let ((id (split-string (xhg-identify)))

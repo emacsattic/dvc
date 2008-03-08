@@ -1,6 +1,6 @@
 ;;; bzr-revision.el --- Management of revision lists in bzr
 
-;; Copyright (C) 2006, 2007  by all contributors
+;; Copyright (C) 2006 - 2008  by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -201,18 +201,18 @@ specified, fewer than LAST-N revisions may be shown."
     (goto-char (point-min))))
 
 ;;;###autoload
-(defun bzr-missing (&optional other)
+(defun bzr-dvc-missing (&optional other)
   "Run bzr missing."
   (interactive "sBzr missing against other: ")
   (when (string= other "")
     (setq other nil))
-  ;;(message "bzr-missing %S" other)
+  ;;(message "bzr-dvc-missing %S" other)
   (dvc-build-revision-list 'bzr 'missing (bzr-tree-root)
                            `("missing" ,other)
                            'bzr-missing-parse
                            nil nil nil
                            (dvc-capturing-lambda ()
-                             (bzr-missing (capture other))))
+                             (bzr-dvc-missing (capture other))))
   (goto-char (point-min)))
 
 (provide 'bzr-revision)
