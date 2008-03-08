@@ -68,6 +68,7 @@
 (defvar xhg-log-font-lock-keywords
   (append
    '(("^changeset:" . font-lock-function-name-face)
+     ("^branch:" . font-lock-function-name-face)
      ("^tag:" . font-lock-function-name-face)
      ("^user:" . font-lock-function-name-face)
      ("^date:" . font-lock-function-name-face)

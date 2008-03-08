@@ -38,8 +38,6 @@
 ;;;###autoload
 (defalias 'bzr-dvc-inventory 'bzr-inventory)
 ;;;###autoload
-(defalias 'bzr-dvc-missing 'bzr-missing)
-;;;###autoload
 (defalias 'bzr-dvc-pull 'bzr-pull)
 ;;;###autoload
 (defalias 'bzr-dvc-push 'bzr-push)

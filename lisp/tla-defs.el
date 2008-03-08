@@ -1,6 +1,6 @@
 ;;; tla-defs.el --- UI Xtla's element definitions
 
-;; Copyright (C) 2003-2007 by all contributors
+;; Copyright (C) 2003-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -894,7 +894,7 @@ The function must take a string as argument."
     ("Show Missing" :filter (lambda (x)
                               (tla--partner-create-menu
                                '(lambda (x)
-                                  (tla-missing default-directory x)))))
+                                  (tla-missing-1 default-directory x)))))
     ("Show ChangeLog" :filter (lambda (x)
                                 (tla--partner-create-menu
                                  '(lambda (x)

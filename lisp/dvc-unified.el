@@ -121,12 +121,25 @@ not &rest."
   "Ask for the DVC to use and clone SOURCE-PATH."
   (interactive)
   (when (interactive-p)
-    (setq dvc (intern (dvc-completing-read
-                       "Clone, using dvc: "
-                       (map t 'symbol-name
-                            dvc-registered-backends))))
-    (setq source-path (read-string (format "%S-clone from path: " dvc)))
-    (setq dest-path (expand-file-name (dvc-read-directory-name "destination directory: " nil nil nil "<default>"))))
+    (let* ((ffap-url-regexp
+            (concat
+             "\\`\\("
+             "\\(ftp\\|https?\\|git\\|www\\)://" ; needs host
+             "\\)."				; require one more character
+             ))
+           (url-at-point (ffap-url-at-point))
+           (all-candidates (map t 'symbol-name dvc-registered-backends))
+           (git-is-candidate (looking-back "git clone .+")))
+      (setq dvc (intern (dvc-completing-read
+                         "Clone, using dvc: "
+                         all-candidates
+                         nil t
+                         (cond (git-is-candidate "xgit")
+                               (t nil)))))
+      (setq source-path (read-string (format "%S-clone from path: " dvc) url-at-point))
+      (setq dest-path (expand-file-name (dvc-read-directory-name
+                                         (format "Destination Directory for %S-clone: " dvc)
+                                         nil nil nil "<default>")))))
   (let ((default-directory (or (file-name-directory dest-path) default-directory)))
     (when (string= (file-name-nondirectory dest-path) "<default>")
       (setq dest-path nil))
@@ -378,6 +391,7 @@ reused.
     ("ignore-file-extensions" (file-list))
     ("ignore-file-extensions-in-dir" (file-list))
     ("log-edit" (&optional OTHER-FRAME))
+    ("missing" (&optional other path force-prompt))
     ("rename" (from-name to-name))
     ("remove-files" (&rest files))
     ("revert-files" (&rest files))
@@ -446,11 +460,23 @@ directories containing the files, and recursively below them."
           (dvc-call "dvc-backend-ignore-file-extensions-in-dir" file-list))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-missing (&optional other)
-  "Show revisions missing from the local workspace, relative to OTHER.
-OTHER defaults to the head revision of the current branch; for
-some back-ends, it may also be a remote repository."
-  (interactive))
+(defun dvc-missing (&optional other path force-prompt)
+  "Show revisions missing from PATH (default the local workspace),
+relative to OTHER. OTHER defaults to the head revision of the
+current branch; for some back-ends, it may also be a remote
+repository.
+
+If FORCE-PROMPT non-nil (default user prefix arg), prompt for PATH."
+  (interactive `(nil nil ,current-prefix-arg))
+  (let ((default-directory
+          (dvc-read-project-tree-maybe "DVC missing (directory): "
+                                       (when path (expand-file-name path))
+                                       (not force-prompt))))
+    ;; Since we have bound default-directory, we don't need to pass
+    ;; `path' to the back-end.
+    (dvc-save-some-buffers default-directory)
+    (dvc-call "dvc-missing" other))
+  nil)
 
 ;;;###autoload
 (define-dvc-unified-command dvc-inventory ()
@@ -463,8 +489,8 @@ some back-ends, it may also be a remote repository."
   (interactive (list (read-file-name "Save the diff to: "))))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-update ()
-  "Update this working copy."
+(define-dvc-unified-command dvc-update (&optional revision-id)
+  "Update this working copy to REVISION-ID (default head of current branch)."
   (interactive))
 
 ;;;###autoload

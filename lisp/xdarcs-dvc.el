@@ -1,6 +1,6 @@
 ;;; xdarcs-dvc.el --- The dvc layer for darcs
 
-;; Copyright (C) 2006, 2007 by all contributors
+;; Copyright (C) 2006, 2007, 2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -44,9 +44,6 @@
 
 ;;;###autoload
 (defalias 'xdarcs-dvc-status 'xdarcs-whatsnew)
-
-;;;###autoload
-(defalias 'xdarcs-dvc-missing 'xdarcs-missing)
 
 ;;;###autoload
 (defalias 'xdarcs-dvc-pull 'xdarcs-pull)

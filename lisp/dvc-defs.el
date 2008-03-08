@@ -390,19 +390,20 @@ arch operation modifying the file."
   :group 'dvc-internal)
 
 (defcustom dvc-read-project-tree-mode 'sometimes
-  "*Mode for prompting project tree directories. Possible values are:
+  "*Mode for prompting for project tree directories. Possible values are:
 
-- always: When running a dvc command requiring a tree, always prompt
-  for it.
+- always: always prompt.
 
-- unless-specified: If a directory is given as an argument, use it;
-  otherwise prompt.
+- unless-specified: If a directory is given as an argument, use
+  it; otherwise prompt. Some commands modify this to use the
+  current project tree without prompt; then a user arg forces a
+  prompt.
 
-- sometimes: If a command is run inside a project tree, the tree root
-  is used. Otherwise, prompt.
+- sometimes: If a command is run inside a project tree, the tree
+  root is used. Otherwise, prompt.
 
-- never: If a command is run inside a project tree, use the tree root.
-  Otherwise, raise an error."
+- never: If a command is run inside a project tree, use the tree
+  root. Otherwise, raise an error."
   :type '(choice (const always)
                  (const unless-specified)
                  (const sometimes)

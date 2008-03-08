@@ -104,8 +104,8 @@
 
 (defun tla-dvc-missing (&optional other)
   (interactive)
-  ;; eventually move the user input logic from tla-missing to this function...
-  (tla-missing (tla-tree-root nil t) (tla-tree-version)))
+  ;; eventually move the user input logic from tla-missing-1 to this function...
+  (tla-missing-1 (tla-tree-root nil t) (tla-tree-version)))
 
 ;;;###autoload
 (defalias 'tla-dvc-command-version 'tla-command-version)

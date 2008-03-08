@@ -143,7 +143,7 @@ ARG is passed as prefix argument"
 When `last-command' was `dvc-pull', run `xhg-missing'."
   (interactive)
   (if (eq last-command 'dvc-pull)
-      (xhg-missing)
+      (xhg-missing-1)
     (xhg-incoming other t)))
 
 (defun xhg-dvc-update ()

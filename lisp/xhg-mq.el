@@ -1,6 +1,6 @@
 ;;; xhg-mq.el --- dvc integration for hg's mq
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -24,31 +24,31 @@
 ;; For more information on mq see:
 ;;   http://www.selenic.com/mercurial/wiki/index.cgi/MqTutorial
 
-(require 'xhg)
-
 ;; The following commands are available for hg's mq:
-;; qapplied      print the patches already applied
-;; qclone        clone main and patch repository at same time
-;; qcommit       commit changes in the queue repository
-;; qdelete       remove a patch from the series file
-;; qdiff         diff of the current patch
-;; qfold         fold the named patches into the current patch
-;; qheader       Print the header of the topmost or specified patch
-;; qimport       import a patch
-;; qinit         init a new queue repository
-;; qnew          create a new patch
-;; qnext         print the name of the next patch
-;; qpop          pop the current patch off the stack
-;; qprev         print the name of the previous patch
-;; qpush         push the next patch onto the stack
-;; qrefresh      update the current patch
-;; qrename       rename a patch
-;; qrestore      restore the queue state saved by a rev
-;; qsave         save current queue state
-;; qseries       print the entire series file
-;; qtop          print the name of the current patch
-;; qunapplied    print the patches not yet applied
-;; qversion      print the version number of the mq extension
+;; X qapplied      print the patches already applied
+;;   qclone        clone main and patch repository at same time
+;;   qcommit       commit changes in the queue repository
+;; X qdelete       remove a patch from the series file
+;; X qdiff         diff of the current patch
+;;   qfold         fold the named patches into the current patch
+;;   qgoto         push or pop patches until named patch is at top of stack
+;;   qguard        set or print guards for a patch
+;; X qheader       Print the header of the topmost or specified patch
+;;   qimport       import a patch
+;; X qinit         init a new queue repository
+;; X qnew          create a new patch
+;; X qnext         print the name of the next patch
+;; X qpop          pop the current patch off the stack
+;; X qprev         print the name of the previous patch
+;; X qpush         push the next patch onto the stack
+;; X qrefresh      update the current patch
+;; X qrename       rename a patch
+;;   qrestore      restore the queue state saved by a rev
+;;   qsave         save current queue state
+;;   qselect       set or print guarded patches to push
+;; X qseries       print the entire series file
+;; X qtop          print the name of the current patch
+;; X qunapplied    print the patches not yet applied
 
 (defvar xhg-mq-submenu
   '("mq"
@@ -62,6 +62,7 @@
     ["mq series"  xhg-qseries t]
     ["mq delete"  xhg-qdelete t]
     ["mq rename"  xhg-qrename t]
+    ["mq header"  xhg-qheader t]
     "--"
     ["mq init" xhg-qinit t]
     ["mq new"  xhg-qnew t]
@@ -74,6 +75,8 @@
     (define-key map [?S] 'xhg-qseries)
     (define-key map [?s] 'xhg-mq-show-stack)
     (define-key map [?e] 'xhg-mq-edit-series-file)
+    (define-key map [?h] 'xhg-qheader)
+    (define-key map [?H] 'xhg-qrefresh-header)
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
@@ -131,6 +134,48 @@ When called with a prefix argument run hg qnew -f."
   (let ((top (xhg-qtop)))
     (dvc-run-dvc-sync 'xhg (list "qrefresh"))
     (message (format "hg qrefresh for %s finished" top))))
+
+;;;###autoload
+(defun xhg-qrefresh-header ()
+  "Run hg qrefresh --message."
+  (interactive)
+  (let ((cur-message (xhg-qheader))
+        (cur-dir default-directory))
+    (dvc-buffer-push-previous-window-config)
+    (pop-to-buffer (get-buffer-create (format "*xhg header for %s*" (xhg-qtop))))
+    (setq default-directory (dvc-tree-root cur-dir))
+    (erase-buffer)
+    (insert cur-message)
+    (xhg-qrefresh-edit-message-mode)
+    (message "Edit the message and hit C-c C-c to accept it.")))
+
+(defun xhg-qrefresh-edit-message-done ()
+  "Use the current buffer content as parameter for hg qrefresh --message."
+  (interactive)
+  (let ((logfile-name (make-temp-file "xhg-qrefresh"))
+        (new-message (buffer-substring-no-properties (point-min) (point-max)))
+        (message-buf))
+    (save-excursion
+      (find-file logfile-name)
+      (setq message-buf (current-buffer))
+      (insert new-message)
+      (save-buffer))
+  (dvc-run-dvc-sync 'xhg (list "qrefresh" "--logfile" logfile-name))
+  (kill-buffer message-buf)
+  (delete-file logfile-name)
+  (let ((dvc-buffer-quit-mode 'kill))
+    (dvc-buffer-quit))))
+
+(defvar xhg-qrefresh-edit-message-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [(control ?c) (control ?c)] 'xhg-qrefresh-edit-message-done)
+    map)
+  "Keymap used in a xhg qrefresh edit message buffer.")
+
+(define-derived-mode xhg-qrefresh-edit-message-mode fundamental-mode
+  "xhg qrefresh edit message"
+  "Major mode to edit the mq header message for the current patch."
+  (dvc-install-buffer-menu))
 
 ;;;###autoload
 (defun xhg-qpop (&optional all)
@@ -254,19 +299,6 @@ When called with a prefix argument run hg qpush -a."
     (dvc-run-dvc-sync 'xhg (list "qrename" from to))))
 
 ;;;###autoload
-(defun xhg-qversion ()
-  "Run hg qversion."
-  (interactive)
-  (let ((version (dvc-run-dvc-sync 'xhg '("qversion")
-                                   :finished 'dvc-output-buffer-handler))
-        (version-string))
-    (when version
-      (setq version-string (nth 2 (split-string version " "))))
-    (when (interactive-p)
-      (message "Mercurial mq version: %s" version-string))
-    version-string))
-
-;;;###autoload
 (defun xhg-qtop ()
   "Run hg qtop."
   (interactive)
@@ -301,7 +333,7 @@ When called with a prefix argument run hg qpush -a."
     prev))
 
 ;;;###autoload
-(defun xhg-qheader (patch)
+(defun xhg-qheader (&optional patch)
   "Run hg qheader."
   (interactive
    (list
