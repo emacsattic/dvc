@@ -517,8 +517,8 @@ of the commit. Additionally the destination email address can be specified."
                      (ewoc-enter-last dvc-fileinfo-ewoc
                                       (make-dvc-fileinfo-message
                                        :text msg))))
-               (let ((file (match-string-no-properties 1))
-                     (dir (match-string-no-properties 2)))
+               (let ((file (match-string-no-properties 2))
+                     (dir (match-string-no-properties 1)))
                  (with-current-buffer changes-buffer
                    (ewoc-enter-last dvc-fileinfo-ewoc
                                     (make-dvc-fileinfo-file

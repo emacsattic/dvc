@@ -1,6 +1,6 @@
 ;;; xgit-log.el --- git interface for dvc: mode for git log style output
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -191,22 +191,22 @@ See also `xgit-log-max-count'."
 (defun xgit-log-grep (regexp)
   "Limit the log output to ones with log message that matches the specified pattern."
   (interactive "MGrep pattern for Commit Log: ")
-  (xgit-log default-directory :log-regexp regexp))
+  (xgit-log default-directory nil :log-regexp regexp))
 
 (defun xgit-log-file (filename)
   "Limit the log output to ones that changes the specified file."
   (interactive "FFile name: ")
-  (xgit-log default-directory :file filename))
+  (xgit-log default-directory nil :file filename))
 
 (defun xgit-log-diff-grep (string)
   "Limit the logs that contain the change in given string."
   (interactive "MGrep pattern for Commit Diff: ")
-  (xgit-log default-directory :diff-match string))
+  (xgit-log default-directory nil :diff-match string))
 
 (defun xgit-log-revision (rev)
   "Show log for a given hash id."
   (interactive "MID: ")
-  (xgit-log default-directory :cnt 1 :rev rev))
+  (xgit-log default-directory 1 :rev rev))
 
 
 ;; copied and adapted from bzr-log
@@ -239,6 +239,147 @@ FILE is filename in repostory to filter logs by matching filename."
                                          :file (capture file)
                                          :since (capture since))))
     (goto-char (point-min))))
+
+
+;; An alternative xgit-log implementation, showing diffs inline, based on xhg-log
+
+(require 'diff-mode)
+
+(defvar xgit-changelog-mode-map
+  (let ((map (copy-keymap diff-mode-shared-map)))
+    (define-key map dvc-keyvec-help 'describe-mode)
+    (define-key map [?g] 'xgit-changelog)
+    (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
+    (define-key map [?s] 'xgit-status)
+    (define-key map dvc-keyvec-next 'xgit-changelog-next)
+    (define-key map dvc-keyvec-previous 'xgit-changelog-previous)
+    (define-key map [?\ ] 'xgit-changelog-dwim-next)
+    (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
+
+    ;; the merge group
+    (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
+    (define-key map (dvc-prefix-merge ?m) 'dvc-missing)
+    map)
+  "Keymap used in `xgit-changelog-mode'.")
+
+;;(easy-menu-define xgit-changelog-mode-menu xgit-changelog-mode-map
+;;  "`xgit-changelog-mode' menu"
+;;  `("hg-log"
+;;    ["Show status" dvc-status t]
+;;    ))
+
+(defvar xgit-changelog-font-lock-keywords
+  (append
+   '(("^commit " . font-lock-function-name-face)
+     ("^Author:" . font-lock-function-name-face)
+     ("^Date:" . font-lock-function-name-face))
+   diff-font-lock-keywords)
+  "Keywords in `xgit-changelog-mode' mode.")
+
+(defvar xgit-changelog-review-current-diff-revision nil)
+(defvar xgit-changelog-review-recenter-position-on-next-diff 5)
+
+(define-derived-mode xgit-changelog-mode fundamental-mode "xgit-changelog"
+  "Major mode to display hg log output with embedded diffs. Derives from `diff-mode'.
+
+Commands:
+\\{xgit-changelog-mode-map}
+"
+  (let ((diff-mode-shared-map (copy-keymap xgit-changelog-mode-map))
+        major-mode mode-name)
+    (diff-mode))
+  (set (make-local-variable 'font-lock-defaults)
+       (list 'xgit-changelog-font-lock-keywords t nil nil))
+  (set (make-local-variable 'xgit-changelog-review-current-diff-revision) nil))
+
+(defun xgit-changelog (&optional r1 r2 show-patch file)
+  "Run git log.
+When run interactively, the prefix argument decides, which parameters are queried from the user.
+C-u      : Show patches also, use all revisions
+C-u C-u  : Show patches also, ask for revisions
+positive : Don't show patches, ask for revisions.
+negative : Don't show patches, limit to n revisions."
+  (interactive "P")
+  (when (interactive-p)
+    (cond ((equal current-prefix-arg '(4))
+           (setq show-patch t)
+           (setq r1 nil))
+          ((equal current-prefix-arg '(16))
+           (setq show-patch t)
+           (setq r1 1)))
+    (when (and (numberp r1) (> r1 0))
+      (setq r1 (read-string "git log, R1:"))
+      (setq r2 (read-string "git log, R2:"))))
+  (let ((buffer (dvc-get-buffer-create 'xgit 'log))
+        (command-list '("log"))
+        (cur-dir default-directory))
+    (when r1
+      (when (numberp r1)
+        (setq r1 (number-to-string r1))))
+    (when r2
+      (when (numberp r2)
+        (setq r2 (number-to-string r2))))
+    (if (and (> (length r2) 0) (> (length r1) 0))
+        (setq command-list (append command-list (list (concat r1 ".." r2))))
+      (when (> (length r1) 0)
+        (let ((r1-num (string-to-number r1)))
+          (if (> r1-num 0)
+              (setq command-list (append command-list (list r1)))
+            (setq command-list
+                  (append command-list
+                          (list (format "--max-count=%d" (abs r1-num)))))))))
+    (when show-patch
+      (setq command-list (append command-list (list "-p"))))
+    (dvc-switch-to-buffer-maybe buffer)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (xgit-changelog-mode)
+    (dvc-run-dvc-sync 'xgit command-list
+                         :finished
+                         (dvc-capturing-lambda (output error status arguments)
+                           (progn
+                             (with-current-buffer (capture buffer)
+                               (let ((inhibit-read-only t))
+                                 (erase-buffer)
+                                 (insert-buffer-substring output)
+                                 (goto-char (point-min))
+                                 (insert (format "xgit log for %s\n\n" default-directory))
+                                 (toggle-read-only 1))))))))
+
+(defconst xgit-changelog-start-regexp "^commit \\([0-9a-f]+\\)$")
+(defun xgit-changelog-next (n)
+  "Move to the next changeset header of the next diff hunk"
+  (interactive "p")
+  (end-of-line)
+  (re-search-forward xgit-changelog-start-regexp nil t n)
+  (beginning-of-line)
+  (when xgit-changelog-review-recenter-position-on-next-diff
+    (recenter xgit-changelog-review-recenter-position-on-next-diff)))
+
+(defun xgit-changelog-previous (n)
+  "Move to the previous changeset header of the previous diff hunk"
+  (interactive "p")
+  (end-of-line)
+  (re-search-backward xgit-changelog-start-regexp)
+  (re-search-backward xgit-changelog-start-regexp nil t n)
+  (when xgit-changelog-review-recenter-position-on-next-diff
+    (recenter xgit-changelog-review-recenter-position-on-next-diff)))
+
+(defun xgit-changelog-dwim-next ()
+  "Either move to the next changeset via `xgit-changelog-next' or call `scroll-up'.
+When the beginning of the next changeset is already visible, call `xgit-changelog-next',
+otherwise call `scroll-up'."
+  (interactive)
+  (let* ((start-pos (point))
+         (window-line (count-lines (window-start) start-pos))
+         (window-height (dvc-window-body-height))
+         (distance-to-next-changeset (save-window-excursion (xgit-changelog-next 1) (count-lines start-pos (point)))))
+    (goto-char start-pos)
+    (when (eq distance-to-next-changeset 0) ; last changeset
+      (setq distance-to-next-changeset (count-lines start-pos (point-max))))
+    (if (< (- window-height window-line) distance-to-next-changeset)
+        (scroll-up)
+      (xgit-changelog-next 1))))
 
 
 (provide 'xgit-log)

@@ -54,10 +54,10 @@
                                   (message "git init finished")))))
 
 ;;;###autoload
-(defun xgit-clone (src)
+(defun xgit-clone (src &optional dest)
   "Run git clone."
   (interactive (list (read-string "git clone from: ")))
-  (dvc-run-dvc-async 'xgit (list "clone" src)))
+  (dvc-run-dvc-async 'xgit (list "clone" src dest)))
 
 ;;;###autoload
 (defun xgit-add (file)
@@ -447,6 +447,18 @@ many generations back we want to go from the given commit ID.")
     (xgit-diff-1 against root dont-switch base-rev)
     (with-current-buffer buffer (goto-char (point-min)))
     buffer))
+
+;;;###autoload
+(defun xgit-fetch (&optional repository)
+  "Call git fetch."
+  (interactive "sGit fetch from: ")
+  (dvc-run-dvc-async 'xgit (list "fetch" repository)))
+
+;;;###autoload
+(defun xgit-pull (&optional repository)
+  "Call git pull."
+  (interactive "sGit pull from: ")
+  (dvc-run-dvc-async 'xgit (list "pull" repository)))
 
 (defun xgit-split-out-added-files (files)
   "Remove any files that have been newly added to git from FILES.

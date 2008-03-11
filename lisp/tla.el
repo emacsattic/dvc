@@ -1244,7 +1244,7 @@ the list of marked files, and potentially run a selected file commit."
     (tla--ewoc-collect-elem
      dvc-fileinfo-ewoc
      (lambda (fi)
-       (let ((elem (dvc-fileinfo-legacy-data fi)))
+       (let ((elem (when (dvc-fileinfo-legacy-p fi) (dvc-fileinfo-legacy-data fi))))
          (eq (car elem) 'searching-subtrees))))))
 
 (defvar tla--changes-summary nil
@@ -1318,7 +1318,8 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
                                      (with-current-buffer
                                          output (buffer-string)) "\n"))))
               (with-current-buffer (capture buffer)
-                (let ((subtree-message (car (tla--changes-find-subtree-message))))
+                (let ((subtree-message (car (tla--changes-find-subtree-message)))
+                      (buffer-read-only nil))
                   (dolist (subtree subtrees)
                     (let ((buffer-sub (dvc-get-buffer-create tla-arch-branch
                                        'diff subtree)))
@@ -5722,7 +5723,7 @@ the entries."
     (tla-categories archive)))
 
 ;;;###autoload
-(defun tla-missing (local-tree location)
+(defun tla-missing-1 (local-tree location)
   "Search in directory LOCAL-TREE for missing patches from LOCATION.
 If the current buffers default directory is in an arch managed tree use that
 one unless called with a prefix arg.  In all other cases prompt for the local
@@ -6410,8 +6411,8 @@ With an prefix ARG, do this for the archive of one of your partners."
   (if arg
       (let ((missing-partner (tla--partner-read-version "Check missing against: ")))
         (when (y-or-n-p (format "Check missing against %s ? " missing-partner))
-          (tla-missing default-directory missing-partner)))
-    (tla-missing default-directory (tla-tree-version))))
+          (tla-missing-1 default-directory missing-partner)))
+    (tla-missing-1 default-directory (tla-tree-version))))
 
 (defun tla-inventory-file-ediff (&optional file)
   "Run `ediff' on FILE."

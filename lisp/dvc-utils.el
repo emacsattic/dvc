@@ -552,14 +552,18 @@ Arch."
 Function used to refresh the current buffer")
 (make-variable-buffer-local 'dvc-buffer-refresh-function)
 
-(defun dvc-read-project-tree-maybe (&optional prompt directory)
+(defun dvc-read-project-tree-maybe (&optional prompt directory prefer-current)
   "Return a directory name which is the root of some project tree.
 Either prompt from the user or use the current directory.
 The behavior can be changed according to the value of
 `dvc-read-project-tree-mode'.
 
-PROMPT is used as a user prompt, and DIRECTORY is the default
-directory."
+PROMPT is used as a user prompt, and DIRECTORY is the starting point
+of the project search.
+
+When `dvc-read-project-tree-mode' is `unless-specified',
+PREFER-CURRENT non-nil means use current `default-directory' if
+it is a valid project tree."
   (let* ((root (dvc-tree-root (or directory default-directory) t))
          (default-directory (or root
                                 directory
@@ -569,7 +573,7 @@ directory."
       (always (dvc-tree-root (dvc-read-directory-name prompt)))
 
       (unless-specified
-       (if directory
+       (if (or directory prefer-current)
            (if root
                root
              (error "%s directory is not a DVC managed directory" directory))

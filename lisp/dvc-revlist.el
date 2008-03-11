@@ -107,10 +107,13 @@
 (dvc-make-move-fn ewoc-prev dvc-revision-prev-unmerged
                   dvc-revlist-cookie t)
 
+(defun dvc-revlist-current-patch ()
+  "Get the dvc-revlist-entry-patch at point."
+   (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie))))
+
 (defun dvc-revlist-current-patch-struct ()
   "Get the dvc-revlist-entry-patch-struct at point."
-  (dvc-revlist-entry-patch-struct
-   (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie)))))
+  (dvc-revlist-entry-patch-struct (dvc-revlist-current-patch)))
 
 (defun dvc-revision-mark-revision ()
   "Mark revision at point."
@@ -333,7 +336,7 @@ revision list."
     (define-key map [?p] 'dvc-revision-prev)
     (define-key map [?N] 'dvc-revision-next-unmerged)
     (define-key map [?P] 'dvc-revision-prev-unmerged)
-    (define-key map [?M] 'dvc-send-commit-notification)
+    (define-key map [?A] 'dvc-send-commit-notification) ;; Mnemonic: announce
     (define-key map "\C-m" 'dvc-revlist-show-item)
     (define-key map [return] 'dvc-revlist-show-item)
     (define-key map [(meta return)] 'dvc-revlist-show-item-scroll-down)
@@ -348,15 +351,23 @@ revision list."
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     (define-key map (dvc-prefix-buffer ?p) 'dvc-show-process-buffer)
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
-    (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'tla-bookmarks)
+    (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
+    (define-key map (dvc-prefix-merge ?u)                     'dvc-revlist-update)
+    (define-key map (dvc-prefix-merge ?M)                     'dvc-merge)
     (define-key map dvc-keyvec-inventory 'dvc-pop-to-inventory)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
     (define-key map dvc-keyvec-help 'describe-mode)
-    (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'tla-bookmarks)
 
     (define-key map dvc-keyvec-kill-ring nil)
     (define-key map (dvc-prefix-kill-ring ?l) 'dvc-revision-save-log-message-as-kill)
     map))
+
+(easy-menu-define dvc-revlist-mode-menu dvc-revlist-mode-map
+  "`dvc-revlist' menu"
+  '("DVC-Revlist"
+    ["Update"      dvc-revlist-update t]
+    ["Merge heads" dvc-merge          t]
+    ))
 
 (define-derived-mode dvc-revlist-mode fundamental-mode
   "dvc-revlist"
@@ -441,6 +452,11 @@ refresh the revision list buffer.  It must take no arguments."
   (interactive)
   (kill-new (dvc-revision-log-message-at-point)))
   ;; TODO: (message "Copied log message for %s" (tla-changelog-revision-at-point)))
+
+(defun dvc-revlist-update ()
+  "Update current workspace to revision at point"
+  (interactive)
+  (dvc-update (dvc-revlist-entry-patch-rev-id (dvc-revlist-current-patch))))
 
 (provide 'dvc-revlist)
 ;;; dvc-revlist.el ends here
