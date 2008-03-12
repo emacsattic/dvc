@@ -110,7 +110,7 @@ ARG is passed as prefix argument"
 
 (defalias 'xgit-dvc-annotate-time 'xgit-annotate-time)
 
-(defun xgit-dvc-missing ()
+(defun xgit-dvc-missing (&optional other)
   "Run 'git fetch origin; git log HEAD..origin'"
   (interactive)
   (xgit-fetch "origin")
