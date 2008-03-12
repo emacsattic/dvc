@@ -34,6 +34,7 @@
 (require 'dvc-core)
 (require 'dvc-defs)
 (require 'dvc-tips)
+(require 'ediff-init) ; for Xor
 
 ;; --------------------------------------------------------------------------------
 ;; unified functions
@@ -317,10 +318,10 @@ the current active back-end."
 ;;;###autoload
 (defun dvc-log-edit (&optional other-frame no-init)
   "Edit the log before commiting. Optional OTHER_FRAME (default
-user prefix) puts log edit buffer in a separate frame. Optional
+user prefix) puts log edit buffer in a separate frame (or in the
+same frame if `dvc-log-edit-other-frame' is non-nil). Optional
 NO-INIT if non-nil suppresses initialization of buffer if one is
-reused.
-`default-directory' must be the tree root."
+reused. `default-directory' must be the tree root."
   (interactive "P")
   (setq other-frame (Xor other-frame dvc-log-edit-other-frame))
   ;; Reuse an existing log-edit buffer if possible.
