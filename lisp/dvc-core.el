@@ -1134,6 +1134,7 @@ REVISION-ID may have the values described in docs/DVC-API."
       (with-current-buffer buffer
         (let ((buffer-file-name file))
           (set-auto-mode t)))
+      (dvc-buffers-tree-add (dvc-revision-get-dvc revision-id) type file buffer)
       buffer)))
 
 
