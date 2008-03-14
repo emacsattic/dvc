@@ -353,7 +353,6 @@ revision list."
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
     (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
     (define-key map (dvc-prefix-merge ?u)                     'dvc-revlist-update)
-    (define-key map (dvc-prefix-merge ?M)                     'dvc-merge)
     (define-key map dvc-keyvec-inventory 'dvc-pop-to-inventory)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
     (define-key map dvc-keyvec-help 'describe-mode)
@@ -366,9 +365,17 @@ revision list."
   "`dvc-revlist' menu"
   '("DVC-Revlist"
     ["Update"      dvc-revlist-update t]
-    ["Merge heads" dvc-merge          t]
     ))
 
+;; dvc-revlist-create-buffer will use "<back-end>-revlist-mode", if
+;; defined, instead of this one. If so, it should be derived from
+;; dvc-revlist-mode (via `define-derived-mode'), and rely on it for as
+;; many features as possible (one can, for example, extend the menu
+;; and keymap). See `xmtn-revlist-mode' in xgit.el for a good example.
+;;
+;; Remember to add the new mode to
+;; `uniquify-list-buffers-directory-modes' using
+;; `dvc-add-uniquify-directory-mode'.
 (define-derived-mode dvc-revlist-mode fundamental-mode
   "dvc-revlist"
   "Major mode to show revision list.
@@ -400,7 +407,7 @@ LOCATION is root or a buffer name, depending on TYPE."
   (let ((dvc-temp-current-active-dvc back-end)
         (buffer (dvc-get-buffer-create back-end type location)))
     (with-current-buffer buffer
-      (dvc-revlist-mode)
+      (funcall (dvc-function back-end "revlist-mode"))
       (setq dvc-buffer-refresh-function refresh-fn)
       (setq dvc-revlist-brief brief)
       (setq dvc-revlist-last-n last-n))

@@ -148,7 +148,7 @@
                                     output error))))))
 
 ;;;###autoload
-(defun xdarcs-dvc-missing ()
+(defun xdarcs-dvc-missing (&optional other)
   "Run 'darcs pull --dry-run -s -v' to see what's missing"
   (interactive)
   (let ((buffer (dvc-get-buffer-create 'xdarcs 'missing)))
