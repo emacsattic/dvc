@@ -134,14 +134,14 @@ if finding failed.
 
 This function may be useful to find CVS or .svn directories"
   (let ((pwd (or location default-directory))
-	old-pwd)
+        old-pwd)
     (while (and pwd (not (string= pwd "/")))
       (if (file-exists-p (concat (file-name-as-directory pwd)
-				 file-or-dir))
-	  (setq old-pwd pwd
-		pwd (expand-file-name (concat (file-name-as-directory pwd)
-					      "..")))
-	(setq pwd nil)))
+                                 file-or-dir))
+          (setq old-pwd pwd
+                pwd (expand-file-name (concat (file-name-as-directory pwd)
+                                              "..")))
+        (setq pwd nil)))
     (when old-pwd
       (expand-file-name
        (replace-regexp-in-string "/+$" "/" old-pwd)))))
@@ -215,12 +215,12 @@ otherwise the result depends on SELECTION-MODE:
          (t (list (dvc-get-file-info-at-point))))))
 
    ((eq major-mode 'dvc-bookmark-mode)
-        (cond
-         ((eq selection-mode 'nil-if-none-marked)
-          nil)
+    (cond
+     ((eq selection-mode 'nil-if-none-marked)
+      nil)
 
-         (t
-          (error "selection-mode %s not implemented for dvc bookmark buffer" selection-mode))))
+     (t
+      (error "selection-mode %s not implemented for dvc bookmark buffer" selection-mode))))
 
    ;; If other modes are added here, dvc-log-edit must be updated to
    ;; support them as well.
@@ -642,7 +642,7 @@ arguments.
                    the process."
   (dvc-with-keywords
       (:finished :killed :error :filter
-       :output-buffer :error-buffer :related-buffer)
+                 :output-buffer :error-buffer :related-buffer)
     keys
     (let* ((output-buf (or (and output-buffer
                                 (get-buffer-create output-buffer))
@@ -695,41 +695,41 @@ arguments.
         (set-process-sentinel
          process
          (dvc-capturing-lambda (process event)
-            (let ((default-directory (capture default-directory)))
-              (dvc-log-event (capture output-buf) (capture error-buf)
-                             (capture command)
-                             (capture default-directory)
-                             (dvc-strip-final-newline event))
-              (setq dvc-process-running
-                    (delq (capture process-event) dvc-process-running))
-              (when (file-exists-p (capture error-file))
-                (with-current-buffer (capture error-buf)
-                  (insert-file-contents (capture error-file)))
-                (delete-file (capture error-file)))
-              (let ((state (process-status process))
-                    (status (process-exit-status process))
-                    (dvc-temp-current-active-dvc (capture dvc)))
-                (unwind-protect
-                    (cond ((and (eq state 'exit) (= status 0))
-                           (funcall (or (capture finished)
-                                        'dvc-default-finish-function)
-                                    (capture output-buf) (capture error-buf)
-                                    status (capture arguments)))
-                          ((eq state 'signal)
-                           (funcall (or (capture killed)
-                                        'dvc-default-killed-function)
-                                    (capture output-buf) (capture error-buf)
-                                    status (capture arguments)))
-                          ((eq state 'exit) ;; status != 0
-                           (funcall (or (capture error)
-                                        'dvc-default-error-function)
-                                    (capture output-buf) (capture error-buf)
-                                    status (capture arguments)))))
-                ;; Schedule any buffers we created for killing
-                (unless (capture output-buffer)
-                  (dvc-kill-process-buffer (capture output-buf)))
-                (unless (capture error-buffer)
-                  (dvc-kill-process-buffer (capture error-buf)))))))
+           (let ((default-directory (capture default-directory)))
+             (dvc-log-event (capture output-buf) (capture error-buf)
+                            (capture command)
+                            (capture default-directory)
+                            (dvc-strip-final-newline event))
+             (setq dvc-process-running
+                   (delq (capture process-event) dvc-process-running))
+             (when (file-exists-p (capture error-file))
+               (with-current-buffer (capture error-buf)
+                 (insert-file-contents (capture error-file)))
+               (delete-file (capture error-file)))
+             (let ((state (process-status process))
+                   (status (process-exit-status process))
+                   (dvc-temp-current-active-dvc (capture dvc)))
+               (unwind-protect
+                   (cond ((and (eq state 'exit) (= status 0))
+                          (funcall (or (capture finished)
+                                       'dvc-default-finish-function)
+                                   (capture output-buf) (capture error-buf)
+                                   status (capture arguments)))
+                         ((eq state 'signal)
+                          (funcall (or (capture killed)
+                                       'dvc-default-killed-function)
+                                   (capture output-buf) (capture error-buf)
+                                   status (capture arguments)))
+                         ((eq state 'exit) ;; status != 0
+                          (funcall (or (capture error)
+                                       'dvc-default-error-function)
+                                   (capture output-buf) (capture error-buf)
+                                   status (capture arguments)))))
+               ;; Schedule any buffers we created for killing
+               (unless (capture output-buffer)
+                 (dvc-kill-process-buffer (capture output-buf)))
+               (unless (capture error-buffer)
+                 (dvc-kill-process-buffer (capture error-buf)))))))
         process))))
 
 (defun dvc-run-dvc-sync (dvc arguments &rest keys)
@@ -794,8 +794,8 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
 (defun dvc-kill-process-maybe (buffer)
   "Prompts and possibly kill process whose related buffer is BUFFER."
   ;; FIXME: It would be reasonable to run this here, to give any
-;;  process one last chance to run. But somehow this screws up
-;;  package-maint-clean-some-elc. (accept-process-output)
+  ;;  process one last chance to run. But somehow this screws up
+  ;;  package-maint-clean-some-elc. (accept-process-output)
   (let* ((processes (dvc-processes-related-to-buffer buffer))
          (l (length processes)))
     (when (and processes
@@ -824,20 +824,20 @@ See `dvc-run-dvc-async' for details on possible ARGUMENTS and KEYS."
 When INFO-STRING is given, insert it at the buffer beginning."
   (let ((buffer (dvc-get-buffer-create dvc 'info)))
     (funcall (if asynchron 'dvc-run-dvc-async 'dvc-run-dvc-sync) dvc arg-list
-       :finished
-       (dvc-capturing-lambda (output error status arguments)
-         (progn
-           (with-current-buffer (capture buffer)
-             (let ((inhibit-read-only t))
-               (erase-buffer)
-               (dvc-info-buffer-mode)
-               (when (capture info-string)
-                 (insert (capture info-string)))
-               (insert-buffer-substring output)
-               (when (capture show-error-buffer)
-                 (insert-buffer-substring error))
-               (toggle-read-only 1)))
-           (dvc-switch-to-buffer (capture buffer)))))))
+             :finished
+             (dvc-capturing-lambda (output error status arguments)
+               (progn
+                 (with-current-buffer (capture buffer)
+                   (let ((inhibit-read-only t))
+                     (erase-buffer)
+                     (dvc-info-buffer-mode)
+                     (when (capture info-string)
+                       (insert (capture info-string)))
+                     (insert-buffer-substring output)
+                     (when (capture show-error-buffer)
+                       (insert-buffer-substring error))
+                     (toggle-read-only 1)))
+                 (dvc-switch-to-buffer (capture buffer)))))))
 
 (defvar dvc-info-buffer-mode-map
   (let ((map (make-sparse-keymap)))
@@ -889,10 +889,10 @@ Else return t."
   (let* ((recorded (dvc-event-time elem))
          (cur      (current-time))
          (diff-minute (/ (+ (* 65536 (- (nth 0 cur)
-                                      (nth 0 recorded)))
-                          (- (nth 1 cur)
-                             (nth 1 recorded)))
-                       60)))
+                                        (nth 0 recorded)))
+                            (- (nth 1 cur)
+                               (nth 1 recorded)))
+                         60)))
     (if (> limit-minute diff-minute)
         t
       nil)))
@@ -904,7 +904,7 @@ Else return t."
     (insert
      "Command: " (dvc-event-command elem)
      "\nDirectory: " (dvc-face-add (or (dvc-event-tree elem) "(nil)")
-                                    'dvc-local-directory)
+                                   'dvc-local-directory)
      "\nDate: " (format-time-string "%c" (dvc-event-time elem))
      "\nRelated Buffer: " (dvc-log-printer-print-buffer
                            (dvc-event-related-buffer elem)
@@ -949,13 +949,13 @@ process at point"
              (t (error "Buffer has been killed"))))))
 
 (dvc-switch-to-buffer-macro dvc-switch-to-output-buffer
-                             dvc-event-output-buffer)
+                            dvc-event-output-buffer)
 
 (dvc-switch-to-buffer-macro dvc-switch-to-error-buffer
-                             dvc-event-error-buffer)
+                            dvc-event-error-buffer)
 
 (dvc-switch-to-buffer-macro dvc-switch-to-related-buffer
-                             dvc-event-related-buffer)
+                            dvc-event-related-buffer)
 
 (dvc-make-bymouse-function dvc-switch-to-output-buffer)
 (dvc-make-bymouse-function dvc-switch-to-error-buffer)
@@ -974,7 +974,7 @@ Returns that event."
     (with-current-buffer (get-buffer-create dvc-log-buffer)
       (setq dvc-log-cookie
             (ewoc-create (dvc-ewoc-create-api-select
-			  #'dvc-log-printer)))
+                          #'dvc-log-printer)))
       (dvc-log-buffer-mode)))
   (let ((related-buffer (current-buffer)))
     (with-current-buffer (ewoc-buffer dvc-log-cookie)
@@ -1134,6 +1134,7 @@ REVISION-ID may have the values described in docs/DVC-API."
       (with-current-buffer buffer
         (let ((buffer-file-name file))
           (set-auto-mode t)))
+      (dvc-buffers-tree-add (dvc-revision-get-dvc revision-id) type file buffer)
       buffer)))
 
 
@@ -1159,25 +1160,25 @@ REVISION-ID is as specified in docs/DVC-API."
          (toggle-read-only 1)
          buffer))
 
-        (previous-revision
-         (with-current-buffer buffer
-           (let* ((dvc (dvc-revision-get-dvc revision-id))
-                  (data (nth 0 (dvc-revision-get-data revision-id)))
-                  (rev-id (list dvc data)))
-             (dvc-call "revision-get-previous-revision" file rev-id))
-           (set-buffer-modified-p nil)
-           (toggle-read-only 1)
-           buffer))
+      (previous-revision
+       (with-current-buffer buffer
+         (let* ((dvc (dvc-revision-get-dvc revision-id))
+                (data (nth 0 (dvc-revision-get-data revision-id)))
+                (rev-id (list dvc data)))
+           (dvc-call "revision-get-previous-revision" file rev-id))
+         (set-buffer-modified-p nil)
+         (toggle-read-only 1)
+         buffer))
 
-        (last-revision
-         (with-current-buffer buffer
-           (dvc-call "revision-get-last-revision"
-                     file (dvc-revision-get-data revision-id))
-           (set-buffer-modified-p nil)
-           (toggle-read-only 1)
-           buffer))
+      (last-revision
+       (with-current-buffer buffer
+         (dvc-call "revision-get-last-revision"
+                   file (dvc-revision-get-data revision-id))
+         (set-buffer-modified-p nil)
+         (toggle-read-only 1)
+         buffer))
 
-        (t (error "TODO: dvc-revision-get-file-in-buffer type %S" type)))))
+      (t (error "TODO: dvc-revision-get-file-in-buffer type %S" type)))))
 
 (defun dvc-dvc-revision-nth-ancestor (revision n)
   "Default function to get the n-th ancestor of REVISION."
