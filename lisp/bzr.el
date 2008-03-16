@@ -956,6 +956,7 @@ LAST-REVISION looks like
       'bzr (list "cat" "--revision" bzr-rev file)
       :finished 'dvc-output-buffer-handler-withnewline))))
 
+;;;###autoload
 (defun bzr-command-version ()
   "Run bzr version."
   (interactive)
