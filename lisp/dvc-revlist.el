@@ -353,6 +353,7 @@ revision list."
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
     (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
     (define-key map (dvc-prefix-merge ?u)                     'dvc-revlist-update)
+    (define-key map (dvc-prefix-merge ?M)                     'dvc-merge)
     (define-key map dvc-keyvec-inventory 'dvc-pop-to-inventory)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
     (define-key map dvc-keyvec-help 'describe-mode)
@@ -364,7 +365,8 @@ revision list."
 (easy-menu-define dvc-revlist-mode-menu dvc-revlist-mode-map
   "`dvc-revlist' menu"
   '("DVC-Revlist"
-    ["Update"      dvc-revlist-update t]
+    ["Update" dvc-revlist-update t]
+    ["Merge"  dvc-merge          t]
     ))
 
 ;; dvc-revlist-create-buffer will use "<back-end>-revlist-mode", if
