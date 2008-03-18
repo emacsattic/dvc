@@ -136,6 +136,15 @@ This is done only for files in the current directory tree."
                 (lambda (output error status args)
                   (message "Finished adding and removing files to index"))))))
 
+;;;###autoload
+(defun xgit-reset-hard (&rest extra-param)
+  "Run 'git reset --hard'"
+  (interactive)
+  (when (interactive-p)
+    (setq extra-param (list (ido-completing-read "git reset --hard " '("HEAD" "ORIG_HEAD")
+                                                 nil nil nil nil '("HEAD" "ORIG_HEAD")))))
+  (dvc-run-dvc-sync 'xgit (append '("reset" "--hard") extra-param)))
+
 (defvar xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
   "Regexp that matches a line of status output.
