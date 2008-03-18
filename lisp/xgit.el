@@ -450,14 +450,22 @@ many generations back we want to go from the given commit ID.")
 
 ;;;###autoload
 (defun xgit-fetch (&optional repository)
-  "Call git fetch."
-  (interactive "sGit fetch from: ")
+  "Call git fetch.
+When called with a prefix argument, ask for the fetch source."
+  (interactive "P")
+  (when (interactive-p)
+    (when current-prefix-arg
+      (setq repository (read-string "Git fetch from: "))))
   (dvc-run-dvc-async 'xgit (list "fetch" repository)))
 
 ;;;###autoload
 (defun xgit-pull (&optional repository)
-  "Call git pull."
-  (interactive "sGit pull from: ")
+  "Call git pull.
+When called with a prefix argument, ask for the pull source."
+  (interactive "P")
+  (when (interactive-p)
+    (when current-prefix-arg
+      (setq repository (read-string "Git pull from: "))))
   (dvc-run-dvc-async 'xgit (list "pull" repository)))
 
 (defun xgit-split-out-added-files (files)
