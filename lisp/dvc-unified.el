@@ -34,7 +34,7 @@
 (require 'dvc-core)
 (require 'dvc-defs)
 (require 'dvc-tips)
-(require 'ediff-init) ; for Xor
+(require 'dvc-utils)
 
 ;; --------------------------------------------------------------------------------
 ;; unified functions
@@ -327,7 +327,7 @@ same frame if `dvc-log-edit-other-frame' is non-nil). Optional
 NO-INIT if non-nil suppresses initialization of buffer if one is
 reused. `default-directory' must be the tree root."
   (interactive "P")
-  (setq other-frame (Xor other-frame dvc-log-edit-other-frame))
+  (setq other-frame (dvc-xor other-frame dvc-log-edit-other-frame))
   ;; Reuse an existing log-edit buffer if possible.
   ;;
   ;; If this is invoked from a status or diff buffer,

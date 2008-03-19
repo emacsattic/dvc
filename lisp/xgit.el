@@ -136,6 +136,15 @@ This is done only for files in the current directory tree."
                 (lambda (output error status args)
                   (message "Finished adding and removing files to index"))))))
 
+;;;###autoload
+(defun xgit-reset-hard (&rest extra-param)
+  "Run 'git reset --hard'"
+  (interactive)
+  (when (interactive-p)
+    (setq extra-param (list (ido-completing-read "git reset --hard " '("HEAD" "ORIG_HEAD")
+                                                 nil nil nil nil '("HEAD" "ORIG_HEAD")))))
+  (dvc-run-dvc-sync 'xgit (append '("reset" "--hard") extra-param)))
+
 (defvar xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
   "Regexp that matches a line of status output.
@@ -450,14 +459,22 @@ many generations back we want to go from the given commit ID.")
 
 ;;;###autoload
 (defun xgit-fetch (&optional repository)
-  "Call git fetch."
-  (interactive "sGit fetch from: ")
+  "Call git fetch.
+When called with a prefix argument, ask for the fetch source."
+  (interactive "P")
+  (when (interactive-p)
+    (when current-prefix-arg
+      (setq repository (read-string "Git fetch from: "))))
   (dvc-run-dvc-async 'xgit (list "fetch" repository)))
 
 ;;;###autoload
 (defun xgit-pull (&optional repository)
-  "Call git pull."
-  (interactive "sGit pull from: ")
+  "Call git pull.
+When called with a prefix argument, ask for the pull source."
+  (interactive "P")
+  (when (interactive-p)
+    (when current-prefix-arg
+      (setq repository (read-string "Git pull from: "))))
   (dvc-run-dvc-async 'xgit (list "pull" repository)))
 
 (defun xgit-split-out-added-files (files)

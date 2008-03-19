@@ -695,5 +695,8 @@ according to `string-match'."
   (interactive)
   (find-file ".dvc-exclude"))
 
+(defsubst dvc-xor (a b)
+  (or (and a (not b)) (and (not a) b)))
+
 (provide 'dvc-utils)
 ;;; dvc-utils.el ends here
