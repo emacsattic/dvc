@@ -76,6 +76,9 @@
 "If non-nil, display partners.
 Must be non-nil for some featurs of dvc-bookmarks to work.")
 
+(defvar dvc-bookmarks-mode-hook '()
+  "*Hooks run when entering dvc-bookmarks-mode'.")
+
 (defvar dvc-bookmarks-loaded nil "Whether `dvc-bookmark-alist' has been loaded from `dvc-bookmarks-file-name'.")
 (defvar dvc-bookmarks-cookie nil "The ewoc cookie for the *dvc-bookmarks* buffer.")
 (defvar dvc-bookmarks-marked-entry nil "A marked bookmark entry for some special operations.")
@@ -87,6 +90,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map [return] 'dvc-bookmarks-goto)
     (define-key map "\C-x\C-f" 'dvc-bookmarks-find-file-in-tree)
     (define-key map "\C-m"   'dvc-bookmarks-goto)
+    (define-key map "\C-o"   'dvc-bookmarks-goto-other-window)
     (define-key map "g"      'dvc-bookmarks)
     (define-key map "h"      'dvc-buffer-pop-to-partner-buffer)
     (define-key map "j"      'dvc-bookmarks-jump)
@@ -210,7 +214,8 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (use-local-map dvc-bookmarks-mode-map)
   (setq major-mode 'dvc-bookmarks-mode)
   (setq mode-name "dvc-bookmarks")
-  (toggle-read-only 1))
+  (toggle-read-only 1)
+  (run-hooks 'dvc-bookmarks-mode-hook))
 
 (defun dvc-bookmarks-show-info-at-point ()
   (interactive)
@@ -259,6 +264,13 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (find-file local-tree)
+      (message "No local-tree defined for this bookmark entry."))))
+
+(defun dvc-bookmarks-goto-other-window ()
+  (interactive)
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (if local-tree
+        (find-file-other-window local-tree)
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-find-file-in-tree ()
