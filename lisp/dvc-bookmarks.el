@@ -31,6 +31,7 @@
 (require 'dvc-core)
 (require 'dvc-state)
 (require 'ewoc)
+(eval-when-compile (require 'cl))
 
 ;; this were the settings used for tla
 ;; ;; Generated file. Do not edit!!!
@@ -147,27 +148,80 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ["Save bookmarks" dvc-bookmarks-save t]
      ))
 
-(defun dvc-bookmarks-printer (elem)
-  (let* ((entry (car elem))
-         (indent (cadr elem))
-         (partners (and dvc-bookmarks-show-partners (dvc-bookmarks-get-partners (nth 2 elem))))
+;; This data structure represents a single entry in the bookmarks
+;; list.  There is one of these associated with each ewoc node.
+(defstruct dvc-bookmark
+  name                                  ; a string
+  indent                                ; an integer
+  elem)                                 ; the cdr is an alist
+
+(defun dvc-bookmark-properties (bookmark)
+  (cdr (dvc-bookmark-elem bookmark)))
+
+(defsetf dvc-bookmark-properties (bookmark) (val)
+  `(setcdr (dvc-bookmark-elem ,bookmark) ,val))
+
+;; This data structure represents a partner of a bookmark.
+(defstruct (dvc-bookmark-partner
+            (:type list))
+  url
+  nickname)
+
+(defun dvc-assq-all (key alist)
+  "Return an alist containing all associations from ALIST matching KEY."
+  (delete nil (mapcar '(lambda (e)
+                         (when (and (listp e) (eq (car e) key))
+                           e))
+                      alist)))
+
+(defun make-dvc-bookmark-from-assoc (assoc indent)
+  "Create a `dvc-bookmark' from the association ASSOC.
+The indent is taken from INDENT."
+  (make-dvc-bookmark
+     :name (car assoc)
+     :indent indent
+     :elem assoc))
+
+(defun dvc-bookmark-key-value (bookmark key)
+  "Return the association from the property of BOOKMARK matching KEY."
+  (assq key (dvc-bookmark-properties bookmark)))
+
+(defun dvc-bookmark-value (bookmark key)
+  "Return the value of the property of BOOKMARK matching KEY."
+  (cadr (dvc-bookmark-key-value bookmark key)))
+
+(defun dvc-bookmark-partners (bookmark)
+  "Return a list of the partners of BOOKMARK.
+Each element is a `dvc-bookmark-partner' structure."
+  (mapcar 'cdr
+          (dvc-assq-all 'partner (dvc-bookmark-properties bookmark))))
+
+(defun dvc-bookmark-partner-urls (bookmark)
+  "Return a list of the partner urls of BOOKMARK."
+  (mapcar 'dvc-bookmark-partner-url (dvc-bookmark-partners bookmark)))
+
+(defun dvc-bookmarks-printer (data)
+  (let* ((entry (dvc-bookmark-name data))
+         (indent (dvc-bookmark-indent data))
+         (partners (and dvc-bookmarks-show-partners
+                        (dvc-bookmark-partners data)))
          (nick-name)
          (entry-string (format "%s%s" (make-string indent ? ) entry)))
-    ;;(dvc-trace "dvc-bookmarks-printer - elem: %S, partners: %S" elem partners)
+    ;;(dvc-trace "dvc-bookmarks-printer - data: %S, partners: %S" data partners)
     (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
       (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
     (insert entry-string)
     (when partners
       (dolist (p partners)
-        (setq nick-name (dvc-bookmarks-partner-nickname (nth 2 elem) p))
+        (setq nick-name (dvc-bookmark-partner-nickname p))
         (insert (format "\n%sPartner %s%s"
                         (make-string (+ 2 indent) ? )
-                        p
+                        (dvc-bookmark-partner-url p)
                         (if nick-name (format "  [%s]" nick-name) "")))))))
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
-        (data (list (car elem) indent elem))
+        (data (make-dvc-bookmark-from-assoc elem indent))
         (enter-function (if (eq (dvc-line-number-at-pos) 1) 'ewoc-enter-before 'ewoc-enter-after)))
     (cond ((assoc 'children elem)
            (setq node
@@ -219,25 +273,27 @@ With prefix argument ARG, reload the bookmarks file from disk."
 
 (defun dvc-bookmarks-show-info-at-point ()
   (interactive)
-  (message "%S" (dvc-bookmarks-current-data)))
+  (message "%S" (dvc-bookmarks-current-bookmark)))
 
-(defun dvc-bookmarks-current-data ()
-  (nth 2 (ewoc-data (ewoc-locate dvc-bookmarks-cookie))))
+(defun dvc-bookmarks-current-bookmark ()
+  (ewoc-data (ewoc-locate dvc-bookmarks-cookie)))
 
 (defun dvc-bookmarks-current-value (key)
-  (cadr (assoc key (cdr (dvc-bookmarks-current-data)))))
+  (dvc-bookmark-value (dvc-bookmarks-current-bookmark) key))
 
 (defun dvc-bookmarks-current-key-value (key)
-  (assoc key (cdr (dvc-bookmarks-current-data))))
+  (dvc-bookmark-key-value (dvc-bookmarks-current-bookmark) key))
 
-(defun dvc-bookmarks-marked-data ()
+(defun dvc-bookmarks-marked-bookmark ()
   (when dvc-bookmarks-marked-entry
     (save-excursion
       (dvc-bookmark-goto-name dvc-bookmarks-marked-entry)
-      (dvc-bookmarks-current-data))))
+      (dvc-bookmarks-current-bookmark))))
 
 (defun dvc-bookmarks-marked-value (key)
-  (cadr (assoc key (cdr (dvc-bookmarks-marked-data)))))
+  (let ((marked-bookmark (dvc-bookmarks-marked-bookmark)))
+    (when marked-bookmark
+      (dvc-bookmark-value marked-bookmark key))))
 
 (defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
   "Add a DVC bookmark named BOOKMARK-NAME, directory BOOKMARK-LOCAL-DIR."
@@ -246,7 +302,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
           (bmk-loc (dvc-read-directory-name (format "DVC bookmark %s directory: " bmk-name))))
      (list bmk-name bmk-loc)))
   (let* ((elem (list bookmark-name (list 'local-tree bookmark-local-dir)))
-         (data (list (car elem) 0 elem)))
+         (data (make-dvc-bookmark-from-assoc elem 0)))
     (dvc-bookmarks)
     (add-to-list 'dvc-bookmark-alist elem t)
     (ewoc-enter-last dvc-bookmarks-cookie data)))
@@ -327,7 +383,9 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (if local-tree
         (let ((default-directory local-tree)
               (partner (or (dvc-bookmarks-partner-at-point) (dvc-bookmarks-marked-value 'local-tree))))
-          (message "Running dvc missing for %s, against %s" (car (dvc-bookmarks-current-data)) partner)
+          (message "Running dvc missing for %s, against %s"
+                   (dvc-bookmark-name (dvc-bookmarks-current-bookmark))
+                   partner)
           (dvc-missing partner))
       (message "No local-tree defined for this bookmark entry."))))
 
@@ -376,21 +434,25 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (interactive)
   (let ((indent (save-excursion (if (eq (line-beginning-position) (line-end-position))
                                     0
-                                  (forward-line 1) (nth 1 (ewoc-data (ewoc-locate dvc-bookmarks-cookie)))))))
-    (dvc-bookmarks-add-to-cookie dvc-bookmarks-tmp-yank-item indent)))
+                                  (forward-line 1)
+                                  (dvc-bookmark-indent (dvc-bookmarks-current-bookmark))))))
+    (dvc-bookmarks-add-to-cookie
+     (cons (dvc-bookmark-name dvc-bookmarks-tmp-yank-item)
+           (dvc-bookmark-properties dvc-bookmarks-tmp-yank-item))
+     indent)))
 
 (defvar dvc-bookmarks-tmp-yank-item '("hg" (local-tree "~/work/hg/hg")))
 (defun dvc-bookmarks-kill ()
   (interactive)
-  (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-data))
+  (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-bookmark))
   (let ((buffer-read-only nil))
     (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
 
 (defun dvc-bookmarks-toggle-mark-entry ()
   "Mark the current bookmark entry."
   (interactive)
-  (let* ((cur-data (dvc-bookmarks-current-data))
-         (bmk-name (car cur-data))
+  (let* ((cur-data (dvc-bookmarks-current-bookmark))
+         (bmk-name (dvc-bookmark-name cur-data))
          (has-children (dvc-bookmarks-current-value 'children)))
     ;; (message "bmk-name: %s has-children: %s" bmk-name has-children)
     (unless has-children
@@ -469,45 +531,39 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (dvc-bookmark-goto-name (dvc-completing-read "Jump to dvc bookmark: "
                                                (dvc-bookmark-names))))
 
-(defun dvc-bookmarks-get-partners (&optional entry-data)
-  (unless entry-data
-    (setq entry-data (dvc-bookmarks-current-data)))
-  (delete nil (mapcar '(lambda (e) (when (and (listp e) (eq (car e) 'partner)) (cadr e)))
-                      entry-data)))
+(defun dvc-bookmarks-get-partner-urls ()
+  (dvc-bookmark-partner-urls (dvc-bookmarks-current-bookmark)))
 
 (defun dvc-bookmarks-add-partner ()
   (interactive)
-  (let* ((cur-data (dvc-bookmarks-current-data))
+  (let* ((cur-data (dvc-bookmarks-current-bookmark))
          (partner-url (read-string (format "Add partner to '%s': " (car cur-data)))))
-    (if (not (member partner-url (dvc-bookmarks-get-partners)))
+    (if (not (member partner-url (dvc-bookmarks-get-partner-urls)))
         (progn
-          (setcdr cur-data (append (cdr cur-data) (list (list 'partner partner-url))))
+          (setf (dvc-bookmark-properties cur-data)
+                (append (dvc-bookmark-properties cur-data)
+                        (list (list 'partner
+                                    (make-dvc-bookmark-partner :url partner-url)))))
           (dvc-trace "dvc-bookmarks-add-partner %s" cur-data))
-      (message "%s is already a partner for %s" partner-url (car cur-data)))))
+      (message "%s is already a partner for %s"
+               partner-url (dvc-bookmark-name cur-data)))))
 
 (defun dvc-bookmarks-remove-partner ()
   (interactive)
-  (let* ((cur-data (dvc-bookmarks-current-data))
+  (let* ((cur-data (dvc-bookmarks-current-bookmark))
          (partner-to-remove (dvc-completing-read
-                             (format "Remove partner from %s: " (car cur-data))
-                             (dvc-bookmarks-get-partners))))
-    (delete (list 'partner partner-to-remove) cur-data)))
+                             (format "Remove partner from %s: "
+                                     (dvc-bookmark-name cur-data))
+                             (dvc-bookmarks-get-partner-urls))))
+    (setf (dvc-bookmark-properties cur-data)
+          (delete (list 'partner
+                        (make-dvc-bookmark-partner :url partner-to-remove))
+                  (dvc-bookmark-properties cur-data)))))
 
 (defun dvc-bookmarks-toggle-partner-visibility ()
   (interactive)
   (setq dvc-bookmarks-show-partners (not dvc-bookmarks-show-partners))
   (dvc-bookmarks))
-
-(defun dvc-bookmarks-partner-nickname (bookmark-entry partner-url)
-  ;;(message "dvc-bookmarks-partner-nickname %S %s" bookmark-entry partner-url)
-  (let ((nick-name))
-    (dolist (e bookmark-entry)
-      (when (and (listp e) (eq (car e) 'partner))
-        (when (string= partner-url (cadr e))
-          (when (eq (length e) 3)
-            (setq nick-name (nth 2 e))))))
-    nick-name))
-
 
 (defun dvc-bookmarks-partner-at-point ()
   (save-excursion
@@ -527,9 +583,9 @@ If FORCE is non-nil, reload the file even if it was loaded before."
 
 (defun dvc-bookmarks-add-nickname ()
   (interactive)
-  ;;(message "dvc-bookmarks-add-nickname %S" (dvc-bookmarks-current-data))
+  ;;(message "dvc-bookmarks-add-nickname %S" (dvc-bookmarks-current-bookmark))
   (let ((partner-at-point (dvc-bookmarks-partner-at-point)))
-    (dolist (e (dvc-bookmarks-current-data))
+    (dolist (e (dvc-bookmark-properties (dvc-bookmarks-current-bookmark)))
       (when (and (listp e) (eq (car e) 'partner))
         (when (string= partner-at-point (cadr e))
           (if (= (length e) 2)
@@ -540,26 +596,31 @@ If FORCE is non-nil, reload the file even if it was loaded before."
 (defun dvc-bookmarks-add-push-location ()
   (interactive)
   (let* ((push-locations (dvc-bookmarks-current-value 'push-locations))
-         (cur-data (dvc-bookmarks-current-data))
-         (push-location (read-string (format "Add push location to '%s': " (car cur-data)))))
+         (cur-data (dvc-bookmarks-current-bookmark))
+         (push-location (read-string (format "Add push location to '%s': " (dvc-bookmark-name cur-data)))))
     (if (not (member push-location push-locations))
         (progn
           (if (null push-locations)
               (progn
                 (setq push-locations (list 'push-locations (list push-location)))
-                (setcdr cur-data (append (cdr cur-data) (list push-locations))))
-            (setcdr push-locations (append (cdr push-locations) (list push-location)))))
-      (message "%s is already a push-location for %s" push-location (car cur-data)))))
+                (setf (dvc-bookmark-properties cur-data)
+                      (append (dvc-bookmark-properties cur-data)
+                              (list push-locations))))
+            (setcdr push-locations (append (cdr push-locations)
+                                           (list push-location)))))
+      (message "%s is already a push-location for %s"
+               push-location (dvc-bookmark-name cur-data)))))
 
 (defun dvc-bookmarks-remove-push-location ()
   (interactive)
   (let* ((push-locations (dvc-bookmarks-current-key-value 'push-locations))
-         (cur-data (dvc-bookmarks-current-data))
+         (cur-data (dvc-bookmarks-current-bookmark))
          (location-to-remove (dvc-completing-read "Remove push location: " (cadr push-locations)))
          (new-push-locations (delete location-to-remove (cadr push-locations))))
     (if new-push-locations
         (setcdr push-locations (list new-push-locations))
-      (delete push-locations cur-data))))
+      (setf (dvc-bookmark-properties cur-data)
+            (delete push-locations (dvc-bookmark-properties cur-data))))))
 
 ;;;###autoload
 (defun dvc-bookmarks-current-push-locations ()
