@@ -98,6 +98,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "n"      'dvc-bookmarks-next)
     (define-key map "p"      'dvc-bookmarks-previous)
     (define-key map "a"      'dvc-bookmarks-add)
+    (define-key map "e"      'dvc-bookmarks-edit)
     (define-key map "\C-y"   'dvc-bookmarks-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "s"      'dvc-bookmarks-status)
@@ -135,6 +136,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ["DVC merge" dvc-bookmarks-merge t]
    "--"
     ["Add new bookmark" dvc-bookmarks-add t]
+    ["Edit current bookmark" dvc-bookmarks-edit t]
     ["Add partner" dvc-bookmarks-add-partner t]
     ["Remove partner" dvc-bookmarks-remove-partner t]
     ["Add/edit partner Nickname" dvc-bookmarks-add-nickname t]
@@ -306,6 +308,26 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (dvc-bookmarks)
     (add-to-list 'dvc-bookmark-alist elem t)
     (ewoc-enter-last dvc-bookmarks-cookie data)))
+
+(defun dvc-bookmarks-edit (bookmark-name bookmark-local-dir)
+  "Change the current DVC bookmark's BOOKMARK-NAME and/or LOCAL-DIR."
+  (interactive
+   (let* ((old-name (dvc-bookmark-name (dvc-bookmarks-current-bookmark)))
+          (old-local-tree (dvc-bookmarks-current-value 'local-tree))
+          (bmk-name (read-string "DVC bookmark name: " old-name))
+          (bmk-loc (dvc-read-directory-name
+                    (format "DVC bookmark %s directory: " bmk-name)
+                    old-local-tree)))
+     (list bmk-name bmk-loc)))
+  (let* ((node (ewoc-locate dvc-bookmarks-cookie))
+         (old-data (ewoc-data node))
+         (old-indent (dvc-bookmark-indent old-data))
+         (elem (dvc-bookmark-elem old-data)))
+    (setcar elem bookmark-name)
+    (setcdr elem (cons (list 'local-tree bookmark-local-dir)
+                               (assq-delete-all 'local-tree (cdr elem))))
+    (ewoc-set-data node (make-dvc-bookmark-from-assoc elem old-indent))
+    (ewoc-invalidate dvc-bookmarks-cookie node)))
 
 (defun dvc-bookmarks-next ()
   (interactive)
