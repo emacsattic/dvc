@@ -559,12 +559,13 @@ If FORCE is non-nil, reload the file even if it was loaded before."
 (defun dvc-bookmarks-add-partner ()
   (interactive)
   (let* ((cur-data (dvc-bookmarks-current-bookmark))
-         (partner-url (read-string (format "Add partner to '%s': " (car cur-data)))))
+         (partner-url (read-string (format "Add partner to '%s': "
+                                           (dvc-bookmark-name cur-data)))))
     (if (not (member partner-url (dvc-bookmarks-get-partner-urls)))
         (progn
           (setf (dvc-bookmark-properties cur-data)
                 (append (dvc-bookmark-properties cur-data)
-                        (list (list 'partner
+                        (list (cons 'partner
                                     (make-dvc-bookmark-partner :url partner-url)))))
           (dvc-trace "dvc-bookmarks-add-partner %s" cur-data))
       (message "%s is already a partner for %s"
