@@ -176,5 +176,7 @@ When `last-command' was `dvc-pull', run `xhg-missing'."
 
 (defalias 'xhg-dvc-init 'xhg-init)
 
+(defalias 'xhg-dvc-push 'xhg-push)
+
 (provide 'xhg-dvc)
 ;;; xhg-dvc.el ends here
