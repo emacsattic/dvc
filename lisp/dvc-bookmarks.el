@@ -579,8 +579,10 @@ If FORCE is non-nil, reload the file even if it was loaded before."
                                      (dvc-bookmark-name cur-data))
                              (dvc-bookmarks-get-partner-urls))))
     (setf (dvc-bookmark-properties cur-data)
-          (delete (list 'partner
-                        (make-dvc-bookmark-partner :url partner-to-remove))
+          (delete `(partner
+		    ,@(make-dvc-bookmark-partner
+		       :url partner-to-remove
+		       :nickname (caddr (assoc 'partner (dvc-bookmark-properties cur-data)))))
                   (dvc-bookmark-properties cur-data)))))
 
 (defun dvc-bookmarks-toggle-partner-visibility ()
