@@ -161,9 +161,55 @@
            (let ((inhibit-read-only t))
              (erase-buffer)
              (insert-buffer-substring output)
-             (toggle-read-only 1)))
+             (goto-char (point-min))
+             (re-search-forward "^Would pull the following changes:" nil t)
+             (xdarcs-missing-next 1)
+             (xdarcs-missing-mode)))
          (goto-char (point-min))
          (dvc-switch-to-buffer (capture buffer)))))))
+
+(defvar xdarcs-review-recenter-position-on-next-diff 5)
+
+(defvar xdarcs-missing-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
+    (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
+    (define-key map [?n] 'xdarcs-missing-next)
+    (define-key map [?p] 'xdarcs-missing-previous)
+    map)
+  "Keymap used in a xdarcs missing buffer.")
+
+(defvar xdarcs-missing-patch-start-regexp
+  "^\\(Mon\\|Tue\\|Wed\\|Thu\\|Fri\\|Sat\\|Sun\\).+$")
+
+(defvar xdarcs-missing-font-lock-keywords
+   `((,xdarcs-missing-patch-start-regexp . font-lock-function-name-face)
+     ("^hunk.+" . font-lock-variable-name-face))
+  "Keywords in `xdarcs-missing-mode'.")
+
+(define-derived-mode xdarcs-missing-mode fundamental-mode
+  "xdarcs missing mode"
+  "Major mode to show the output of a call to `xdarcs-missing'."
+  (dvc-install-buffer-menu)
+  (set (make-local-variable 'font-lock-defaults)
+       (list 'xdarcs-missing-font-lock-keywords t nil nil))
+  (toggle-read-only 1))
+
+(defun xdarcs-missing-next (n)
+  (interactive "p")
+  (end-of-line)
+  (re-search-forward xdarcs-missing-patch-start-regexp nil t n)
+  (beginning-of-line)
+  (when xdarcs-review-recenter-position-on-next-diff
+    (recenter xdarcs-review-recenter-position-on-next-diff)))
+
+(defun xdarcs-missing-previous (n)
+  (interactive "p")
+  (end-of-line)
+  (re-search-backward xdarcs-missing-patch-start-regexp)
+  (re-search-backward xdarcs-missing-patch-start-regexp nil t n)
+  (when xdarcs-review-recenter-position-on-next-diff
+    (recenter xdarcs-review-recenter-position-on-next-diff)))
 
 
 (defun xdarcs-pull-finish-function (output error status arguments)
