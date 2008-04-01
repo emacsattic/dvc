@@ -574,15 +574,17 @@ If FORCE is non-nil, reload the file even if it was loaded before."
 (defun dvc-bookmarks-remove-partner ()
   (interactive)
   (let* ((cur-data (dvc-bookmarks-current-bookmark))
+         (partners-alist (mapcar (lambda (p)
+                                   (cons (dvc-bookmark-partner-url p) p))
+                                 (dvc-bookmark-partners cur-data)))
          (partner-to-remove (dvc-completing-read
                              (format "Remove partner from %s: "
                                      (dvc-bookmark-name cur-data))
-                             (dvc-bookmarks-get-partner-urls))))
+                             (mapcar 'car partners-alist)
+                             nil t nil nil
+                             (dvc-bookmarks-partner-at-point))))
     (setf (dvc-bookmark-properties cur-data)
-          (delete `(partner
-		    ,@(make-dvc-bookmark-partner
-		       :url partner-to-remove
-		       :nickname (caddr (assoc 'partner (dvc-bookmark-properties cur-data)))))
+          (delete (cons 'partner (cdr (assoc partner-to-remove partners-alist)))
                   (dvc-bookmark-properties cur-data)))))
 
 (defun dvc-bookmarks-toggle-partner-visibility ()
