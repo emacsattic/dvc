@@ -198,6 +198,13 @@ Each element is a `dvc-bookmark-partner' structure."
   (mapcar 'cdr
           (dvc-assq-all 'partner (dvc-bookmark-properties bookmark))))
 
+(defun dvc-bookmark-partners-by-url (bookmark)
+  "Return an alist of the partners of BOOKMARK.
+The car of each association is the URL of the partner and the cdr
+is the `dvc-bookmark-partner' itself."
+  (mapcar (lambda (p) (cons (dvc-bookmark-partner-url p) p))
+          (dvc-bookmark-partners bookmark)))
+
 (defun dvc-bookmark-partner-urls (bookmark)
   "Return a list of the partner urls of BOOKMARK."
   (mapcar 'dvc-bookmark-partner-url (dvc-bookmark-partners bookmark)))
@@ -279,6 +286,10 @@ With prefix argument ARG, reload the bookmarks file from disk."
 
 (defun dvc-bookmarks-current-bookmark ()
   (ewoc-data (ewoc-locate dvc-bookmarks-cookie)))
+
+(defun dvc-bookmarks-invalidate-current-bookmark ()
+  "Regenerate the text for the bookmark under point."
+  (ewoc-invalidate dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie)))
 
 (defun dvc-bookmarks-current-value (key)
   (dvc-bookmark-value (dvc-bookmarks-current-bookmark) key))
@@ -567,16 +578,15 @@ If FORCE is non-nil, reload the file even if it was loaded before."
                 (append (dvc-bookmark-properties cur-data)
                         (list (cons 'partner
                                     (make-dvc-bookmark-partner :url partner-url)))))
-          (dvc-trace "dvc-bookmarks-add-partner %s" cur-data))
+          (dvc-trace "dvc-bookmarks-add-partner %s" cur-data)
+          (dvc-bookmarks-invalidate-current-bookmark))
       (message "%s is already a partner for %s"
                partner-url (dvc-bookmark-name cur-data)))))
 
 (defun dvc-bookmarks-remove-partner ()
   (interactive)
   (let* ((cur-data (dvc-bookmarks-current-bookmark))
-         (partners-alist (mapcar (lambda (p)
-                                   (cons (dvc-bookmark-partner-url p) p))
-                                 (dvc-bookmark-partners cur-data)))
+         (partners-alist (dvc-bookmark-partners-by-url cur-data))
          (partner-to-remove (dvc-completing-read
                              (format "Remove partner from %s: "
                                      (dvc-bookmark-name cur-data))
@@ -585,7 +595,8 @@ If FORCE is non-nil, reload the file even if it was loaded before."
                              (dvc-bookmarks-partner-at-point))))
     (setf (dvc-bookmark-properties cur-data)
           (delete (cons 'partner (cdr (assoc partner-to-remove partners-alist)))
-                  (dvc-bookmark-properties cur-data)))))
+                  (dvc-bookmark-properties cur-data)))
+    (dvc-bookmarks-invalidate-current-bookmark)))
 
 (defun dvc-bookmarks-toggle-partner-visibility ()
   (interactive)
@@ -611,14 +622,19 @@ If FORCE is non-nil, reload the file even if it was loaded before."
 (defun dvc-bookmarks-add-nickname ()
   (interactive)
   ;;(message "dvc-bookmarks-add-nickname %S" (dvc-bookmarks-current-bookmark))
-  (let ((partner-at-point (dvc-bookmarks-partner-at-point)))
-    (dolist (e (dvc-bookmark-properties (dvc-bookmarks-current-bookmark)))
-      (when (and (listp e) (eq (car e) 'partner))
-        (when (string= partner-at-point (cadr e))
-          (if (= (length e) 2)
-              (setcdr (nthcdr 1 e) (cons (read-string (format "Nickname for %s: " partner-at-point)) nil)) ;;(add-to-list 'e "Nickname" t)
-            (setcar (nthcdr 2 e) (read-string (format "Nickname for %s: " partner-at-point) (nth 2 e))))
-          (message "Added nickname %s to the partner %s" (nth 2 e) partner-at-point))))))
+  (let* ((url-at-point (dvc-bookmarks-partner-at-point))
+         (bookmark (dvc-bookmarks-current-bookmark))
+         (partner (cdr (assoc url-at-point
+                              (dvc-bookmark-partners-by-url bookmark)))))
+    (if partner
+      (progn
+        (setf (dvc-bookmark-partner-nickname partner)
+              (read-string (format "Nickname for %s: " url-at-point)
+                           (dvc-bookmark-partner-nickname partner)))
+        (dvc-bookmarks-invalidate-current-bookmark)
+        (message "Added nickname %s to the partner %s"
+                 (dvc-bookmark-partner-nickname partner) url-at-point))
+      (error "No partner with URL '%s'" url-at-point))))
 
 (defun dvc-bookmarks-add-push-location ()
   (interactive)
