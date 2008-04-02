@@ -280,6 +280,10 @@ With prefix argument ARG, reload the bookmarks file from disk."
 (defun dvc-bookmarks-current-bookmark ()
   (ewoc-data (ewoc-locate dvc-bookmarks-cookie)))
 
+(defun dvc-bookmarks-invalidate-current-bookmark ()
+  "Regenerate the text for the bookmark under point."
+  (ewoc-invalidate dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie)))
+
 (defun dvc-bookmarks-current-value (key)
   (dvc-bookmark-value (dvc-bookmarks-current-bookmark) key))
 
@@ -567,7 +571,8 @@ If FORCE is non-nil, reload the file even if it was loaded before."
                 (append (dvc-bookmark-properties cur-data)
                         (list (cons 'partner
                                     (make-dvc-bookmark-partner :url partner-url)))))
-          (dvc-trace "dvc-bookmarks-add-partner %s" cur-data))
+          (dvc-trace "dvc-bookmarks-add-partner %s" cur-data)
+          (dvc-bookmarks-invalidate-current-bookmark))
       (message "%s is already a partner for %s"
                partner-url (dvc-bookmark-name cur-data)))))
 
@@ -585,7 +590,8 @@ If FORCE is non-nil, reload the file even if it was loaded before."
                              (dvc-bookmarks-partner-at-point))))
     (setf (dvc-bookmark-properties cur-data)
           (delete (cons 'partner (cdr (assoc partner-to-remove partners-alist)))
-                  (dvc-bookmark-properties cur-data)))))
+                  (dvc-bookmark-properties cur-data)))
+    (dvc-bookmarks-invalidate-current-bookmark)))
 
 (defun dvc-bookmarks-toggle-partner-visibility ()
   (interactive)
@@ -618,6 +624,7 @@ If FORCE is non-nil, reload the file even if it was loaded before."
           (if (= (length e) 2)
               (setcdr (nthcdr 1 e) (cons (read-string (format "Nickname for %s: " partner-at-point)) nil)) ;;(add-to-list 'e "Nickname" t)
             (setcar (nthcdr 2 e) (read-string (format "Nickname for %s: " partner-at-point) (nth 2 e))))
+          (dvc-bookmarks-invalidate-current-bookmark)
           (message "Added nickname %s to the partner %s" (nth 2 e) partner-at-point))))))
 
 (defun dvc-bookmarks-add-push-location ()
