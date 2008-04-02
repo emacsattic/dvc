@@ -415,7 +415,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (or (dvc-bookmarks-partner-at-point) (dvc-bookmarks-marked-value 'local-tree))))
+              (partner (or (dvc-bookmarks-partner-at-point t) (dvc-bookmarks-marked-value 'local-tree))))
           (message "Running dvc missing for %s, against %s"
                    (dvc-bookmark-name (dvc-bookmarks-current-bookmark))
                    partner)
@@ -428,7 +428,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (dvc-bookmarks-partner-at-point))
+              (partner (dvc-bookmarks-partner-at-point t))
               (nickname (dvc-bookmarks-nickname-at-point)))
           (message (if partner
                        (if nickname
@@ -453,7 +453,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (dvc-bookmarks-partner-at-point))
+              (partner (dvc-bookmarks-partner-at-point t))
               (nickname (dvc-bookmarks-nickname-at-point)))
           (setq dvc-memorized-log-header (when nickname (format dvc-bookmarks-merge-template nickname)))
           (setq dvc-memorized-log-message nil)
@@ -603,13 +603,13 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (setq dvc-bookmarks-show-partners (not dvc-bookmarks-show-partners))
   (dvc-bookmarks))
 
-(defun dvc-bookmarks-partner-at-point ()
+(defun dvc-bookmarks-partner-at-point (&optional expand-file-name-when-possible)
   (save-excursion
     (let ((partner-url))
       (goto-char (line-beginning-position))
       (when (looking-at "  +Partner \\(.+?\\)\\(  \\[.+\\)?$")
         (setq partner-url (match-string 1))
-        (when (file-directory-p partner-url)
+        (when (and expand-file-name-when-possible (file-directory-p partner-url))
           (setq partner-url (expand-file-name partner-url))))
       partner-url)))
 
