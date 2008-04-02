@@ -608,7 +608,9 @@ If FORCE is non-nil, reload the file even if it was loaded before."
     (let ((partner-url))
       (goto-char (line-beginning-position))
       (when (looking-at "  +Partner \\(.+?\\)\\(  \\[.+\\)?$")
-        (setq partner-url (match-string 1)))
+        (setq partner-url (match-string 1))
+        (when (file-directory-p partner-url)
+          (setq partner-url (expand-file-name partner-url))))
       partner-url)))
 
 (defun dvc-bookmarks-nickname-at-point ()
