@@ -248,21 +248,25 @@ target email address and the base name of the sent tarball.
 
 After the user has sent the message, `bzr-submit-patch-done' is called."
   (interactive)
-  (bzr-command-version)
-  (let* ((tree-id (bzr-tree-id))
-         (submit-patch-info (cadr (assoc tree-id
-                                         bzr-submit-patch-mapping)))
-         (mail-address (or (nth 0 submit-patch-info) ""))
-         (patch-base-file-name (or (nth 1 submit-patch-info) "bzr")))
-    (bzr-prepare-patch-submission
-     (dvc-uniquify-file-name (bzr-tree-root))
-     (concat patch-base-file-name "-patch-"
-             (format-time-string "%Y-%m-%d_%H-%M-%S" (current-time)))
-     mail-address
-     tree-id
-     dvc-patch-email-message-body-template
-     nil
-     (interactive-p))))
+  (if (string= (dvc-run-dvc-sync 'bzr '("status" "-V")
+                                 :finished 'dvc-output-buffer-handler)
+               "")
+      (message "No changes in this bzr working copy - please apply your patch locally and submit it.")
+    (bzr-command-version)
+    (let* ((tree-id (bzr-tree-id))
+           (submit-patch-info (cadr (assoc tree-id
+                                           bzr-submit-patch-mapping)))
+           (mail-address (or (nth 0 submit-patch-info) ""))
+           (patch-base-file-name (or (nth 1 submit-patch-info) "bzr")))
+      (bzr-prepare-patch-submission
+       (dvc-uniquify-file-name (bzr-tree-root))
+       (concat patch-base-file-name "-patch-"
+               (format-time-string "%Y-%m-%d_%H-%M-%S" (current-time)))
+       mail-address
+       tree-id
+       dvc-patch-email-message-body-template
+       nil
+       (interactive-p)))))
 
 (provide 'bzr-submit)
 ;;; bzr-submit.el ends here
