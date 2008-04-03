@@ -176,6 +176,8 @@
     (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
     (define-key map [?n] 'xdarcs-missing-next)
     (define-key map [?p] 'xdarcs-missing-previous)
+    (define-key map [?\ ] 'xdarcs-missing-dwim-next)
+    (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
     map)
   "Keymap used in a xdarcs missing buffer.")
 
@@ -210,6 +212,22 @@
   (re-search-backward xdarcs-missing-patch-start-regexp nil t n)
   (when xdarcs-review-recenter-position-on-next-diff
     (recenter xdarcs-review-recenter-position-on-next-diff)))
+
+(defun xdarcs-missing-dwim-next ()
+  "Either move to the next changeset via `xdarcs-missing-next' or call `scroll-up'.
+When the beginning of the next changeset is already visible, call `xdarcs-missing-next',
+otherwise call `scroll-up'."
+  (interactive)
+  (let* ((start-pos (point))
+         (window-line (count-lines (window-start) start-pos))
+         (window-height (dvc-window-body-height))
+         (distance-to-next-changeset (save-window-excursion (xdarcs-missing-next 1) (count-lines start-pos (point)))))
+    (goto-char start-pos)
+    (when (eq distance-to-next-changeset 0) ; last changeset
+      (setq distance-to-next-changeset (count-lines start-pos (point-max))))
+    (if (< (- window-height window-line) distance-to-next-changeset)
+        (scroll-up)
+      (xdarcs-missing-next 1))))
 
 
 (defun xdarcs-pull-finish-function (output error status arguments)
