@@ -151,7 +151,9 @@ is reused."
 
 (defun dvc-log-close (buffer)
   "Close the log buffer, and delete the file."
-  (kill-buffer buffer)
+  (if vc-delete-logbuf-window
+      (kill-buffer buffer)
+    (quit-window))
   (delete-file (dvc-log-edit-file-name)))
 
 (defun dvc-log-flush-commit-file-list ()
