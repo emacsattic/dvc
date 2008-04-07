@@ -66,7 +66,7 @@
 
 (defun tla-dvc-log-edit (&optional root other-frame no-init)
   (interactive "P")
-  (tla-edit-log (not no-init) (current-buffer) other-frame))
+  (tla-edit-log nil (current-buffer) other-frame))
 
 (defun tla-dvc-add (file)
   (tla-add nil file))
