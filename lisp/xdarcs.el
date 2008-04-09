@@ -151,10 +151,7 @@
 (defun xdarcs-dvc-missing (&optional other)
   "Run 'darcs pull --dry-run -s -v' to see what's missing"
   (interactive)
-  (let ((cur-dir default-directory)
-        (buffer (dvc-get-buffer-create 'xdarcs 'missing)))
-    (with-current-buffer buffer
-      (setq default-directory cur-dir))
+  (let ((buffer (dvc-get-buffer-create 'xdarcs 'missing)))
     (dvc-run-dvc-async
      'xdarcs '("pull" "--dry-run" "-s" "-v")
      :finished
