@@ -81,7 +81,9 @@
         (intro-string)
         (brief (with-current-buffer log-buffer dvc-revlist-brief)))
     (when missing ;; skip the first status output
-      (re-search-forward "^------------------------------------------------------------$")
+      (unless (re-search-forward "^------------------------------------------------------------$" nil t)
+        (message "No missing revisions: Branches are up to date.")
+        (goto-char (point-max)))
       (setq intro-string (buffer-substring-no-properties (point-min) (point)))
       (with-current-buffer log-buffer
         (let ((buffer-read-only nil))
