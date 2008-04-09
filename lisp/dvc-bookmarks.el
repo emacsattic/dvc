@@ -101,6 +101,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "e"      'dvc-bookmarks-edit)
     (define-key map "\C-y"   'dvc-bookmarks-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
+    (define-key map "\C-c\C-k" 'dvc-bookmarks-delete)
     (define-key map "s"      'dvc-bookmarks-status)
     (define-key map "d"      'dvc-bookmarks-diff)
     (define-key map "c"      'dvc-bookmarks-log-edit)
@@ -139,6 +140,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ["Edit current bookmark" dvc-bookmarks-edit t]
     ["Add partner" dvc-bookmarks-add-partner t]
     ["Remove partner" dvc-bookmarks-remove-partner t]
+    ["Delete bookmark" dvc-bookmarks-delete t]
     ["Add/edit partner Nickname" dvc-bookmarks-add-nickname t]
     ["Add Push location" dvc-bookmarks-add-push-location t]
     ["Remove Push location" dvc-bookmarks-remove-push-location t]
@@ -475,6 +477,14 @@ With prefix argument ARG, reload the bookmarks file from disk."
      indent)))
 
 (defvar dvc-bookmarks-tmp-yank-item '("hg" (local-tree "~/work/hg/hg")))
+
+(defun dvc-bookmarks-delete ()
+  (interactive)
+  (dvc-bookmarks-kill)
+  (delete (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
+      dvc-bookmark-alist)
+   (dvc-bookmarks-invalidate-current-bookmark))
+
 (defun dvc-bookmarks-kill ()
   (interactive)
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-bookmark))
