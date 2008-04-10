@@ -3747,7 +3747,7 @@ if already set in the bookmarks."
                elem
                (tla-bookmarks-read-local-tree elem arg)))
             list)))
-      (set-buffer (dvc-get-buffer-create tla-arch-branch 'missing))
+      (set-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing))
       (tla-revision-list-mode)
       (setq dvc-buffer-refresh-function 'tla-missing-refresh)
       (set (make-local-variable 'tla-missing-buffer-todolist)
@@ -3814,7 +3814,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                  (when (and (dvc-get-buffer tla-arch-branch 'missing)
                             (buffer-live-p (dvc-get-buffer
                                             tla-arch-branch 'missing)))
-                   (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'missing)
+                   (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing)
                      (when (ewoc-p dvc-revlist-cookie)
                        (let* ((cookie dvc-revlist-cookie)
                               (to-delete (ewoc-next cookie (capture node)))
@@ -3844,7 +3844,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
                  (when (and (dvc-get-buffer tla-arch-branch 'missing)
                             (buffer-live-p (dvc-get-buffer
                                             tla-arch-branch 'missing)))
-                   (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'missing)
+                   (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing)
                      (when (ewoc-p dvc-revlist-cookie)
                        (let* ((cookie dvc-revlist-cookie)
                               (to-delete (ewoc-next cookie (capture node))))
@@ -4025,7 +4025,7 @@ If CHANGES-TOO is non-nil, show changes for DATA as well as missing patches."
   (let* ((default-directory local-tree)
          (partners (assoc 'partners (cdr data)))
          (location (cdr (assoc 'location (cdr data)))))
-    (dvc-switch-to-buffer (dvc-get-buffer-create tla-arch-branch 'missing))
+    (dvc-switch-to-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing))
     ;; The buffer was created in a context where we didn't know the
     ;; path to use. Set it now.
     (cd local-tree)
@@ -4183,7 +4183,7 @@ parsed."
                      (point-max)))))
           (local-tree default-directory))
       (when changes
-        (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'missing)
+        (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing)
           (ewoc-enter-after dvc-revlist-cookie
                             parent-node
                             (list 'entry-change
@@ -5743,7 +5743,7 @@ tree and the location."
                               'prompt 'prompt 'prompt 'prompt)
                            (tla-tree-version))))))
   (let ((dir (tla-tree-root)))
-    (pop-to-buffer (dvc-get-buffer-create tla-arch-branch 'missing))
+    (pop-to-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing))
     (cd dir))
   (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc)))
     (tla-revision-list-mode))
