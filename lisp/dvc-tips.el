@@ -1,6 +1,6 @@
 ;;; dvc-tips.el --- "Tip of the day" feature for DVC.
 
-;; Copyright (C) 2004-2007 by all contributors
+;; Copyright (C) 2004-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Keywords: convenience
@@ -23,7 +23,7 @@
 ;;; Commentary:
 
 ;; To raise the learning curve for DVC users. Some commands can
-;; (optionaly) pop-up a buffer with a tip. Currently, `tla-commit'
+;; (optionaly) pop-up a buffer with a tip. Currently, `dvc-commit'
 ;; does this.
 
 
@@ -40,6 +40,35 @@ to show you interesting features that you may have missed! Disable me
 by setting the variable `dvc-tips-enabled' to nil.
 
 Press q to exit, n to view next tip, p to view previous tip."
+   "DVC.el provides high level interfaces to various distributed revision
+control systems. It currently supports:
+* bzr: bzr
+* tla: tla (Gnu Arch)
+* xhg: hg (Mercurial)
+* xmtn: Monotone
+* xgit: git
+* xdarcs: darcs"
+   "The following functions are the main entry points:
+M-x dvc-status
+M-x dvc-diff
+M-x dvc-changelog
+"
+   "Most interesting commands are available through a global keyboard
+shortcut. Try \"C-x V C-h\" to get a list"
+   "DVC.el provides several major modes for different buffers. Each mode
+has its own keybindings. Get help with \"C-h m\""
+   "When DVC.el is loaded, C-M-h in a minibuffer prompt gives you help
+about the command being run."
+   "Report bugs using M-x dvc-submit-bug-report RET"
+   "Submitting a patch is very easy:
+Just make the needed changes to your checked out copy and do
+M-x dvc-submit-patch RET"
+   "You can add changelog style comments to your commit log by \"C-x V a\"."
+   "Currently the tips are mostly tailored towards tla since Xtla was
+the starting point for DVC.el
+
+We accept new tips and like to integrate them to the tips list.
+Please send your tip to dvc-dev@gna.org."
    "For the available tla commands Xtla provides a corresponding interactive
 function.
 Some examples:
@@ -49,12 +78,6 @@ M-x tla-undo        ... runs tla undo
 M-x tla-changes     ... runs tla changes
 
 Xtla prompts for the needed parameters."
-   "Most interesting commands are available through a global keyboard
-shortcut. Try \"C-x V C-h\" to get a list"
-   "Xtla provides several major modes for different buffers. Each mode
-has its own keybindings. Get help with \"C-h m\""
-   "When Xtla is loaded, C-M-h in a minibuffer prompt gives you help
-about the command being run."
    "When you are prompted for an archive, category, branch, version or
 revision name, lots of keybindings are available. Get a list with \"C-h\"."
    "Xtla allows you to manage a list of bookmarks. Try \"C-x V b\" and add
@@ -64,7 +87,6 @@ buffer."
    "From the bookmark buffer, you can select some bookmarks and make
 them partners with M-p. Afterwards, pressing 'M m' on a bookmark will
 show you the missing patches from his partners."
-   "You can add changelog style comments to your commit log by \"C-x V a\"."
    "You can enable ispell, flyspell or other useful mode for editing
 log files by \"M-x customize-variable RET tla-log-edit-mode-hook RET\"."
    "By default, Xtla caches any log file you retrieve with
@@ -96,8 +118,6 @@ manual modifications and merge in the same patch."
    "After a merge, typing \"C-c m\" in the log buffer will generate
 for you a summary line, keyword and body. This is highly
 customizable."
-   "Report bugs using M-x dvc-submit-bug-report RET, or using the bug
-tracker at https://gna.org/bugs/?group=xtla-el"
    "You've got a nice, graphical, archive browser one M-x tla-browse
 RET away."
    "In the bookmark buffer, pressing \"C-x C-f\" starts with the local
