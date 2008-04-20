@@ -29,6 +29,7 @@
 
 (require 'dvc-unified)
 (require 'ediff)
+(require 'vc)
 
 (defcustom dvc-log-edit-other-frame nil
   "If non-nil, dvc-log-edit defaults to other-frame."
