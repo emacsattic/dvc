@@ -74,7 +74,7 @@
 (defvar dvc-bookmarks-file-name "dvc-bookmarks.el" "The file that holds the dvc bookmarks")
 
 (defvar dvc-bookmarks-show-partners t
-"If non-nil, display partners.
+  "If non-nil, display partners.
 Must be non-nil for some featurs of dvc-bookmarks to work.")
 
 (defvar dvc-bookmarks-mode-hook '()
@@ -87,7 +87,8 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
 (defvar dvc-bookmarks-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map dvc-keyvec-help 'describe-mode)
-    (define-key map dvc-keyvec-quit 'dvc-buffer-quit)
+    ;;(define-key map dvc-keyvec-quit 'dvc-buffer-quit)
+    (define-key map dvc-keyvec-quit 'dvc-bookmarks-quit)
     (define-key map [return] 'dvc-bookmarks-goto)
     (define-key map "\C-x\C-f" 'dvc-bookmarks-find-file-in-tree)
     (define-key map "\C-m"   'dvc-bookmarks-goto)
@@ -104,6 +105,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "\C-c\C-y" 'dvc-bookmarks-really-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "\C-c\C-k" 'dvc-bookmarks-delete)
+    (define-key map "H" 'dvc-bookmarks-show-or-hide-subtree)
     (define-key map "s"      'dvc-bookmarks-status)
     (define-key map "d"      'dvc-bookmarks-diff)
     (define-key map "c"      'dvc-bookmarks-log-edit)
@@ -137,7 +139,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ["DVC pull" dvc-bookmarks-pull t]
     ["DVC push" dvc-bookmarks-push t]
     ["DVC merge" dvc-bookmarks-merge t]
-   "--"
+    "--"
     ["Add new bookmark" dvc-bookmarks-add t]
     ["Edit current bookmark" dvc-bookmarks-edit t]
     ["Add partner" dvc-bookmarks-add-partner t]
@@ -150,9 +152,9 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     ("Toggle visibility"
      ["Partners"    dvc-bookmarks-toggle-partner-visibility
       :style toggle :selected dvc-bookmarks-show-partners])
-   "--"
+    "--"
     ["Save bookmarks" dvc-bookmarks-save t]
-     ))
+    ))
 
 ;; This data structure represents a single entry in the bookmarks
 ;; list.  There is one of these associated with each ewoc node.
@@ -184,9 +186,9 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
   "Create a `dvc-bookmark' from the association ASSOC.
 The indent is taken from INDENT."
   (make-dvc-bookmark
-     :name (car assoc)
-     :indent indent
-     :elem assoc))
+   :name (car assoc)
+   :indent indent
+   :elem assoc))
 
 (defun dvc-bookmark-key-value (bookmark key)
   "Return the association from the property of BOOKMARK matching KEY."
@@ -266,10 +268,10 @@ is the `dvc-bookmark-partner' itself."
                      n)))
            (dolist (child (reverse (cdr (assoc 'children elem))))
              (dvc-bookmarks-add-to-cookie child (+ indent 2) node)))
-      (t
-       (if curr
-           (apply enter-function (list dvc-bookmarks-cookie curr data))
-         (ewoc-enter-last dvc-bookmarks-cookie data))))
+          (t
+           (if curr
+               (apply enter-function (list dvc-bookmarks-cookie curr data))
+             (ewoc-enter-last dvc-bookmarks-cookie data))))
     (forward-line 2)))
 
 ;;;###autoload
@@ -314,6 +316,13 @@ With prefix argument ARG, reload the bookmarks file from disk."
       (font-lock-add-keywords nil `((,head . font-lock-variable-name-face)))))
   (font-lock-add-keywords nil '(("^  [a-zA-Z-_0-9\.]*" . font-lock-doc-face)))
   (font-lock-add-keywords nil '(("^    [Partner]* [~/a-zA-Z-_\.]*" . font-lock-function-name-face))))
+
+(defun dvc-bookmarks-quit ()
+  "Clean dvc-bookmarks-hidden-subtree
+and quit"
+  (interactive)
+  (setq dvc-bookmarks-hidden-subtree nil)
+  (dvc-buffer-quit))
 
 (defun dvc-bookmarks-show-info-at-point ()
   (interactive)
@@ -371,7 +380,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
          (elem (dvc-bookmark-elem old-data)))
     (setcar elem bookmark-name)
     (setcdr elem (cons (list 'local-tree bookmark-local-dir)
-                               (assq-delete-all 'local-tree (cdr elem))))
+                       (assq-delete-all 'local-tree (cdr elem))))
     (ewoc-set-data node (make-dvc-bookmark-from-assoc elem old-indent))
     (ewoc-invalidate dvc-bookmarks-cookie node)))
 
@@ -493,8 +502,8 @@ With prefix argument ARG, reload the bookmarks file from disk."
           (setq dvc-memorized-log-header (when nickname (format dvc-bookmarks-merge-template nickname)))
           (setq dvc-memorized-log-message nil)
           (message (if nickname
-                       (format "Merging from %s, using URL %s" nickname partner)
-                     (format "Merging from %s" partner)))
+          (format "Merging from %s, using URL %s" nickname partner)
+          (format "Merging from %s" partner)))
           (dvc-merge partner))
       (message "No local-tree defined for this bookmark entry."))))
 
@@ -505,9 +514,9 @@ With prefix argument ARG, reload the bookmarks file from disk."
         (index 0))
     (if (member elm lis)
         (progn
-          (dolist (x lis)
-            (when (equal x elm)
-              (setq index n))
+        (dolist (x lis)
+          (when (equal x elm)
+            (setq index n))
             (setq n (+ n 1)))
           index)
       (error "No element %s in %s" elm lis))))
@@ -522,7 +531,7 @@ in list `lis'.
          (start-part-list (subseq lis 0 where))
          (mod-list (append (remove name-elm start-part-list)
                            (cons name-elm
-                                 (remove name-elm (subseq lis where))))))
+                           (remove name-elm (subseq lis where))))))
     mod-list))
 
 (defun dvc-add-to-list-at-ind (elm lis where)
@@ -576,7 +585,7 @@ Examples:
                (dvc-add-to-list-at-ind modif-list (remove subtree (remove name-elm lis)) subtree-index))
               ((member name-elm subtree)
                (let ((append-list (dvc-add-to-list-at-ind name-elm (remove subtree lis) where)))
-                 (dvc-add-to-list-at-ind (remove name-elm subtree) append-list subtree-index)))
+               (dvc-add-to-list-at-ind (remove name-elm subtree) append-list subtree-index)))
               (t
                (dvc-add-to-list-at-ind modif-list (remove subtree lis) subtree-index)))
       modif-list)))
@@ -631,12 +640,12 @@ Examples:
                             sublist)
                            (t dvc-bookmark-alist)))
          (yank-index (dvc-get-index-el-list elm-at-point which-list))
-                                        ; move elm at the root of sublist
+         ; move elm at the root of sublist
          (tmp-alist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                      dvc-bookmark-alist
                                                      1
                                                      sublist)))
-                                        ; move elm in the '(chidren)
+    ; now move elm in the '(children)
     (setq sublist
           (dvc-move-elm-in-list-or-sublist elm-to-move
                                            (assoc parent tmp-alist)
@@ -664,27 +673,27 @@ Examples:
          (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
                             child-dvc-bookmark-alist)
                            ((member elm-at-point sublist)
-                            sublist)
+                           sublist)
                            ((member elm-at-point dvc-bookmark-alist)
                             dvc-bookmark-alist)
                            (t (message "no family %s for this elm" parent))))
          (yank-index (dvc-get-index-el-list elm-at-point which-list))
-                                        ;now move elm out of '(children)
+         ;now move elm out of '(children)
          (tmp-sublist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                        sublist
                                                        1
                                                        child-dvc-bookmark-alist))
          (tmp-alist nil))
-                                        ; new dvc-bookmark-alist with elm to move out of '(children)
+    ; new dvc-bookmark-alist with elm to move out of '(children)
     (setq tmp-alist (cons tmp-sublist alist-nosub))
-                                        ; now move elm to root of dvc-bookmark-alist
+    ; now move elm to root of dvc-bookmark-alist
     (if (member elm-to-move child-dvc-bookmark-alist)
-                                        ; elm-to-move was in child
+        ; elm-to-move was in child
         (setq dvc-bookmark-alist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                                   tmp-alist
                                                                   yank-index
                                                                   tmp-sublist))
-                                        ; elm-to-move was in sublist ("home-dir"...)
+      ; elm-to-move was in sublist ("home-dir"...)
       (setq dvc-bookmark-alist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                                 dvc-bookmark-alist
                                                                 yank-index
@@ -701,13 +710,16 @@ Examples:
                  (list name
                        `(children
                          (,child-name
-                          (local-tree "~/")))) t)
+                         (local-tree "~/")))) t)
     (ewoc-refresh dvc-bookmarks-cookie))
   (dvc-bookmarks-save)
   (dvc-bookmarks))
 
 ;; TODO create function to yank from sub to sub
-;; or modify this one (select subtree or list)
+;; Two cases:
+;; - yank in the same sublist
+;; - yank from one sublist to another sublist
+
 (defun dvc-bookmarks-yank-from-list-to-list ()
   "Yank inside dvc-bookmark-alist: list ==> list"
   (interactive)
@@ -721,7 +733,28 @@ Examples:
   (dvc-bookmarks-save)
   (dvc-bookmarks))
 
-;; TODO add function to toggle visibility subtree
+(defvar dvc-bookmarks-hidden-subtree nil
+  "List of all hidden subtrees")
+
+(defun dvc-bookmarks-show-or-hide-subtree (&optional show)
+  "Hide subtree when called with no argument
+show subtree when called with prefix argument (C-u)"
+  (interactive "P")
+  (let ((current-tree (aref (dvc-bookmarks-current-bookmark) 1))
+        (parent))
+    (when (member (assoc current-tree dvc-bookmark-alist) dvc-bookmark-alist) ;check if we are really on a tree
+      (if current-prefix-arg
+          (progn
+            (setq dvc-bookmarks-hidden-subtree (remove current-tree dvc-bookmarks-hidden-subtree))
+            (dvc-bookmarks))
+        (add-to-list 'dvc-bookmarks-hidden-subtree current-tree))
+      (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
+                                            (setq parent (dvc-get-parent-elm (aref x 1) dvc-bookmark-alist))
+                                            (if (not (member parent dvc-bookmarks-hidden-subtree))
+                                                t
+                                              nil))))))
+
+
 (defun dvc-bookmarks-yank ()
   "non destructive yank function"
   (interactive)
@@ -850,13 +883,13 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (interactive)
   (let* ((cur-data (dvc-bookmarks-current-bookmark))
          (partner-url (read-string (format "Add partner to '%s': "
-                                           (dvc-bookmark-name cur-data)))))
+         (dvc-bookmark-name cur-data)))))
     (if (not (member partner-url (dvc-bookmarks-get-partner-urls)))
         (progn
           (setf (dvc-bookmark-properties cur-data)
                 (append (dvc-bookmark-properties cur-data)
-                        (list (cons 'partner
-                                    (make-dvc-bookmark-partner :url partner-url)))))
+                (list (cons 'partner
+                            (make-dvc-bookmark-partner :url partner-url)))))
           (dvc-trace "dvc-bookmarks-add-partner %s" cur-data)
           (dvc-bookmarks-invalidate-current-bookmark))
       (message "%s is already a partner for %s"
@@ -868,7 +901,7 @@ If FORCE is non-nil, reload the file even if it was loaded before."
          (partners-alist (dvc-bookmark-partners-by-url cur-data))
          (partner-to-remove (dvc-completing-read
                              (format "Remove partner from %s: "
-                                     (dvc-bookmark-name cur-data))
+                             (dvc-bookmark-name cur-data))
                              (mapcar 'car partners-alist)
                              nil t nil nil
                              (dvc-bookmarks-partner-at-point))))
@@ -906,15 +939,15 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (let* ((url-at-point (dvc-bookmarks-partner-at-point))
          (bookmark (dvc-bookmarks-current-bookmark))
          (partner (cdr (assoc url-at-point
-                              (dvc-bookmark-partners-by-url bookmark)))))
+         (dvc-bookmark-partners-by-url bookmark)))))
     (if partner
-      (progn
-        (setf (dvc-bookmark-partner-nickname partner)
-              (read-string (format "Nickname for %s: " url-at-point)
-                           (dvc-bookmark-partner-nickname partner)))
-        (dvc-bookmarks-invalidate-current-bookmark)
-        (message "Added nickname %s to the partner %s"
-                 (dvc-bookmark-partner-nickname partner) url-at-point))
+        (progn
+          (setf (dvc-bookmark-partner-nickname partner)
+                (read-string (format "Nickname for %s: " url-at-point)
+                (dvc-bookmark-partner-nickname partner)))
+          (dvc-bookmarks-invalidate-current-bookmark)
+          (message "Added nickname %s to the partner %s"
+                   (dvc-bookmark-partner-nickname partner) url-at-point))
       (error "No partner with URL '%s'" url-at-point))))
 
 (defun dvc-bookmarks-add-push-location ()
