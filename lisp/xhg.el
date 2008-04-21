@@ -430,11 +430,36 @@ If DONT-SWITCH, don't switch to the diff buffer"
                                  (set-window-configuration (capture window-conf)))
                              (dvc-default-error-function output error status arguments)))))))
 
+
+(defun xhg-get-all-heads-list ()
+  "Get a list of all heads available from the output of hg heads."
+  (let ((rev-list (with-temp-buffer
+                    (apply #'call-process "hg" nil t nil
+                           '("heads"))
+                    (buffer-string)))
+        (new-list nil))
+    (setq rev-list (split-string rev-list "\n"))
+    (dolist (x rev-list)
+      (if (string-match "changeset\:   " x)
+          (when (string-match "[0-9]+?:" x)
+            (push (replace-regexp-in-string ":"
+                                            ""
+                                            (match-string 0 x))
+                  new-list))))
+    new-list))
+
 ;;;###autoload
 (defun xhg-merge (&optional revision)
-  "Run hg merge."
-  (interactive "sMerge from hg revision: ")
-  (when (string= revision "")
+  "Run hg merge. called with prefix argument (C-u)
+ask for specific revision with completion"
+  (interactive "P")
+  (if current-prefix-arg
+      (progn
+        (setq revision
+              (dvc-completing-read "Merge from hg revision: "
+                                   (xhg-get-all-heads-list)))
+        (when (string= revision "")
+          (setq revision nil)))
     (setq revision nil))
   (dvc-run-dvc-async 'xhg (list "merge" revision)
                      :finished
