@@ -495,6 +495,7 @@ and quit"
   "Merge from partner at point into current bookmark."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (setq local-tree (dvc-uniquify-file-name local-tree))
     (if local-tree
         (let ((default-directory local-tree)
               (partner (dvc-bookmarks-partner-at-point t))
@@ -635,7 +636,7 @@ Examples:
          ; get index of sub and store it
          (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
-         (alist-nosub (remove sublist dvc-bookmark-alist)) 
+         (alist-nosub (remove sublist dvc-bookmark-alist))
          (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
                             child-dvc-bookmark-alist)
                            ((member elm-at-point sublist)
@@ -676,7 +677,7 @@ Examples:
          ;get index of sublist and store it
          (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
-         (alist-nosub (remove sublist dvc-bookmark-alist)) 
+         (alist-nosub (remove sublist dvc-bookmark-alist))
          (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
                             child-dvc-bookmark-alist)
                            ((member elm-at-point sublist)
@@ -785,8 +786,17 @@ non destructive function
 use it to kill/yank"
   (interactive)
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-bookmark))
-  (let ((buffer-read-only nil))
-    (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
+  (let ((buffer-read-only nil)
+         (current-tree (aref (dvc-bookmarks-current-bookmark) 1))
+         (parent))
+    (if (member (assoc current-tree dvc-bookmark-alist) dvc-bookmark-alist)
+        (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
+                                              (setq parent (dvc-get-parent-elm (aref x 1) dvc-bookmark-alist))
+                                              (when (not (equal current-tree (aref x 1)))
+                                                (if (not (equal parent current-tree))
+                                                    t
+                                                  nil))))
+      (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie)))))
 
 (defun dvc-bookmarks-add-empty-tree (name)
   "Add a new family to your bookmarks"
