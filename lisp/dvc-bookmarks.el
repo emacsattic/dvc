@@ -315,7 +315,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
       (setq head (car x))
       (font-lock-add-keywords nil `((,head . font-lock-variable-name-face)))))
   (font-lock-add-keywords nil '(("^  [a-zA-Z-_0-9\.]*" . font-lock-doc-face)))
-  (font-lock-add-keywords nil '(("^    [Partner]* [~/a-zA-Z-_\.]*" . font-lock-function-name-face))))
+  (font-lock-add-keywords nil '(("^    [Partner]* [~/a-zA-Z-_\.\:/]*" . font-lock-function-name-face))))
 
 (defun dvc-bookmarks-quit ()
   "Clean dvc-bookmarks-hidden-subtree
@@ -495,6 +495,7 @@ and quit"
   "Merge from partner at point into current bookmark."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (setq local-tree (dvc-uniquify-file-name local-tree))
     (if local-tree
         (let ((default-directory local-tree)
               (partner (dvc-bookmarks-partner-at-point t))
@@ -527,7 +528,7 @@ in list `lis'.
 `name-elm' have the form of element in list.
 `lis' is a LIST
 `where' is an INTEGER"
-  (let* ((index-elm (dvc-get-index-el-list name-elm lis)) ;;TODO change name
+  (let* ((index-elm (dvc-get-index-el-list name-elm lis))
          (start-part-list (subseq lis 0 where))
          (mod-list (append (remove name-elm start-part-list)
                            (cons name-elm
@@ -632,6 +633,8 @@ Examples:
          (parent (dvc-get-parent-elm (aref (dvc-bookmarks-current-bookmark) 1)
                                      dvc-bookmark-alist))
          (sublist (assoc parent dvc-bookmark-alist))
+         ; get index of sub and store it
+         (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
          (alist-nosub (remove sublist dvc-bookmark-alist))
          (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
@@ -653,12 +656,15 @@ Examples:
                                            child-dvc-bookmark-alist))
     (when (not (consp (nth 1 sublist))) ; hack to fix a small bug in backend func
       (setq sublist (remove (nth 1 sublist) sublist)))
-                                        ; now cons all
-    (setq dvc-bookmark-alist (cons sublist alist-nosub))
-    (setq dvc-bookmark-alist (remove elm-to-move dvc-bookmark-alist))
+    ; replace the sublist modified to initial place
+    (setq dvc-bookmark-alist
+          (dvc-add-to-list-at-ind sublist alist-nosub sub-index))
+    (setq dvc-bookmark-alist
+          (remove elm-to-move dvc-bookmark-alist))
     (ewoc-refresh dvc-bookmarks-cookie))
   (dvc-bookmarks-save)
   (dvc-bookmarks))
+
 
 (defun dvc-bookmarks-yank-from-sub-to-list ()
   "Yank from sublist ==> list"
@@ -668,12 +674,14 @@ Examples:
          (parent (dvc-get-parent-elm (aref dvc-bookmarks-tmp-yank-item 1)
                                      dvc-bookmark-alist))
          (sublist (assoc parent dvc-bookmark-alist))
+         ;get index of sublist and store it
+         (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
          (alist-nosub (remove sublist dvc-bookmark-alist))
          (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
                             child-dvc-bookmark-alist)
                            ((member elm-at-point sublist)
-                           sublist)
+                            sublist)
                            ((member elm-at-point dvc-bookmark-alist)
                             dvc-bookmark-alist)
                            (t (message "no family %s for this elm" parent))))
@@ -684,8 +692,8 @@ Examples:
                                                        1
                                                        child-dvc-bookmark-alist))
          (tmp-alist nil))
-    ; new dvc-bookmark-alist with elm to move out of '(children)
-    (setq tmp-alist (cons tmp-sublist alist-nosub))
+    ; replace the sublist modified to initial place
+    (setq tmp-alist (dvc-add-to-list-at-ind tmp-sublist alist-nosub sub-index))
     ; now move elm to root of dvc-bookmark-alist
     (if (member elm-to-move child-dvc-bookmark-alist)
         ; elm-to-move was in child
@@ -698,19 +706,6 @@ Examples:
                                                                 dvc-bookmark-alist
                                                                 yank-index
                                                                 sublist)))
-    (ewoc-refresh dvc-bookmarks-cookie))
-  (dvc-bookmarks-save)
-  (dvc-bookmarks))
-
-(defun dvc-bookmarks-add-empty-tree (name)
-  "Add a new family to your bookmarks"
-  (interactive "sName: ")
-  (let ((child-name (concat "child-" name)))
-    (add-to-list 'dvc-bookmark-alist
-                 (list name
-                       `(children
-                         (,child-name
-                         (local-tree "~/")))) t)
     (ewoc-refresh dvc-bookmarks-cookie))
   (dvc-bookmarks-save)
   (dvc-bookmarks))
@@ -732,6 +727,7 @@ Examples:
     (ewoc-refresh dvc-bookmarks-cookie))
   (dvc-bookmarks-save)
   (dvc-bookmarks))
+
 
 (defvar dvc-bookmarks-hidden-subtree nil
   "List of all hidden subtrees")
@@ -790,8 +786,31 @@ non destructive function
 use it to kill/yank"
   (interactive)
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-bookmark))
-  (let ((buffer-read-only nil))
-    (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
+  (let ((buffer-read-only nil)
+         (current-tree (aref (dvc-bookmarks-current-bookmark) 1))
+         (parent))
+    (if (member (assoc current-tree dvc-bookmark-alist) dvc-bookmark-alist)
+        (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
+                                              (setq parent (dvc-get-parent-elm (aref x 1) dvc-bookmark-alist))
+                                              (when (not (equal current-tree (aref x 1)))
+                                                (if (not (equal parent current-tree))
+                                                    t
+                                                  nil))))
+      (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie)))))
+
+(defun dvc-bookmarks-add-empty-tree (name)
+  "Add a new family to your bookmarks"
+  (interactive "sName: ")
+  (let ((child-name (concat "child-" name)))
+    (add-to-list 'dvc-bookmark-alist
+                 (list name
+                       `(children
+                         (,child-name
+                         (local-tree "~/")))) t)
+    (ewoc-refresh dvc-bookmarks-cookie))
+  (dvc-bookmarks-save)
+  (dvc-bookmarks))
+
 
 (defun dvc-bookmarks-toggle-mark-entry ()
   "Mark the current bookmark entry."

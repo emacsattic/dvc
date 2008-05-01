@@ -165,8 +165,8 @@ See file commentary for details."
          (let ((hash-id (second resolved-id)))
            (check-type hash-id xmtn--hash-id)
            (loop repeat num
-                 do (setq hash-id (xmtn--get-parent-revision-hash-id root
-                                                                     hash-id)))
+                 ;; If two parents of this rev, use parent on same branch as rev.
+                 do (setq hash-id (xmtn--get-parent-revision-hash-id root hash-id t)))
            `(revision ,hash-id)))))))
 
 (defun xmtn--error-unless-revision-exists (root hash-id)
@@ -181,7 +181,18 @@ See file commentary for details."
 (defun xmtn--expand-selector (root selector)
   (xmtn-automate-simple-command-output-lines root `("select" ,selector)))
 
-(defun xmtn--get-parent-revision-hash-id (root hash-id)
+(defun xmtn--branch-of (root hash-id)
+  (let ((certs (xmtn--list-parsed-certs root hash-id))
+        result
+        cert)
+    (while (not result)
+      (setq cert (car certs))
+      (if (equal "branch" (nth 2 cert))
+          (setq result (nth 3 cert)))
+      (setq certs (cdr certs)))
+    result))
+
+(defun xmtn--get-parent-revision-hash-id (root hash-id &optional multi-parent-use-local-branch)
   (check-type hash-id xmtn--hash-id)
   (let ((parents (xmtn-automate-simple-command-output-lines root `("parents"
                                                                    ,hash-id))))
@@ -191,13 +202,20 @@ See file commentary for details."
            (assert (typep parent 'xmtn--hash-id))
            parent))
       (t
-       ;; For now, just error.  Depending on the context, we should
-       ;; prompt which parent is desired, or operate on all of them.
-       ;; This function is too low-level to decide what to do, though.
-       ;; Need to wait for use cases.
-       (error "Revision has more than one parent (%s): %s"
-              (length parents)
-              hash-id)))))
+       (if multi-parent-use-local-branch
+           ;; If this revision is the result of a propagate, there are two parents, one of which is on the local branch
+           (let ((local-branch (xmtn--tree-default-branch root))
+                 (first-parent-branch (xmtn--branch-of root (first parents))))
+             (if (equal local-branch first-parent-branch)
+                 (first parents)
+               (second parents)))
+         ;; Otherwise, just error.  Depending on the context, we should
+         ;; prompt which parent is desired, or operate on all of them.
+         ;; This function is too low-level to decide what to do, though.
+         ;; Need to wait for use cases.
+         (error "Revision has more than one parent (%s): %s"
+                (length parents)
+                hash-id))))))
 
 (defun xmtn--get-base-revision-hash-id-or-null (root)
   (let ((hash-id (xmtn-automate-simple-command-output-line
