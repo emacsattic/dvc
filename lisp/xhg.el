@@ -622,17 +622,20 @@ otherwise: Return a list of two element sublists containing alias, path"
             (message "xhg undo aborted.")))
       (message "xhg: No undo information available."))))
 
-
-;; TODO: support the -C, -m switches also someway
 ;;;###autoload
-(defun xhg-update ()
-  "Run hg update."
-  (interactive)
-  (dvc-run-dvc-sync 'xhg (list "update"))
-                    :finished
-                    (lambda (output error status arguments)
-                      (message "hg update complete for %s" default-directory)))
-
+(defun xhg-update (&optional clean)
+  "Run hg update.
+When called with prefix-arg run hg update -C (clean)"
+  (interactive "P")
+  (let* ((opt-list (if current-prefix-arg
+                       (list "update" "-C")
+                     (list "update")))
+         (opt-string (mapconcat 'identity opt-list " ")))
+    (dvc-run-dvc-sync 'xhg opt-list
+                      :finished
+                      (lambda (output error status arguments)
+                        (dvc-default-finish-function output error status arguments)
+                        (message "hg %s complete for %s" opt-string default-directory)))))
 
 ;; --------------------------------------------------------------------------------
 ;; hg serve functionality
