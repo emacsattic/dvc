@@ -637,12 +637,6 @@ Examples:
          (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
          (alist-nosub (remove sublist dvc-bookmark-alist))
-         (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
-                            child-dvc-bookmark-alist)
-                           ((member elm-at-point sublist)
-                            sublist)
-                           (t dvc-bookmark-alist)))
-         (yank-index (dvc-get-index-el-list elm-at-point which-list))
          ; move elm at the root of sublist
          (tmp-alist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                      dvc-bookmark-alist
