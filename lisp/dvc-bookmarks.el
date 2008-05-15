@@ -640,7 +640,7 @@ Examples:
          ;; get index of sub and store it
          (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
-         (alist-nosub (remove sublist dvc-bookmark-alist)) 
+         (alist-nosub (remove sublist dvc-bookmark-alist))
          (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
                             child-dvc-bookmark-alist)
                            ((member elm-at-point sublist)
@@ -680,7 +680,7 @@ Examples:
          ;; get index of sublist and store it
          (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
-         (alist-nosub (remove sublist dvc-bookmark-alist)) 
+         (alist-nosub (remove sublist dvc-bookmark-alist))
          (yank-index (dvc-get-index-el-list elm-at-point dvc-bookmark-alist))
          ;; now move elm out of '(children)
          (tmp-sublist (dvc-move-elm-in-list-or-sublist elm-to-move
@@ -722,6 +722,7 @@ or in the same sublist"
          (sub-index2 (dvc-get-index-el-list sublist2 dvc-bookmark-alist))
          ;; index point (yank here + 1)
          (yank-index (dvc-get-index-el-list elm-at-point (cadr sublist2)))
+         (yank-index-sub-in-sub nil)
          ;; dvc-bookmark-alist without sublist1
          (alist-nosub (remove sublist1 dvc-bookmark-alist))
          ;; initial sublist with elm-to-move at root of sublist
@@ -740,11 +741,12 @@ or in the same sublist"
         ;; we yank in the same sub
         (progn
           ;; move elm-to-move in child
-          ;; TODO: fix ==>yank-index + 1 produce nil.
+          (setq yank-index-sub-in-sub
+                (dvc-get-index-el-list elm-at-point (cadr tmp-sublist)))
           (setq sublist1
                 (dvc-move-elm-in-list-or-sublist elm-to-move
                                                  tmp-sublist
-                                                 yank-index
+                                                 (+ 1 yank-index-sub-in-sub)
                                                  (cadr tmp-sublist)))
           (setq dvc-bookmark-alist
                 (dvc-add-to-list-at-ind sublist1
@@ -763,7 +765,7 @@ or in the same sublist"
                                              tmp-alist
                                              1
                                              sublist2))
-      
+
       ;; now move elm-to-move to child of sub2 at yank-index
       (setq sublist2
             (dvc-move-elm-in-list-or-sublist elm-to-move
@@ -845,25 +847,18 @@ show subtree when called with prefix argument (C-u)"
   "Destructive kill and delete function
 do not use it to kill/yank, use dvc-bookmarks-kill instead"
   (interactive)
-  (dvc-bookmarks-kill)
-  (if (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
-      (progn
-        (setq dvc-bookmark-alist (remove (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
-                                         dvc-bookmark-alist))
-        (ewoc-refresh dvc-bookmarks-cookie)
-        (dvc-bookmarks-save)
-        (dvc-bookmarks))
-    (message "Please move first this element to root and then delete it")
-    (dvc-bookmarks)))
-
-;; (defun dvc-bookmarks-kill ()
-;;   "kill or cut bookmark
-;; non destructive function
-;; use it to kill/yank"
-;;   (interactive)
-;;   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-bookmark))
-;;   (let ((buffer-read-only nil))
-;;     (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
+  (let ((init-place (point)))
+    (dvc-bookmarks-kill)
+    (if (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
+        (progn
+          (setq dvc-bookmark-alist (remove (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
+                                           dvc-bookmark-alist))
+          (ewoc-refresh dvc-bookmarks-cookie)
+          (dvc-bookmarks-save)
+          (dvc-bookmarks))
+      (message "Please move first this element to root and then delete it")
+      (dvc-bookmarks))
+    (goto-char init-place)))
 
 (defun dvc-bookmarks-kill ()
   "kill or cut bookmark
