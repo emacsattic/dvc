@@ -180,22 +180,29 @@ This is used by the `xgit-send-commit-notification' function."
   :type 'boolean
   :group 'dvc-xgit)
 
-(defun xgit-gnus-send-commit-notification ()
+(defun xgit-gnus-send-commit-notification (&optional to)
   "Send a commit notification email for the changelog entry at point.
 
 The option `xgit-mail-notification-destination' can be used to
-specify a prefix for the subject line.  The rest of the subject
-line contains the summary line of the commit.  Additionally, the
-destination email address can be specified."
-  (interactive)
+specify a prefix for the subject line, the destination email
+address, and an optional repo location.  The rest of the subject
+line contains the summary line of the commit.
+
+If the optional argument TO is provided, send an email to that
+address instead of consulting
+`xgit-mail-notification-destination'.  If the prefix
+argument (C-u) is given, then prompt for this value."
+  (interactive (list current-prefix-arg))
   (let (dest-specs)
-    (catch 'found
-      (dolist (m xgit-mail-notification-destination)
-        (when (string= default-directory (file-name-as-directory (car m)))
-          (setq dest-specs (cdr m))
-          (throw 'found t)))
-      (error (concat "Unable to find an matching entry in"
-                     " `xgit-mail-notification-destination'")))
+    (when (equal to '(4))
+      (setq to (read-string "Destination email address: ")))
+    (if to
+        (setq dest-specs (list nil to nil))
+      (catch 'found
+        (dolist (m xgit-mail-notification-destination)
+          (when (string= default-directory (file-name-as-directory (car m)))
+            (setq dest-specs (cdr m))
+            (throw 'found t)))))
     (let* ((rev (dvc-revlist-get-revision-at-point))
            (repo-location (nth 2 dest-specs)))
       (destructuring-bind (from subject body)
