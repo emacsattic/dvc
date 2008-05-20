@@ -398,6 +398,9 @@ This is done by looking at the 'You are missing ... revision(s):' string in the 
   (int-to-string
    (nth 2 (dvc-revlist-get-revision-at-point))))
 
+;; FIXME: Does not attempt to find the right entry in
+;; bzr-mail-notification-destination according to branch nick, and it
+;; really ought to.
 (defun bzr-send-commit-notification ()
   "Send a commit notification email for the changelog entry at point.
 
