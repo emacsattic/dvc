@@ -231,7 +231,7 @@ argument (C-u) is given, then prompt for this value."
                         (concat (if dest-specs (car dest-specs) "")
                                 subject)))
         (when from
-          (message-replace-header "From" from))
+          (dvc-message-replace-header "From" from))
         (message-goto-body)
         ;; do not PGP sign the message as per git convention
         (when (looking-at "<#part[^>]*>")
