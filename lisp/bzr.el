@@ -394,12 +394,9 @@ This is done by looking at the 'You are missing ... revision(s):' string in the 
   (save-excursion
     (not (re-search-backward "^You are missing [0-9]+ revision(s):" nil t))))
 
-;;TODO: should be integrated in dvc-revlist-get-rev-at-point
 (defun bzr-get-revision-at-point ()
   (int-to-string
-   (nth 2 (car (dvc-revision-get-data
-                (dvc-revlist-entry-patch-rev-id
-                 (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie)))))))))
+   (nth 2 (dvc-revlist-get-revision-at-point))))
 
 (defun bzr-send-commit-notification ()
   "Send a commit notification email for the changelog entry at point.

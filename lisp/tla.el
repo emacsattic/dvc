@@ -389,7 +389,7 @@ empty."
 Further call to `tla--name-read-insert-info-at-point-final' will
 actuall insert the value computed here."
   (setq tla-name-read-insert-info-at-point
-        (let ((raw-info (cadr (dvc-get-info-at-point)))
+        (let ((raw-info (tla--revision-get-revision-at-point))
               (b (dvc-cmenu-beginning (point)))
               (e (dvc-cmenu-end (point))))
           (when raw-info
@@ -8073,7 +8073,19 @@ Else it runs asynchronously."
   "tla-revisions"
   "Major mode to show Arch revision lists:
 \\{tla-revision-list-mode-map}."
-  (use-local-map tla-revision-list-mode-map))
+  (use-local-map tla-revision-list-mode-map)
+  (set (make-local-variable 'dvc-get-revision-info-at-point-function)
+       'tla--revision-get-revision-at-point))
+
+(defun tla--revision-get-revision-at-point ()
+  "Get archive/category--branch--version--revision--patch information.
+Returns nil if not on a revision list, or not on a revision entry in a
+revision list."
+  (let ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie))))
+    (when (eq (car elem) 'entry-patch)
+      (let ((full (tla--revision-revision
+                   (dvc-revlist-entry-patch-struct (nth 1 elem)))))
+        (tla--name-construct full)))))
 
 (defun tla--revision-get-version-info-at-point ()
   "Get archive/category--branch--version--revision information.
@@ -8081,13 +8093,13 @@ Returns nil if not on a revision list, or not on a revision entry in a
 revision list."
   (list 'version
         (tla--name-mask (tla--name-split
-                         (cadr (dvc-revlist-get-rev-at-point))) t
+                         (tla--revision-get-revision-at-point)) t
                          t t t t)))
 
 (defun tla-revision-save-revision-to-kill-ring ()
   "Save the name of the current revision to the kill ring."
   (interactive)
-  (let ((rev (cadr (dvc-revlist-get-rev-at-point))))
+  (let ((rev (tla--revision-get-revision-at-point)))
     (unless rev
       (error "No revision at point"))
     (kill-new rev)
