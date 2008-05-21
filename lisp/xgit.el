@@ -706,7 +706,7 @@ This option can be set to
   :type '(choice (const ask)
                  (const always)
                  (const never))
-  :group 'dvc-git)
+  :group 'dvc-xgit)
 
 (defun xgit-use-index-p ()
   "Whether xgit should use the index this time.

@@ -230,17 +230,15 @@ Function used to get the revision info at point")
   (when (fboundp dvc-get-revision-info-at-point-function)
     (funcall dvc-get-revision-info-at-point-function)))
 
-;; TODO: this is still tla-oriented.
-(defun dvc-revlist-get-rev-at-point ()
-  "Get archive/category--branch--version--revision--patch information.
-Returns nil if not on a revision list, or not on a revision entry in a
-revision list."
-  (let ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie))))
-    (when (eq (car elem) 'entry-patch)
-      (let* ((full (tla--revision-revision
-                    (dvc-revlist-entry-patch-struct (nth 1 elem))))
-             (buffer-revision (tla--name-construct full)))
-        (list 'revision buffer-revision)))))
+(defun dvc-revlist-get-revision-at-point ()
+  "Retrieve the revision structure at point in a DVC revlist mode buffer."
+  (let* ((entry (dvc-revlist-entry-patch-rev-id
+                 (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie)))))
+         (type (dvc-revision-get-type entry))
+         (data (dvc-revision-get-data entry)))
+    (case type
+      (revision (nth 0 data))
+      (t (error "No revision at point")))))
 
 (autoload 'dvc-revlog-revision "dvc-revlog")
 
