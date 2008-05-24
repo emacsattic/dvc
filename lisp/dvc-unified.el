@@ -216,7 +216,8 @@ interactively. Use `dvc-changelog' for the full log."
                      (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (let ((default-directory
           (dvc-read-project-tree-maybe "DVC tree root (directory): "
-                                       (when path (expand-file-name path)))))
+                                       (when path (expand-file-name path))
+                                       t)))
     ;; Since we have bound default-directory, we don't need to pass
     ;; 'root' to the back-end.
     (dvc-call "dvc-log" path last-n))

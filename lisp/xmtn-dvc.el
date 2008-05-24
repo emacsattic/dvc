@@ -1479,24 +1479,32 @@ finished."
                          ((("content_mark" (id $previous-id)))
                           previous-id))))))))
 
-(defun* xmtn--close-set (fn initial-set &key test)
-  (unless test (setq test #'eql))
-  (loop for current-set = nil then (nconc new-elements current-set)
-        for new-elements = (copy-list initial-set)
-        then (loop for new-element in new-elements
-                   nconc
-                   (copy-list
-                    (set-difference (funcall fn new-element)
-                                    current-set :test test)))
-        while new-elements
-        finally (return current-set)))
+(defun xmtn--limit-length (list n)
+  (or (null n) (<= (length list) n)))
 
-(defun xmtn--get-content-changed-closure (root backend-id normalized-file)
+(defun xmtn--close-set (fn initial-set last-n)
+  (let ((new-elements initial-set)
+        (current-set nil))
+    (while (and new-elements (xmtn--limit-length current-set last-n))
+      (let ((temp-elements nil)
+            (next-elements nil)
+            (new-element nil))
+        (while new-elements
+          (setq new-element (car new-elements))
+          (setq temp-elements (funcall fn new-element))
+          (setq current-set (append (set-difference temp-elements current-set :test #'equal) current-set))
+          (setq next-elements (append temp-elements next-elements))
+          (setq new-elements (cdr new-elements)))
+        (setq new-elements next-elements)))
+    current-set))
+
+(defun xmtn--get-content-changed-closure (root backend-id normalized-file last-n)
   (xmtn-automate-with-session (nil root)
     (lexical-let ((root root))
       (labels ((changed-self-or-ancestors (entry)
                 (destructuring-bind (hash-id file-name) entry
                   (check-type file-name string)
+                  ;; get-content-changed can return one or two revisions
                   (loop for next-change-id in (xmtn--get-content-changed
                                                root `(revision ,hash-id)
                                                file-name)
@@ -1508,6 +1516,7 @@ finished."
                (changed-proper-ancestors (entry)
                 (destructuring-bind (hash-id file-name) entry
                   (check-type file-name string)
+                  ;; revision-parents can return one or two revisions
                   (loop for parent-id in (xmtn--revision-parents root hash-id)
                         for path-in-parent =
                         (xmtn--get-corresponding-path-raw root file-name
@@ -1521,7 +1530,7 @@ finished."
            ((local-tree $path) (error "Not implemented"))
            ((revision $id) (changed-self-or-ancestors
                             `(,id ,normalized-file))))
-         :test #'equal)))))
+         last-n)))))
 
 
 (defun xmtn--get-corresponding-path-raw (root normalized-file-name
