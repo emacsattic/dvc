@@ -40,6 +40,8 @@
   ;; bindings are set up by dvc-insinuate-gnus
   )
 
+;;; Applying patches from email messages
+
 (defcustom xgit-apply-patch-mapping nil
   "*Working directories in which patches should be applied.
 
@@ -85,9 +87,13 @@ patches from the entire message."
         (gnus-write-buffer patch-file-name))
       (goto-char (point-min))
       (re-search-forward "^To: " nil t)
-      (dolist (m xgit-apply-patch-mapping)
-        (when (looking-at (car m))
-          (setq working-dir (dvc-uniquify-file-name (cadr m))))))
+      (catch 'found
+        (dolist (m xgit-apply-patch-mapping)
+          (when (looking-at (car m))
+            (setq working-dir (dvc-uniquify-file-name (cadr m)))
+            (throw 'found t)))
+        (error (concat "Unable to find an matching entry in"
+                       " `xgit-apply-patch-mapping'"))))
     (gnus-summary-show-article)
     (delete-other-windows)
     (dvc-buffer-push-previous-window-config)
@@ -154,6 +160,96 @@ patch begins."
   (goto-char (point-min))
   (re-search-forward "^---$" nil t)
   (forward-line 1))
+
+;;; Sending commit notifications
+
+(defcustom xgit-mail-notification-destination nil
+  "An alist of rules which map working directories to both target
+email addresses and the prefix string for the subject line.
+
+This is used by the `xgit-send-commit-notification' function."
+  :type '(repeat (list :tag "Rule"
+                       (string :tag "Working directory")
+                       (string :tag "Email subject prefix")
+                       (string :tag "Email address")
+                       (string :tag "Repo location (optional)")))
+  :group 'dvc-xgit)
+
+(defcustom xgit-mail-notification-sign-off-p nil
+  "If non-nil, add a Signed-Off-By header to any mail commit notifications."
+  :type 'boolean
+  :group 'dvc-xgit)
+
+(defun xgit-gnus-send-commit-notification (&optional to)
+  "Send a commit notification email for the changelog entry at point.
+
+The option `xgit-mail-notification-destination' can be used to
+specify a prefix for the subject line, the destination email
+address, and an optional repo location.  The rest of the subject
+line contains the summary line of the commit.
+
+If the optional argument TO is provided, send an email to that
+address instead of consulting
+`xgit-mail-notification-destination'.  If the prefix
+argument (C-u) is given, then prompt for this value."
+  (interactive (list current-prefix-arg))
+  (let (dest-specs)
+    (when (equal to '(4))
+      (setq to (read-string "Destination email address: ")))
+    (if to
+        (setq dest-specs (list nil to nil))
+      (catch 'found
+        (dolist (m xgit-mail-notification-destination)
+          (when (string= default-directory (file-name-as-directory (car m)))
+            (setq dest-specs (cdr m))
+            (throw 'found t)))))
+    (let* ((rev (dvc-revlist-get-revision-at-point))
+           (repo-location (nth 2 dest-specs)))
+      (destructuring-bind (from subject body)
+          (dvc-run-dvc-sync
+           'xgit (delq nil (list "format-patch" "--stdout" "-k" "-1"
+                                 (when xgit-mail-notification-sign-off-p "-s")
+                                 rev))
+           :finished
+           (lambda (output error status args)
+             (with-current-buffer output
+               (let (from subject body)
+                 (goto-char (point-min))
+                 (when (re-search-forward "^From: *\\(.+\\)$" nil t)
+                   (setq from (match-string 1)))
+                 (goto-char (point-min))
+                 (when (re-search-forward "^Subject: *\\(.+\\)$" nil t)
+                   (setq subject (match-string 1)))
+                 (goto-char (point-min))
+                 (when (re-search-forward "^$" nil t)
+                   (forward-line 1)
+                   (setq body (buffer-substring (point) (point-max))))
+                 (list from subject body)))))
+        (message "Preparing commit email for revision %s" rev)
+        (let ((gnus-newsgroup-name nil))
+          (compose-mail (if dest-specs (cadr dest-specs) "")
+                        (concat (if dest-specs (car dest-specs) "")
+                                subject)))
+        (when from
+          (dvc-message-replace-header "From" from))
+        (message-goto-body)
+        ;; do not PGP sign the message as per git convention
+        (when (looking-at "<#part[^>]*>")
+          (let ((beg (point)))
+            (forward-line 1)
+            (delete-region beg (point))))
+        (save-excursion
+          (when body
+            (insert body))
+          (when repo-location
+            (message-goto-body)
+            (when (re-search-forward "^---$" nil t)
+              (insert "\nCommitted revision " rev "\n"
+                      "to <" repo-location ">.\n")))
+          (goto-char (point-max))
+          (unless (and (bolp) (looking-at "^$"))
+            (insert "\n"))
+          (message-goto-body))))))
 
 (provide 'xgit-gnus)
 ;;; xgit-gnus.el ends here

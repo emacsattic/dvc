@@ -59,10 +59,12 @@ Additionally the following key binding is defined for the gnus summary mode map:
 K t l `dvc-gnus-article-extract-log-message'
 K t v `dvc-gnus-article-view-patch'
 K t m `dvc-gnus-article-view-missing'
-K t a `dvc-gnus-article-apply-patch'"
+K t a `dvc-gnus-article-apply-patch'
+K t p `dvc-gnus-article-apply-patch-with-selected-destination'"
   (interactive)
   (dvc-gnus-initialize-keymap)
   (define-key gnus-summary-dvc-submap [?a] 'dvc-gnus-article-apply-patch)
+  (define-key gnus-summary-dvc-submap [?p] 'dvc-gnus-article-apply-patch-with-selected-destination)
   (define-key gnus-summary-dvc-submap [?l] 'dvc-gnus-article-extract-log-message)
   (define-key gnus-summary-dvc-submap [?v] 'dvc-gnus-article-view-patch)
   (define-key gnus-summary-dvc-submap [?m] 'dvc-gnus-article-view-missing)
@@ -164,6 +166,24 @@ Otherwise `dvc-gnus-apply-patch' is called."
              (when dvc-gnus-override-window-config
                (set-window-configuration dvc-gnus-override-window-config)))))))
 
+(defvar dvc-gnus-select-patch-dir-function nil)
+(defun dvc-gnus-article-apply-patch-with-selected-destination (n)
+  "Apply a patch via ediff.
+Allow to select the target directory from one of
+`dvc-gnus-patch-desitination-candidates'."
+  (interactive "p")
+  (unless current-prefix-arg
+    (setq n 2))
+  (let ((dvc-gnus-override-window-config)
+        (dvc-gnus-select-patch-dir-function 'dvc-gnus-select-patch-destination))
+    (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)
+    (when dvc-gnus-override-window-config
+      (set-window-configuration dvc-gnus-override-window-config))))
+
+(defvar dvc-gnus-patch-desitination-candidates nil)
+(defun dvc-gnus-select-patch-destination ()
+  (expand-file-name (dvc-completing-read "Patch destination: " dvc-gnus-patch-desitination-candidates)))
+
 (defun dvc-gnus-article-view-missing ()
   "Apply MIME part N, as patchset.
 When called with no prefix arg, set N := 2.
@@ -233,21 +253,23 @@ Otherwise `dvc-gnus-view-patch' is called."
 (defun dvc-gnus-suggest-apply-patch-directory ()
   "Use `dvc-apply-patch-mapping' to suggest a directory where
 the patch sould be applied."
-  (save-window-excursion
-    (gnus-summary-select-article-buffer)
-    (let ((patch-directory "~/")
-          (m dvc-apply-patch-mapping))
-      (save-excursion
-        (goto-char (point-min))
-        (when (search-forward "text/x-patch; " nil t)
-          (while m
-            (if (looking-at (caar m))
-                (progn
-                  (setq patch-directory (cadar m))
-                  (setq m nil))
-              (setq m (cdr m))))))
-      (gnus-article-show-summary)
-      (expand-file-name patch-directory))))
+  (if dvc-gnus-select-patch-dir-function
+      (funcall dvc-gnus-select-patch-dir-function)
+    (save-window-excursion
+      (gnus-summary-select-article-buffer)
+      (let ((patch-directory "~/")
+            (m dvc-apply-patch-mapping))
+        (save-excursion
+          (goto-char (point-min))
+          (when (search-forward "text/x-patch; " nil t)
+            (while m
+              (if (looking-at (caar m))
+                  (progn
+                    (setq patch-directory (cadar m))
+                    (setq m nil))
+                (setq m (cdr m))))))
+        (gnus-article-show-summary)
+        (expand-file-name patch-directory)))))
 
 (defun dvc-gnus-apply-patch (handle)
   "Apply the patch corresponding to HANDLE."

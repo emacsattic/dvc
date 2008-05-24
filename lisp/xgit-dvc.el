@@ -123,5 +123,7 @@ ARG is passed as prefix argument"
 
 (defalias 'xgit-dvc-clone 'xgit-clone)
 
+(defalias 'xgit-dvc-send-commit-notification 'xgit-gnus-send-commit-notification)
+
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here

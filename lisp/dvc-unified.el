@@ -533,9 +533,12 @@ branch to merge into the current database, branch, or workspace."
   (interactive))
 
 ;;;###autoload
-(define-dvc-unified-command dvc-send-commit-notification ()
-  "Send a commit notification for the changeset at point."
-  (interactive))
+(define-dvc-unified-command dvc-send-commit-notification (&optional to)
+  "Send a commit notification for the changeset at point.
+If TO is provided, send it to that email address.  If a prefix
+argument is given, modify the behavior of this command as
+specified by the VCS backend."
+  (interactive (list current-prefix-arg)))
 
 (provide 'dvc-unified)
 

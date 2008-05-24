@@ -221,37 +221,25 @@ is the `dvc-bookmark-partner' itself."
          (partners (and dvc-bookmarks-show-partners
                         (dvc-bookmark-partners data)))
          (nick-name)
+         (partner-string)
          (entry-string (format "%s%s" (make-string indent ? ) entry)))
     ;;(dvc-trace "dvc-bookmarks-printer - data: %S, partners: %S" data partners)
     (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
       (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
+    (if (assoc entry dvc-bookmark-alist)
+        (setq entry-string (dvc-face-add entry-string 'dvc-keyword))
+      (setq entry-string (dvc-face-add entry-string 'dvc-comment)))
     (insert entry-string)
     (when partners
       (dolist (p partners)
         (setq nick-name (dvc-bookmark-partner-nickname p))
-        (insert (format "\n%sPartner %s%s" ;;TODO hide path to partner (toggle)
-                        (make-string (+ 2 indent) ? )
-                        (dvc-bookmark-partner-url p)
-                        (if nick-name (format "  [%s]" nick-name) "")))))))
+        (setq partner-string (format "\n%sPartner %s%s"
+                                     (make-string (+ 2 indent) ? )
+                                     (dvc-bookmark-partner-url p)
+                                     (if nick-name (format "  [%s]" nick-name) "")))
+        (setq partner-string (dvc-face-add partner-string 'dvc-revision-name))
+        (insert partner-string)))))
 
-;; (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
-;;   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
-;;         (data (make-dvc-bookmark-from-assoc elem indent))
-;;         (enter-function (if (eq (dvc-line-number-at-pos) 1) 'ewoc-enter-before 'ewoc-enter-after)))
-;;     (cond ((assoc 'children elem)
-;;            (setq node
-;;                  (if curr
-;;                      (apply enter-function (list dvc-bookmarks-cookie curr data))
-;;                    (let ((n (ewoc-enter-last dvc-bookmarks-cookie data)))
-;;                      (forward-line 1)
-;;                      n)))
-;;            (dolist (child (reverse (cdr (assoc 'children elem))))
-;;              (dvc-bookmarks-add-to-cookie child (+ indent 2) node)))
-;;           (t
-;;            (if curr
-;;                (apply enter-function (list dvc-bookmarks-cookie curr data))
-;;              (ewoc-enter-last dvc-bookmarks-cookie data))))
-;;     (forward-line 1)))
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
@@ -306,16 +294,6 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (setq mode-name "dvc-bookmarks")
   (toggle-read-only 1)
   (run-hooks 'dvc-bookmarks-mode-hook))
-
-(defun dvc-bookmarks-highlight-headers ()
-  (interactive)
-  (set-buffer (current-buffer))
-  (let (head)
-    (dolist (x dvc-bookmark-alist)
-      (setq head (car x))
-      (font-lock-add-keywords nil `((,head . font-lock-variable-name-face)))))
-  (font-lock-add-keywords nil '(("^  [a-zA-Z-_0-9\.]*" . font-lock-doc-face)))
-  (font-lock-add-keywords nil '(("^    [Partner]* [~/a-zA-Z-_\.]*" . font-lock-function-name-face))))
 
 (defun dvc-bookmarks-quit ()
   "Clean dvc-bookmarks-hidden-subtree
@@ -495,6 +473,7 @@ and quit"
   "Merge from partner at point into current bookmark."
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+    (setq local-tree (dvc-uniquify-file-name local-tree))
     (if local-tree
         (let ((default-directory local-tree)
               (partner (dvc-bookmarks-partner-at-point t))
@@ -527,7 +506,7 @@ in list `lis'.
 `name-elm' have the form of element in list.
 `lis' is a LIST
 `where' is an INTEGER"
-  (let* ((index-elm (dvc-get-index-el-list name-elm lis)) ;;TODO change name
+  (let* ((index-elm (dvc-get-index-el-list name-elm lis))
          (start-part-list (subseq lis 0 where))
          (mod-list (append (remove name-elm start-part-list)
                            (cons name-elm
@@ -611,7 +590,8 @@ Examples:
                                              dvc-bookmark-alist)
                        (dvc-get-parent-elm (aref dvc-bookmarks-tmp-yank-item 1)
                                            dvc-bookmark-alist)))
-         (child-alist (cadr (assoc parent-elm dvc-bookmark-alist))))
+         (child-alist (cadr (assoc parent-elm dvc-bookmark-alist)))
+         (cur-pos (point)))
     (cond ((and (member killed-elm dvc-bookmark-alist)
                 (member yank-point dvc-bookmark-alist))
            (dvc-bookmarks-yank-from-list-to-list))
@@ -621,8 +601,11 @@ Examples:
           ((and (member killed-elm child-alist)
                 (member yank-point dvc-bookmark-alist))
            (dvc-bookmarks-yank-from-sub-to-list))
-          (t (message "This yank is not implemented yet sorry!")))))
-
+          ((and (not (member killed-elm dvc-bookmark-alist))
+                (not (member yank-point dvc-bookmark-alist)))
+           (dvc-bookmarks-yank-from-sub-to-sub))
+          (t (message "This yank is not implemented yet sorry!")))
+      (goto-char cur-pos)))
 
 (defun dvc-bookmarks-yank-from-list-to-sub ()
   "Yank from list ==> sublist"
@@ -632,20 +615,22 @@ Examples:
          (parent (dvc-get-parent-elm (aref (dvc-bookmarks-current-bookmark) 1)
                                      dvc-bookmark-alist))
          (sublist (assoc parent dvc-bookmark-alist))
+         ;; get index of sub and store it
+         (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
-         (alist-nosub (remove sublist dvc-bookmark-alist))
+         (alist-nosub (remove sublist dvc-bookmark-alist)) 
          (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
                             child-dvc-bookmark-alist)
                            ((member elm-at-point sublist)
                             sublist)
                            (t dvc-bookmark-alist)))
          (yank-index (dvc-get-index-el-list elm-at-point which-list))
-         ; move elm at the root of sublist
+         ;; move elm at the root of sublist
          (tmp-alist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                      dvc-bookmark-alist
                                                      1
                                                      sublist)))
-    ; now move elm in the '(children)
+    ;; now move elm in the '(children)
     (setq sublist
           (dvc-move-elm-in-list-or-sublist elm-to-move
                                            (assoc parent tmp-alist)
@@ -653,9 +638,11 @@ Examples:
                                            child-dvc-bookmark-alist))
     (when (not (consp (nth 1 sublist))) ; hack to fix a small bug in backend func
       (setq sublist (remove (nth 1 sublist) sublist)))
-                                        ; now cons all
-    (setq dvc-bookmark-alist (cons sublist alist-nosub))
-    (setq dvc-bookmark-alist (remove elm-to-move dvc-bookmark-alist))
+    ;; replace the sublist modified to initial place
+    (setq dvc-bookmark-alist
+          (dvc-add-to-list-at-ind sublist alist-nosub sub-index))
+    (setq dvc-bookmark-alist
+          (remove elm-to-move dvc-bookmark-alist))
     (ewoc-refresh dvc-bookmarks-cookie))
   (dvc-bookmarks-save)
   (dvc-bookmarks))
@@ -668,32 +655,27 @@ Examples:
          (parent (dvc-get-parent-elm (aref dvc-bookmarks-tmp-yank-item 1)
                                      dvc-bookmark-alist))
          (sublist (assoc parent dvc-bookmark-alist))
+         ;; get index of sublist and store it
+         (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
-         (alist-nosub (remove sublist dvc-bookmark-alist))
-         (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
-                            child-dvc-bookmark-alist)
-                           ((member elm-at-point sublist)
-                           sublist)
-                           ((member elm-at-point dvc-bookmark-alist)
-                            dvc-bookmark-alist)
-                           (t (message "no family %s for this elm" parent))))
-         (yank-index (dvc-get-index-el-list elm-at-point which-list))
-         ;now move elm out of '(children)
+         (alist-nosub (remove sublist dvc-bookmark-alist)) 
+         (yank-index (dvc-get-index-el-list elm-at-point dvc-bookmark-alist))
+         ;; now move elm out of '(children)
          (tmp-sublist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                        sublist
                                                        1
                                                        child-dvc-bookmark-alist))
          (tmp-alist nil))
-    ; new dvc-bookmark-alist with elm to move out of '(children)
-    (setq tmp-alist (cons tmp-sublist alist-nosub))
-    ; now move elm to root of dvc-bookmark-alist
+    ;; replace the sublist modified to initial place
+    (setq tmp-alist (dvc-add-to-list-at-ind tmp-sublist alist-nosub sub-index))
+    ;; now move elm to root of dvc-bookmark-alist
     (if (member elm-to-move child-dvc-bookmark-alist)
-        ; elm-to-move was in child
+        ;; elm-to-move was in child
         (setq dvc-bookmark-alist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                                   tmp-alist
                                                                   yank-index
                                                                   tmp-sublist))
-      ; elm-to-move was in sublist ("home-dir"...)
+      ;; elm-to-move was in sublist ("home-dir"...)
       (setq dvc-bookmark-alist (dvc-move-elm-in-list-or-sublist elm-to-move
                                                                 dvc-bookmark-alist
                                                                 yank-index
@@ -702,23 +684,92 @@ Examples:
   (dvc-bookmarks-save)
   (dvc-bookmarks))
 
-(defun dvc-bookmarks-add-empty-tree (name)
-  "Add a new family to your bookmarks"
-  (interactive "sName: ")
-  (let ((child-name (concat "child-" name)))
-    (add-to-list 'dvc-bookmark-alist
-                 (list name
-                       `(children
-                         (,child-name
-                         (local-tree "~/")))) t)
+(defun dvc-bookmarks-yank-from-sub-to-sub ()
+  "Yank from one sublist to another sublist,
+or in the same sublist"
+  (interactive)
+  (let* ((elm-to-move (aref dvc-bookmarks-tmp-yank-item 3))
+         (elm-at-point (aref (dvc-bookmarks-current-bookmark) 3))
+         (parent-from (dvc-get-parent-elm (aref dvc-bookmarks-tmp-yank-item 1)
+                                          dvc-bookmark-alist))
+         (parent-to (dvc-get-parent-elm (aref (dvc-bookmarks-current-bookmark) 1)
+                                        dvc-bookmark-alist))
+         (sublist1 (assoc parent-from dvc-bookmark-alist))
+         (sublist2 (assoc parent-to dvc-bookmark-alist))
+         (sub-index (dvc-get-index-el-list sublist1 dvc-bookmark-alist))
+         (sub-index2 (dvc-get-index-el-list sublist2 dvc-bookmark-alist))
+         ;; index point (yank here + 1)
+         (yank-index (dvc-get-index-el-list elm-at-point (cadr sublist2)))
+         (yank-index-sub-in-sub nil)
+         ;; dvc-bookmark-alist without sublist1
+         (alist-nosub (remove sublist1 dvc-bookmark-alist))
+         ;; initial sublist with elm-to-move at root of sublist
+         (tmp-sublist (dvc-move-elm-in-list-or-sublist elm-to-move
+                                                       sublist1
+                                                       1
+                                                       (cadr sublist1)))
+         ;; replace sublist1 modified to initial place
+         (tmp-alist (dvc-add-to-list-at-ind tmp-sublist
+                                            alist-nosub
+                                            sub-index))
+         ;; the new alist without sub2
+         (alist-nosub2 nil))
+    ;; check now if we yank in the same sub or an external one
+    (if (equal parent-from parent-to)
+        ;; we yank in the same sub
+        (progn
+          ;; move elm-to-move in child
+          (setq yank-index-sub-in-sub
+                (dvc-get-index-el-list elm-at-point (cadr tmp-sublist)))
+          (setq sublist1
+                (dvc-move-elm-in-list-or-sublist elm-to-move
+                                                 tmp-sublist
+                                                 (+ 1 yank-index-sub-in-sub)
+                                                 (cadr tmp-sublist)))
+          (setq dvc-bookmark-alist
+                (dvc-add-to-list-at-ind sublist1
+                                        alist-nosub
+                                        sub-index)))
+      ;; else: we yank in another sub
+      ;; now move elm-to-move to root of dvc-bookmark-alist
+      (setq tmp-alist
+            (dvc-move-elm-in-list-or-sublist elm-to-move
+                                             tmp-alist
+                                             1
+                                             tmp-sublist))
+      ;; now move elm-to-move to root of sub2
+      (setq tmp-alist
+            (dvc-move-elm-in-list-or-sublist elm-to-move
+                                             tmp-alist
+                                             1
+                                             sublist2))
+      
+      ;; now move elm-to-move to child of sub2 at yank-index
+      (setq sublist2
+            (dvc-move-elm-in-list-or-sublist elm-to-move
+                                             (assoc parent-to tmp-alist)
+                                             (+ 1 yank-index)
+                                             (cadr sublist2)))
+      ;; create now a new dvc-bookmark-alist with the sub2 modified
+      (when (not (consp (nth 1 sublist2))) ; hack to fix a small bug in backend func
+        (setq sublist2 (remove (nth 1 sublist2) sublist2)))
+      ;; at this point we have just to remove elm-to-move from sub1
+      (setq dvc-bookmark-alist
+            (dvc-add-to-list-at-ind (remove elm-to-move (assoc parent-from tmp-alist))
+                                    alist-nosub
+                                    sub-index))
+      ;; set an alist without old sub2
+      (setq alist-nosub2
+            (remove (assoc parent-to dvc-bookmark-alist)
+                    dvc-bookmark-alist))
+      ;; add new sublist2 to the alist without sub2
+      (setq dvc-bookmark-alist
+            (dvc-add-to-list-at-ind sublist2
+                                    alist-nosub2
+                                    sub-index2)))
     (ewoc-refresh dvc-bookmarks-cookie))
   (dvc-bookmarks-save)
   (dvc-bookmarks))
-
-;; TODO create function to yank from sub to sub
-;; Two cases:
-;; - yank in the same sublist
-;; - yank from one sublist to another sublist
 
 (defun dvc-bookmarks-yank-from-list-to-list ()
   "Yank inside dvc-bookmark-alist: list ==> list"
@@ -732,6 +783,7 @@ Examples:
     (ewoc-refresh dvc-bookmarks-cookie))
   (dvc-bookmarks-save)
   (dvc-bookmarks))
+
 
 (defvar dvc-bookmarks-hidden-subtree nil
   "List of all hidden subtrees")
@@ -773,16 +825,18 @@ show subtree when called with prefix argument (C-u)"
   "Destructive kill and delete function
 do not use it to kill/yank, use dvc-bookmarks-kill instead"
   (interactive)
-  (dvc-bookmarks-kill)
-  (if (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
-      (progn
-        (setq dvc-bookmark-alist (remove (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
-                                         dvc-bookmark-alist))
-        (ewoc-refresh dvc-bookmarks-cookie)
-        (dvc-bookmarks-save)
-        (dvc-bookmarks))
-    (message "Please move first this element to root and then delete it")
-    (dvc-bookmarks)))
+  (let ((init-place (point)))
+    (dvc-bookmarks-kill)
+    (if (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
+        (progn
+          (setq dvc-bookmark-alist (remove (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
+                                           dvc-bookmark-alist))
+          (ewoc-refresh dvc-bookmarks-cookie)
+          (dvc-bookmarks-save)
+          (dvc-bookmarks))
+      (message "Please move first this element to root and then delete it")
+      (dvc-bookmarks))
+    (goto-char init-place)))
 
 (defun dvc-bookmarks-kill ()
   "kill or cut bookmark
@@ -790,8 +844,31 @@ non destructive function
 use it to kill/yank"
   (interactive)
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-bookmark))
-  (let ((buffer-read-only nil))
-    (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
+  (let ((buffer-read-only nil)
+         (current-tree (aref (dvc-bookmarks-current-bookmark) 1))
+         (parent))
+    (if (member (assoc current-tree dvc-bookmark-alist) dvc-bookmark-alist)
+        (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
+                                              (setq parent (dvc-get-parent-elm (aref x 1) dvc-bookmark-alist))
+                                              (when (not (equal current-tree (aref x 1)))
+                                                (if (not (equal parent current-tree))
+                                                    t
+                                                  nil))))
+      (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie)))))
+
+(defun dvc-bookmarks-add-empty-tree (name)
+  "Add a new family to your bookmarks"
+  (interactive "sName: ")
+  (let ((child-name (concat "child-" name)))
+    (add-to-list 'dvc-bookmark-alist
+                 (list name
+                       `(children
+                         (,child-name
+                         (local-tree "~/")))) t)
+    (ewoc-refresh dvc-bookmarks-cookie))
+  (dvc-bookmarks-save)
+  (dvc-bookmarks))
+
 
 (defun dvc-bookmarks-toggle-mark-entry ()
   "Mark the current bookmark entry."
