@@ -442,7 +442,8 @@ cursor position in previous buffer."
 (defun dvc-show-last-error-buffer ()
   "Show the error buffer of the last started DVC command."
   (interactive)
-  (dvc-switch-to-buffer dvc-last-error-buffer))
+  (dvc-switch-to-buffer dvc-last-error-buffer)
+  (dvc-process-buffer-mode))
 
 (defun dvc-show-last-process-buffer (&optional type mode path)
   "Switch to the last used process buffer in a new buffer of TYPE.
