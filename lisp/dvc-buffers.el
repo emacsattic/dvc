@@ -238,6 +238,7 @@ also `dvc-get-buffer-create'."
                 (setcdr (assoc type subtree) nil)
                 nil)
             nil))
+      ;; not 'single
       (let ((path (and path
                        (cond
                         ((eq mode 'root)
@@ -255,10 +256,9 @@ also `dvc-get-buffer-create'."
                  (elem (assoc path (cdr list-path)))
                  (buffer (cadr elem)))
             (when buffer
-              (if (and (buffer-live-p buffer)
-                       ;; the buffer has not been renamed
-                       (string= (buffer-name buffer)
-                                (car (cddr elem))))
+              (if (buffer-live-p buffer)
+                  ;; This used to check for buffer not renamed, but
+                  ;; that conflicts with uniquify.
                   buffer
                 ;; remove the buffer and try again
                 (setcdr list-path
