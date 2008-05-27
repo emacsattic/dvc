@@ -238,6 +238,7 @@ also `dvc-get-buffer-create'."
                 (setcdr (assoc type subtree) nil)
                 nil)
             nil))
+      ;; not 'single
       (let ((path (and path
                        (cond
                         ((eq mode 'root)
@@ -255,10 +256,9 @@ also `dvc-get-buffer-create'."
                  (elem (assoc path (cdr list-path)))
                  (buffer (cadr elem)))
             (when buffer
-              (if (and (buffer-live-p buffer)
-                       ;; the buffer has not been renamed
-                       (string= (buffer-name buffer)
-                                (car (cddr elem))))
+              (if (buffer-live-p buffer)
+                  ;; This used to check for buffer not renamed, but
+                  ;; that conflicts with uniquify.
                   buffer
                 ;; remove the buffer and try again
                 (setcdr list-path
@@ -439,6 +439,12 @@ cursor position in previous buffer."
                           dvc-process-running))
     (dvc-process-buffer-mode)))
 
+(defun dvc-show-last-error-buffer ()
+  "Show the error buffer of the last started DVC command."
+  (interactive)
+  (dvc-switch-to-buffer dvc-last-error-buffer)
+  (dvc-process-buffer-mode))
+
 (defun dvc-show-last-process-buffer (&optional type mode path)
   "Switch to the last used process buffer in a new buffer of TYPE.
 If MODE is specified, it is a function that will be run in the
@@ -540,6 +546,8 @@ New buffer has type TYPE (default 'errors), mode MODE (default
       '(menu-item "--"))
     (define-key menu [process-buffer]
       '(menu-item "Show Process Bufffer" dvc-show-process-buffer))
+    (define-key menu [error-buffer]
+      '(menu-item "Show Error Bufffer" dvc-show-last-error-buffer))
     (define-key menu [log-buffer]
       '(menu-item "Open Log Bufffer" dvc-open-internal-log-buffer))
     menu))

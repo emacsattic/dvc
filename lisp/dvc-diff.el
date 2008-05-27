@@ -148,8 +148,8 @@ Pretty-print ELEM."
     (define-key map "E"                                       'dvc-fileinfo-toggle-exclude)
     (define-key map "\M-e"                                    'dvc-edit-exclude)
     (define-key map [?h]                                      'dvc-buffer-pop-to-partner-buffer)
-    (define-key map dvc-keyvec-logs                           'dvc-log)
-    (define-key map "l"                                       'dvc-diff-log)
+    (define-key map dvc-keyvec-logs                           'dvc-diff-log-tree)
+    (define-key map "l"                                       'dvc-diff-log-single)
     (define-key map dvc-keyvec-ediff                          'dvc-diff-ediff)
     (define-key map dvc-keyvec-refresh                        'dvc-generic-refresh)
     (define-key map "R"                                       'dvc-fileinfo-rename)
@@ -174,6 +174,7 @@ Pretty-print ELEM."
 
     ;; Buffers group
     (define-key map (dvc-prefix-buffer ?p)                    'dvc-show-process-buffer)
+    (define-key map (dvc-prefix-buffer ?e)                    'dvc-show-last-error-buffer)
     (define-key map (dvc-prefix-buffer ?L)                    'dvc-open-internal-log-buffer)
     (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
 
@@ -206,8 +207,8 @@ Pretty-print ELEM."
     ["Jump to Diffs"                  dvc-diff-diff-or-list   t]
     ["View Diff in Separate Buffer"   dvc-diff-diff           t]
     ["View Diff with Ediff"           dvc-diff-ediff          t]
-    ["Log (full tree)"                dvc-log                 t]
-    ["Log (single file)"              dvc-diff-log            t]
+    ["Log (full tree)"                dvc-diff-log-tree       t]
+    ["Log (single file)"              dvc-diff-log-single     t]
     "--"
     ["Delete File"                    dvc-remove-files        t]
     ["Revert File"                    dvc-revert-files        t]
@@ -530,12 +531,19 @@ file after."
                                       dvc-diff-modified)
           (ediff-jump-to-difference hunk))))))
 
-(defun dvc-diff-log (&optional last-n)
+(defun dvc-diff-log-single (&optional last-n)
   "Show log for current file, LAST-N entries (default
 `dvc-log-last-n'; all if nil). LAST-N may be specified
 interactively."
   (interactive (list (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (dvc-log (dvc-get-file-info-at-point) last-n))
+
+(defun dvc-diff-log-tree (&optional last-n)
+  "Show log for current tree, LAST-N entries (default
+`dvc-log-last-n'; all if nil). LAST-N may be specified
+interactively."
+  (interactive (list (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
+  (dvc-log nil last-n))
 
 (defun dvc-diff-find-file-name ()
   "Same as `diff-find-file-name', but works in more cases."

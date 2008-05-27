@@ -60,7 +60,10 @@
         (apply #'dvc-run-dvc-sync
                'xmtn
                `(,@xmtn-additional-arguments
-                 ,@(if root `(,(concat "--root=" (file-truename root))))
+                 ;; We don't pass the --root argument here; it is not
+                 ;; necessary since default-directory is set, and it
+                 ;; confuses the Cygwin version of mtn when run with a
+                 ;; non-Cygwin Emacs.
                  ,@arguments)
                dvc-run-keys)))))
 
@@ -80,7 +83,10 @@
         (apply #'dvc-run-dvc-async
                'xmtn
                `(,@xmtn-additional-arguments
-                 ,@(if root `(,(concat "--root=" (file-truename root))))
+                 ;; We don't pass the --root argument here; it is not
+                 ;; necessary since default-directory is set, and it
+                 ;; confuses the Cygwin version of mtn when run with a
+                 ;; non-Cygwin Emacs.
                  ,@arguments)
                dvc-run-keys)))))
 
