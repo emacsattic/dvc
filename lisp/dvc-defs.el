@@ -328,6 +328,21 @@ In such case use this face."
   "DVC face used to highlight marked file indicator."
   :group 'dvc-faces)
 
+(defcustom dvc-bookmarks-face-tree 'dvc-keyword
+  "DVC face used in bookmarks to highlight main tree entry's"
+  :type 'face
+  :group 'dvc-faces)
+
+(defcustom dvc-bookmarks-face-subtree 'dvc-comment
+  "DVC face used in bookmarks to highlight subtree entry's"
+  :type 'face
+  :group 'dvc-faces)
+
+(defcustom dvc-bookmarks-face-partner 'dvc-revision-name
+  "DVC face used in bookmarks to highlight partner entry's"
+  :type 'face
+  :group 'dvc-faces)
+
 (defcustom dvc-button-face 'bold
   "DVC face used to highlight buttons.
 

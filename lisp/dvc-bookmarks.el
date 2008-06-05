@@ -221,37 +221,25 @@ is the `dvc-bookmark-partner' itself."
          (partners (and dvc-bookmarks-show-partners
                         (dvc-bookmark-partners data)))
          (nick-name)
+         (partner-string)
          (entry-string (format "%s%s" (make-string indent ? ) entry)))
     ;;(dvc-trace "dvc-bookmarks-printer - data: %S, partners: %S" data partners)
     (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
       (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
+    (if (assoc entry dvc-bookmark-alist)
+        (setq entry-string (dvc-face-add entry-string 'dvc-keyword))
+      (setq entry-string (dvc-face-add entry-string 'dvc-comment)))
     (insert entry-string)
     (when partners
       (dolist (p partners)
         (setq nick-name (dvc-bookmark-partner-nickname p))
-        (insert (format "\n%sPartner %s%s" ;;TODO hide path to partner (toggle)
-                        (make-string (+ 2 indent) ? )
-                        (dvc-bookmark-partner-url p)
-                        (if nick-name (format "  [%s]" nick-name) "")))))))
+        (setq partner-string (format "\n%sPartner %s%s"
+                                     (make-string (+ 2 indent) ? )
+                                     (dvc-bookmark-partner-url p)
+                                     (if nick-name (format "  [%s]" nick-name) "")))
+        (setq partner-string (dvc-face-add partner-string 'dvc-revision-name))
+        (insert partner-string)))))
 
-;; (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
-;;   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
-;;         (data (make-dvc-bookmark-from-assoc elem indent))
-;;         (enter-function (if (eq (dvc-line-number-at-pos) 1) 'ewoc-enter-before 'ewoc-enter-after)))
-;;     (cond ((assoc 'children elem)
-;;            (setq node
-;;                  (if curr
-;;                      (apply enter-function (list dvc-bookmarks-cookie curr data))
-;;                    (let ((n (ewoc-enter-last dvc-bookmarks-cookie data)))
-;;                      (forward-line 1)
-;;                      n)))
-;;            (dolist (child (reverse (cdr (assoc 'children elem))))
-;;              (dvc-bookmarks-add-to-cookie child (+ indent 2) node)))
-;;           (t
-;;            (if curr
-;;                (apply enter-function (list dvc-bookmarks-cookie curr data))
-;;              (ewoc-enter-last dvc-bookmarks-cookie data))))
-;;     (forward-line 1)))
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
@@ -306,16 +294,6 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (setq mode-name "dvc-bookmarks")
   (toggle-read-only 1)
   (run-hooks 'dvc-bookmarks-mode-hook))
-
-(defun dvc-bookmarks-highlight-headers ()
-  (interactive)
-  (set-buffer (current-buffer))
-  (let (head)
-    (dolist (x dvc-bookmark-alist)
-      (setq head (car x))
-      (font-lock-add-keywords nil `((,head . font-lock-variable-name-face)))))
-  (font-lock-add-keywords nil '(("^  [a-zA-Z\-_0-9\.]*" . font-lock-doc-face)))
-  (font-lock-add-keywords nil '(("^    [Partner]* [~/a-zA-Z\-_0-9\.\:/]*" . font-lock-function-name-face))))
 
 (defun dvc-bookmarks-quit ()
   "Clean dvc-bookmarks-hidden-subtree
@@ -722,6 +700,7 @@ or in the same sublist"
          (sub-index2 (dvc-get-index-el-list sublist2 dvc-bookmark-alist))
          ;; index point (yank here + 1)
          (yank-index (dvc-get-index-el-list elm-at-point (cadr sublist2)))
+         (yank-index-sub-in-sub nil)
          ;; dvc-bookmark-alist without sublist1
          (alist-nosub (remove sublist1 dvc-bookmark-alist))
          ;; initial sublist with elm-to-move at root of sublist
@@ -740,11 +719,12 @@ or in the same sublist"
         ;; we yank in the same sub
         (progn
           ;; move elm-to-move in child
-          ;; TODO: fix ==>yank-index + 1 produce nil.
+          (setq yank-index-sub-in-sub
+                (dvc-get-index-el-list elm-at-point (cadr tmp-sublist)))
           (setq sublist1
                 (dvc-move-elm-in-list-or-sublist elm-to-move
                                                  tmp-sublist
-                                                 yank-index
+                                                 (+ 1 yank-index-sub-in-sub)
                                                  (cadr tmp-sublist)))
           (setq dvc-bookmark-alist
                 (dvc-add-to-list-at-ind sublist1
@@ -845,25 +825,18 @@ show subtree when called with prefix argument (C-u)"
   "Destructive kill and delete function
 do not use it to kill/yank, use dvc-bookmarks-kill instead"
   (interactive)
-  (dvc-bookmarks-kill)
-  (if (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
-      (progn
-        (setq dvc-bookmark-alist (remove (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
-                                         dvc-bookmark-alist))
-        (ewoc-refresh dvc-bookmarks-cookie)
-        (dvc-bookmarks-save)
-        (dvc-bookmarks))
-    (message "Please move first this element to root and then delete it")
-    (dvc-bookmarks)))
-
-;; (defun dvc-bookmarks-kill ()
-;;   "kill or cut bookmark
-;; non destructive function
-;; use it to kill/yank"
-;;   (interactive)
-;;   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-bookmark))
-;;   (let ((buffer-read-only nil))
-;;     (dvc-ewoc-delete dvc-bookmarks-cookie (ewoc-locate dvc-bookmarks-cookie))))
+  (let ((init-place (point)))
+    (dvc-bookmarks-kill)
+    (if (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
+        (progn
+          (setq dvc-bookmark-alist (remove (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
+                                           dvc-bookmark-alist))
+          (ewoc-refresh dvc-bookmarks-cookie)
+          (dvc-bookmarks-save)
+          (dvc-bookmarks))
+      (message "Please move first this element to root and then delete it")
+      (dvc-bookmarks))
+    (goto-char init-place)))
 
 (defun dvc-bookmarks-kill ()
   "kill or cut bookmark

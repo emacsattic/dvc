@@ -1,7 +1,7 @@
 \input texinfo  @c -*-texinfo-*-  -*- coding: iso-latin-1 -*-
 @c %**start of header
 @setfilename dvc.info
-@settitle DVC - The Emacs interface to tla/baz
+@settitle DVC - The Emacs interface to Distributed Version Control Systems
 @c If this is set, show images in the HTML version
 @c @set SHOW_IMAGES
 @c %**end of header
@@ -9,15 +9,16 @@
 @ifinfo
 @dircategory Emacs
 @direntry
-* DVC: (dvc).             The Emacs interface to tla
+* DVC: (dvc).             The Emacs interface to Distributed Version
+                            Control Systems.
 @end direntry
 
-Copyright (c) 2004-2005, 2007 The DVC Development Team
+Copyright (c) 2004-2005, 2007, 2008 The DVC Development Team
 @end ifinfo
 
 @titlepage
 @title DVC User Manual
-@subtitle The Emacs interface to tla
+@subtitle The Emacs interface to Distributed Version Control Systems
 
 @author The DVC Development Team
 @page
@@ -51,42 +52,51 @@ translation approved by the author.
 @node Top, Installation, (dir), (dir)
 @chapter DVC
 
-@b{DVC} is an Emacs front end for various Decentralized Revision Control
-systems. It is the successor, and still includes Xtla, which is the
-Emacs front-end to tla and baz (GNU Arch client).
-
-DISCLAIMER: DVC is not finished. This documentation has not been really
-updated for DVC, but should still apply for Xtla.
+@b{DVC} is an Emacs front end for various Decentralized Version Control
+systems. It is the successor of Xtla, which was the Emacs front-end to
+tla (GNU Arch).
 
 The main features are:
 
 @itemize @bullet
-@item PCL-CVS like interface for tla inventory
-@item Archive browser. Navigate painlessly in archives, categories, branches, versions, ...
-@item Good integration in Emacs. Almost everything can be done from within the editor
-@item Bookmark manager. Keep the most frequently used arch locations in your bookmark buffer.
-@item Integration of ediff, Emacs's graphical diff tool. (Even outside dvc it's great, you should try it)
+@item dvc-status: Intuitive interface for viewing the status of a
+working directory.
+@item dvc-log: Log viewer.  Perform actions on specific commits, such as
+viewing them and emailing them.
+@item dvc-diff: View uncommitted changes in your working directory and
+use them to prepare a commit log entry.
+@item dvc-bookmarks: Bookmark manager.  Keep your most frequently used
+repositories and working directories in your bookmark buffer.  Also,
+specify "partner" branches or repositories, whose changes can be
+compared with your work.
+@item Integration with ediff, which is an excellent visual interface for
+changes between multiple files/versions.  This Emacs mode is useful for:
 @itemize @bullet
-@item To view changes made in a local tree
-@item  To view and resolve conflicts after a merge.
+@item Viewing changes made in a local tree.
+@item Viewing and resolving conflicts after a merge.
 @end itemize
-@item Interface to view missing patches from all your partners with a single command
-@item An Emacs mode for arch related files (log files, =tagging-method)
-@item Send/receive/apply patches via Gnus
+@item dvc-missing: Interface to view missing patches from all your
+partners with a single command
+@item Send/receive/apply patches via the Gnus email client.
+@item Run many version control commands from Emacs (such as init and pull).
 @end itemize
-
-This file documents @b{DVC}, version
-@include dvc-version.texinfo
 
 Backends supported:
+
    @table @dfn
    @item Bazaar (bzr)
 @url{http://bazaar-vcs.org/}
-
-   @item monotone (mtn)
+   @item Darcs
+@url{http://darcs.net/}
+   @item Git
+@url{http://git.or.cz/}
+   @item Mercurial (hg)
+@url{http://www.selenic.com/mercurial/}
+   @item Monotone (mtn)
 @url{http://www.venge.net/monotone/}
+   @item GNU Arch (tla)
+@url{http://www.gnu.org/software/gnu-arch/}
 
-@c FIXME: add others
    @end table
 
 @c ============================================================================

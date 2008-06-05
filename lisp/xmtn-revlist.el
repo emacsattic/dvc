@@ -256,6 +256,7 @@ arg; root. Result is of the form:
 
 (defun xmtn--setup-revlist (root info-generator-fn first-line-only-p last-n)
   ;; Adapted from `dvc-build-revision-list'.
+  ;; info-generator-fn must return a list of back-end revision ids (strings)
   (xmtn-automate-with-session (nil root)
     (let ((dvc-temp-current-active-dvc 'xmtn)
           (buffer (dvc-revlist-create-buffer
@@ -306,7 +307,7 @@ arg; root. Result is of the form:
                  ;; This restriction to current branch is completely
                  ;; arbitrary.
                  (concat
-                  "b:"
+                  "b:" ;; returns all revs for current branch
                   (xmtn--escape-branch-name-for-selector
                    branch)))))))
      first-line-only-p
@@ -430,7 +431,8 @@ to the base revision of the current tree."
     (unless last-backend-id
       (setq last-backend-id `(last-revision ,root 1)))
     (lexical-let ((last-backend-id last-backend-id)
-                  (file file))
+                  (file file)
+                  (normalized-file normalized-file))
       (xmtn--setup-revlist
        root
        (lambda (root)
@@ -439,12 +441,12 @@ to the base revision of the current tree."
                  (revision-hash-ids
                   (mapcar #'first
                           (xmtn--get-content-changed-closure
-                           root last-backend-id normalized-file))))
+                           root last-backend-id normalized-file dvc-revlist-last-n))))
              (list
               branch
               (list
-               (if last-n
-                   (format "Log for %s (last %d entries)" file last-n)
+               (if dvc-revlist-last-n
+                   (format "Log for %s (last %d entries)" file dvc-revlist-last-n)
                  (format "Log for %s" file)))
               '()
               revision-hash-ids))))
