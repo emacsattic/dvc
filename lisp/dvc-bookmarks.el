@@ -237,6 +237,14 @@ is the `dvc-bookmark-partner' itself."
 
 (set-dvc-bookmarks-cache)
 
+(defmacro hash-get-items (hash-table)
+  "Get the list of all keys/values of hash-table
+values are given under string form"
+  `(let ((li-items nil)) 
+    (maphash #'(lambda (x y) (push (list x y) li-items))
+             ,hash-table)
+    li-items))
+
 (defmacro hash-get-symbol-keys (hash-table)
   "Get the list of all the keys in hash-table
 keys are given under string form"
@@ -253,8 +261,23 @@ key here must be a symbol and not a string"
          t
        nil)))
 
-(defvar dvc-table-face '("dvc-excluded"
-                         "dvc-id"
+(defun dvc-cur-date-string ()
+  "Return current date under string form ==>2008.03.16"
+  (interactive)
+  (let ((year (nth 5 (decode-time (current-time))))
+        (month (nth 4 (decode-time (current-time))))
+        (day (nth 3 (decode-time (current-time))))
+        (str-day-date ""))
+    (setq str-day-date
+          (concat (int-to-string year)
+                  "."
+                  (substring (int-to-string (/ (float month) 100)) 2)
+                  "."
+                  (substring (int-to-string (/ (float day) 100)) 2)))
+    str-day-date))
+
+(defvar dvc-table-face '("dvc-id"
+                         "dvc-excluded"
                          "dvc-nested-tree"
                          "dvc-mark"
                          "dvc-revision-name"
@@ -297,11 +320,22 @@ state values can be closed or open"
                                           'minibuffer-history)))
      (list def-color def-state)))
   (let* ((current-tree (aref (dvc-bookmarks-current-bookmark) 1))
+         (time-stamp (if (equal (cdr (assoc
+                                      'state
+                                      (gethash (intern current-tree)
+                                               dvc-bookmarks-cache)))
+                                state)
+                         (cdr (assoc
+                               'time-stamp
+                               (gethash (intern current-tree)
+                                        dvc-bookmarks-cache)))
+                       (dvc-cur-date-string)))
          (new-entry (concat
-                     (format "(puthash '%S '((color . '%S) (state . %S))"
+                     (format "(puthash '%S '((color . '%S) (state . %S) (time-stamp . %S))"
                              (intern current-tree)
                              (intern color)
-                             state)
+                             state
+                             time-stamp)
                      " dvc-bookmarks-cache)")))
     (save-excursion
       (find-file dvc-bookmarks-prop-file)
@@ -349,6 +383,11 @@ state values can be closed or open"
                                                                            " ["
                                                                            (cdr (assoc
                                                                                  'state
+                                                                                 (gethash (intern entry)
+                                                                                          dvc-bookmarks-cache)))
+                                                                           "]["
+                                                                           (cdr (assoc
+                                                                                 'time-stamp
                                                                                  (gethash (intern entry)
                                                                                           dvc-bookmarks-cache)))
                                                                            "]"))
