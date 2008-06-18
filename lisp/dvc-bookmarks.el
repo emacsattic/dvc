@@ -235,6 +235,21 @@ is the `dvc-bookmark-partner' itself."
 
 (set-dvc-bookmarks-cache)
 
+(defun dvc-bookmarks-ignore-closed-trees ()
+  (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
+                                        (or (assoc (aref x 1) dvc-bookmark-alist)
+                                            (not (hash-has-key (intern (dvc-get-parent-elm (aref x 1)
+                                                                                           dvc-bookmark-alist))
+                                                               dvc-bookmarks-cache))
+                                            (equal (cdr (assoc
+                                                         'state
+                                                         (gethash (intern (dvc-get-parent-elm (aref x 1)
+                                                                                              dvc-bookmark-alist))
+                                                                  dvc-bookmarks-cache)))
+                                                   "open")))))
+
+(add-hook 'dvc-bookmarks-mode-hook 'dvc-bookmarks-ignore-closed-trees)
+
 (defun dvc-bookmarks-printer (data)
   (let* ((entry (dvc-bookmark-name data))
          (indent (dvc-bookmark-indent data))
@@ -242,7 +257,15 @@ is the `dvc-bookmark-partner' itself."
                         (dvc-bookmark-partners data)))
          (nick-name)
          (partner-string)
-         (entry-string (format "%s%s" (make-string indent ? ) entry)))
+         (entry-string (if (hash-has-key (intern entry) dvc-bookmarks-cache)
+                           (format "%s%s" (make-string indent ? ) (concat  entry
+                                                                           " ["
+                                                                           (cdr (assoc
+                                                                                 'state
+                                                                                 (gethash (intern entry)
+                                                                                          dvc-bookmarks-cache)))
+                                                                           "]"))
+                         (format "%s%s" (make-string indent ? ) entry))))
     ;;(dvc-trace "dvc-bookmarks-printer - data: %S, partners: %S" data partners)
     (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
       (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
