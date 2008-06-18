@@ -227,8 +227,8 @@ is the `dvc-bookmark-partner' itself."
     (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
       (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
     (if (assoc entry dvc-bookmark-alist)
-        (setq entry-string (dvc-face-add entry-string 'dvc-keyword))
-      (setq entry-string (dvc-face-add entry-string 'dvc-comment)))
+        (setq entry-string (dvc-face-add entry-string dvc-bookmarks-face-tree))
+      (setq entry-string (dvc-face-add entry-string dvc-bookmarks-face-subtree)))
     (insert entry-string)
     (when partners
       (dolist (p partners)
@@ -237,9 +237,8 @@ is the `dvc-bookmark-partner' itself."
                                      (make-string (+ 2 indent) ? )
                                      (dvc-bookmark-partner-url p)
                                      (if nick-name (format "  [%s]" nick-name) "")))
-        (setq partner-string (dvc-face-add partner-string 'dvc-revision-name))
+        (setq partner-string (dvc-face-add partner-string dvc-bookmarks-face-partner))
         (insert partner-string)))))
-
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
@@ -618,7 +617,7 @@ Examples:
          ;; get index of sub and store it
          (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
-         (alist-nosub (remove sublist dvc-bookmark-alist)) 
+         (alist-nosub (remove sublist dvc-bookmark-alist))
          (which-list (cond ((member elm-at-point child-dvc-bookmark-alist)
                             child-dvc-bookmark-alist)
                            ((member elm-at-point sublist)
@@ -658,7 +657,7 @@ Examples:
          ;; get index of sublist and store it
          (sub-index (dvc-get-index-el-list sublist dvc-bookmark-alist))
          (child-dvc-bookmark-alist (cadr sublist))
-         (alist-nosub (remove sublist dvc-bookmark-alist)) 
+         (alist-nosub (remove sublist dvc-bookmark-alist))
          (yank-index (dvc-get-index-el-list elm-at-point dvc-bookmark-alist))
          ;; now move elm out of '(children)
          (tmp-sublist (dvc-move-elm-in-list-or-sublist elm-to-move
@@ -743,7 +742,7 @@ or in the same sublist"
                                              tmp-alist
                                              1
                                              sublist2))
-      
+
       ;; now move elm-to-move to child of sub2 at yank-index
       (setq sublist2
             (dvc-move-elm-in-list-or-sublist elm-to-move
