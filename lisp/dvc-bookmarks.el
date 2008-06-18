@@ -215,6 +215,26 @@ is the `dvc-bookmark-partner' itself."
   "Return a list of the partner urls of BOOKMARK."
   (mapcar 'dvc-bookmark-partner-url (dvc-bookmark-partners bookmark)))
 
+(defvar dvc-bookmarks-prop-file
+  "~/.dvc/dvc-bookmarks-properties.el")
+
+(defvar dvc-bookmarks-cache (make-hash-table)
+  "init dvc-bookmarks hash-table properties")
+
+(defun set-dvc-bookmarks-cache ()
+  "Load cache file or create cache file if don't exist"
+  (save-excursion
+    (if (file-exists-p dvc-bookmarks-prop-file)
+        (load dvc-bookmarks-prop-file)
+      (find-file dvc-bookmarks-prop-file)
+      (goto-char (point-min))
+      (erase-buffer)
+      (insert ";;; dvc-bookmarks-cache -*- mode: emacs-lisp; coding: utf-8; -*-")
+      (save-buffer)
+      (quit-window))))
+
+(set-dvc-bookmarks-cache)
+
 (defun dvc-bookmarks-printer (data)
   (let* ((entry (dvc-bookmark-name data))
          (indent (dvc-bookmark-indent data))
@@ -226,8 +246,14 @@ is the `dvc-bookmark-partner' itself."
     ;;(dvc-trace "dvc-bookmarks-printer - data: %S, partners: %S" data partners)
     (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
       (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
-    (if (assoc entry dvc-bookmark-alist)
-        (setq entry-string (dvc-face-add entry-string dvc-bookmarks-face-tree))
+    (if (assoc entry dvc-bookmark-alist) ;; TODO add different color for each entry
+        (if (hash-has-key (intern entry) dvc-bookmarks-cache)
+            (setq entry-string (dvc-face-add entry-string
+                                             (cdr (assoc
+                                                   'color
+                                                   (gethash (intern entry)
+                                                            dvc-bookmarks-cache)))))
+          (setq entry-string (dvc-face-add entry-string dvc-bookmarks-face-tree)))
       (setq entry-string (dvc-face-add entry-string dvc-bookmarks-face-subtree)))
     (insert entry-string)
     (when partners
