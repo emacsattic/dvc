@@ -106,6 +106,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "\C-c\C-k" 'dvc-bookmarks-delete)
     (define-key map "H" 'dvc-bookmarks-show-or-hide-subtree)
+    (define-key map "S" 'dvc-bookmarks-set-tree-properties)
     (define-key map "s"      'dvc-bookmarks-status)
     (define-key map "d"      'dvc-bookmarks-diff)
     (define-key map "c"      'dvc-bookmarks-log-edit)
@@ -215,6 +216,7 @@ is the `dvc-bookmark-partner' itself."
   "Return a list of the partner urls of BOOKMARK."
   (mapcar 'dvc-bookmark-partner-url (dvc-bookmark-partners bookmark)))
 
+;; dvc-bookmarks-properties
 (defvar dvc-bookmarks-prop-file
   "~/.dvc/dvc-bookmarks-properties.el")
 
@@ -235,7 +237,61 @@ is the `dvc-bookmark-partner' itself."
 
 (set-dvc-bookmarks-cache)
 
+(defvar dvc-table-face '((yellow . 'dvc-excluded)
+                         (blue-flash . 'dvc-id)
+                         (green-soft . 'dvc-nested-tree)
+                         (green-flash . 'dvc-mark)
+                         (light-blue . 'dvc-revision-name)))
+
+;; TODO add completing-read for color and state 
+(defun dvc-bookmarks-set-tree-properties (color state)
+  "color is one of the dvc-faces ==> dvc-buffer, dvc-nested-tree, etc...
+See dvc-defs.el.
+state values can be closed or open"
+  (interactive
+   (let* ((current-tree (aref (dvc-bookmarks-current-bookmark) 1))
+          (current-color (if (hash-has-key (intern current-tree)
+                                           dvc-bookmarks-cache)
+                              (cdr (assoc
+                                    'color
+                                    (gethash (intern current-tree)
+                                             dvc-bookmarks-cache)))))
+          (current-state (if (hash-has-key (intern current-tree)
+                                           dvc-bookmarks-cache)
+                             (cdr (assoc
+                                   'state
+                                   (gethash (intern current-tree)
+                                            dvc-bookmarks-cache)))))
+          (def-color (read-string "Color: " (format "%s" (cadr current-color))))
+          (def-state (read-string "State: " current-state)))
+     (list def-color def-state)))
+  (let* ((current-tree (aref (dvc-bookmarks-current-bookmark) 1))
+         (new-entry (concat
+                     (format "(puthash '%S '((color . '%S) (state . %S))"
+                             (intern current-tree)
+                             (intern color)
+                             state)
+                     " dvc-bookmarks-cache)")))
+    (save-excursion
+      (find-file dvc-bookmarks-prop-file)
+      (goto-char (point-min))
+      (if (hash-has-key (intern current-tree)
+                        dvc-bookmarks-cache)
+          (when (re-search-forward current-tree)
+            (beginning-of-line)
+            (kill-line)
+            (insert new-entry))
+        (goto-char (point-max))
+        (forward-line)
+        (insert new-entry))
+      (save-buffer)
+      (kill-buffer (current-buffer))))
+  (set-dvc-bookmarks-cache)
+  (dvc-bookmarks))
+      
+  
 (defun dvc-bookmarks-ignore-closed-trees ()
+  "If state of tree is closed don't print all children"
   (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
                                         (or (assoc (aref x 1) dvc-bookmark-alist)
                                             (not (hash-has-key (intern (dvc-get-parent-elm (aref x 1)
