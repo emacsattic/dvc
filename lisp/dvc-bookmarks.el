@@ -237,15 +237,36 @@ is the `dvc-bookmark-partner' itself."
 
 (set-dvc-bookmarks-cache)
 
-(defvar dvc-table-face '((yellow . 'dvc-excluded)
-                         (blue-flash . 'dvc-id)
-                         (green-soft . 'dvc-nested-tree)
-                         (green-flash . 'dvc-mark)
-                         (light-blue . 'dvc-revision-name)))
+(defmacro hash-get-symbol-keys (hash-table)
+  "Get the list of all the keys in hash-table
+keys are given under string form"
+  `(let ((li-keys nil)
+         (li-all (hash-get-items ,hash-table)))
+     (setq li-keys (mapcar #'car li-all))
+     li-keys))
 
-;; TODO add completing-read for color and state 
+(defmacro hash-has-key (key hash-table)
+  "check if hash-table have key key
+key here must be a symbol and not a string"
+  `(let ((keys-list (hash-get-symbol-keys ,hash-table)))
+     (if (memq ,key keys-list)
+         t
+       nil)))
+
+(defvar dvc-table-face '("dvc-excluded"
+                         "dvc-id"
+                         "dvc-nested-tree"
+                         "dvc-mark"
+                         "dvc-revision-name"
+                         "dvc-source"
+                         "dvc-unknown"
+                         "dvc-separator"
+                         "dvc-highlight"
+                         "dvc-copy"
+                         "dvc-duplicate"))
+
 (defun dvc-bookmarks-set-tree-properties (color state)
-  "color is one of the dvc-faces ==> dvc-buffer, dvc-nested-tree, etc...
+  "color value is one of the dvc-faces ==> dvc-buffer, dvc-nested-tree, etc...
 See dvc-defs.el.
 state values can be closed or open"
   (interactive
@@ -262,8 +283,18 @@ state values can be closed or open"
                                    'state
                                    (gethash (intern current-tree)
                                             dvc-bookmarks-cache)))))
-          (def-color (read-string "Color: " (format "%s" (cadr current-color))))
-          (def-state (read-string "State: " current-state)))
+          (def-color (dvc-completing-read  "Color: "
+                                           dvc-table-face
+                                           nil
+                                           t
+                                           (format "%s" (cadr current-color))
+                                           'minibuffer-history))
+          (def-state (dvc-completing-read "State: "
+                                          '("open" "closed")
+                                          nil
+                                          t
+                                          current-state
+                                          'minibuffer-history)))
      (list def-color def-state)))
   (let* ((current-tree (aref (dvc-bookmarks-current-bookmark) 1))
          (new-entry (concat
