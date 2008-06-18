@@ -310,7 +310,7 @@ state values can be closed or open"
                                            dvc-table-face
                                            nil
                                            t
-                                           (format "%s" (cadr current-color))
+                                           (format "%s" current-color)
                                            'minibuffer-history))
           (def-state (dvc-completing-read "State: "
                                           '("open" "closed")
@@ -331,7 +331,7 @@ state values can be closed or open"
                                         dvc-bookmarks-cache)))
                        (dvc-cur-date-string)))
          (new-entry (concat
-                     (format "(puthash '%S '((color . '%S) (state . %S) (time-stamp . %S))"
+                     (format "(puthash '%S '((color . %S) (state . %S) (time-stamp . %S))"
                              (intern current-tree)
                              (intern color)
                              state
