@@ -88,6 +88,7 @@
     (define-key map [?d] 'xhg-qdelete)
     (define-key map [?N] 'xhg-qnew)
     (define-key map [?E] 'xhg-mq-export-via-mail)
+    (define-key map [?x] 'xhg-qsingle)
     map)
   "Keymap used for xhg-mq commands.")
 
@@ -347,6 +348,44 @@ When called with a prefix argument run hg qpush -a."
 (defun xhg-mq-patch-file-name (patch)
   (concat (xhg-tree-root) "/.hg/patches/" patch))
 
+;;;###autoload
+(defun xhg-qsingle (file)
+  "Merge all applied patches in a single patch"
+  (interactive "FPatchName: ")
+  (let* ((base (with-temp-buffer
+                (apply #'call-process "hg" nil t nil
+                       '("parents"
+                         "-r"
+                         "qbase"
+                         "--template"
+                         "#rev#"))
+                (buffer-string)))
+         (patch (with-temp-buffer
+                  (apply #'call-process "hg" nil t nil
+                         (list "diff"
+                               "-r"
+                               base
+                               "-r"
+                               "qtip"
+                               (when xhg-export-git-style-patches "--git")))
+                  (buffer-string)))
+         (applied (split-string
+                   (with-temp-buffer
+                     (apply #'call-process "hg" nil t nil
+                            (list "qapplied"))
+                     (buffer-string)) "\n")))
+    (find-file file)
+    (goto-char (point-min))
+    (erase-buffer)
+    (insert (format "## Merge of all patchs applied from revision %s\n" base))
+    (mapc #'(lambda (x)
+              (insert (concat "## " x "\n")))
+          applied)
+    (insert patch)
+    (save-buffer)
+    (kill-buffer (current-buffer))
+    (message "Ok patch extracted from rev %s to tip in %s" base file)))
+
 ;; --------------------------------------------------------------------------------
 ;; Higher level functions
 ;; --------------------------------------------------------------------------------
@@ -460,6 +499,7 @@ that is used in the generated email."
     (define-key map [?=] 'xhg-qdiff-at-point)
     (define-key map [?E] 'xhg-mq-export-via-mail)
     (define-key map [?M] 'xhg-qrename)
+    (define-key map [?x] 'xhg-qsingle)
     (define-key map [?Q] xhg-mq-sub-mode-map)
     map)
   "Keymap used in a xhg mq buffer.")
