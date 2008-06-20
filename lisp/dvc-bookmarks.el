@@ -1011,23 +1011,22 @@ do not use it to kill/yank, use dvc-bookmarks-kill instead"
                                            dvc-bookmark-alist))
           (ewoc-refresh dvc-bookmarks-cookie)
           (dvc-bookmarks-save)
-          (dvc-bookmarks)
-          (save-excursion
-            (find-file dvc-bookmarks-prop-file)
-            (goto-char (point-min))
-            (if (hash-has-key (intern current-bookmark)
-                              dvc-bookmarks-cache)
+          ;;(dvc-bookmarks)
+          (if (hash-has-key (intern current-bookmark)
+                            dvc-bookmarks-cache)
+              (save-excursion
+                (find-file dvc-bookmarks-prop-file)
+                (goto-char (point-min))
                 (when (re-search-forward current-bookmark)
                   (beginning-of-line)
                   (kill-line)
                   (delete-blank-lines)
                   (save-buffer)
-                  (kill-buffer (current-buffer))))
-            (set-dvc-bookmarks-cache)))
-      (message "Please move first this element to root and then delete it")
-      (dvc-bookmarks))
+                  (kill-buffer (current-buffer)))
+                (set-dvc-bookmarks-cache))))
+      (message "Please move first this element to root and then delete it"))
+    (dvc-bookmarks)
     (goto-char init-place)))
-    
 
 (defun dvc-bookmarks-kill ()
   "kill or cut bookmark
