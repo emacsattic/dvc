@@ -343,6 +343,7 @@ state values can be closed or open"
     (save-excursion
       (find-file dvc-bookmarks-prop-file)
       (goto-char (point-min))
+      (setq case-fold-search nil)
       (if (hash-has-key (intern current-tree)
                         dvc-bookmarks-cache)
           (when (re-search-forward current-tree)
@@ -1036,6 +1037,7 @@ do not use it to kill/yank, use dvc-bookmarks-kill instead"
                             dvc-bookmarks-cache)
               (save-excursion
                 (find-file dvc-bookmarks-prop-file)
+                (setq case-fold-search nil)
                 (goto-char (point-min))
                 (when (re-search-forward current-bookmark)
                   (beginning-of-line)
@@ -1070,14 +1072,17 @@ use it to kill/yank"
   "Add a new family to your bookmarks"
   (interactive "sName: ")
   (let ((child-name (concat "child-" name)))
-    (add-to-list 'dvc-bookmark-alist
-                 (list name
-                       `(children
-                         (,child-name
-                         (local-tree "~/")))) t)
-    (ewoc-refresh dvc-bookmarks-cookie))
-  (dvc-bookmarks-save)
-  (dvc-bookmarks))
+    (if (not (assoc name dvc-bookmark-alist))
+        (progn
+          (add-to-list 'dvc-bookmark-alist
+                       (list name
+                             `(children
+                               (,child-name
+                                (local-tree "~/")))) t)
+          (ewoc-refresh dvc-bookmarks-cookie))
+      (error "Tree %s already exist please choose another name" name)))
+    (dvc-bookmarks-save)
+    (dvc-bookmarks))
 
 
 (defun dvc-bookmarks-toggle-mark-entry ()
