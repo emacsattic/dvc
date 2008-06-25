@@ -642,12 +642,12 @@ and quit"
 (defun dvc-bookmarks-pull ()
   "Pull from partner at point or default into current bookmark."
   (interactive)
+  (when (not dvc-bookmarks-show-partner-url)
+    (error "Please first toggle show-partner-url with T u"))
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (condition-case nil
-                           (expand-file-name (dvc-bookmarks-current-value 'partner))
-                         (error nil)))
+              (partner (dvc-bookmarks-partner-at-point t))
               (nickname (dvc-bookmarks-nickname-at-point)))
           (message (if partner
                        (if nickname
