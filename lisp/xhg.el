@@ -624,7 +624,8 @@ otherwise: Return a list of two element sublists containing alias, path"
 ;;;###autoload
 (defun xhg-import (patch-file-name &optional force)
   "Run hg import."
-  (interactive (list (read-file-name "Import hg patch: " nil nil t)))
+  (interactive (list (read-file-name "Import hg patch: " nil nil t (when (eq major-mode 'dired-mode)
+                                                                     (file-name-nondirectory (dired-get-filename))))))
   (dvc-run-dvc-sync 'xhg (delete nil (list "import" (when force "--force") (expand-file-name patch-file-name)))
                     :finished
                     (lambda (output error status arguments)
