@@ -435,38 +435,43 @@ If DONT-SWITCH, don't switch to the diff buffer"
   "Get a list of all heads available from the output of hg heads."
   (let ((rev-list (with-temp-buffer
                     (apply #'call-process "hg" nil t nil
-                           '("heads"))
-                    (buffer-string)))
-        (new-list nil))
-    (setq rev-list (split-string rev-list "\n"))
-    (dolist (x rev-list)
-      (if (string-match "changeset\:   " x)
-          (when (string-match "[0-9]+?:" x)
-            (push (replace-regexp-in-string ":"
-                                            ""
-                                            (match-string 0 x))
-                  new-list))))
-    new-list))
+                           '("heads"
+                             "--template"
+                             "#rev#\n"))
+                    (buffer-string))))
+    (setq rev-list (cons "auto"
+                         (remove "" (split-string rev-list "\n"))))
+    rev-list))
 
 ;;;###autoload
-(defun xhg-merge (&optional revision)
+(defun xhg-merge (&optional xhg-use-imerge)
   "Run hg merge. called with prefix argument (C-u)
-ask for specific revision with completion"
+use extension hg imerge.
+Be sure to enable it in .hgrc.
+To merge from specific revision, choose it in completion.
+If `auto' is choose use default revision (last)"
   (interactive "P")
-  (if current-prefix-arg
-      (progn
-        (setq revision
-              (dvc-completing-read "Merge from hg revision: "
-                                   (xhg-get-all-heads-list)))
-        (when (string= revision "")
-          (setq revision nil)))
+  (when current-prefix-arg
+    (setq xhg-use-imerge t))
+  (setq revision
+        (dvc-completing-read "Merge from hg revision: "
+                             (xhg-get-all-heads-list)))
+  (when (or (string= revision "")
+            (string= revision "auto"))
     (setq revision nil))
-  (dvc-run-dvc-async 'xhg (list "merge" revision)
-                     :finished
-                     (dvc-capturing-lambda (output error status arguments)
-                       (message "hg merge finished => %s"
-                                (concat (dvc-buffer-content error)
-                                        (dvc-buffer-content output))))))
+  (let* ((arg (if xhg-use-imerge
+                  "imerge"
+                "merge"))
+         (command (if xhg-use-imerge
+                      'dvc-run-dvc-sync
+                    'dvc-run-dvc-async)))
+    (funcall command 'xhg (list arg revision)
+             :finished
+             (dvc-capturing-lambda (output error status arguments)
+               (message "hg %s finished => %s"
+                        arg
+                        (concat (dvc-buffer-content error)
+                                (dvc-buffer-content output)))))))
 
 (defun xhg-command-version ()
   "Run hg version."
