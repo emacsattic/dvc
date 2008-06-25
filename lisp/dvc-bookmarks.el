@@ -122,6 +122,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "Ap"     'dvc-bookmarks-add-partner)
     (define-key map "Rp"     'dvc-bookmarks-remove-partner)
     (define-key map "Tp"     'dvc-bookmarks-toggle-partner-visibility)
+    (define-key map "Tu"     'dvc-bookmarks-toggle-partner-url)
     (define-key map "An"     'dvc-bookmarks-add-nickname)
     (define-key map "Am"     'dvc-bookmarks-add-push-location) ;; mnemonic: Add mirror
     (define-key map "Rm"     'dvc-bookmarks-remove-push-location)
@@ -643,7 +644,9 @@ and quit"
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (dvc-bookmarks-partner-at-point t))
+              (partner (condition-case nil
+                           (expand-file-name (dvc-bookmarks-current-value 'partner))
+                         (error nil)))
               (nickname (dvc-bookmarks-nickname-at-point)))
           (message (if partner
                        (if nickname
