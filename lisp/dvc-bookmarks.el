@@ -240,7 +240,7 @@ is the `dvc-bookmark-partner' itself."
 (defmacro hash-get-items (hash-table)
   "Get the list of all keys/values of hash-table
 values are given under string form"
-  `(let ((li-items nil)) 
+  `(let ((li-items nil))
     (maphash #'(lambda (x y) (push (list x y) li-items))
              ,hash-table)
     li-items))
@@ -355,8 +355,8 @@ state values can be closed or open"
       (kill-buffer (current-buffer))))
   (set-dvc-bookmarks-cache)
   (dvc-bookmarks))
-      
-  
+
+
 (defun dvc-bookmarks-ignore-closed-trees ()
   "If state of tree is closed don't print all children"
   (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
@@ -397,7 +397,7 @@ state values can be closed or open"
     ;;(dvc-trace "dvc-bookmarks-printer - data: %S, partners: %S" data partners)
     (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
       (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
-    (if (assoc entry dvc-bookmark-alist) ;; TODO add different color for each entry
+    (if (assoc entry dvc-bookmark-alist)
         (if (hash-has-key (intern entry) dvc-bookmarks-cache)
             (setq entry-string (dvc-face-add entry-string
                                              (cdr (assoc
@@ -412,10 +412,25 @@ state values can be closed or open"
         (setq nick-name (dvc-bookmark-partner-nickname p))
         (setq partner-string (format "\n%sPartner %s%s"
                                      (make-string (+ 2 indent) ? )
-                                     (dvc-bookmark-partner-url p)
+                                     (if nick-name
+                                         (if dvc-bookmarks-show-partner-url
+                                             (dvc-bookmark-partner-url p)
+                                           "")
+                                       (dvc-bookmark-partner-url p))
                                      (if nick-name (format "  [%s]" nick-name) "")))
         (setq partner-string (dvc-face-add partner-string dvc-bookmarks-face-partner))
         (insert partner-string)))))
+
+(defvar dvc-bookmarks-show-partner-url t
+  "Define if we show partners url or not")
+
+(defun dvc-bookmarks-toggle-partner-url ()
+  "Toggle show/don't show partners urls"
+  (interactive)
+  (if dvc-bookmarks-show-partner-url
+      (setq dvc-bookmarks-show-partner-url nil)
+    (setq dvc-bookmarks-show-partner-url t))
+  (dvc-bookmarks))
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
