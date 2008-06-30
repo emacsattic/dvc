@@ -1055,6 +1055,20 @@ display the current one."
   (interactive "sbzr ignore: ")
   (dvc-run-dvc-sync 'bzr (list "ignore" pattern)))
 
+(defun bzr-uncommit ()
+  "Run bzr uncommit.
+Ask the user before uncommitting."
+  (interactive)
+  (let ((window-conf (current-window-configuration)))
+    (dvc-run-dvc-display-as-info 'bzr (list "uncommit" "--dry-run" "--force"))
+    (if (yes-or-no-p "Remove the bzr revision? ")
+        (progn
+          (message "Removing bzr revision")
+          (set-window-configuration window-conf)
+          (dvc-run-dvc-sync 'bzr (list "uncommit" "--force")))
+      (message "Aborted bzr uncommit")
+      (set-window-configuration window-conf))))
+
 (defun bzr-config-directory ()
   "Path of the configuration directory for bzr."
   (file-name-as-directory
