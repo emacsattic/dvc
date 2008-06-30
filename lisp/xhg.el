@@ -788,6 +788,33 @@ LAST-REVISION looks like
              'xhg (list "cat" file)
              :finished 'dvc-output-buffer-handler-withnewline))))
 
+;;;###autoload
+(defun xhg-revision-get-last-or-num-revision (infile outfile &optional revision)
+  "Run the command:
+hg cat --rev <num revision> -o outputfile inputfile"
+  (interactive
+   (let* ((xhg-infile (read-file-name "InputFile: "))
+          (xhg-outfile (read-file-name "OutputFile: "))
+          (xhg-rev (if current-prefix-arg
+                       (read-string "Revision: ")
+                     "tip")))
+     (setq xhg-infile (expand-file-name xhg-infile)
+           xhg-outfile (concat (expand-file-name xhg-outfile)
+                               "."
+                               xhg-rev))
+     (list xhg-infile xhg-outfile xhg-rev)))
+  (dvc-run-dvc-sync 'xhg (list "cat"
+                               "--rev"
+                               revision
+                               "-o"
+                               outfile
+                               infile)
+                    :finished 'dvc-output-buffer-handler-withnewline)
+  (message "%s extracted in %s at revision %s"
+           (file-name-nondirectory infile)
+           (file-relative-name outfile)
+           revision))
+
 ;; --------------------------------------------------------------------------------
 ;; higher level commands
 ;; --------------------------------------------------------------------------------
