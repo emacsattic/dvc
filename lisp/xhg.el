@@ -443,6 +443,16 @@ If DONT-SWITCH, don't switch to the diff buffer"
                          (remove "" (split-string rev-list "\n"))))
     rev-list))
 
+(defun xhg-changep ()
+  (let ((change (with-temp-buffer
+                  (apply #'call-process "hg" nil t nil
+                         '("diff"))
+                  (buffer-string))))
+    (setq change (remove "" (split-string change "\n")))
+    (if change
+        t
+      nil)))
+
 ;;;###autoload
 (defun xhg-merge (&optional xhg-use-imerge)
   "Run hg merge. called with prefix argument (C-u)
@@ -455,37 +465,52 @@ Be sure to enable it in .hgrc:
 To merge from specific revision, choose it in completion.
 If `auto' is choose use default revision (last)"
   (interactive "P")
-  (when current-prefix-arg
-    (setq xhg-use-imerge t))
-  (setq revision
-        (dvc-completing-read "Merge from hg revision: "
-                             (xhg-get-all-heads-list) nil t))
-  (when (or (string= revision "")
-            (string= revision "auto"))
-    (setq revision nil))
-  (let* ((arg (if xhg-use-imerge
+  (let* ((xhg-use-imerge (if current-prefix-arg
+                             t
+                           nil))
+         (haschange (xhg-changep))
+         (collection (xhg-get-all-heads-list))
+         (revision (dvc-completing-read "Merge from hg revision: "
+                                        collection nil t))
+         (arg)
+         (command (if xhg-use-imerge
+                      'dvc-run-dvc-sync
+                    'dvc-run-dvc-async)))
+
+    (when (or (string= revision "")
+              (string= revision "auto"))
+      (setq revision nil))
+    (setq arg (if xhg-use-imerge
                   (if revision
                       '("imerge" "--rev")
                     '("imerge"))
                 (if revision
                     '("merge" "--rev")
                   '("merge"))))
-         (command (if xhg-use-imerge
-                      'dvc-run-dvc-sync
-                    'dvc-run-dvc-async)))
-    (funcall command 'xhg `(,@arg ,revision)
-             :finished
-             (dvc-capturing-lambda (output error status arguments)
-               (message "hg %s %s %s finished => %s"
-                        (nth 0 arg)
-                        (if revision
-                            (nth 1 arg)
-                          "")
-                        (if revision
-                            revision
-                          "")
-                        (concat (dvc-buffer-content error)
-                                (dvc-buffer-content output)))))))
+    (if (and (not haschange)
+             (> (length collection) 2))
+        (funcall command 'xhg `(,@arg ,revision)
+                 :finished
+                 (dvc-capturing-lambda (output error status arguments)
+                   (message "hg %s %s %s finished => %s"
+                            (nth 0 arg)
+                            (if revision
+                                (nth 1 arg)
+                              "")
+                            (if revision
+                                revision
+                              "")
+                            (concat (dvc-buffer-content error)
+                                    (dvc-buffer-content output))))
+                 :error
+                 ;; avoid dvc-error buffer to appear in ediff
+                 (lambda (output error status arguments)
+                   nil))
+      (when haschange
+        (error "abort: outstanding uncommitted merges, Please commit before merging"))
+      (when (<= (length collection) 2)
+        (error "There is nothing to merge here")))))
+      
 
 (defun xhg-command-version ()
   "Run hg version."
