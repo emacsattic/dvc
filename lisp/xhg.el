@@ -447,7 +447,11 @@ If DONT-SWITCH, don't switch to the diff buffer"
 (defun xhg-merge (&optional xhg-use-imerge)
   "Run hg merge. called with prefix argument (C-u)
 use extension hg imerge.
-Be sure to enable it in .hgrc.
+Be sure to enable it in .hgrc:
+,----
+| [extensions]
+| imerge =
+`----
 To merge from specific revision, choose it in completion.
 If `auto' is choose use default revision (last)"
   (interactive "P")
@@ -455,21 +459,31 @@ If `auto' is choose use default revision (last)"
     (setq xhg-use-imerge t))
   (setq revision
         (dvc-completing-read "Merge from hg revision: "
-                             (xhg-get-all-heads-list)))
+                             (xhg-get-all-heads-list) nil t))
   (when (or (string= revision "")
             (string= revision "auto"))
     (setq revision nil))
   (let* ((arg (if xhg-use-imerge
-                  "imerge"
-                "merge"))
+                  (if revision
+                      '("imerge" "--rev")
+                    '("imerge"))
+                (if revision
+                    '("merge" "--rev")
+                  '("merge"))))
          (command (if xhg-use-imerge
                       'dvc-run-dvc-sync
                     'dvc-run-dvc-async)))
-    (funcall command 'xhg (list arg revision)
+    (funcall command 'xhg `(,@arg ,revision)
              :finished
              (dvc-capturing-lambda (output error status arguments)
-               (message "hg %s finished => %s"
-                        arg
+               (message "hg %s %s %s finished => %s"
+                        (nth 0 arg)
+                        (if revision
+                            (nth 1 arg)
+                          "")
+                        (if revision
+                            revision
+                          "")
                         (concat (dvc-buffer-content error)
                                 (dvc-buffer-content output)))))))
 
