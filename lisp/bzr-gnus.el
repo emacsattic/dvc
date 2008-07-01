@@ -96,21 +96,28 @@ with the branch location."
     (setq n 2))
   (gnus-article-part-wrapper n 'bzr-gnus-merge-bundle))
 
+(defvar bzr-merge-bundle-mapping nil
+  "*Project in which bzr bundles should be applied.
+
+An alist of rules to map email addresses to target directories.
+
+This is used by the `bzr-gnus-merge-bundle' function.
+Example setting: '((\"dvc-dev@gna.org\" \"~/work/bzr/dvc\"))"
+)
+;; e.g.: (setq bzr-merge-bundle-mapping '(("dvc-dev@gna.org" "~/work/bzr/dvc")))
 (defun bzr-gnus-merge-bundle (handle)
   "Merge a bzr merge bundle via gnus.  HANDLE should be the handle of the part."
   (let ((patch-file-name (concat (dvc-make-temp-name "gnus-bzr-merge-") ".patch"))
         (window-conf (current-window-configuration))
+        (to-addr (message-fetch-field "To"))
         (import-dir))
     (gnus-summary-select-article-buffer)
-    (save-excursion
-      (goto-char (point-min))
-      ;; handle does not seem to exist for text/x-patch ...
-      (search-forward "text/x-patch; ")
-      (mm-save-part-to-file (get-text-property (point) 'gnus-data) patch-file-name)
-      ;; TODO: bzr-apply-patch-mapping is not useful here...
-      (dolist (m bzr-apply-patch-mapping)
-        (when (looking-at (car m))
-          (setq import-dir (dvc-uniquify-file-name (cadr m))))))
+
+    (mm-save-part-to-file handle patch-file-name)
+
+    (dolist (m bzr-merge-bundle-mapping)
+      (when (string-match (regexp-quote (car m)) to-addr)
+        (setq import-dir (dvc-uniquify-file-name (cadr m)))))
     (delete-other-windows)
     (dvc-buffer-push-previous-window-config)
     (find-file patch-file-name)
