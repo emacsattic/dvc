@@ -164,7 +164,7 @@
                    (list "-r" (format "last:%d.." dvc-revlist-last-n)))
                (list dvc-revlist-path)))))
     (dvc-build-revision-list
-     'bzr 'log default-directory cmd 'bzr-log-parse
+     'bzr 'alog default-directory cmd 'bzr-log-parse
      dvc-revlist-brief dvc-revlist-last-n dvc-revlist-path
      'bzr-log-refresh))
   (goto-char (point-min)))
@@ -176,7 +176,7 @@ LAST-N revisions are shown (default dvc-log-last-n). Note that the
 LAST-N restriction is applied first, so if both PATH and LAST-N are
 specified, fewer than LAST-N revisions may be shown."
   (interactive (list default-directory (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
-  (let ((default-directory (bzr-tree-root (or path default-directory)))
+  (let ((default-directory (bzr-branch-root (or path default-directory)))
         (dvc-revlist-path path)
         (dvc-revlist-brief t)
         (dvc-revlist-last-n last-n))
