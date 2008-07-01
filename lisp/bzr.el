@@ -171,6 +171,17 @@ When called with a prefix argument, add the --remember option"
                        (message "bzr merge finished => %s"
                                 (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
+(defun bzr-merge-bundle (bundle-file)
+  "Run bzr merge from BUNDLE-FILE."
+  (interactive "sMerge bzr bundle: ")
+  (message "bzr-merge-bundle: %s (%s)" bundle-file default-directory)
+  (dvc-run-dvc-sync 'bzr (list "merge" bundle-file)
+                     :finished
+                     (dvc-capturing-lambda
+                         (output error status arguments)
+                       (message "bzr merge finished => %s"
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
+
 (defvar bzr-merge-or-pull-from-url-rules nil
   "An alist that maps repository urls to working copies. This rule is used by
 `bzr-merge-from-url'.
