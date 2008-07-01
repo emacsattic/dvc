@@ -1160,6 +1160,21 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   ;(xgit-annotate-hide-revinfo)
   (toggle-read-only 1))
 
+(defun bzr-switch-checkout (target)
+  "Switch the checkout to the branch TARGET"
+  (interactive "sURL of the branch to switch to: ")
+  (dvc-run-dvc-sync 'bzr (list "switch" target)  
+		    :finished 'dvc-output-buffer-handler)
+  (dvc-revert-some-buffers)
+  (dvc-trace "Switched checkout to  %s" target)
+  )
+
+(defun bzr-switch-checkout-l (target)
+  "Switch the checkout to a local branch"
+  (interactive "DBranch to switch to: ")
+  (let ((target (expand-file-name target)))
+    (bzr-switch-checkout target))
+  )
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.
