@@ -495,6 +495,9 @@ of the commit. Additionally the destination email address can be specified."
                   (setq current-status 'unknown))
                  ((string-equal msg "pending merges:")
                   (setq current-status nil))
+		 ((string-equal msg "renamed:")
+		  ;; Rename case is handled explictly below
+                  (setq current-status nil))
                  (t
                   (error "unrecognized label %s in bzr-parse-status" msg)))))
 
