@@ -112,7 +112,7 @@ Example setting: '((\"dvc-dev@gna.org\" \"~/work/bzr/dvc\"))"
         (to-addr (message-fetch-field "To"))
         (import-dir))
     (gnus-summary-select-article-buffer)
-
+    (dvc-gnus-article-extract-log-message)
     (mm-save-part-to-file handle patch-file-name)
 
     (dolist (m bzr-merge-bundle-mapping)
