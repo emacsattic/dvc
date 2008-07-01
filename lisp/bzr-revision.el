@@ -196,8 +196,8 @@ specified, fewer than LAST-N revisions may be shown."
 (defun bzr-changelog (&optional path)
   "Run bzr log and show the full log message."
   (interactive (list default-directory))
-  (let ((default-directory (bzr-tree-root (or path default-directory))))
-    (dvc-build-revision-list 'bzr 'log default-directory '("log") 'bzr-log-parse nil nil path
+  (let ((default-directory (bzr-branch-root (or path default-directory))))
+    (dvc-build-revision-list 'bzr 'alog default-directory '("log") 'bzr-log-parse nil nil path
                              (dvc-capturing-lambda ()
                                (bzr-changelog (capture path))))
     (goto-char (point-min))))
