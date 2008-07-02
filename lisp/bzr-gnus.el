@@ -89,6 +89,50 @@ with the branch location."
       (message "No external bzr patch found in this article.")
       (set-window-configuration window-conf))))
 
+(defun bzr-gnus-article-merge-bundle (n)
+  "Merge MIME part N, as bzr merge bundle."
+  (interactive "p")
+  (unless current-prefix-arg
+    (setq n 2))
+  (gnus-article-part-wrapper n 'bzr-gnus-merge-bundle))
+
+(defvar bzr-merge-bundle-mapping nil
+  "*Project in which bzr bundles should be applied.
+
+An alist of rules to map email addresses to target directories.
+
+This is used by the `bzr-gnus-merge-bundle' function.
+Example setting: '((\"dvc-dev@gna.org\" \"~/work/bzr/dvc\"))"
+)
+;; e.g.: (setq bzr-merge-bundle-mapping '(("dvc-dev@gna.org" "~/work/bzr/dvc")))
+(defun bzr-gnus-merge-bundle (handle)
+  "Merge a bzr merge bundle via gnus.  HANDLE should be the handle of the part."
+  (let ((patch-file-name (concat (dvc-make-temp-name "gnus-bzr-merge-") ".patch"))
+        (window-conf (current-window-configuration))
+        (to-addr (message-fetch-field "To"))
+        (import-dir))
+    (gnus-summary-select-article-buffer)
+    (dvc-gnus-article-extract-log-message)
+    (mm-save-part-to-file handle patch-file-name)
+
+    (dolist (m bzr-merge-bundle-mapping)
+      (when (string-match (regexp-quote (car m)) to-addr)
+        (setq import-dir (dvc-uniquify-file-name (cadr m)))))
+    (delete-other-windows)
+    (dvc-buffer-push-previous-window-config)
+    (find-file patch-file-name)
+    (setq import-dir (dvc-read-directory-name "Merge bzr bundle to: " nil nil t import-dir))
+    (when import-dir
+      (let ((default-directory import-dir))
+        (bzr-merge-bundle patch-file-name)))
+    (delete-file patch-file-name)
+    (kill-buffer (current-buffer)) ;; the patch file
+    (set-window-configuration window-conf)
+    (when (and import-dir (y-or-n-p "Run bzr status in merged tree? "))
+      (let ((default-directory import-dir))
+        (bzr-status)
+        (delete-other-windows)))))
+
 (provide 'bzr-gnus)
 ;;; bzr-gnus.el ends here
 

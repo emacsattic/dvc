@@ -171,6 +171,17 @@ When called with a prefix argument, add the --remember option"
                        (message "bzr merge finished => %s"
                                 (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
+(defun bzr-merge-bundle (bundle-file)
+  "Run bzr merge from BUNDLE-FILE."
+  (interactive "sMerge bzr bundle: ")
+  (message "bzr-merge-bundle: %s (%s)" bundle-file default-directory)
+  (dvc-run-dvc-sync 'bzr (list "merge" bundle-file)
+                     :finished
+                     (dvc-capturing-lambda
+                         (output error status arguments)
+                       (message "bzr merge finished => %s"
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
+
 (defvar bzr-merge-or-pull-from-url-rules nil
   "An alist that maps repository urls to working copies. This rule is used by
 `bzr-merge-from-url'.
@@ -1057,6 +1068,20 @@ display the current one."
   "Run bzr ignore PATTERN."
   (interactive "sbzr ignore: ")
   (dvc-run-dvc-sync 'bzr (list "ignore" pattern)))
+
+(defun bzr-uncommit ()
+  "Run bzr uncommit.
+Ask the user before uncommitting."
+  (interactive)
+  (let ((window-conf (current-window-configuration)))
+    (dvc-run-dvc-display-as-info 'bzr (list "uncommit" "--dry-run" "--force"))
+    (if (yes-or-no-p "Remove the bzr revision? ")
+        (progn
+          (message "Removing bzr revision")
+          (set-window-configuration window-conf)
+          (dvc-run-dvc-sync 'bzr (list "uncommit" "--force")))
+      (message "Aborted bzr uncommit")
+      (set-window-configuration window-conf))))
 
 (defun bzr-config-directory ()
   "Path of the configuration directory for bzr."

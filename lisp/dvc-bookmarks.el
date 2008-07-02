@@ -122,6 +122,8 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "Ap"     'dvc-bookmarks-add-partner)
     (define-key map "Rp"     'dvc-bookmarks-remove-partner)
     (define-key map "Tp"     'dvc-bookmarks-toggle-partner-visibility)
+    (define-key map "Td"     'dvc-bookmarks-toggle-time-stamp)
+    (define-key map "Tu"     'dvc-bookmarks-toggle-partner-url)
     (define-key map "An"     'dvc-bookmarks-add-nickname)
     (define-key map "Am"     'dvc-bookmarks-add-push-location) ;; mnemonic: Add mirror
     (define-key map "Rm"     'dvc-bookmarks-remove-push-location)
@@ -240,7 +242,7 @@ is the `dvc-bookmark-partner' itself."
 (defmacro hash-get-items (hash-table)
   "Get the list of all keys/values of hash-table
 values are given under string form"
-  `(let ((li-items nil)) 
+  `(let ((li-items nil))
     (maphash #'(lambda (x y) (push (list x y) li-items))
              ,hash-table)
     li-items))
@@ -342,6 +344,7 @@ state values can be closed or open"
     (save-excursion
       (find-file dvc-bookmarks-prop-file)
       (goto-char (point-min))
+      (setq case-fold-search nil)
       (if (hash-has-key (intern current-tree)
                         dvc-bookmarks-cache)
           (when (re-search-forward current-tree)
@@ -355,8 +358,8 @@ state values can be closed or open"
       (kill-buffer (current-buffer))))
   (set-dvc-bookmarks-cache)
   (dvc-bookmarks))
-      
-  
+
+
 (defun dvc-bookmarks-ignore-closed-trees ()
   "If state of tree is closed don't print all children"
   (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
@@ -373,6 +376,15 @@ state values can be closed or open"
 
 (add-hook 'dvc-bookmarks-mode-hook 'dvc-bookmarks-ignore-closed-trees)
 
+(defvar dvc-bookmarks-show-time-stamp t)
+(defun dvc-bookmarks-toggle-time-stamp ()
+  "Toggle show/don't show time-stamp"
+  (interactive)
+  (if dvc-bookmarks-show-time-stamp
+      (setq dvc-bookmarks-show-time-stamp nil)
+    (setq dvc-bookmarks-show-time-stamp t))
+  (dvc-bookmarks))
+
 (defun dvc-bookmarks-printer (data)
   (let* ((entry (dvc-bookmark-name data))
          (indent (dvc-bookmark-indent data))
@@ -380,6 +392,11 @@ state values can be closed or open"
                         (dvc-bookmark-partners data)))
          (nick-name)
          (partner-string)
+         (date (cadr
+                (assoc 'time-stamp
+                       (assoc entry
+                              (cadr (assoc (dvc-get-parent-elm entry dvc-bookmark-alist )
+                                           dvc-bookmark-alist))))))
          (entry-string (if (hash-has-key (intern entry) dvc-bookmarks-cache)
                            (format "%s%s" (make-string indent ? ) (concat  entry
                                                                            " ["
@@ -393,11 +410,17 @@ state values can be closed or open"
                                                                                  (gethash (intern entry)
                                                                                           dvc-bookmarks-cache)))
                                                                            "]"))
-                         (format "%s%s" (make-string indent ? ) entry))))
+                         (format "%s%s" (make-string indent ? ) (if (and dvc-bookmarks-show-time-stamp
+                                                                         date)
+                                                                    (concat entry
+                                                                            " ["
+                                                                            date
+                                                                            "]")
+                                                                  entry)))))
     ;;(dvc-trace "dvc-bookmarks-printer - data: %S, partners: %S" data partners)
     (when (and dvc-bookmarks-marked-entry (string= dvc-bookmarks-marked-entry entry))
       (setq entry-string (dvc-face-add entry-string 'dvc-marked)))
-    (if (assoc entry dvc-bookmark-alist) ;; TODO add different color for each entry
+    (if (assoc entry dvc-bookmark-alist)
         (if (hash-has-key (intern entry) dvc-bookmarks-cache)
             (setq entry-string (dvc-face-add entry-string
                                              (cdr (assoc
@@ -412,10 +435,25 @@ state values can be closed or open"
         (setq nick-name (dvc-bookmark-partner-nickname p))
         (setq partner-string (format "\n%sPartner %s%s"
                                      (make-string (+ 2 indent) ? )
-                                     (dvc-bookmark-partner-url p)
+                                     (if nick-name
+                                         (if dvc-bookmarks-show-partner-url
+                                             (dvc-bookmark-partner-url p)
+                                           "")
+                                       (dvc-bookmark-partner-url p))
                                      (if nick-name (format "  [%s]" nick-name) "")))
         (setq partner-string (dvc-face-add partner-string dvc-bookmarks-face-partner))
         (insert partner-string)))))
+
+(defvar dvc-bookmarks-show-partner-url t
+  "Define if we show partners url or not")
+
+(defun dvc-bookmarks-toggle-partner-url ()
+  "Toggle show/don't show partners urls"
+  (interactive)
+  (if dvc-bookmarks-show-partner-url
+      (setq dvc-bookmarks-show-partner-url nil)
+    (setq dvc-bookmarks-show-partner-url t))
+  (dvc-bookmarks))
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
@@ -512,22 +550,27 @@ and quit"
    (let* ((bmk-name (read-string "DVC bookmark name: "))
           (bmk-loc (dvc-read-directory-name (format "DVC bookmark %s directory: " bmk-name))))
      (list bmk-name bmk-loc)))
-  (let* ((elem (list bookmark-name (list 'local-tree bookmark-local-dir)))
+  (let* ((date (dvc-cur-date-string))
+         (elem (list bookmark-name
+                     (list 'local-tree bookmark-local-dir)
+                     (list 'time-stamp date)))
          (data (make-dvc-bookmark-from-assoc elem 0)))
     (dvc-bookmarks)
     (add-to-list 'dvc-bookmark-alist elem t)
     (ewoc-enter-last dvc-bookmarks-cookie data)))
 
-(defun dvc-bookmarks-edit (bookmark-name bookmark-local-dir)
+(defun dvc-bookmarks-edit (bookmark-name bookmark-local-dir bmk-time-stamp)
   "Change the current DVC bookmark's BOOKMARK-NAME and/or LOCAL-DIR."
   (interactive
    (let* ((old-name (dvc-bookmark-name (dvc-bookmarks-current-bookmark)))
           (old-local-tree (dvc-bookmarks-current-value 'local-tree))
+          (old-date (dvc-bookmarks-current-value 'time-stamp))
           (bmk-name (read-string "DVC bookmark name: " old-name))
           (bmk-loc (dvc-read-directory-name
                     (format "DVC bookmark %s directory: " bmk-name)
-                    old-local-tree)))
-     (list bmk-name bmk-loc)))
+                    old-local-tree))
+          (bmk-tmstp (read-string "DVC bookmark time-stamp: " old-date)))
+     (list bmk-name bmk-loc bmk-tmstp)))
   (if (assoc (aref (dvc-bookmarks-current-bookmark) 1) dvc-bookmark-alist)
       (error "Tree edition is not implemented yet! Sorry!")
     (let* ((node (ewoc-locate dvc-bookmarks-cookie))
@@ -536,7 +579,10 @@ and quit"
            (elem (dvc-bookmark-elem old-data)))
       (setcar elem bookmark-name)
       (setcdr elem (cons (list 'local-tree bookmark-local-dir)
-                         (assq-delete-all 'local-tree (cdr elem))))
+                         (cons (list 'time-stamp bmk-time-stamp)
+                               (assq-delete-all 'time-stamp
+                                                (assq-delete-all 'local-tree
+                                                                 (cdr elem))))))
       (ewoc-set-data node (make-dvc-bookmark-from-assoc elem old-indent))
       (ewoc-invalidate dvc-bookmarks-cookie node))))
 
@@ -625,6 +671,8 @@ and quit"
 (defun dvc-bookmarks-pull ()
   "Pull from partner at point or default into current bookmark."
   (interactive)
+  (when (not dvc-bookmarks-show-partner-url)
+    (error "Please first toggle show-partner-url with T u"))
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
@@ -1018,6 +1066,7 @@ do not use it to kill/yank, use dvc-bookmarks-kill instead"
                             dvc-bookmarks-cache)
               (save-excursion
                 (find-file dvc-bookmarks-prop-file)
+                (setq case-fold-search nil)
                 (goto-char (point-min))
                 (when (re-search-forward current-bookmark)
                   (beginning-of-line)
@@ -1052,14 +1101,17 @@ use it to kill/yank"
   "Add a new family to your bookmarks"
   (interactive "sName: ")
   (let ((child-name (concat "child-" name)))
-    (add-to-list 'dvc-bookmark-alist
-                 (list name
-                       `(children
-                         (,child-name
-                         (local-tree "~/")))) t)
-    (ewoc-refresh dvc-bookmarks-cookie))
-  (dvc-bookmarks-save)
-  (dvc-bookmarks))
+    (if (not (assoc name dvc-bookmark-alist))
+        (progn
+          (add-to-list 'dvc-bookmark-alist
+                       (list name
+                             `(children
+                               (,child-name
+                                (local-tree "~/")))) t)
+          (ewoc-refresh dvc-bookmarks-cookie))
+      (error "Tree %s already exist please choose another name" name)))
+    (dvc-bookmarks-save)
+    (dvc-bookmarks))
 
 
 (defun dvc-bookmarks-toggle-mark-entry ()
