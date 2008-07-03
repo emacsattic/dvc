@@ -108,7 +108,10 @@ Commands:
   "Move to the previous changeset header of the previous diff hunk"
   (interactive "p")
   (end-of-line)
-  (re-search-backward xhg-log-start-regexp)
+  (when (save-excursion
+          (beginning-of-line)
+          (looking-at xhg-log-start-regexp))
+    (re-search-backward xhg-log-start-regexp))
   (re-search-backward xhg-log-start-regexp nil t n)
   (when xhg-log-review-recenter-position-on-next-diff
     (recenter xhg-log-review-recenter-position-on-next-diff)))

@@ -379,7 +379,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
                                (insert-buffer-substring output)
                                (goto-char (point-min))
                                (insert (format "hg incoming for %s\n\n" default-directory))
-                               (toggle-read-only 1)))))
+                               (toggle-read-only 1)
+                               (xhg-log-next 1)))))
                        :error
                        (dvc-capturing-lambda (output error status arguments)
                          (with-current-buffer output
