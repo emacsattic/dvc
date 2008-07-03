@@ -218,6 +218,32 @@ is the `dvc-bookmark-partner' itself."
   "Return a list of the partner urls of BOOKMARK."
   (mapcar 'dvc-bookmark-partner-url (dvc-bookmark-partners bookmark)))
 
+(defun dvc-bookmark-partner-url-from-nick (bookmark)
+  "Return an alist of partners of BOOKMARK with nickname as key"
+  (let ((partner-alist (mapcar (lambda (p) (reverse p))
+                               (dvc-bookmark-partners bookmark))))
+    partner-alist))
+
+(defun dvc-bookmark-unmask-nickname-at-point ()
+  "Get nickname at point even when urls are masked"
+  (save-excursion
+    (let ((nickname))
+      ;;(goto-char (line-beginning-position))
+      (end-of-line)
+      (when (looking-back "\\[.+\\]")
+        (setq nickname (replace-regexp-in-string "\\]" ""
+                                                 (replace-regexp-in-string
+                                                  "\\["
+                                                  ""
+                                                  (match-string 0)))))
+      nickname)))
+
+(defun dvc-bookmark-show-hidden-url-at-point ()
+  "Get url of partner at point even if partner urls
+are masked."
+  (cadr (assoc (dvc-bookmark-unmask-nickname-at-point)
+              (dvc-bookmark-partner-url-from-nick (dvc-bookmarks-current-bookmark)))))
+
 ;; dvc-bookmarks-properties
 (defvar dvc-bookmarks-prop-file
   "~/.dvc/dvc-bookmarks-properties.el")
@@ -380,10 +406,14 @@ state values can be closed or open"
 (defun dvc-bookmarks-toggle-time-stamp ()
   "Toggle show/don't show time-stamp"
   (interactive)
-  (if dvc-bookmarks-show-time-stamp
-      (setq dvc-bookmarks-show-time-stamp nil)
-    (setq dvc-bookmarks-show-time-stamp t))
-  (dvc-bookmarks))
+  (beginning-of-line)
+  (let ((beg (point)))
+    (if dvc-bookmarks-show-time-stamp
+        (setq dvc-bookmarks-show-time-stamp nil)
+      (setq dvc-bookmarks-show-time-stamp t))
+    (dvc-bookmarks)
+    (goto-char beg)
+    (beginning-of-line)))
 
 (defun dvc-bookmarks-printer (data)
   (let* ((entry (dvc-bookmark-name data))
@@ -450,10 +480,14 @@ state values can be closed or open"
 (defun dvc-bookmarks-toggle-partner-url ()
   "Toggle show/don't show partners urls"
   (interactive)
-  (if dvc-bookmarks-show-partner-url
-      (setq dvc-bookmarks-show-partner-url nil)
-    (setq dvc-bookmarks-show-partner-url t))
-  (dvc-bookmarks))
+  (beginning-of-line)
+  (let ((beg (point)))
+    (if dvc-bookmarks-show-partner-url
+        (setq dvc-bookmarks-show-partner-url nil)
+      (setq dvc-bookmarks-show-partner-url t))
+    (dvc-bookmarks)
+    (goto-char beg)
+    (beginning-of-line)))
 
 (defun dvc-bookmarks-add-to-cookie (elem indent &optional node)
   (let ((curr (or node (ewoc-locate dvc-bookmarks-cookie)))
@@ -661,23 +695,28 @@ and quit"
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (or (dvc-bookmarks-partner-at-point t) (dvc-bookmarks-marked-value 'local-tree))))
+              (partner (condition-case nil
+                           (expand-file-name
+                            (dvc-bookmark-show-hidden-url-at-point))
+                         (error nil))))
           (message "Running dvc missing for %s, against %s"
                    (dvc-bookmark-name (dvc-bookmarks-current-bookmark))
                    partner)
+          (sit-for 1)
           (dvc-missing partner))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-pull ()
   "Pull from partner at point or default into current bookmark."
   (interactive)
-  (when (not dvc-bookmarks-show-partner-url)
-    (error "Please first toggle show-partner-url with T u"))
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (dvc-bookmarks-partner-at-point t))
-              (nickname (dvc-bookmarks-nickname-at-point)))
+              (partner (condition-case nil
+                           (expand-file-name
+                            (dvc-bookmark-show-hidden-url-at-point))
+                         (error nil)))
+              (nickname (dvc-bookmark-unmask-nickname-at-point)))
           (message (if partner
                        (if nickname
                            (format "Pulling from %s, using URL %s" nickname partner)
