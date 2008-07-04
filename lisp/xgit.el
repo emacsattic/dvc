@@ -669,11 +669,20 @@ FILE is filename in the repository at DIR."
     (goto-line line)))
 
 (defun xgit-tag-list ()
-  "Run git tag and list all defined tags"
+  "Run \"git tag\" and list all defined tags"
   (interactive)
   (if (interactive-p)
-      (dvc-run-dvc-display-as-info 'xgit '("tag"))
+      (dvc-run-dvc-display-as-info 'xgit (list "tag"))
     (dvc-run-dvc-sync 'xgit (list "tag")
+                      :finished 'dvc-output-buffer-split-handler)))
+
+(defun xgit-branch-list (&optional all)
+  "Run \"git branch\" and list all known branches.
+When ALL is given, show all branches, using \"git branch -a\"."
+  (interactive "P")
+  (if (interactive-p)
+      (dvc-run-dvc-display-as-info 'xgit (list "branch" (when all "-a")))
+    (dvc-run-dvc-sync 'xgit (list "branch" (when all "-a"))
                       :finished 'dvc-output-buffer-split-handler)))
 
 ;;;###autoload
