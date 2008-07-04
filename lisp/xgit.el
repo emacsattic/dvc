@@ -410,6 +410,10 @@ This reset the index to HEAD, but doesn't touch files."
       '(xgit (index))
     `(xgit (last-revision ,path 1))))
 
+;; TODO offer completion here, e.g. xgit-tag-list
+(defun xgit-read-revision-name (prompt)
+  (read-string prompt))
+
 ;;;###autoload
 (defun xgit-dvc-diff (&optional against-rev path dont-switch)
   (interactive (list nil nil current-prefix-arg))
@@ -438,6 +442,18 @@ This reset the index to HEAD, but doesn't touch files."
   (xgit-diff-1 `(xgit (local-tree ,path))
                path dont-switch
                `(xgit (last-revision ,path 1))))
+
+;;;###autoload
+(defun xgit-diff2 (base-rev against-rev &optional path dont-switch)
+  "Call \"git diff BASE-REV AGAINST-REV\"."
+  (interactive (list
+                (xgit-read-revision-name "Base Revision: ")
+                (xgit-read-revision-name "Against Revision: ")
+                nil
+                current-prefix-arg))
+  (xgit-diff-1 `(xgit (revision ,against-rev))
+               path dont-switch
+               `(xgit (revision ,base-rev))))
 
 (defvar xgit-prev-format-string "%s~%s"
   "This is a format string which is used by `dvc-revision-to-string'
