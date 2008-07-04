@@ -25,7 +25,7 @@ ELCDIR=/usr/share/${FLAVOR}/site-lisp/${PACKAGE}
 
 case "$FLAVOR" in
     emacs |emacs20)
-        echo "Ignoring flavor ${FLAVOR}"    
+        echo "Ignoring flavor ${FLAVOR}"
 	;;
     *)
 	echo -n "install/${PACKAGE}: Handling install for emacsen flavor ${FLAVOR}... "

@@ -90,16 +90,16 @@
                    (setq status "M"
                          modif "M")
                    (when (or (string-match "\\(.+\\) -[0-9]+ \\+[0-9]+$"
-					   elem)
-			     (string-match "\\(.+\\) [+-][0-9]+$"
-					   elem))
+                                           elem)
+                             (string-match "\\(.+\\) [+-][0-9]+$"
+                                           elem))
                      (setq elem (match-string 1 elem))))
                   ;; ???a
                   ((eq modif-char ?a)
                    (setq status "?"))
-		  ((eq modif-char ?A)
-		   (setq status "A"
-			 modif " "))
+                  ((eq modif-char ?A)
+                   (setq status "A"
+                         modif " "))
                   ((eq modif-char ?R)
                    (setq status "D"))
                   ((eq modif-char ??)
@@ -331,9 +331,9 @@ LAST-REVISION looks like
   (dvc-trace "xdarcs-revert-files: %s" files)
   (let ((default-directory (xdarcs-tree-root)))
     (dvc-run-dvc-sync 'xdarcs (append '("revert" "-a") (mapcar #'file-relative-name files))
-		      :finished (dvc-capturing-lambda
-				    (output error status arguments)
-				  (message "xdarcs revert finished")))))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "xdarcs revert finished")))))
 
 ;;;###autoload
 (defun xdarcs-dvc-remove-files (&rest files)

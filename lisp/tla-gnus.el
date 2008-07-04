@@ -151,7 +151,7 @@ When called with no prefix arg, set N := 2."
                      (tla--name-split dvc-memorized-version))
                    tla-apply-patch-mapping))
         (tree)
-	(window-conf (current-window-configuration)))
+        (window-conf (current-window-configuration)))
     (mm-save-part-to-file handle archive-name)
     (gnus-summary-select-article-buffer)
     (split-window-vertically)

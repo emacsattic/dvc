@@ -59,22 +59,22 @@ PREFIX is passed to `dvc-cmenu-popup'."
 Analogous to `mouse-position'.  Copied from avoid.el."
   (dvc-do-in-gnu-emacs
     (let* ((w (selected-window))
-	   (edges (window-edges w))
-	   (list
-	    (compute-motion (max (window-start w) (point-min)) ; start pos
-			    ;; window-start can be < point-min if the
-			    ;; latter has changed since the last redisplay
-			    '(0 . 0)	; start XY
-			    point	; stop pos
-			    (cons (window-width) (window-height)) ; stop XY: none
-			    (1- (window-width)) ; width
-			    (cons (window-hscroll w) 0)	; 0 may not be right?
-			    (selected-window))))
+           (edges (window-edges w))
+           (list
+            (compute-motion (max (window-start w) (point-min)) ; start pos
+                            ;; window-start can be < point-min if the
+                            ;; latter has changed since the last redisplay
+                            '(0 . 0)    ; start XY
+                            point       ; stop pos
+                            (cons (window-width) (window-height)) ; stop XY: none
+                            (1- (window-width)) ; width
+                            (cons (window-hscroll w) 0) ; 0 may not be right?
+                            (selected-window))))
       ;; compute-motion returns (pos HPOS VPOS prevhpos contin)
       ;; we want:               (frame hpos . vpos)
       (cons (selected-frame)
-	    (cons (+ (car edges)       (car (cdr list)))
-		  (+ (car (cdr edges)) (car (cdr (cdr list)))))))))
+            (cons (+ (car edges)       (car (cdr list)))
+                  (+ (car (cdr edges)) (car (cdr (cdr list)))))))))
 
 (defun dvc-cmenu-popup (prefix)
   "Popup a menu defined in the text property under the point.

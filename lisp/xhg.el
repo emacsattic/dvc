@@ -511,7 +511,7 @@ If `auto' is choose use default revision (last)"
         (error "abort: outstanding uncommitted merges, Please commit before merging"))
       (when (<= (length collection) 2)
         (error "There is nothing to merge here")))))
-      
+
 
 (defun xhg-command-version ()
   "Run hg version."

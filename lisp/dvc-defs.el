@@ -203,8 +203,8 @@ Note that you must set `ido-mode' if using`ido-completing-read'."
 
 (defface dvc-separator
   '((((type tty)) (:underline t :weight bold))
-    ;(((background light)) (:strike-through t :weight bold))
-    ;(((background dark))  (:strike-through t :weight bold)))
+    ;;(((background light)) (:strike-through t :weight bold))
+    ;;(((background dark))  (:strike-through t :weight bold)))
     (((background light)) (:underline t :weight bold))
     (((background dark))  (:underline t :weight bold)))
   "Face to highlight separators."

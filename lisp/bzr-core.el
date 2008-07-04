@@ -50,7 +50,7 @@ bzr-managed tree (but return nil)."
 
 ;;;###autoload
 (defun bzr-branch-root (&optional location no-error interactive)
-  "Return the branch root for LOCATION, nil if not in a branch. 
+  "Return the branch root for LOCATION, nil if not in a branch.
 
 This function allows DVC relevant functions (e.g., log) to work
 on bzr branches with no tree."

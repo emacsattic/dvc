@@ -126,7 +126,7 @@ not &rest."
             (concat
              "\\`\\("
              "\\(ftp\\|https?\\|git\\|www\\)://" ; needs host
-             "\\)."				; require one more character
+             "\\)."                             ; require one more character
              ))
            (url-at-point (ffap-url-at-point))
            (all-candidates (map t 'symbol-name dvc-registered-backends))

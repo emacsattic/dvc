@@ -46,11 +46,11 @@
 
 ;; Add otherdirs to load-path
 (mapcar '(lambda (dir)
-	   (when (file-exists-p dir)
-	     (add-to-list 'load-path dir)))
-	(split-string otherdirs " "))
+           (when (file-exists-p dir)
+             (add-to-list 'load-path dir)))
+        (split-string otherdirs " "))
 
-;(setq debug-on-error t)
+;;(setq debug-on-error t)
 
 ;; The name of our package
 (setq package-maint-pkg "dvc")

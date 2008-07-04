@@ -911,7 +911,7 @@ selecting only files to print."
     (erase-buffer)
     (set (make-local-variable 'tla-inventory-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
-		       #'tla-inventory-printer)))
+                       #'tla-inventory-printer)))
     (tla-inventory-insert-headers)
     (dolist (elem tla-inventory-list)
       (let ((type (car elem))
@@ -931,15 +931,15 @@ selecting only files to print."
 ;; I(Masatake) introduces a table-lookup code instead
 ;; of case statement.
 ;; OLD case based code is here:
-;(defun tla--inventory-chose-face (type)
-;  "Return a face adapted to TYPE, which can be J, S, P, T or U."
-;  (case type
-;    (?J 'tla-junk)                      ; 74
-;    (?P 'dvc-ignored)                  ; 80
-;    (?S 'dvc-source)                    ; 83
-;    (?T 'dvc-nested-tree)               ; 84
-;    (?U 'dvc-unrecognized)              ; 85
-;    ))
+;;(defun tla--inventory-chose-face (type)
+;;  "Return a face adapted to TYPE, which can be J, S, P, T or U."
+;;  (case type
+;;    (?J 'tla-junk)                      ; 74
+;;    (?P 'dvc-ignored)                  ; 80
+;;    (?S 'dvc-source)                    ; 83
+;;    (?T 'dvc-nested-tree)               ; 84
+;;    (?U 'dvc-unrecognized)              ; 85
+;;    ))
 
 ;; The new table-lookup code is here:
 (defconst tla--inventory-chose-face-table
@@ -1129,12 +1129,12 @@ specified."
             (end-of-line)
             (newline))
           t) ;; return
-;;       (if (not (or noerror
-;;                    (yes-or-no-p (format "The marker %S was not found! Commit anyway? "
-;;                                         dvc-log-edit-file-list-marker))))
-;;           (error (format "The marker %s was not found!"
-;;                          dvc-log-edit-file-list-marker))
-;;         nil)
+      ;; (if (not (or noerror
+      ;;              (yes-or-no-p (format "The marker %S was not found! Commit anyway? "
+      ;;                                   dvc-log-edit-file-list-marker))))
+      ;;     (error (format "The marker %s was not found!"
+      ;;                    dvc-log-edit-file-list-marker))
+      ;;   nil)
       )))
 
 (defun tla-changes-file-list ()
@@ -1234,7 +1234,7 @@ the list of marked files, and potentially run a selected file commit."
        result)
     (while (not (eq node header))
       (if (apply predicate (ewoc--node-data node) args)
-	  (push node result))
+          (push node result))
       (setq node (ewoc--node-prev dll node)))
     (nreverse result)))
 
@@ -2389,7 +2389,7 @@ and this revision will be used as a reference."
 
 (defun tla-undo (tree &optional
                       archive category branch version revision)
-  ; checkdoc-params: (archive category branch version revision)
+  ;;checkdoc-params: (archive category branch version revision)
   "Undo whole local TREE against ARCHIVE/CATEGORY-BRANCH-VERSION-REVISION.
 If ARCHIVE is nil, default ARCHIVE/CATEGORY-BRANCH-VERSION-REVISION
 associated with TREE.
@@ -2411,7 +2411,7 @@ running tla undo."
 
 (defun tla--undo-internal (tree &optional dont-ask-for-confirmation no-output
                                 archive category branch version revision)
-  ; checkdoc-params: (tree archive category branch version revision)
+  ;;checkdoc-params: (tree archive category branch version revision)
   "Internal function used by `tla-undo'.
 If DONT-ASK-FOR-CONFIRMATION is given, don't show the changes buffer and don't
 ask for confirmation.
@@ -2903,17 +2903,17 @@ as the place where changelog is got."
   "Run tla logs."
   (interactive)
   (let ((default-directory (dvc-read-project-tree-maybe))
-;        (details (or dvc-revisions-shows-date
-;                     dvc-revisions-shows-creator
-;                     dvc-revisions-shows-summary))
+        ;; (details (or dvc-revisions-shows-date
+        ;;              dvc-revisions-shows-creator
+        ;;              dvc-revisions-shows-summary))
         )
     (tla--run-tla-async
      (list "logs" "--full" "--reverse"
            (when (tla-revisions-has-complete-log-option) "--complete-log")
 
-                                        ;           (when details "--date")
-                                        ;           (when details "--creator")
-                                        ;           (when details "--summary"))
+           ;;           (when details "--date")
+           ;;           (when details "--creator")
+           ;;           (when details "--summary"))
            )
      :finished
      (dvc-capturing-lambda (output error status arguments)
@@ -3530,14 +3530,14 @@ Else it runs asynchronously."
           (tla-name-read "Tag version: " 'prompt 'prompt 'prompt
                          'prompt))
          (tla--tag-does-cacherev)
-	 nil))
+         nil))
   (when (tla-has-merge-command)
     (error "tla-tag not available. Use baz-branch instead."))
   (funcall (if synchronously 'tla--run-tla-sync 'tla--run-tla-async)
-	   (list (when (tla-has-branch-command) "branch" "tag")
-		 (when (tla-tag-has-setup-option) "--setup")
-		 (when (not cacherev) "--no-cacherev")
-		 source-revision tag-version)))
+           (list (when (tla-has-branch-command) "branch" "tag")
+                 (when (tla-tag-has-setup-option) "--setup")
+                 (when (not cacherev) "--no-cacherev")
+                 source-revision tag-version)))
 
 (defun tla-set-tree-version (version)
   "Run tla set-tree-version VERSION."
@@ -3776,7 +3776,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
     (erase-buffer)
     (set (make-local-variable 'dvc-revlist-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
-		       #'dvc-revlist-printer)))
+                       #'dvc-revlist-printer)))
     (dvc-kill-process-maybe (current-buffer))
     (dolist (item tla-missing-buffer-todolist)
       (case (car item)
@@ -4273,7 +4273,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (erase-buffer)
     (set (make-local-variable 'tla-bookmarks-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
-			 #'tla-bookmarks-printer)))
+                         #'tla-bookmarks-printer)))
     (set (make-local-variable 'tla-bookmarks-marked-list) nil)
     (dolist (elem tla-bookmarks-alist)
       (ewoc-enter-last tla-bookmarks-cookie elem))
@@ -4954,7 +4954,7 @@ VERSION is a fully qualified version string or a list."
     (setq version (tla--name-mask version t
                                   t t t t)))
   (let* ((bookmark (tla-bookmarks-find-bookmark version))
-	 (partners (cdr (assoc 'partners bookmark))))
+         (partners (cdr (assoc 'partners bookmark))))
     (mapcar 'tla--name-split partners)))
 
 ;;
@@ -4980,7 +4980,7 @@ VERSION is a fully qualified version string or a list."
     (tla-archive-list-mode)
     (set (make-local-variable 'tla-archives-list-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
-		       #'tla-archives-list-printer)))
+                       #'tla-archives-list-printer)))
     (erase-buffer)
     (while a-list
       (setq archive-name (caar a-list)
@@ -5351,8 +5351,8 @@ Sets the archive location to LOCATION."
     (error "Location for `%s' is unknown" archive))
   (when (eq 'source (tla--archive-type archive))
     (error "%s is already source" archive))
-;  (unless (eq 'http (tla--location-type location))
-;    (error "Read only archive is supported in xtla: " location))
+  ;; (unless (eq 'http (tla--location-type location))
+  ;;   (error "Read only archive is supported in xtla: " location))
   (tla--unregister-archive archive nil)
   (tla--register-archive location (concat archive "-SOURCE")))
 
@@ -6097,15 +6097,15 @@ question, this function runs as the same as if INCLUDING-SELF is nil."
      easy-menu-create-menu prompt
      (mapcar
       (lambda (item)
-	(let ((v (make-vector 3 nil)))
-	  (aset v 0 item)		; name
-	  (aset v 1 `(,action ,item))
-	  (aset v 2 t)			; enable
-	  ;;(aset v 3 :style)
-	  ;;(aset v 4 'radio)
-	  ;;(aset v 5 :selected)
-	  ;;(aset v 6 (if ...))
-	  v))
+        (let ((v (make-vector 3 nil)))
+          (aset v 0 item)               ; name
+          (aset v 1 `(,action ,item))
+          (aset v 2 t)                  ; enable
+          ;;(aset v 3 :style)
+          ;;(aset v 4 'radio)
+          ;;(aset v 5 :selected)
+          ;;(aset v 6 (if ...))
+          v))
       list))))
 
 ;; ----------------------------------------------------------------------------
@@ -6704,18 +6704,18 @@ Commands:
        nil)
   (set (make-local-variable 'tla-current-revision)
        (save-excursion
-	 (concat
-	  (progn
-	    (goto-char (point-min))
-	    (re-search-forward "^Archive: ")
-	    (buffer-substring-no-properties (point)
-					    (line-end-position)))
-	  "/"
-	  (progn
-	    (goto-char (point-min))
-	    (re-search-forward "^Revision: ")
-	    (buffer-substring-no-properties (point)
-					    (line-end-position))))))
+         (concat
+          (progn
+            (goto-char (point-min))
+            (re-search-forward "^Archive: ")
+            (buffer-substring-no-properties (point)
+                                            (line-end-position)))
+          "/"
+          (progn
+            (goto-char (point-min))
+            (re-search-forward "^Revision: ")
+            (buffer-substring-no-properties (point)
+                                            (line-end-position))))))
   (setq major-mode 'tla-revlog-mode)
   (setq mode-name "tla-revlog")
   (toggle-read-only 1)
@@ -6789,12 +6789,12 @@ Commands:
 (defun tla-button-entry ()
   "Return the first entry in `tla-button-alist' matching this place."
   (let ((alist tla-button-alist)
-	(entry nil))
+        (entry nil))
     (while alist
       (setq entry (pop alist))
       (if (looking-at (eval (car entry)))
-	  (setq alist nil)
-	(setq entry nil)))
+          (setq alist nil)
+        (setq entry nil)))
     entry))
 
 (defun tla-button-in-region-p (b e prop)
@@ -6810,63 +6810,63 @@ specified by `tla-button-alist'."
   (with-current-buffer (or buffer (current-buffer))
     (let ((inhibit-read-only t)o
           (inhibit-point-motion-hooks t)
-	  (case-fold-search t)
-	  (alist tla-button-alist)
-	  beg entry regexp)
+          (case-fold-search t)
+          (alist tla-button-alist)
+          beg entry regexp)
       ;; Remove all old markers.
       (let (marker entry new-list)
-	(while (setq marker (pop tla-button-marker-list))
-	  (if (or (< marker (point-min)) (>= marker (point-max)))
-	      (push marker new-list)
-	    (goto-char marker)
-	    (when (setq entry (tla-button-entry))
-	      (put-text-property (match-beginning (nth 1 entry))
-				 (match-end (nth 1 entry))
-				 'tla-callback nil))
-	    (set-marker marker nil)))
-	(setq tla-button-marker-list new-list))
+        (while (setq marker (pop tla-button-marker-list))
+          (if (or (< marker (point-min)) (>= marker (point-max)))
+              (push marker new-list)
+            (goto-char marker)
+            (when (setq entry (tla-button-entry))
+              (put-text-property (match-beginning (nth 1 entry))
+                                 (match-end (nth 1 entry))
+                                 'tla-callback nil))
+            (set-marker marker nil)))
+        (setq tla-button-marker-list new-list))
       ;; We skip the headers.
       (goto-char (point-min))
       (setq beg (point))
       (while (setq entry (pop alist))
-	(setq regexp (eval (car entry)))
-	(goto-char beg)
-	(while (re-search-forward regexp nil t)
-	  (let* ((start (and entry (match-beginning (nth 1 entry))))
-		 (end (and entry (match-end (nth 1 entry))))
-		 (from (match-beginning 0)))
-	    (when (and (or (eq t (nth 2 entry))
-			   (eval (nth 2 entry)))
-		       (not (tla-button-in-region-p
-			     start end 'tla-callback)))
-	      ;; That optional form returned non-nil, so we add the
-	      ;; button.
-	      (tla-add-button
-	       start end 'tla-button-push
-	       (car (push (set-marker (make-marker) from)
-			  tla-button-marker-list))))))))))
+        (setq regexp (eval (car entry)))
+        (goto-char beg)
+        (while (re-search-forward regexp nil t)
+          (let* ((start (and entry (match-beginning (nth 1 entry))))
+                 (end (and entry (match-end (nth 1 entry))))
+                 (from (match-beginning 0)))
+            (when (and (or (eq t (nth 2 entry))
+                           (eval (nth 2 entry)))
+                       (not (tla-button-in-region-p
+                             start end 'tla-callback)))
+              ;; That optional form returned non-nil, so we add the
+              ;; button.
+              (tla-add-button
+               start end 'tla-button-push
+               (car (push (set-marker (make-marker) from)
+                          tla-button-marker-list))))))))))
 
 (defun tla-button-push (marker)
   ;; Push button starting at MARKER.
   (save-excursion
     (goto-char marker)
     (let* ((entry (tla-button-entry))
-	   (inhibit-point-motion-hooks t)
-	   (fun (nth 3 entry))
-	   (args (mapcar (lambda (group)
-			   (let ((string (match-string group)))
-			     (set-text-properties
-			      0 (length string) nil string)
-			     string))
-			 (nthcdr 4 entry))))
+           (inhibit-point-motion-hooks t)
+           (fun (nth 3 entry))
+           (args (mapcar (lambda (group)
+                           (let ((string (match-string group)))
+                             (set-text-properties
+                              0 (length string) nil string)
+                             string))
+                         (nthcdr 4 entry))))
       (cond
        ((fboundp fun)
-	(apply fun args))
+        (apply fun args))
        ((and (boundp fun)
-	     (fboundp (symbol-value fun)))
-	(apply (symbol-value fun) args))
+             (fboundp (symbol-value fun)))
+        (apply (symbol-value fun) args))
        (t
-	(message "You must define `%S' to use this button"
+        (message "You must define `%S' to use this button"
                  (cons fun args)))))))
 
 (defun tla-add-button (from to fun &optional data)
@@ -6877,11 +6877,11 @@ specified by `tla-button-alist'."
   (dvc-add-text-properties
    from to
    (nconc (and dvc-mouse-face
-	       (list dvc-mouse-face-prop dvc-mouse-face))
-	  (list 'tla-callback fun)
-	  (and data (list 'tla-data data))))
+               (list dvc-mouse-face-prop dvc-mouse-face))
+          (list 'tla-callback fun)
+          (and data (list 'tla-data data))))
   (widget-convert-button 'link from to :action 'tla-widget-press-button
-			 :button-keymap nil))
+                         :button-keymap nil))
 
 (defun tla-widget-press-button (elems el)
   (goto-char (widget-get elems :from))
@@ -6894,23 +6894,23 @@ call it with the value of the `tla-data' text property."
   (interactive "e")
   (unless event (error "Event is nil"))
   (let ((buffer
-	 (or (let ((window (dvc-funcall-if-exists
-			    posn-window (dvc-funcall-if-exists
-					 event-start event))))
+         (or (let ((window (dvc-funcall-if-exists
+                            posn-window (dvc-funcall-if-exists
+                                         event-start event))))
                ;; XEmacs
-	       (and window (window-buffer window)))
+               (and window (window-buffer window)))
              ;; GNU Emacs
-	     (dvc-funcall-if-exists event-buffer event))))
+             (dvc-funcall-if-exists event-buffer event))))
     (pop-to-buffer buffer)
     (set-buffer buffer)
     (let* ((pos (or (dvc-funcall-if-exists posn-point (event-start event))
-		    (dvc-funcall-if-exists event-point event)
-		    (error "No way to determine point")))
-	   (data (get-text-property pos 'tla-data))
-	   (fun (get-text-property pos 'tla-callback)))
+                    (dvc-funcall-if-exists event-point event)
+                    (error "No way to determine point")))
+           (data (get-text-property pos 'tla-data))
+           (fun (get-text-property pos 'tla-callback)))
       (when pos (goto-char pos))
       (when fun
-	(funcall fun data)))))
+        (funcall fun data)))))
 
 (defun tla-press-button ()
   "Check text at point for a callback function.
@@ -6918,7 +6918,7 @@ If the text at point has a `tla-callback' property,
 call it with the value of the `tla-data' text property."
   (interactive)
   (let ((data (get-text-property (point) 'tla-data))
-	(fun (get-text-property (point) 'tla-callback)))
+        (fun (get-text-property (point) 'tla-callback)))
     (when fun
       (funcall fun data))))
 
@@ -7426,7 +7426,7 @@ When called with a prefix argument ARG, delete all current keywords."
           current-keywords
           tla-log-edit-keywords-cookie
           (ewoc-create (dvc-ewoc-create-api-select
-			#'tla-log-edit-keywords-printer)
+                        #'tla-log-edit-keywords-printer)
                        "List of keywords from `tla-log-edit-keywords':\n"
                        (format "type C-c C-c to insert the marked keywords to the buffer\n%s"
                                (buffer-name log-buffer))))
@@ -9088,7 +9088,7 @@ IN-COMMENT-P indicates whether we are currently inside a comment."
     ;; In current GNU Emacs's autoconf-mode implementation,
     ;; next line is never executed.
     (error "Comment prefix \"dnl\" is not suitable for gnuarch"))
-  (let ((header "m4_if(dnl	Do not change this comment\n")
+  (let ((header "m4_if(dnl      Do not change this comment\n")
         (footer "\n)dnl\n"))
     (insert (concat header "    " tla--arch-tag-string uuid footer))))
 
@@ -9142,7 +9142,7 @@ Commands:
           (lambda () (interactive) (tla-tree-lint default-directory))))
   (set (make-local-variable 'tla--tree-lint-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
-		     #'tla--tree-lint-printer)))
+                     #'tla--tree-lint-printer)))
   (set (make-local-variable 'dvc-get-file-info-at-point-function)
        'tla-tree-lint-get-file-at-point)
   (set (make-local-variable 'dvc-buffer-marked-file-list)
@@ -9228,7 +9228,7 @@ been eliminated."
            (with-current-buffer (capture buffer)
              (set 'tla--tree-lint-cookie
                    (ewoc-create (dvc-ewoc-create-api-select
-				 #'tla--tree-lint-printer)))
+                                 #'tla--tree-lint-printer)))
              (let ((inhibit-read-only t))
                (erase-buffer))
              (ewoc-enter-last
@@ -9279,7 +9279,7 @@ Show in in the tree-lint-mode buffer OUTPUT-BUFFER."
                              'dvc-messages)))
     (setq tla--tree-lint-cookie
           (ewoc-create (dvc-ewoc-create-api-select
-			#'tla--tree-lint-printer))))
+                        #'tla--tree-lint-printer))))
   (with-current-buffer buffer
     (goto-char (point-min))
     (let ((cookie (with-current-buffer output-buffer

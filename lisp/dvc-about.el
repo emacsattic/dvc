@@ -60,11 +60,11 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
   "Similar to `message' but display the message in bouncing animation to show long line."
   (setq msg (apply 'format msg))
   (let* ((width (- (window-width (minibuffer-window))
-		   (+ 1 (length "[<] ") (length " [>]"))))
-	 (msglen (length msg))
+                   (+ 1 (length "[<] ") (length " [>]"))))
+         (msglen (length msg))
          submsg
-	 (steps (- msglen width))
-	 j)
+         (steps (- msglen width))
+         j)
     (if (< msglen width)
         (message "%s" msg)
       (while t
@@ -93,10 +93,10 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
                     (apply 'format msg)
                     "            "))
   (let* ((width (- (window-width (minibuffer-window))
-		   (+ 1 (length "[<] "))))
-	 (msglen (length msg))
+                   (+ 1 (length "[<] "))))
+         (msglen (length msg))
          submsg
-	 (normal-range (- msglen width)))
+         (normal-range (- msglen width)))
     (if (< msglen width)
         (message "%s" msg)
       (while t
@@ -145,7 +145,7 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
              "Martin Pool <mbp@sourcefrog.net>, "
              "Robert Widhopf-Fenk <hack@robf.de>, "
              "Mark Triggs <mst@dishevelled.net>"
-	     "WE MUST UPDATE THIS LIST"))))
+             "WE MUST UPDATE THIS LIST"))))
 
 (defun dvc-about-insert-button (label function)
   "Insert a button labeled with LABEL and launching FUNCTION.

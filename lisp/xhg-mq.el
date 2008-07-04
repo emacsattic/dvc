@@ -421,9 +421,9 @@ Called with prefix-arg, do not prompt for confirmation"
                                          (file-name-nondirectory (dired-get-filename))))))
   (if current-prefix-arg
       (progn
-	(and (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
+        (and (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
              (dvc-run-dvc-sync 'xhg (list "qpush")))
-	(message "Ok patch %s added" patch))
+        (message "Ok patch %s added" patch))
     (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
     (message "Ok patch %s added ; don't forget to qpush" patch)))
 
