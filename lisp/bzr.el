@@ -171,6 +171,17 @@ When called with a prefix argument, add the --remember option"
                        (message "bzr merge finished => %s"
                                 (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
+(defun bzr-merge-bundle (bundle-file)
+  "Run bzr merge from BUNDLE-FILE."
+  (interactive "sMerge bzr bundle: ")
+  (message "bzr-merge-bundle: %s (%s)" bundle-file default-directory)
+  (dvc-run-dvc-sync 'bzr (list "merge" bundle-file)
+                     :finished
+                     (dvc-capturing-lambda
+                         (output error status arguments)
+                       (message "bzr merge finished => %s"
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
+
 (defvar bzr-merge-or-pull-from-url-rules nil
   "An alist that maps repository urls to working copies. This rule is used by
 `bzr-merge-from-url'.
@@ -483,6 +494,9 @@ of the commit. Additionally the destination email address can be specified."
                  ((string-equal msg "unknown:")
                   (setq current-status 'unknown))
                  ((string-equal msg "pending merges:")
+                  (setq current-status nil))
+		 ((string-equal msg "renamed:")
+		  ;; Rename case is handled explictly below
                   (setq current-status nil))
                  (t
                   (error "unrecognized label %s in bzr-parse-status" msg)))))
@@ -1055,6 +1069,20 @@ display the current one."
   (interactive "sbzr ignore: ")
   (dvc-run-dvc-sync 'bzr (list "ignore" pattern)))
 
+(defun bzr-uncommit ()
+  "Run bzr uncommit.
+Ask the user before uncommitting."
+  (interactive)
+  (let ((window-conf (current-window-configuration)))
+    (dvc-run-dvc-display-as-info 'bzr (list "uncommit" "--dry-run" "--force"))
+    (if (yes-or-no-p "Remove the bzr revision? ")
+        (progn
+          (message "Removing bzr revision")
+          (set-window-configuration window-conf)
+          (dvc-run-dvc-sync 'bzr (list "uncommit" "--force")))
+      (message "Aborted bzr uncommit")
+      (set-window-configuration window-conf))))
+
 (defun bzr-config-directory ()
   "Path of the configuration directory for bzr."
   (file-name-as-directory
@@ -1160,6 +1188,21 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   ;(xgit-annotate-hide-revinfo)
   (toggle-read-only 1))
 
+(defun bzr-switch-checkout (target)
+  "Switch the checkout to the branch TARGET"
+  (interactive "sURL of the branch to switch to: ")
+  (dvc-run-dvc-sync 'bzr (list "switch" target)  
+		    :finished 'dvc-output-buffer-handler)
+  (dvc-revert-some-buffers)
+  (dvc-trace "Switched checkout to  %s" target)
+  )
+
+(defun bzr-switch-checkout-l (target)
+  "Switch the checkout to a local branch"
+  (interactive "DBranch to switch to: ")
+  (let ((target (expand-file-name target)))
+    (bzr-switch-checkout target))
+  )
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.

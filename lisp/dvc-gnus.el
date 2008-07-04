@@ -148,6 +148,9 @@ Otherwise `dvc-gnus-apply-patch' is called."
              (setq patch-type 'bzr-merge-or-pull
                    bzr-merge-or-pull-url (match-string-no-properties 1)))
             ((progn (goto-char (point-min))
+                    (re-search-forward "^# Bazaar merge directive format" nil t))
+             (setq patch-type 'bzr-merge-bundle))
+            ((progn (goto-char (point-min))
                     (and (re-search-forward "^---$" nil t)
                          (re-search-forward "^diff --git" nil t)))
              (setq patch-type 'xgit))
@@ -160,6 +163,8 @@ Otherwise `dvc-gnus-apply-patch' is called."
            (xgit-gnus-article-apply-patch n))
           ((eq patch-type 'bzr-merge-or-pull)
            (bzr-merge-or-pull-from-url bzr-merge-or-pull-url))
+          ((eq patch-type 'bzr-merge-bundle)
+           (bzr-gnus-article-merge-bundle n))
           (t
            (let ((dvc-gnus-override-window-config))
              (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)

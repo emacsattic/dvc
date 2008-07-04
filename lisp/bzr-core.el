@@ -49,6 +49,18 @@ bzr-managed tree (but return nil)."
                         location no-error))
 
 ;;;###autoload
+(defun bzr-branch-root (&optional location no-error interactive)
+  "Return the branch root for LOCATION, nil if not in a branch. 
+
+This function allows DVC relevant functions (e.g., log) to work
+on bzr branches with no tree."
+  (interactive)
+  (dvc-tree-root-helper ".bzr/branch/" (or interactive
+                                    (interactive-p))
+                        "%S is not a bzr-managed branch"
+                        location no-error))
+
+;;;###autoload
 (defun bzr-tree-id ()
   "Call \"bzr log -r 1\" to get the tree-id.
 Does anyone know of a better way to get this info?"

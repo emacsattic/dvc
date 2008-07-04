@@ -61,6 +61,9 @@ Used to keep track of all the dvc related buffers.")
     (changelog "changelog*" root)
     (tree-lint "tree-lint*" root)
     (log       "log*"       root)
+    ;; alog for "absolute log", i.e., assume path supplied is already
+    ;; the root path
+    (alog       "log*"      path)
     (remote-log "log(%s)*"  string)
     (log-edit  "log-edit*"  root)
     (errors    "error*"     multiple)
