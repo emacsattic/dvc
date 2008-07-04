@@ -652,6 +652,14 @@ FILE is filename in the repository at DIR."
     (xgit-do-annotate default-directory filename)
     (goto-line line)))
 
+(defun xgit-tag-list ()
+  "Run git tag and list all defined tags"
+  (interactive)
+  (if (interactive-p)
+      (dvc-run-dvc-display-as-info 'xgit '("tag"))
+    (dvc-run-dvc-sync 'xgit (list "tag")
+                      :finished 'dvc-output-buffer-split-handler)))
+
 ;;;###autoload
 (defun xgit-apply-mbox (mbox &optional force)
   "Run git am to apply the contents of MBOX as one or more patches."
