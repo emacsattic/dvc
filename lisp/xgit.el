@@ -686,8 +686,25 @@ When ALL is given, show all branches, using \"git branch -a\"."
                       :finished 'dvc-output-buffer-split-handler)))
 
 ;;;###autoload
+(defun xgit-apply-patch (file)
+  "Run \"git apply\" to apply the contents of FILE as a patch."
+  (interactive (list (dvc-confirm-read-file-name
+                      "Apply file containing patch: " t)))
+  (dvc-run-dvc-sync 'xgit
+                    (list "apply" (expand-file-name file))
+                    :finished
+                    (lambda (output error status arguments)
+                      (message "Imported git patch from %s" file))
+                    :error
+                    (lambda (output error status arguments)
+                      (dvc-show-error-buffer error)
+                      (error "Error occurred while applying patch(es)"))))
+
+;;;###autoload
 (defun xgit-apply-mbox (mbox &optional force)
-  "Run git am to apply the contents of MBOX as one or more patches."
+  "Run \"git am\" to apply the contents of MBOX as one or more patches.
+If this command succeeds, it will result in a new commit being added to
+the current git repository."
   (interactive (list (dvc-confirm-read-file-name
                       "Apply mbox containing patch(es): " t)))
   (dvc-run-dvc-sync 'xgit
