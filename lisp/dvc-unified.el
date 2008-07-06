@@ -110,6 +110,7 @@ in SPEC if they are nil, returning the result."
 (defmacro define-dvc-unified-command (name args comment &optional interactive)
   "Define a DVC unified command.  &optional arguments are permitted, but
 not &rest."
+  (declare (indent 2) (debug (&define name sexp stringp sexp)))
   `(defun ,name ,args
      ,comment
      ,@(when interactive (list interactive))

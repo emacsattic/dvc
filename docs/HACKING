@@ -115,6 +115,13 @@ in your ~/.emacs:
 
 (add-hook 'find-file-hooks 'rf-dvc-find-file-hook)
 
+Non-trivial macros should include the form:
+  (declare (indent INDENT-SPEC) (debug DEBUG-SPEC))
+The INDENT-SPEC tells Emacs' indentation commands how to indent the form,
+whereas DEBUG-SPEC tells Edebug how to instrument the form for debugging.
+See: (info "(elisp) Indenting Macros") and 
+     (info "(elisp) Edebug and Macros") for more info.
+
 Process management
 ==================
 

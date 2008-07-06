@@ -40,15 +40,15 @@
 (progn
   (defmacro dvc-do-in-gnu-emacs (&rest body)
     "Execute BODY if in GNU/Emacs."
+    (declare (indent defun) (debug (body)))
     (unless (featurep 'xemacs) `(progn ,@body))))
-(put 'dvc-do-in-gnu-emacs 'lisp-indent-hook 'defun)
 
 ;;;###autoload
 (progn
   (defmacro dvc-do-in-xemacs (&rest body)
     "Execute BODY if in XEmacs."
+    (declare (indent defun) (debug (body)))
     (when (featurep 'xemacs) `(progn ,@body))))
-(put 'dvc-do-in-xemacs 'lisp-indent-hook 'defun)
 
 (defconst dvc-mouse-2
   (if (featurep 'xemacs)
@@ -606,6 +606,7 @@ FUNCTION is the name of the function to declare.
 COOKIE is the ewoc to navigate in.
 if ONLY-UNMERGED is non-nil, then, navigate only through revisions not
 merged by another revision in the same list."
+  (declare (indent 2) (debug (&define functionp name symbolp booleanp)))
   `(defun ,function ()
      (interactive)
      (let* ((elem (ewoc-locate ,cookie))

@@ -1278,6 +1278,7 @@ the list of marked files, and potentially run a selected file commit."
                                  recursive
                                  expression
                                  &optional expression-rec)
+  (declare (indent 2) (debug (&define name sexp form form symbolp body)))
   `(defun ,function-to-define ,args
      ,(format "Run \"tla %s\".
 
@@ -4607,6 +4608,7 @@ entry."
      "Adds the directory VALUE to the list of local trees of bookmark
 BOOKMARK.
 Unless DONT-SAVE is non-nil, save the bookmark file."
+     (declare (indent 2) (debug (&define name form function-form)))
      (interactive
       (let* ((bookmarks (or tla-bookmarks-marked-list
                             (list (ewoc-data (ewoc-locate
@@ -4642,6 +4644,7 @@ Unless DONT-SAVE is non-nil, save the bookmark file."
   "Define a function called NAME for adding FIELD to a bookmark entry.
 This function will display MESSAGE-ALREADY if the user tries to add a field
 twice, and will display MESSAGE-ADD when a new field is successfully added."
+  (declare (indent 2) (debug (&define name form stringp stringp)))
   `(defun ,name (bookmark value &optional dont-save)
      "Adds the directory VALUE to the list of local trees of bookmark
 BOOKMARK.
@@ -4686,6 +4689,7 @@ Unless DONT-SAVE is non-nil, save the bookmark file."
 
 (defmacro tla-bookmarks-make-delete-fn (name field)
   "Define a function called NAME for removing FIELD from bookmark entries."
+  (declare (indent 2) (debug (&define name form)))
   `(defun ,name (bookmark value &optional dont-save)
      "Deletes the directory VALUE to the list of local trees of bookmark
 BOOKMARK."

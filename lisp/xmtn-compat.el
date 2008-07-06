@@ -95,6 +95,7 @@
     `(progn ,@body)))
 
 (defmacro* xmtn--with-temp-message (message &body body)
+  (declare (indent 1) (debug (form body)))
   (if (fboundp 'with-temp-message)
       `(with-temp-message ,message ,@body)
     `(progn ,@body)))
@@ -102,6 +103,7 @@
 (defmacro* xmtn--dotimes-with-progress-reporter ((i n-form &optional res-form)
                                                  message-form
                                                  &body body)
+  (declare (indent 2) (debug (sexp form body)))
   (if (fboundp 'dotimes-with-progress-reporter)
       `(dotimes-with-progress-reporter (,i ,n-form ,res-form)
            ,message-form ,@body)

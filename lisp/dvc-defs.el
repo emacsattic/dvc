@@ -40,6 +40,7 @@
 (defmacro dvc-first-set (arg1 arg2)
   "Returns ARG1 if set, non-nil, and not the empty string.
 Otherwise, return ARG2. ARG1 must be a variable."
+  (declare (indent 1) (debug (symbolp form)))
   `(or (and ,(boundp arg1) (when (not (string= ,arg1 ""))
                              ,arg1))
        ,arg2))

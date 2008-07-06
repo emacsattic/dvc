@@ -50,6 +50,7 @@
     (funcall xmtn--thunk)))
 
 (defmacro* xmtn--with-environment-for-subprocess (() &body body)
+  (declare (indent 1) (debug (sexp body)))
   `(xmtn--call-with-environment-for-subprocess (lambda () ,@body)))
 
 (defun* xmtn--run-command-sync (root arguments &rest dvc-run-keys &key)
