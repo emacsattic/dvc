@@ -491,7 +491,26 @@ When called with a prefix argument, ask for the pull source."
   (when (interactive-p)
     (when current-prefix-arg
       (setq repository (read-string "Git pull from: "))))
-  (dvc-run-dvc-async 'xgit (list "pull" repository)))
+  (dvc-run-dvc-async 'xgit (list "pull" repository)
+                     :finished
+                     (dvc-capturing-lambda (output error status arguments)
+                       (with-current-buffer output
+                         (xgit-parse-pull-result t)))))
+
+(defvar xgit-pull-result nil)
+(defun xgit-parse-pull-result (reset-parameters)
+  "Parse the output of git pull."
+  (when reset-parameters
+    (setq xgit-pull-result nil))
+  (goto-char (point-min))
+  (when (looking-at "Updating \\([0-9a-z]+\\)\.\.\\([0-9a-z]+\\)")
+    (setq xgit-pull-result (list (match-string 1) (match-string 2)))))
+
+(defun xgit-whats-new ()
+  "Show the changes since the last git pull."
+  (interactive)
+  (when xgit-pull-result
+    (xgit-changelog (car xgit-pull-result) (cadr xgit-pull-result) t)))
 
 (defun xgit-split-out-added-files (files)
   "Remove any files that have been newly added to git from FILES.
