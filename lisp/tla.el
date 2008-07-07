@@ -4604,11 +4604,11 @@ If FORCE is non-nil, don't ask for confirmation."
 (defmacro tla--bookmarks-make-edit-fn (name field read-fn)
   "Define an interactive function called NAME for editing FIELD of a bookmark
 entry."
+  (declare (indent 2) (debug (&define name form function-form)))
   `(defun ,name (bookmarks value &optional dont-save)
      "Adds the directory VALUE to the list of local trees of bookmark
 BOOKMARK.
 Unless DONT-SAVE is non-nil, save the bookmark file."
-     (declare (indent 2) (debug (&define name form function-form)))
      (interactive
       (let* ((bookmarks (or tla-bookmarks-marked-list
                             (list (ewoc-data (ewoc-locate
