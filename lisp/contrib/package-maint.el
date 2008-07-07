@@ -244,12 +244,9 @@ remove load-file and cus-load-file if not specified."
 (defun package-maint-load-files (files)
   "Load FILES"
   (dolist (file files)
-	(condition-case err
-		(load (expand-file-name file srcdir) t t t)
-	  (error
-	   (message (format "Error loading %s: %s"
-			    (expand-file-name file srcdir) err))
-	   (backtrace)))))
+    ;; Don't use `condition-case' to mask errors; we want them to signal
+    ;; normally (in batch mode, this kills emacs w/ non-zero exit status).
+    (load (expand-file-name file srcdir) nil nil t)))
 
 (defun package-maint-get-file-dep (file)
   "Return a list with CAR the FILE and CDR the list of FILES required.
