@@ -35,6 +35,7 @@
   (let ((map (copy-keymap diff-mode-shared-map)))
     (define-key map dvc-keyvec-help 'describe-mode)
     (define-key map [?g] 'xhg-log)
+    (define-key map [?R] 'xhg-rollback)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
     (define-key map [?e] 'xhg-export)
     (define-key map [?E] 'xhg-export-via-mail)

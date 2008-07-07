@@ -69,6 +69,42 @@
                                     (output error status arguments)
                                   (message "hg revert finished")))))
 
+(defun xhg-dry-tip ()
+  "Extract only the revision number of tip"
+  (let ((revision (with-temp-buffer
+                    (apply #'call-process "hg" nil t nil
+                           '("tip" "--template" "#rev#"))
+                    (buffer-string))))
+    revision))
+
+;;;###autoload
+(defun xhg-rollback (&optional revert)
+  "Run hg rollback.
+if prefix-arg (C-u) run hg revert"
+  (interactive "P")
+  (let ((act-rev (xhg-dry-tip))
+        (new-rev))
+    (if (yes-or-no-p (format "Really rollback rev %s?" act-rev))
+        (progn
+          (dvc-run-dvc-sync 'xhg (list "rollback")
+                            :finished
+                            (lambda (output error status arguments)
+                              (setq new-rev (xhg-dry-tip))
+                              (message
+                               (when (equal act-rev new-rev)
+                                           "no rollback information available"))))
+          (if (and current-prefix-arg
+                   (not (equal act-rev new-rev)))
+              (progn
+                (dvc-run-dvc-sync 'xhg (list "revert" "--all")
+                                  :finished
+                                  (lambda (output error status arguments)
+                                    (message "hg revert finished, now at rev %s" new-rev))))
+            (when (not (equal act-rev new-rev))
+              (message
+               "hg rollback finished, tip is now at %s don't forget to revert" new-rev))))
+      (message "hg rollback aborted"))))
+
 ;;;###autoload
 (defun xhg-dvc-remove-files (&rest files)
   "Run hg remove."
