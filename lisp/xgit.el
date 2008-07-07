@@ -503,8 +503,11 @@ When called with a prefix argument, ask for the pull source."
   (when reset-parameters
     (setq xgit-pull-result nil))
   (goto-char (point-min))
-  (when (looking-at "Updating \\([0-9a-z]+\\)\.\.\\([0-9a-z]+\\)")
-    (setq xgit-pull-result (list (match-string 1) (match-string 2)))))
+  (cond ((looking-at "Updating \\([0-9a-z]+\\)\.\.\\([0-9a-z]+\\)")
+         (setq xgit-pull-result (list (match-string 1) (match-string 2)))
+         (message "Execute M-x xgit-whats-new to see the arrived changes."))
+        ((looking-at "Already up-to-date.")
+         (message "Already up-to-date."))))
 
 (defun xgit-whats-new ()
   "Show the changes since the last git pull."
