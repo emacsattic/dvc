@@ -271,6 +271,7 @@ FILE is filename in repostory to filter logs by matching filename."
 (defvar xgit-changelog-font-lock-keywords
   (append
    '(("^commit " . font-lock-function-name-face)
+     ("^Merge:" . font-lock-function-name-face)
      ("^Author:" . font-lock-function-name-face)
      ("^Date:" . font-lock-function-name-face))
    diff-font-lock-keywords)
