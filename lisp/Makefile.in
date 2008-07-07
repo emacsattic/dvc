@@ -38,10 +38,12 @@ EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" buildd
 SYMLINKS = @SYMLINKS@
 LINKPATH = @LINKPATH@
 
-all: dvc-version.el dvc-site.el clean-some autoloads
+alldeps = dvc-version.el dvc-site.el clean-some autoloads
+
+all: $(alldeps)
 	$(EMACS_COMP) -f package-maint-compile
 
-all-verbose: dvc-version.el clean-some autoloads
+all-verbose: $(alldeps)
 	$(EMACS_COMP) -f package-maint-compile-verbosely
 
 install: install-el install-elc
