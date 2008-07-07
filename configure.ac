@@ -19,9 +19,6 @@
 
 # Process this file with autoconf to produce a new configure script
 
-m4_define([DVC_PRE_INIT],
-[ m4_define([DVC_VERSION], 0) ])
-
 # DVC_ARG_SUBST(VAR, OPTION, VAL, DESC[, DEFAULT[, ACTION]])
 #
 # Substitute the autoconf variable VAR to a value specified by the user
@@ -311,21 +308,8 @@ TEST
     AC_SUBST(HAS_TREE_WIDGET)
   ])
 
-dnl dnl AC_DEFUN([DVC_RELEASE_ID],
-dnl dnl         [ AC_MSG_CHECKING(for release ID)
-dnl dnl           AC_ARG_WITH([release-id],
-dnl dnl             AC_HELP_STRING([--with-release-id=ID],
-dnl dnl             [Version number for an official release]),
-dnl dnl             [ RELEASE_ID="${withval}";
-dnl dnl               AC_MSG_RESULT(${RELEASE_ID})],
-dnl dnl             [ RELEASE_ID="";
-dnl dnl               AC_MSG_RESULT(none)])]
-dnl dnl           AC_SUBST(RELEASE_ID))
-
-
 ##############################################################################
-DVC_PRE_INIT
-AC_INIT([DVC], [DVC_VERSION], [dvc-dev@gna.org])
+AC_INIT([DVC], [0], [dvc-dev@gna.org])
 
 # It seems that the latest GNU Emacs sets --always-color to GREP_OPTIONS (for M-x grep?).
 # So configure will confuse if it is run from emacs's *shell*.
@@ -369,7 +353,6 @@ DVC_PROG_MAKEINFO
 DVC_PROG_TEXI2DVI
 DVC_OTHERDIRS
 DVC_HAS_TREE_WIDGET
-dnl dnl DVC_RELEASE_ID
 
 # is there a sane way to set this to a useful default?
 DVC_ARG_SUBST([PACKAGEDIR], [package-dir], [DIR],

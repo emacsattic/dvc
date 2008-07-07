@@ -1,5 +1,8 @@
 @SET_MAKE@
 
+top_srcdir = @top_srcdir@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+
 ##############################################################################
 # location of required programms
 RM   = @RM@
@@ -101,30 +104,3 @@ distclean: clean
 
 .PHONY: pdf dvi html info clean distclean install-pkg uninstall-pkg all
 
-BZR_DIR_EXISTS=${shell if [ -r '@top_srcdir@/.bzr' ]; then printf "%s" yes; else printf "%s" no; fi }
-BZR_REVISION_CMD=cd @top_srcdir@ && $(BZR) version-info | sed -ne 's/^revision-id: //p'
-
-ifeq ($(BZR_DIR_EXISTS),yes)
-dvc-version.texinfo: @top_srcdir@/.bzr
-	$(RM) -f $@
-	printf "%s" "@verbatim " >> $@
-	if [ "x$(RELEASE_ID)" != "x" ]; then                         \
-		printf "%s (%s)" $(RELEASE_ID)                       \
-		`$(BZR_REVISION_CMD)` >> $@;                         \
-	else                                                         \
-		($(BZR_REVISION_CMD)) >> $@;                         \
-	fi
-	@echo >> $@
-	@echo "@end verbatim" >> $@
-	chmod -w $@
-else
-dvc-version.texinfo:
-	$(RM) -f $@
-	@echo "*** Warning: Unknown DVC arch release"
-	if [ "x$(RELEASE_ID)" != "x" ]; then         \
-		printf "%s" "$(RELEASE_ID)" >> $@;   \
-	else                                         \
-		printf "%s" "Unknown version" >> $@; \
-	fi
-	chmod -w $@
-endif

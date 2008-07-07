@@ -16,6 +16,8 @@
 Copyright (c) 2004-2005, 2007, 2008 The DVC Development Team
 @end ifinfo
 
+@include dvc-version.texinfo
+
 @titlepage
 @title DVC User Manual
 @subtitle The Emacs interface to Distributed Version Control Systems
@@ -25,9 +27,8 @@ Copyright (c) 2004-2005, 2007, 2008 The DVC Development Team
 Copyright @copyright{} 2004-2005 The DVC Development Team
 
 @sp 2
-This is edition
-@include dvc-version.texinfo
-of the User Manual for @cite{DVC}
+This is the @value{UPDATED} edition
+of the User Manual for @cite{DVC} @value{VERSION}.
 
 @sp 2
 
