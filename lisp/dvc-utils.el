@@ -573,7 +573,7 @@ it is a valid project tree."
       (always (dvc-tree-root (dvc-read-directory-name prompt)))
 
       (unless-specified
-       (if (or directory prefer-current)
+       (if (or directory (and prefer-current root))
            (if root
                root
              (error "%s directory is not a DVC managed directory" directory))

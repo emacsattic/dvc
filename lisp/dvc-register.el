@@ -137,6 +137,7 @@ backend, use dvc-<prefix> instead."
 ;;;###autoload
 (defun dvc-apply (postfix &rest args)
   "Apply ARGS to the `dvc-current-active-dvc' concated with POSTFIX."
+  ;; dvc-current-active-dvc does not prompt for the local tree
   (let ((current-dvc (dvc-current-active-dvc)))
     (if current-dvc
         ;; We bind dvc-temp-current-active-dvc here so functions that
@@ -144,9 +145,15 @@ backend, use dvc-<prefix> instead."
         ;; get the right back-end.
         (let ((dvc-temp-current-active-dvc current-dvc))
           (apply 'apply (dvc-function current-dvc postfix) args))
+
+      ;; no current dvc found; prompt for tree
       (let ((default-directory
               (dvc-read-directory-name "Local tree: ")))
-        (apply 'dvc-apply postfix args)))))
+        (if (dvc-current-active-dvc nil t)
+            (apply 'dvc-apply postfix args)
+          ;; user thinks this directory is a DVC directory; don't just
+          ;; keep prompting.
+          (error "%s is not a DVC managed directory" default-directory))))))
 
 ;;;###autoload
 (defun dvc-call (postfix &rest args)

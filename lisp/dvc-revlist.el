@@ -363,7 +363,9 @@ Function used to get the revision info at point")
 (easy-menu-define dvc-revlist-mode-menu dvc-revlist-mode-map
   "`dvc-revlist' menu"
   '("DVC-Revlist"
-    ["Update" dvc-revlist-update t]
+    ["Diff single rev" dvc-revlist-diff t]
+    ["Diff with workspace" dvc-revlist-diff-to-current-tree t]
+    ["Update to rev at point" dvc-revlist-update t]
     ["Merge"  dvc-merge          t]
     ))
 
