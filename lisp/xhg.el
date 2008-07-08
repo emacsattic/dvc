@@ -378,15 +378,19 @@ If DONT-SWITCH, don't switch to the diff buffer"
                      :finished 'xhg-push-finish-function))
 
 ;;;###autoload
-(defun xhg-clone (src &optional dest noupdate rev pull)
+(defun xhg-clone (src &optional dest rev noupdate pull)
   "Run hg clone."
   (interactive (list (read-string "hg clone from: ")
-                     nil ;; dest
+                     (read-string "hg clone to: ")
+                     (if current-prefix-arg
+                         (read-string "hg revision: ") ;; rev
+                       nil)
                      nil ;; noupdate
-                     nil ;; rev
                      nil ;; pull
                      ))
-  (dvc-run-dvc-async 'xhg (list "clone" src dest)))
+  (if rev
+      (dvc-run-dvc-async 'xhg (list "clone" "--rev" rev src dest))
+    (dvc-run-dvc-async 'xhg (list "clone" src dest))))
 
 ;;;###autoload
 (defun xhg-incoming (&optional src show-patch no-merges)

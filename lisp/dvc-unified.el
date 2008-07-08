@@ -119,9 +119,9 @@ not &rest."
                                           ,@(remove '&optional args)))))
 
 ;;;###autoload
-(defun dvc-clone (&optional dvc source-path dest-path)
+(defun dvc-clone (&optional dvc source-path dest-path rev)
   "Ask for the DVC to use and clone SOURCE-PATH."
-  (interactive)
+  (interactive "P")
   (when (interactive-p)
     (let* ((ffap-url-regexp
             (concat
@@ -145,11 +145,17 @@ not &rest."
       (setq source-path (read-string (format "%S-clone from path: " dvc) url-at-point))
       (setq dest-path (expand-file-name (dvc-read-directory-name
                                          (format "Destination Directory for %S-clone: " dvc)
-                                         nil nil nil "<default>")))))
+                                         nil nil nil "<default>")))
+      (if current-prefix-arg
+          (unless (not (eq dvc 'xhg))
+            (setq rev (read-string "FromRevision: ")))
+        nil)))
   (let ((default-directory (or (file-name-directory dest-path) default-directory)))
     (when (string= (file-name-nondirectory dest-path) "<default>")
       (setq dest-path nil))
-    (funcall (dvc-function dvc "dvc-clone") source-path dest-path)))
+    (if rev
+        (funcall (dvc-function dvc "dvc-clone") source-path dest-path rev)
+      (funcall (dvc-function dvc "dvc-clone") source-path dest-path))))
 
 ;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)

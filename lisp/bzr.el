@@ -100,6 +100,7 @@ via bzr init-repository."
                                  (message "bzr init-repository '%s' finished" dir)))
   dir)
 
+;;;###autoload
 (defun bzr-checkout (branch-location to-location &optional lightweight revision)
   "Run bzr checkout."
   (interactive
@@ -115,15 +116,22 @@ via bzr init-repository."
           (lw (y-or-n-p "Do a lightweight checkout? "))
           (rev nil))
      (list branch-loc to-loc lw rev)))
+  (if current-prefix-arg
+      (setq revision (read-string "FromRevision: "))
+    (setq revision nil))
   (dvc-run-dvc-sync 'bzr (list "checkout"
                                (when lightweight "--lightweight")
-                               branch-location to-location)
+                               branch-location
+                               to-location
+                               (when revision "-r")
+                               revision)
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
-                                (message "bzr checkout%s %s -> %s finished"
+                                (message "bzr checkout%s %s at rev %s -> %s finished"
                                          (if lightweight " --lightweight" "")
-                                         branch-location to-location)
+                                         branch-location revision to-location)
                                 (dired to-location))))
+
 
 ;;;###autoload
 (defun bzr-pull (&optional repo-path)
