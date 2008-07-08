@@ -103,7 +103,7 @@
                      ;; make the generated code harder to understand
                      ;; when debugging expansions.
                      (if (or
-                          (not (xmtn-match--contains-match-variable-p 
+                          (not (xmtn-match--contains-match-variable-p
                                 subsubpattern var-name-prefix-char))
                           (etypecase subsubpattern
                             (cons nil)

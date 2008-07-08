@@ -71,6 +71,7 @@
 (defmacro* xmtn--with-automate-command-output-basic-io-parser
     ((parser root-form command-form &key ((:may-kill-p may-kill-p-form)))
      &body body)
+  (declare (indent 1) (debug (sexp body)))
   (let ((parser-tmp (gensym))
         (root (gensym))
         (command (gensym))

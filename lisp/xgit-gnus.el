@@ -78,6 +78,7 @@ patches from the entire message."
                                  ".patch"))
         (window-conf (current-window-configuration))
         (err-occurred nil)
+        (trigger-commit nil)
         working-dir patch-buffer)
     (gnus-summary-show-article 'raw)
     (gnus-summary-select-article-buffer)
@@ -91,9 +92,7 @@ patches from the entire message."
         (dolist (m xgit-apply-patch-mapping)
           (when (looking-at (car m))
             (setq working-dir (dvc-uniquify-file-name (cadr m)))
-            (throw 'found t)))
-        (error (concat "Unable to find an matching entry in"
-                       " `xgit-apply-patch-mapping'"))))
+            (throw 'found t)))))
     (gnus-summary-show-article)
     (delete-other-windows)
     (dvc-buffer-push-previous-window-config)
@@ -101,19 +100,57 @@ patches from the entire message."
     (setq patch-buffer (current-buffer))
     (setq working-dir (dvc-read-directory-name "Apply git patch to: "
                                                nil nil t working-dir))
+    (when working-dir
+      (setq working-dir (file-name-as-directory working-dir)))
     (unwind-protect
         (progn
           (when working-dir
             (let ((default-directory working-dir))
-              (xgit-apply-mbox patch-file-name force)))
+              (if (or (xgit-lookup-external-git-dir)
+                      (file-exists-p ".git/"))
+                  ;; apply the patch and commit if it applies cleanly
+                  (xgit-apply-mbox patch-file-name force)
+                ;; just apply the patch, since we might not be in a
+                ;; git repo
+                (xgit-apply-patch patch-file-name)
+                (setq trigger-commit t))))
           (set-window-configuration window-conf)
-          (when (and working-dir
-                     (y-or-n-p "Run git log in working directory? "))
-            (xgit-log working-dir nil)
-            (delete-other-windows)))
+          (when working-dir
+            (if trigger-commit
+                (xgit-gnus-stage-patch-for-commit working-dir patch-buffer)
+              (when (y-or-n-p "Run git log in working directory? ")
+                (xgit-log working-dir nil)
+                (delete-other-windows)))))
       ;; clean up temporary file
       (delete-file patch-file-name)
       (kill-buffer patch-buffer))))
+
+(defun xgit-gnus-stage-patch-for-commit (working-dir patch-buffer)
+  "Switch to directory WORKING-DIR and set up a commit based on the patch
+contained in PATCH-BUFFER."
+  (let ((default-directory working-dir))
+    (destructuring-bind (subject body)
+        (with-current-buffer patch-buffer
+          (let (subject body)
+            (goto-char (point-min))
+            (when (re-search-forward "^Subject: *\\(.+\\)$" nil t)
+              (setq subject (match-string 1)))
+            (goto-char (point-min))
+            (when (re-search-forward "^$" nil t)
+              (forward-line 1)
+              (let ((beg (point)))
+                (when (re-search-forward "^---$" nil t)
+                  (setq body (buffer-substring beg (match-beginning 0))))))
+            (list subject body)))
+      ;; strip "[COMMIT]" prefix
+      (when (and subject
+                 (string-match "\\`\\[[^]]+\\] *" subject))
+        (setq subject (substring subject (match-end 0))))
+      (message "Staging patch for commit ...")
+      (dvc-diff)
+      (dvc-log-edit)
+      (erase-buffer)
+      (insert subject "\n\n" body))))
 
 (defvar xgit-gnus-status-window-configuration nil)
 (defun xgit-gnus-article-view-status-for-apply-patch (n)
@@ -143,6 +180,8 @@ guess the repository path via `xgit-apply-patch-mapping'."
       (setq working-dir (dvc-read-directory-name
                          "View git repository status for: "
                          nil nil t working-dir)))
+    (when working-dir
+      (setq working-dir (file-name-as-directory working-dir)))
     (let ((default-directory working-dir))
       (xgit-dvc-status)
       (delete-other-windows)

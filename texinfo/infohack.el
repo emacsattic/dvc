@@ -29,7 +29,7 @@
 
 (defun infohack-remove-unsupported ()
   (goto-char (point-min))
-  (while (re-search-forward "@\\(end \\)?ifnottex" nil t) 
+  (while (re-search-forward "@\\(end \\)?ifnottex" nil t)
     (replace-match "")))
 
 (defun infohack (file)
@@ -37,10 +37,10 @@
 	(max-lisp-eval-depth (max max-lisp-eval-depth 600)))
     (find-file file)
     (infohack-remove-unsupported)
-    (texinfo-every-node-update) 
+    (texinfo-every-node-update)
     (texinfo-format-buffer t) ;; Don't save any file.
     (setq default-directory dest-directory)
-    (setq buffer-file-name 
+    (setq buffer-file-name
 	  (expand-file-name (file-name-nondirectory buffer-file-name)
 			    default-directory))
     (if (> (buffer-size) 100000)

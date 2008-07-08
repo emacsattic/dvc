@@ -391,7 +391,7 @@ Commands are:
     (erase-buffer))
   (set (make-local-variable 'dvc-revlist-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
-		     #'dvc-revlist-printer)))
+                     #'dvc-revlist-printer)))
   (toggle-read-only 1)
   (buffer-disable-undo)
   (setq truncate-lines t)

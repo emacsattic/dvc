@@ -69,6 +69,42 @@
                                     (output error status arguments)
                                   (message "hg revert finished")))))
 
+(defun xhg-dry-tip ()
+  "Extract only the revision number of tip"
+  (let ((revision (with-temp-buffer
+                    (apply #'call-process "hg" nil t nil
+                           '("tip" "--template" "#rev#"))
+                    (buffer-string))))
+    revision))
+
+;;;###autoload
+(defun xhg-rollback (&optional revert)
+  "Run hg rollback.
+if prefix-arg (C-u) run hg revert"
+  (interactive "P")
+  (let ((act-rev (xhg-dry-tip))
+        (new-rev))
+    (if (yes-or-no-p (format "Really rollback rev %s?" act-rev))
+        (progn
+          (dvc-run-dvc-sync 'xhg (list "rollback")
+                            :finished
+                            (lambda (output error status arguments)
+                              (setq new-rev (xhg-dry-tip))
+                              (message
+                               (when (equal act-rev new-rev)
+                                           "no rollback information available"))))
+          (if (and current-prefix-arg
+                   (not (equal act-rev new-rev)))
+              (progn
+                (dvc-run-dvc-sync 'xhg (list "revert" "--all")
+                                  :finished
+                                  (lambda (output error status arguments)
+                                    (message "hg revert finished, now at rev %s" new-rev))))
+            (when (not (equal act-rev new-rev))
+              (message
+               "hg rollback finished, tip is now at %s don't forget to revert" new-rev))))
+      (message "hg rollback aborted"))))
+
 ;;;###autoload
 (defun xhg-dvc-remove-files (&rest files)
   "Run hg remove."
@@ -379,7 +415,8 @@ If DONT-SWITCH, don't switch to the diff buffer"
                                (insert-buffer-substring output)
                                (goto-char (point-min))
                                (insert (format "hg incoming for %s\n\n" default-directory))
-                               (toggle-read-only 1)))))
+                               (toggle-read-only 1)
+                               (xhg-log-next 1)))))
                        :error
                        (dvc-capturing-lambda (output error status arguments)
                          (with-current-buffer output
@@ -435,38 +472,82 @@ If DONT-SWITCH, don't switch to the diff buffer"
   "Get a list of all heads available from the output of hg heads."
   (let ((rev-list (with-temp-buffer
                     (apply #'call-process "hg" nil t nil
-                           '("heads"))
-                    (buffer-string)))
-        (new-list nil))
-    (setq rev-list (split-string rev-list "\n"))
-    (dolist (x rev-list)
-      (if (string-match "changeset\:   " x)
-          (when (string-match "[0-9]+?:" x)
-            (push (replace-regexp-in-string ":"
-                                            ""
-                                            (match-string 0 x))
-                  new-list))))
-    new-list))
+                           '("heads"
+                             "--template"
+                             "#rev#\n"))
+                    (buffer-string))))
+    (setq rev-list (cons "auto"
+                         (remove "" (split-string rev-list "\n"))))
+    rev-list))
+
+(defun xhg-changep ()
+  (let ((change (with-temp-buffer
+                  (apply #'call-process "hg" nil t nil
+                         '("diff"))
+                  (buffer-string))))
+    (setq change (remove "" (split-string change "\n")))
+    (if change
+        t
+      nil)))
 
 ;;;###autoload
-(defun xhg-merge (&optional revision)
+(defun xhg-merge (&optional xhg-use-imerge)
   "Run hg merge. called with prefix argument (C-u)
-ask for specific revision with completion"
+use extension hg imerge.
+Be sure to enable it in .hgrc:
+,----
+| [extensions]
+| imerge =
+`----
+To merge from specific revision, choose it in completion.
+If `auto' is choose use default revision (last)"
   (interactive "P")
-  (if current-prefix-arg
-      (progn
-        (setq revision
-              (dvc-completing-read "Merge from hg revision: "
-                                   (xhg-get-all-heads-list)))
-        (when (string= revision "")
-          (setq revision nil)))
-    (setq revision nil))
-  (dvc-run-dvc-async 'xhg (list "merge" revision)
-                     :finished
-                     (dvc-capturing-lambda (output error status arguments)
-                       (message "hg merge finished => %s"
-                                (concat (dvc-buffer-content error)
-                                        (dvc-buffer-content output))))))
+  (let* ((xhg-use-imerge (if current-prefix-arg
+                             t
+                           nil))
+         (haschange (xhg-changep))
+         (collection (xhg-get-all-heads-list))
+         (revision (dvc-completing-read "Merge from hg revision: "
+                                        collection nil t))
+         (arg)
+         (command (if xhg-use-imerge
+                      'dvc-run-dvc-sync
+                    'dvc-run-dvc-async)))
+
+    (when (or (string= revision "")
+              (string= revision "auto"))
+      (setq revision nil))
+    (setq arg (if xhg-use-imerge
+                  (if revision
+                      '("imerge" "--rev")
+                    '("imerge"))
+                (if revision
+                    '("merge" "--rev")
+                  '("merge"))))
+    (if (and (not haschange)
+             (> (length collection) 2))
+        (funcall command 'xhg `(,@arg ,revision)
+                 :finished
+                 (dvc-capturing-lambda (output error status arguments)
+                   (message "hg %s %s %s finished => %s"
+                            (nth 0 arg)
+                            (if revision
+                                (nth 1 arg)
+                              "")
+                            (if revision
+                                revision
+                              "")
+                            (concat (dvc-buffer-content error)
+                                    (dvc-buffer-content output))))
+                 :error
+                 ;; avoid dvc-error buffer to appear in ediff
+                 (lambda (output error status arguments)
+                   nil))
+      (when haschange
+        (error "abort: outstanding uncommitted merges, Please commit before merging"))
+      (when (<= (length collection) 2)
+        (error "There is nothing to merge here")))))
+
 
 (defun xhg-command-version ()
   "Run hg version."
@@ -624,7 +705,8 @@ otherwise: Return a list of two element sublists containing alias, path"
 ;;;###autoload
 (defun xhg-import (patch-file-name &optional force)
   "Run hg import."
-  (interactive (list (read-file-name "Import hg patch: " nil nil t)))
+  (interactive (list (read-file-name "Import hg patch: " nil nil t (when (eq major-mode 'dired-mode)
+                                                                     (file-name-nondirectory (dired-get-filename))))))
   (dvc-run-dvc-sync 'xhg (delete nil (list "import" (when force "--force") (expand-file-name patch-file-name)))
                     :finished
                     (lambda (output error status arguments)
@@ -742,6 +824,33 @@ LAST-REVISION looks like
     (insert (dvc-run-dvc-sync
              'xhg (list "cat" file)
              :finished 'dvc-output-buffer-handler-withnewline))))
+
+;;;###autoload
+(defun xhg-revision-get-last-or-num-revision (infile outfile &optional revision)
+  "Run the command:
+hg cat --rev <num revision> -o outputfile inputfile"
+  (interactive
+   (let* ((xhg-infile (read-file-name "InputFile: "))
+          (xhg-outfile (read-file-name "OutputFile: "))
+          (xhg-rev (if current-prefix-arg
+                       (read-string "Revision: ")
+                     "tip")))
+     (setq xhg-infile (expand-file-name xhg-infile)
+           xhg-outfile (concat (expand-file-name xhg-outfile)
+                               "."
+                               xhg-rev))
+     (list xhg-infile xhg-outfile xhg-rev)))
+  (dvc-run-dvc-sync 'xhg (list "cat"
+                               "--rev"
+                               revision
+                               "-o"
+                               outfile
+                               infile)
+                    :finished 'dvc-output-buffer-handler-withnewline)
+  (message "%s extracted in %s at revision %s"
+           (file-name-nondirectory infile)
+           (file-relative-name outfile)
+           revision))
 
 ;; --------------------------------------------------------------------------------
 ;; higher level commands

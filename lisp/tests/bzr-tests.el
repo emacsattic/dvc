@@ -119,7 +119,7 @@ the test file."
        (dvc-revlist-diff))))
 
   )
-;(elunit "bzr")
+;;(elunit "bzr")
 
 (defsuite bzr-one
   (log
@@ -128,7 +128,7 @@ the test file."
       (&key &allow-other-keys)
       (dvc-diff))))
 )
-;(elunit "bzr-one")
+;;(elunit "bzr-one")
 
 (provide 'bzr-tests)
 ;;; bzr-tests.el ends here

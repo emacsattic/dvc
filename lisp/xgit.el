@@ -410,6 +410,10 @@ This reset the index to HEAD, but doesn't touch files."
       '(xgit (index))
     `(xgit (last-revision ,path 1))))
 
+;; TODO offer completion here, e.g. xgit-tag-list
+(defun xgit-read-revision-name (prompt)
+  (read-string prompt))
+
 ;;;###autoload
 (defun xgit-dvc-diff (&optional against-rev path dont-switch)
   (interactive (list nil nil current-prefix-arg))
@@ -438,6 +442,18 @@ This reset the index to HEAD, but doesn't touch files."
   (xgit-diff-1 `(xgit (local-tree ,path))
                path dont-switch
                `(xgit (last-revision ,path 1))))
+
+;;;###autoload
+(defun xgit-diff2 (base-rev against-rev &optional path dont-switch)
+  "Call \"git diff BASE-REV AGAINST-REV\"."
+  (interactive (list
+                (xgit-read-revision-name "Base Revision: ")
+                (xgit-read-revision-name "Against Revision: ")
+                nil
+                current-prefix-arg))
+  (xgit-diff-1 `(xgit (revision ,against-rev))
+               path dont-switch
+               `(xgit (revision ,base-rev))))
 
 (defvar xgit-prev-format-string "%s~%s"
   "This is a format string which is used by `dvc-revision-to-string'
@@ -475,7 +491,29 @@ When called with a prefix argument, ask for the pull source."
   (when (interactive-p)
     (when current-prefix-arg
       (setq repository (read-string "Git pull from: "))))
-  (dvc-run-dvc-async 'xgit (list "pull" repository)))
+  (dvc-run-dvc-async 'xgit (list "pull" repository)
+                     :finished
+                     (dvc-capturing-lambda (output error status arguments)
+                       (with-current-buffer output
+                         (xgit-parse-pull-result t)))))
+
+(defvar xgit-pull-result nil)
+(defun xgit-parse-pull-result (reset-parameters)
+  "Parse the output of git pull."
+  (when reset-parameters
+    (setq xgit-pull-result nil))
+  (goto-char (point-min))
+  (cond ((looking-at "Updating \\([0-9a-z]+\\)\.\.\\([0-9a-z]+\\)")
+         (setq xgit-pull-result (list (match-string 1) (match-string 2)))
+         (message "Execute M-x xgit-whats-new to see the arrived changes."))
+        ((looking-at "Already up-to-date.")
+         (message "Already up-to-date."))))
+
+(defun xgit-whats-new ()
+  "Show the changes since the last git pull."
+  (interactive)
+  (when xgit-pull-result
+    (xgit-changelog (car xgit-pull-result) (cadr xgit-pull-result) t)))
 
 (defun xgit-split-out-added-files (files)
   "Remove any files that have been newly added to git from FILES.
@@ -652,9 +690,43 @@ FILE is filename in the repository at DIR."
     (xgit-do-annotate default-directory filename)
     (goto-line line)))
 
+(defun xgit-tag-list ()
+  "Run \"git tag\" and list all defined tags"
+  (interactive)
+  (if (interactive-p)
+      (dvc-run-dvc-display-as-info 'xgit (list "tag"))
+    (dvc-run-dvc-sync 'xgit (list "tag")
+                      :finished 'dvc-output-buffer-split-handler)))
+
+(defun xgit-branch-list (&optional all)
+  "Run \"git branch\" and list all known branches.
+When ALL is given, show all branches, using \"git branch -a\"."
+  (interactive "P")
+  (if (interactive-p)
+      (dvc-run-dvc-display-as-info 'xgit (list "branch" (when all "-a")))
+    (dvc-run-dvc-sync 'xgit (list "branch" (when all "-a"))
+                      :finished 'dvc-output-buffer-split-handler)))
+
+;;;###autoload
+(defun xgit-apply-patch (file)
+  "Run \"git apply\" to apply the contents of FILE as a patch."
+  (interactive (list (dvc-confirm-read-file-name
+                      "Apply file containing patch: " t)))
+  (dvc-run-dvc-sync 'xgit
+                    (list "apply" (expand-file-name file))
+                    :finished
+                    (lambda (output error status arguments)
+                      (message "Imported git patch from %s" file))
+                    :error
+                    (lambda (output error status arguments)
+                      (dvc-show-error-buffer error)
+                      (error "Error occurred while applying patch(es)"))))
+
 ;;;###autoload
 (defun xgit-apply-mbox (mbox &optional force)
-  "Run git am to apply the contents of MBOX as one or more patches."
+  "Run \"git am\" to apply the contents of MBOX as one or more patches.
+If this command succeeds, it will result in a new commit being added to
+the current git repository."
   (interactive (list (dvc-confirm-read-file-name
                       "Apply mbox containing patch(es): " t)))
   (dvc-run-dvc-sync 'xgit

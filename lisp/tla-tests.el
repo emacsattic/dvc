@@ -174,6 +174,7 @@ Log messages are written to the tests log buffer."
 
 (defmacro tla-write-to-file (filename &rest forms)
   "In buffer visiting FILENAME, evaluate FORMS, save and kill the buffer."
+  (declare (indent 1) (debug (form body)))
   (let ((buf (dvc-gensym)))
     `(let ((,buf (find-file-noselect ,filename)))
        (unwind-protect
@@ -181,7 +182,6 @@ Log messages are written to the tests log buffer."
              ,@forms
              (save-buffer))
          (kill-buffer ,buf)))))
-(put 'tla-write-to-file 'lisp-indent-function 1)
 
 (defun tla-tests-make-dummy-project ()
   "Create a dummy project, import and commit it to the archive."

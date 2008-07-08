@@ -489,7 +489,7 @@ or closing are applied recursively."
       (when recursive
         (tla--widget-node-toggle-subtree-recursion widget 'open)))
      ((or (eq force 'close)
-	  (and (not force)
+          (and (not force)
                (widget-get (widget-get widget :parent) :open)))
       (when (and recursive
                  (widget-get (widget-get widget :parent) :open))
@@ -549,12 +549,12 @@ Original documents say:
 WIDGET is a `tree-widget-node-handle-widget' and its parent the
 `tree-widget' itself.  IGNORE other arguments.\""
   (let* ((parent (widget-get widget :parent))
-	 ;; Original code
-	 ; (open   (widget-value widget))
-	 ;; Here `parent' is used instead of `widget'.
-	 (open   (widget-value parent)))
+         ;; Original code
+         ;;(open   (widget-value widget))
+         ;; Here `parent' is used instead of `widget'.
+         (open   (widget-value parent)))
     (if open
-	(tree-widget-children-value-save parent))
+        (tree-widget-children-value-save parent))
     (widget-put parent :open (not open))
     (widget-value-set parent (not open))
     (run-hook-with-args 'tree-widget-after-toggle-functions parent)))
@@ -1012,11 +1012,11 @@ Unmark widgets not associated with the default archive.
                             category
                             'prompt)))
     (tla-make-branch (tla--name-archive l)
-		     (tla--name-category l)
-		     (tla--name-branch l))
+                     (tla--name-category l)
+                     (tla--name-branch l))
     (tla--widget-node-refresh 1 nil
-			      (tla--name-archive l)
-			      (tla--name-category l))
+                              (tla--name-archive l)
+                              (tla--name-category l))
     (tla--browse-open t
                       (tla--name-archive l)
                       (tla--name-category l)
@@ -1101,9 +1101,9 @@ Unmark widgets not associated with the default archive.
   (interactive)
   (let ((name (tla--widget-node-get-name)))
     (tla--widget-node-refresh 1 nil
-			      (tla--name-archive name)
-			      (tla--name-category name)
-			      (tla--name-branch name))))
+                              (tla--name-archive name)
+                              (tla--name-category name)
+                              (tla--name-branch name))))
 
 (defun tla--widget-branch-node-make-version ()
   "Make new version in the branch under the point."
@@ -1118,13 +1118,13 @@ Unmark widgets not associated with the default archive.
                             branch
                             'prompt)))
     (tla-make-version (tla--name-archive l)
-		      (tla--name-category l)
-		      (tla--name-branch l)
-		      (tla--name-version l))
+                      (tla--name-category l)
+                      (tla--name-branch l)
+                      (tla--name-version l))
     (tla--widget-node-refresh 1 nil
-			      (tla--name-archive l)
-			      (tla--name-category l)
-			      (tla--name-branch l))
+                              (tla--name-archive l)
+                              (tla--name-category l)
+                              (tla--name-branch l))
     (tla--browse-open t
                       (tla--name-archive l)
                       (tla--name-category l)
@@ -1135,9 +1135,9 @@ Unmark widgets not associated with the default archive.
   "Run `tla get' against the branch at point."
   (interactive)
   (let* ((name (tla--widget-node-get-name))
-	 (archive (tla--name-archive name))
-	 (category (tla--name-category name))
-	 (branch (tla--name-branch name))
+         (archive (tla--name-archive name))
+         (category (tla--name-category name))
+         (branch (tla--name-branch name))
          (directory (expand-file-name
                      (dvc-read-directory-name
                       (format "Restore \"%s\" to: "
@@ -1253,19 +1253,19 @@ If POINT is nil, use the point under `point'."
   (interactive)
   (let ((name (tla--widget-node-get-name (or point (point)))))
     (tla-revisions (tla--name-archive name)
-		   (tla--name-category name)
-		   (tla--name-branch name)
-		   (tla--name-version name)
-		   nil nil)))
+                   (tla--name-category name)
+                   (tla--name-branch name)
+                   (tla--name-version name)
+                   nil nil)))
 
 (defun tla--widget-version-node-get-version ()
   "Run \"tla get\" against the version at point."
   (interactive)
   (let* ((name (tla--widget-node-get-name))
-	 (archive (tla--name-archive name))
-	 (category (tla--name-category name))
-	 (branch (tla--name-branch name))
-	 (version (tla--name-version name))
+         (archive (tla--name-archive name))
+         (category (tla--name-category name))
+         (branch (tla--name-branch name))
+         (version (tla--name-version name))
          (directory (expand-file-name
                      (dvc-read-directory-name
                       (format "Restore \"%s\" to: "
@@ -1280,17 +1280,17 @@ If POINT is nil, use the point under `point'."
                  archive
                  category
                  branch
-		 version)
+                 version)
       (error "No version under the point"))))
 
 (defun tla--widget-version-node-add-to-library ()
   "Run \"tla library-add\" against the version at point."
   (interactive)
   (let* ((name (tla--widget-node-get-name))
-	 (archive (tla--name-archive name))
-	 (category (tla--name-category name))
-	 (branch (tla--name-branch name))
-	 (version (tla--name-version name)))
+         (archive (tla--name-archive name))
+         (category (tla--name-category name))
+         (branch (tla--name-branch name))
+         (version (tla--name-version name)))
     (if version
         (tla-library-add archive category branch version)
       (error "No version under the point"))))
@@ -1299,10 +1299,10 @@ If POINT is nil, use the point under `point'."
   "Run tla tag from the version under the point."
   (interactive)
   (let* ((from (tla--widget-node-get-name))
-	 (from-fq (tla--name-construct from))
-	 (to   (tla-name-read (format "Tag from `%s' to: " from-fq)
+         (from-fq (tla--name-construct from))
+         (to   (tla-name-read (format "Tag from `%s' to: " from-fq)
                               'prompt 'prompt 'prompt 'prompt))
-	 (to-fq (tla--name-construct to)))
+         (to-fq (tla--name-construct to)))
     (unless from
       (error "No version under the point"))
     (unless to-fq

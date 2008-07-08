@@ -389,6 +389,7 @@ Local to each buffer, not killed by kill-all-local-variables.")
   "Execute a body of code with keywords bound.
 Each keyword listed in KEYWORDS is bound to its value from PLIST, then
 BODY is evaluated."
+  (declare (indent 1) (debug (sexp sexp body)))
   (flet ((keyword-to-symbol (keyword)
                             (intern (substring (symbol-name keyword) 1))))
     (let ((keyword (make-symbol "keyword"))
@@ -409,8 +410,6 @@ BODY is evaluated."
                   (or (cadr (member ,keyword ,plist))
                       ,default))))
          ,@body))))
-(put 'dvc-with-keywords 'lisp-indent-function 1)
-(put 'dvc-with-keywords 'edebug-form-spec '(sexp sexp body))
 
 
 ;; ----------------------------------------------------------------------------

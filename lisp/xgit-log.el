@@ -271,6 +271,7 @@ FILE is filename in repostory to filter logs by matching filename."
 (defvar xgit-changelog-font-lock-keywords
   (append
    '(("^commit " . font-lock-function-name-face)
+     ("^Merge:" . font-lock-function-name-face)
      ("^Author:" . font-lock-function-name-face)
      ("^Date:" . font-lock-function-name-face))
    diff-font-lock-keywords)
@@ -311,7 +312,7 @@ negative : Don't show patches, limit to n revisions."
       (setq r1 (read-string "git log, R1:"))
       (setq r2 (read-string "git log, R2:"))))
   (let ((buffer (dvc-get-buffer-create 'xgit 'log))
-        (command-list '("log"))
+        (command-list '("log" "--reverse"))
         (cur-dir default-directory))
     (when r1
       (when (numberp r1)
@@ -360,7 +361,10 @@ negative : Don't show patches, limit to n revisions."
   "Move to the previous changeset header of the previous diff hunk"
   (interactive "p")
   (end-of-line)
-  (re-search-backward xgit-changelog-start-regexp)
+  (when (save-excursion
+          (beginning-of-line)
+          (looking-at xgit-changelog-start-regexp))
+    (re-search-backward xgit-changelog-start-regexp))
   (re-search-backward xgit-changelog-start-regexp nil t n)
   (when xgit-changelog-review-recenter-position-on-next-diff
     (recenter xgit-changelog-review-recenter-position-on-next-diff)))

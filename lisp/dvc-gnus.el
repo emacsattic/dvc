@@ -148,6 +148,9 @@ Otherwise `dvc-gnus-apply-patch' is called."
              (setq patch-type 'bzr-merge-or-pull
                    bzr-merge-or-pull-url (match-string-no-properties 1)))
             ((progn (goto-char (point-min))
+                    (re-search-forward "^# Bazaar merge directive format" nil t))
+             (setq patch-type 'bzr-merge-bundle))
+            ((progn (goto-char (point-min))
                     (and (re-search-forward "^---$" nil t)
                          (re-search-forward "^diff --git" nil t)))
              (setq patch-type 'xgit))
@@ -160,6 +163,8 @@ Otherwise `dvc-gnus-apply-patch' is called."
            (xgit-gnus-article-apply-patch n))
           ((eq patch-type 'bzr-merge-or-pull)
            (bzr-merge-or-pull-from-url bzr-merge-or-pull-url))
+          ((eq patch-type 'bzr-merge-bundle)
+           (bzr-gnus-article-merge-bundle n))
           (t
            (let ((dvc-gnus-override-window-config))
              (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)
@@ -168,7 +173,7 @@ Otherwise `dvc-gnus-apply-patch' is called."
 
 (defvar dvc-gnus-select-patch-dir-function nil)
 (defun dvc-gnus-article-apply-patch-with-selected-destination (n)
-  "Apply a patch via ediff.
+  "Apply a patch via the emacs diff-mode.
 Allow to select the target directory from one of
 `dvc-gnus-patch-desitination-candidates'."
   (interactive "p")
@@ -277,17 +282,20 @@ the patch sould be applied."
   (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
         (window-conf (current-window-configuration))
         (patch-buff))
+    (dvc-buffer-push-previous-window-config window-conf)
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
     (diff-mode)
-    (dvc-buffer-push-previous-window-config window-conf)
     (toggle-read-only 1)
     (setq patch-buff (current-buffer))
     (delete-other-windows)
-    (let ((default-directory (dvc-gnus-suggest-apply-patch-directory)))
-      (flet ((ediff-get-default-file-name () default-directory))
-        (ediff-patch-file 2 patch-buff))))
-    (setq dvc-gnus-override-window-config (current-window-configuration)))
+    (setq default-directory (dvc-gnus-suggest-apply-patch-directory))
+    ;; 07.07.2008: applying with ediff only works well when only one file is given.
+    ;; (flet ((ediff-get-default-file-name (&optional default) (if default default default-directory)))
+    ;;   (ediff-patch-file 2 patch-buff))
+    (diff-hunk-next)
+    (message "You can apply the patch hunks now by using C-c C-a.")
+    (setq dvc-gnus-override-window-config (current-window-configuration))))
 
 (defun dvc-gnus-view-patch (handle)
   "View the patch corresponding to HANDLE."

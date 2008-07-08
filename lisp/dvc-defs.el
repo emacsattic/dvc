@@ -40,6 +40,7 @@
 (defmacro dvc-first-set (arg1 arg2)
   "Returns ARG1 if set, non-nil, and not the empty string.
 Otherwise, return ARG2. ARG1 must be a variable."
+  (declare (indent 1) (debug (symbolp form)))
   `(or (and ,(boundp arg1) (when (not (string= ,arg1 ""))
                              ,arg1))
        ,arg2))
@@ -203,8 +204,8 @@ Note that you must set `ido-mode' if using`ido-completing-read'."
 
 (defface dvc-separator
   '((((type tty)) (:underline t :weight bold))
-    ;(((background light)) (:strike-through t :weight bold))
-    ;(((background dark))  (:strike-through t :weight bold)))
+    ;;(((background light)) (:strike-through t :weight bold))
+    ;;(((background dark))  (:strike-through t :weight bold)))
     (((background light)) (:underline t :weight bold))
     (((background dark))  (:underline t :weight bold)))
   "Face to highlight separators."

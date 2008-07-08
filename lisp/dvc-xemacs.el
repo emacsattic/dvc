@@ -34,9 +34,9 @@
 (eval-and-compile
   (require 'overlay)
   (require 'wid-edit)
-; The following require causes a infinite recursion as the (provide ...) is at
-; the file end.  Thus we live with the warnings about unknown variables etc.
-;  (require 'dvc-core)
+  ;; The following require causes a infinite recursion as the (provide ...) is at
+  ;; the file end.  Thus we live with the warnings about unknown variables etc.
+  ;;(require 'dvc-core)
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -73,12 +73,12 @@
           buffer-file)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; the unless check seems to fail
-;(unless (functionp 'replace-regexp-in-string)
+;; the unless check seems to fail
+;;(unless (functionp 'replace-regexp-in-string)
   (defun replace-regexp-in-string (regexp rep string
                                           &optional fixedcase literal)
     (replace-in-string string regexp rep literal))
-;)
+;;)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (unless (functionp 'line-end-position)

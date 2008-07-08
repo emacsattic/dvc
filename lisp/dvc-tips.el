@@ -201,7 +201,7 @@ Commands:
       ;; If mode is single-window, switch to another window (and if
       ;; necessary, split the frame) anyway.
       (when (= (length (window-list)) 1)
-	(split-window-vertically))
+        (split-window-vertically))
       (other-window 1))))
 
 (defun dvc-tips-popup-maybe ()

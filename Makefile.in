@@ -1,5 +1,8 @@
 @SET_MAKE@
 
+PACKAGE_TARNAME = @PACKAGE_TARNAME@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+
 # location of required programms
 TAR = @TAR@
 BZR = @BZR@
@@ -92,11 +95,7 @@ texinfo/dvc-version.texinfo:
 generated-files: lisp/dvc-version.el \
 		 texinfo/dvc-version.texinfo
 
-ifeq ($(RELEASE_ID),)
-TARDIRNAME=dvc-snapshot
-else
-TARDIRNAME=dvc-$(RELEASE_ID)
-endif
+TARDIRNAME = $(PACKAGE_TARNAME)-$(PACKAGE_VERSION)
 
 dist: tarball
 

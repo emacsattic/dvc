@@ -212,6 +212,7 @@ contents of the buffer that BUFFER-FORM evaluates to, or the
 position of point in that buffer, are modified from within BODY
 \(other than by calling the parser\), the parser becomes invalid
 and must not be called any more."
+  (declare (indent 1) (debug (sexp body)))
   (xmtn-basic-io--generate-body-for-with-parser-form
    ;; Use a notinline variant to avoid copying the full parser into
    ;; every user of this macro.  The performance advantage of this
@@ -243,6 +244,7 @@ contents of the buffer that BUFFER-FORM evaluates to, or the
 position of point in that buffer, are modified from within BODY
 \(other than by calling the parser\), the parser becomes invalid
 and must not be called any more."
+  (declare (indent 1) (debug (sexp body)))
   (xmtn-basic-io--generate-body-for-with-parser-form
    'xmtn-basic-io--next-stanza
    stanza-parser buffer-form body))

@@ -258,6 +258,7 @@
 
 (defmacro* xmtn-automate-with-session ((session-var-or-null root-form &key)
                                        &body body)
+  (declare (indent 1) (debug (sexp body)))
   ;; I would prefer to factor out a function
   ;; `xmtn-automate--call-with-session' here, but that would make
   ;; profiler output unreadable, since every function would only
@@ -294,6 +295,7 @@
   "Send COMMAND_FORM (a list of strings, or cons of lists of
 strings) to session SESSION_FORM (current if nil). If car
 COMMAND_FORM is a list, car COMMAND_FORM is options, cdr is command."
+  (declare (indent 1) (debug (sexp body)))
   (let ((session (gensym))
         (command (gensym))
         (may-kill-p (gensym))

@@ -110,6 +110,7 @@ in SPEC if they are nil, returning the result."
 (defmacro define-dvc-unified-command (name args comment &optional interactive)
   "Define a DVC unified command.  &optional arguments are permitted, but
 not &rest."
+  (declare (indent 2) (debug (&define name sexp stringp sexp)))
   `(defun ,name ,args
      ,comment
      ,@(when interactive (list interactive))
@@ -126,7 +127,7 @@ not &rest."
             (concat
              "\\`\\("
              "\\(ftp\\|https?\\|git\\|www\\)://" ; needs host
-             "\\)."				; require one more character
+             "\\)."                             ; require one more character
              ))
            (url-at-point (ffap-url-at-point))
            (all-candidates (map t 'symbol-name dvc-registered-backends))

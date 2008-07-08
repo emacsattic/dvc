@@ -1,5 +1,9 @@
 @SET_MAKE@
 
+top_srcdir = @top_srcdir@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
+
 ##############################################################################
 # location of required programms
 prefix = @prefix@
@@ -38,10 +42,12 @@ EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" buildd
 SYMLINKS = @SYMLINKS@
 LINKPATH = @LINKPATH@
 
-all: dvc-version.el dvc-site.el clean-some autoloads
+alldeps = dvc-version.el dvc-site.el clean-some autoloads
+
+all: $(alldeps)
 	$(EMACS_COMP) -f package-maint-compile
 
-all-verbose: dvc-version.el clean-some autoloads
+all-verbose: $(alldeps)
 	$(EMACS_COMP) -f package-maint-compile-verbosely
 
 install: install-el install-elc
@@ -108,40 +114,14 @@ autoloads:
 
 
 ##############################################################################
-BZR_DIR_EXISTS=${shell if [ -r '@top_srcdir@/.bzr' ]; then printf "%s" yes; else printf "%s" no; fi }
-BZR_REVISION_CMD=cd @top_srcdir@ && $(BZR) version-info | sed -ne 's/^revision-id: //p'
-
-ifeq ($(BZR_DIR_EXISTS),yes)
-dvc-version.el: @top_srcdir@/.bzr $(SRCS:%=@srcdir@/%)
-	$(RM) -f $@
-	echo ';; do not edit -- automatically generated file' > $@
-	echo ';; do not delete -- needed for bug reports' >> $@
-	printf "%s" '(defconst dvc-version "' >> $@
-	if [ "x$(RELEASE_ID)" != "x" ]; then \
-		printf "%s (%s)" $(RELEASE_ID) \
-		`$(BZR_REVISION_CMD)` >> $@; \
-	else \
-		printf "%s" `$(BZR_REVISION_CMD)` >> $@; \
-	fi
-	echo '")' >> $@
-	echo "(provide 'dvc-version)" >> $@
-	chmod -w $@
-else
-dvc-version.el: $(SRCS:%=@srcdir@/%)
-	$(RM) -f $@
-	echo ';; do not edit -- automatically generated file' > $@
-	echo ';; do not delete -- needed for bug reports' >> $@
-	@echo "*** Warning: Unknown bzr release"
-	printf "%s" '(defconst dvc-version "' >> $@
-	if [ "x$(RELEASE_ID)" != "x" ]; then \
-		printf "%s" "$(RELEASE_ID)" >> $@; \
-	else \
-		printf "%s" "Unknown version" >> $@; \
-	fi
-	echo '")' >> $@
-	echo "(provide 'dvc-version)" >> $@
-	chmod -w $@
-endif
+dvc-version.el: $(top_srcdir)/configure
+	@echo Creating $@
+	@( echo ';;; $@ (generated file -- do not edit!)' ; \
+	   echo '(defconst dvc-version "$(PACKAGE_VERSION)"' ; \
+	   echo '  "Version of DVC loaded.' ; \
+	   echo 'Please send bug reports to <$(PACKAGE_BUGREPORT)>.")' ; \
+	   echo "(provide 'dvc-version)" ) \
+	 > $@
 
 dvc-site.el: ../config.status @srcdir@/dvc-site.el.in
 	(cd .. ; ./config.status lisp/$@)

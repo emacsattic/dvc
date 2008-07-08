@@ -35,6 +35,7 @@
   (let ((map (copy-keymap diff-mode-shared-map)))
     (define-key map dvc-keyvec-help 'describe-mode)
     (define-key map [?g] 'xhg-log)
+    (define-key map [?R] 'xhg-rollback)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
     (define-key map [?e] 'xhg-export)
     (define-key map [?E] 'xhg-export-via-mail)
@@ -108,7 +109,10 @@ Commands:
   "Move to the previous changeset header of the previous diff hunk"
   (interactive "p")
   (end-of-line)
-  (re-search-backward xhg-log-start-regexp)
+  (when (save-excursion
+          (beginning-of-line)
+          (looking-at xhg-log-start-regexp))
+    (re-search-backward xhg-log-start-regexp))
   (re-search-backward xhg-log-start-regexp nil t n)
   (when xhg-log-review-recenter-position-on-next-diff
     (recenter xhg-log-review-recenter-position-on-next-diff)))
