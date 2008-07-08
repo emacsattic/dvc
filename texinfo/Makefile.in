@@ -104,3 +104,7 @@ distclean: clean
 
 .PHONY: pdf dvi html info clean distclean install-pkg uninstall-pkg all
 
+dvc-version.texinfo: $(top_srcdir)/configure
+	@echo Creating $@
+	@( echo @set VERSION $(PACKAGE_VERSION) ; \
+	   date +'@set UPDATED %F' -r $< ) > $@ 
