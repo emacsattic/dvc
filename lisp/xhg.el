@@ -42,12 +42,12 @@
   "Run hg init."
   (interactive
    (list (expand-file-name (dvc-read-directory-name "Directory for hg init: "
-                                                     (or default-directory
-                                                         (getenv "HOME"))))))
+                                                    (or default-directory
+                                                        (getenv "HOME"))))))
   (dvc-run-dvc-sync 'xhg (list "init" dir)
-                     :finished (dvc-capturing-lambda
-                                   (output error status arguments)
-                                 (message "hg init %s finished" dir))))
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "hg init %s finished" dir))))
 
 ;;;###autoload
 (defun xhg-dvc-add-files (&rest files)
@@ -92,7 +92,7 @@ if prefix-arg (C-u) run hg revert"
                               (setq new-rev (xhg-dry-tip))
                               (message
                                (when (equal act-rev new-rev)
-                                           "no rollback information available"))))
+                                 "no rollback information available"))))
           (if (and current-prefix-arg
                    (not (equal act-rev new-rev)))
               (progn
@@ -203,16 +203,16 @@ negative : Don't show patches, limit to n revisions."
     ;;(dvc-trace "xhg-log command-list: %S, default-directory: %s" command-list cur-dir)
     (let ((default-directory cur-dir))
       (dvc-run-dvc-sync 'xhg command-list
-                         :finished
-                         (dvc-capturing-lambda (output error status arguments)
-                           (progn
-                             (with-current-buffer (capture buffer)
-                               (let ((inhibit-read-only t))
-                                 (erase-buffer)
-                                 (insert-buffer-substring output)
-                                 (goto-char (point-min))
-                                 (insert (format "hg log for %s\n\n" default-directory))
-                                 (toggle-read-only 1)))))))))
+                        :finished
+                        (dvc-capturing-lambda (output error status arguments)
+                          (progn
+                            (with-current-buffer (capture buffer)
+                              (let ((inhibit-read-only t))
+                                (erase-buffer)
+                                (insert-buffer-substring output)
+                                (goto-char (point-min))
+                                (insert (format "hg log for %s\n\n" default-directory))
+                                (toggle-read-only 1)))))))))
 
 (defun xhg-parse-diff (changes-buffer)
   (save-excursion
@@ -234,7 +234,7 @@ negative : Don't show patches, limit to n revisions."
                               (t " "))
                         (cond ((or added removed) " ")
                               (t "M"))
-                        " " ; dir. Nothing is a directory in hg.
+                        " "             ; dir. Nothing is a directory in hg.
                         nil))))))))
 
 (defun xhg-parse-status (changes-buffer)
@@ -275,10 +275,10 @@ If DONT-SWITCH, don't switch to the diff buffer"
       (when modified
         (setq command-list (append command-list (list "-r" modified)))))
     (dvc-run-dvc-sync 'xhg command-list
-                       :finished
-                       (dvc-capturing-lambda (output error status arguments)
-                         (dvc-show-changes-buffer output 'xhg-parse-diff
-                                                  (capture buffer))))))
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (dvc-show-changes-buffer output 'xhg-parse-diff
+                                                 (capture buffer))))))
 
 ;;;###autoload
 (defun xhg-dvc-diff (&optional base-rev path dont-switch)
@@ -306,16 +306,16 @@ If DONT-SWITCH, don't switch to the diff buffer"
     (dvc-buffer-push-previous-window-config window-conf)
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xhg '("status")
-       :finished
-       (dvc-capturing-lambda (output error status arguments)
-         (with-current-buffer (capture buffer)
-           (xhg-status-extra-mode-setup)
-           (if (> (point-max) (point-min))
-               (dvc-show-changes-buffer output 'xhg-parse-status
-                                        (capture buffer))
-             (dvc-diff-no-changes (capture buffer)
-                                  "No changes in %s"
-                                  (capture root))))))))
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (with-current-buffer (capture buffer)
+                          (xhg-status-extra-mode-setup)
+                          (if (> (point-max) (point-min))
+                              (dvc-show-changes-buffer output 'xhg-parse-status
+                                                       (capture buffer))
+                            (dvc-diff-no-changes (capture buffer)
+                                                 "No changes in %s"
+                                                 (capture root))))))))
 
 (easy-menu-define xhg-mode-menu dvc-diff-mode-map
   "`xhg' menu"
@@ -569,7 +569,7 @@ When called with a prefix argument, ask for the new branch-name, otherwise
 display the current one."
   (interactive "P")
   (let ((branch (dvc-run-dvc-sync 'xhg (list "branch")
-                                   :finished 'dvc-output-buffer-handler)))
+                                  :finished 'dvc-output-buffer-handler)))
     (if (not new-name)
         (progn
           (when (interactive-p)
@@ -585,15 +585,15 @@ display the current one."
   (interactive)
   (let ((buffer (dvc-get-buffer-create 'xhg 'manifest)))
     (dvc-run-dvc-sync 'xhg '("manifest")
-       :finished
-       (dvc-capturing-lambda (output error status arguments)
-         (progn
-           (with-current-buffer (capture buffer)
-             (let ((inhibit-read-only t))
-               (erase-buffer)
-               (insert-buffer-substring output)
-               (toggle-read-only 1)))
-           (dvc-switch-to-buffer (capture buffer)))))))
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (progn
+                          (with-current-buffer (capture buffer)
+                            (let ((inhibit-read-only t))
+                              (erase-buffer)
+                              (insert-buffer-substring output)
+                              (toggle-read-only 1)))
+                          (dvc-switch-to-buffer (capture buffer)))))))
 
 ;;;###autoload
 (defun xhg-tip ()
@@ -619,17 +619,17 @@ display the current one."
   (interactive)
   (let ((id))
     (dvc-run-dvc-sync 'xhg '("identify")
-     :finished
-     (lambda (output error status arguments)
-       (set-buffer output)
-       (goto-char (point-min))
-       (setq id
-             (buffer-substring-no-properties
-              (point)
-              (line-end-position))))
-     :error
-     (lambda (output error status arguments)
-       (setq id "<unknown>")))
+                      :finished
+                      (lambda (output error status arguments)
+                        (set-buffer output)
+                        (goto-char (point-min))
+                        (setq id
+                              (buffer-substring-no-properties
+                               (point)
+                               (line-end-position))))
+                      :error
+                      (lambda (output error status arguments)
+                        (setq id "<unknown>")))
     (when (interactive-p)
       (message "hg identity for %s: %s" default-directory id))
     id))
@@ -702,9 +702,9 @@ otherwise: Return a list of two element sublists containing alias, path"
   (interactive (list (xhg-read-revision "Export revision: ")
                      (read-file-name "Export hg revision to: ")))
   (dvc-run-dvc-sync 'xhg (list "export" (when xhg-export-git-style-patches "--git") "-o" (expand-file-name fname) rev)
-   :finished
-   (lambda (output error status arguments)
-     (message "Exported revision %s to %s." rev fname))))
+                    :finished
+                    (lambda (output error status arguments)
+                      (message "Exported revision %s to %s." rev fname))))
 
 ;;;###autoload
 (defun xhg-import (patch-file-name &optional force)
@@ -800,7 +800,7 @@ See `xhg-serve-register-serve-parameter-list' to register specific parameters fo
          (kill-status))
     (if (file-readable-p pid-file)
         (with-current-buffer
-          (find-file-noselect pid-file)
+            (find-file-noselect pid-file)
           (setq pid (buffer-substring-no-properties (point-min) (- (point-max) 1)))
           (kill-buffer (current-buffer)))
       (message "no hg serve pid file found - aborting"))

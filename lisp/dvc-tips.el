@@ -35,7 +35,7 @@
 
 (defconst dvc-tips-array
   [
-"Welcome to DVC. I'm the tip buffer. I will appear from time to time
+   "Welcome to DVC. I'm the tip buffer. I will appear from time to time
 to show you interesting features that you may have missed! Disable me
 by setting the variable `dvc-tips-enabled' to nil.
 

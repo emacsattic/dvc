@@ -520,16 +520,16 @@ a difference."
 (defun tla-test--digit-char-p ()
   "Test `dvc-digit-char-p'."
   (when (member nil
-          (list
-           (dvc-digit-char-p ?5)
-           (dvc-digit-char-p ?9)
-           (dvc-digit-char-p ?0)
-           (dvc-digit-char-p ?1)
+                (list
+                 (dvc-digit-char-p ?5)
+                 (dvc-digit-char-p ?9)
+                 (dvc-digit-char-p ?0)
+                 (dvc-digit-char-p ?1)
 
-           (not (dvc-digit-char-p ?a))
-           (not (dvc-digit-char-p ?A))
-           (not (dvc-digit-char-p ?!))
-           (not (dvc-digit-char-p ?Y))))
+                 (not (dvc-digit-char-p ?a))
+                 (not (dvc-digit-char-p ?A))
+                 (not (dvc-digit-char-p ?!))
+                 (not (dvc-digit-char-p ?Y))))
     (error "Failed")))
 
 

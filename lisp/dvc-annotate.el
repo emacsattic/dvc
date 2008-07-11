@@ -81,27 +81,27 @@
   (if (dvc-annotate-8color-tty-p)
       ;; A custom sorted TTY colormap
       (let* ((colors
-          (sort
-           (delq nil
-                 (mapcar (lambda (x)
-                           (if (not (or
-                                     (string-equal (car x) "white")
-                                     (string-equal (car x) "black") ))
-                               (car x)))
-                         (dvc-annotate-tty-color-alist)))
-           (lambda (a b)
-             (cond
-              ((or (string-equal a "red") (string-equal b "blue")) t)
-              ((or (string-equal b "red") (string-equal a "blue")) nil)
-              ((string-equal a "yellow") t)
-              ((string-equal b "yellow") nil)
-              ((string-equal a "cyan") t)
-              ((string-equal b "cyan") nil)
-              ((string-equal a "green") t)
-              ((string-equal b "green") nil)
-              ((string-equal a "magenta") t)
-              ((string-equal b "magenta") nil)
-              (t (string< a b))))))
+              (sort
+               (delq nil
+                     (mapcar (lambda (x)
+                               (if (not (or
+                                         (string-equal (car x) "white")
+                                         (string-equal (car x) "black") ))
+                                   (car x)))
+                             (dvc-annotate-tty-color-alist)))
+               (lambda (a b)
+                 (cond
+                  ((or (string-equal a "red") (string-equal b "blue")) t)
+                  ((or (string-equal b "red") (string-equal a "blue")) nil)
+                  ((string-equal a "yellow") t)
+                  ((string-equal b "yellow") nil)
+                  ((string-equal a "cyan") t)
+                  ((string-equal b "cyan") nil)
+                  ((string-equal a "green") t)
+                  ((string-equal b "green") nil)
+                  ((string-equal a "magenta") t)
+                  ((string-equal b "magenta") nil)
+                  (t (string< a b))))))
              (date 20.)
              (delta (/ (- 360. date) (1- (length colors)))))
         (mapcar (lambda (x)
@@ -169,29 +169,29 @@ oldest annotation in the buffer, or, with prefix argument FULL, to
 cover the range from the oldest annotation to the newest."
   (interactive "P")
   (let ((newest 0.0)
-    (oldest 999999.)        ;Any CVS users at the founding of Rome?
-    (current (dvc-annotate-convert-time (current-time)))
-    date)
+        (oldest 999999.)               ;Any CVS users at the founding of Rome?
+        (current (dvc-annotate-convert-time (current-time)))
+        date)
     (message "Redisplaying annotation...")
     ;; Run through this file and find the oldest and newest dates annotated.
     (save-excursion
       (goto-char (point-min))
       (while (setq date (prog1 (dvc-annotate-time)
                           (forward-line 1)))
-    (if (> date newest)
-        (setq newest date))
-    (if (< date oldest)
-        (setq oldest date))))
+        (if (> date newest)
+            (setq newest date))
+        (if (< date oldest)
+            (setq oldest date))))
     (dvc-annotate-display
      (/ (- (if full newest current) oldest)
         (dvc-annotate-oldest-in-map dvc-annotate-color-map))
      (if full newest))
     (message "Redisplaying annotation...done \(%s\)"
-         (if full
-         (format "Spanned from %.1f to %.1f days old"
-             (- current oldest)
-             (- current newest))
-           (format "Spanned to %.1f days old" (- current oldest))))))
+             (if full
+                 (format "Spanned from %.1f to %.1f days old"
+                         (- current oldest)
+                         (- current newest))
+               (format "Spanned to %.1f days old" (- current oldest))))))
 
 ;;
 ;; -------------------------------------------------
@@ -201,12 +201,12 @@ cover the range from the oldest annotation to the newest."
   "Test successive cons cells of A-LIST against THRESHOLD.
 Return the first cons cell with a car that is not less than THRESHOLD,
 nil if no such cell exists."
- (let ((i 1)
-       (tmp-cons (car a-list)))
-   (while (and tmp-cons (< (car tmp-cons) threshold))
-     (setq tmp-cons (car (nthcdr i a-list)))
-     (setq i (+ i 1)))
-   tmp-cons))               ; Return the appropriate value
+  (let ((i 1)
+        (tmp-cons (car a-list)))
+    (while (and tmp-cons (< (car tmp-cons) threshold))
+      (setq tmp-cons (car (nthcdr i a-list)))
+      (setq i (+ i 1)))
+    tmp-cons))                          ; Return the appropriate value
 
 (defun dvc-annotate-convert-time (time)
   "Convert a time value to a floating-point number of days.
@@ -219,11 +219,11 @@ The argument TIME is a list as returned by `current-time' or
 This calls the backend function annotate-time, and returns the
 difference in days between the time returned and the current time,
 or OFFSET if present."
-   (let ((next-time (dvc-annotate-time)))
-     (if next-time
-     (- (or offset
-        (dvc-annotate-current-time))
-        next-time))))
+  (let ((next-time (dvc-annotate-time)))
+    (if next-time
+        (- (or offset
+               (dvc-annotate-current-time))
+           next-time))))
 
 (defun dvc-default-annotate-current-time ()
   "Return the current time, encoded as fractional days."
@@ -245,31 +245,31 @@ The annotations are relative to the current time, unless overridden by OFFSET."
 (defun dvc-annotate-lines (limit)
   (let (difference)
     (while (and (< (point) limit)
-        (setq difference (dvc-annotate-difference dvc-annotate-offset)))
+                (setq difference (dvc-annotate-difference dvc-annotate-offset)))
       (let* ((color (or (dvc-annotate-compcar difference dvc-annotate-color-map)
-            (cons nil dvc-annotate-very-old-color)))
-         ;; substring from index 1 to remove any leading `#' in the name
-         (face-name (concat "dvc-annotate-face-"
-                (if (string-equal
-                     (substring (cdr color) 0 1) "#")
-                    (substring (cdr color) 1)
-                  (cdr color))))
-         ;; Make the face if not done.
-         (face (or (intern-soft face-name)
-               (let ((tmp-face (make-face (intern face-name))))
-             (set-face-foreground tmp-face (cdr color))
-             (if dvc-annotate-background
-                 (set-face-background tmp-face
-                          dvc-annotate-background))
-             (if (and (not (featurep 'xemacs))
-                      dvc-annotate-face-misc-attribute)
-                 (dolist (attr dvc-annotate-face-misc-attribute)
-                   (set-face-attribute tmp-face nil
-                           (car attr) (cdr attr))))
-             tmp-face)))    ; Return the face
-         (point (point)))
-    (forward-line 1)
-    (put-text-property point (point) 'face face)))
+                        (cons nil dvc-annotate-very-old-color)))
+             ;; substring from index 1 to remove any leading `#' in the name
+             (face-name (concat "dvc-annotate-face-"
+                                (if (string-equal
+                                     (substring (cdr color) 0 1) "#")
+                                    (substring (cdr color) 1)
+                                  (cdr color))))
+             ;; Make the face if not done.
+             (face (or (intern-soft face-name)
+                       (let ((tmp-face (make-face (intern face-name))))
+                         (set-face-foreground tmp-face (cdr color))
+                         (if dvc-annotate-background
+                             (set-face-background tmp-face
+                                                  dvc-annotate-background))
+                         (if (and (not (featurep 'xemacs))
+                                  dvc-annotate-face-misc-attribute)
+                             (dolist (attr dvc-annotate-face-misc-attribute)
+                               (set-face-attribute tmp-face nil
+                                                   (car attr) (cdr attr))))
+                         tmp-face)))    ; Return the face
+             (point (point)))
+        (forward-line 1)
+        (put-text-property point (point) 'face face)))
     ;; Pretend to font-lock there were no matches.
     nil))
 

@@ -88,7 +88,7 @@ Commands:
         ;; initial version might result too large for git-show, so use
         ;; git-log.
         (xgit-log default-directory :rev (match-string-no-properties 1 rev))
-        (xgit-show default-directory rev))
+      (xgit-show default-directory rev))
     (xgit-describe default-directory rev)))
 
 (defun _xgit-annotate-hide-revinfo ()
@@ -97,17 +97,17 @@ Commands:
     (forward-line 1)
     ;; When revision of two subsequent lines are same:
     (if (string= p_rev (xgit-annotate-get-rev))
-      (let ((start (line-beginning-position)))
-        ;; forward until revision changes,
-        (while (string= p_rev (xgit-annotate-get-rev))
-          (forward-line 1))
-        ;; point is at new revision so move back a line,
-        (unless (= (point) (point-max))
-          (previous-line 1))
-        ;; match again to get position of right-bottom corner,
-        (xgit-annotate-get-rev)
-        ;; rectangular replace by white space, from start to end.
-        (string-rectangle start (match-end 12) (make-string width ? ))))
+        (let ((start (line-beginning-position)))
+          ;; forward until revision changes,
+          (while (string= p_rev (xgit-annotate-get-rev))
+            (forward-line 1))
+          ;; point is at new revision so move back a line,
+          (unless (= (point) (point-max))
+            (previous-line 1))
+          ;; match again to get position of right-bottom corner,
+          (xgit-annotate-get-rev)
+          ;; rectangular replace by white space, from start to end.
+          (string-rectangle start (match-end 12) (make-string width ? ))))
     ))
 
 (defun xgit-annotate-hide-revinfo ()

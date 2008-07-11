@@ -117,8 +117,24 @@ Non-trivial macros should include the form:
   (declare (indent INDENT-SPEC) (debug DEBUG-SPEC))
 The INDENT-SPEC tells Emacs' indentation commands how to indent the form,
 whereas DEBUG-SPEC tells Edebug how to instrument the form for debugging.
-See: (info "(elisp) Indenting Macros") and 
+See: (info "(elisp) Indenting Macros") and
      (info "(elisp) Edebug and Macros") for more info.
+
+Indentation is not (completely) arbitrary.  There are three steps,
+the first of which need be done only once per editing session.
+
+ - Make sure you evaluate *all* `defmacro' forms so that Emacs knows
+   about each form's indentation spec (if any).
+
+ - Use C-M-q at top-level open-paren to canonicalize indentation.
+
+ - Apply stylistic exceptions (manual override).  Common cases:
+   - `flet', `labels', `macrolet' -- Emacs does a poor job here, indenting
+     too much, so overriding it is almost a requirement (many examples);
+   - deliberate flush-left (to column 0) so that C-M-x "continues to work"
+     on an inner form (eg: dvc-capturing-lambda);
+   - end-of-line ";;"-comment alignment (eg: defstruct dvc-fileinfo-file).
+
 
 Process management
 ==================

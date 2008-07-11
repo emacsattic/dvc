@@ -101,12 +101,12 @@ Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
       (goto-char (point-min))
       (when (and (re-search-forward (car delim-pair) nil t)
                  (re-search-forward (cadr delim-pair) nil t))
-      (goto-char (point-min))
-      (let* ((start-pos (+ (re-search-forward (car delim-pair)) 1))
-             (end-pos (- (progn (re-search-forward (cadr delim-pair)) (line-beginning-position)) 1))
-             (log-message (buffer-substring-no-properties start-pos end-pos)))
-        (setq dvc-memorized-log-message log-message)
-        (message "Extracted the patch log message from '%s'" dvc-memorized-log-header)))))
+        (goto-char (point-min))
+        (let* ((start-pos (+ (re-search-forward (car delim-pair)) 1))
+               (end-pos (- (progn (re-search-forward (cadr delim-pair)) (line-beginning-position)) 1))
+               (log-message (buffer-substring-no-properties start-pos end-pos)))
+          (setq dvc-memorized-log-message log-message)
+          (message "Extracted the patch log message from '%s'" dvc-memorized-log-header)))))
   (gnus-article-show-summary))
 
 (defvar dvc-gnus-override-window-config nil)
@@ -204,18 +204,18 @@ Otherwise `dvc-gnus-apply-patch' is called."
     (goto-char (point-min))
     (if (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
             (re-search-forward "^Committed revision [0-9]+ to \\(.+\\)$" nil t))
-    (let* ((bzr-missing-url (match-string-no-properties 1))
-           (dest (cdr (assoc bzr-missing-url bzr-merge-or-pull-from-url-rules)))
-           (path (cadr dest))
-           (doit t))
-      (when path
-        (setq doit (y-or-n-p (format "Run missing from %s in %s? " bzr-missing-url path))))
-      (when doit
-        (unless path
-          (setq path (dvc-read-directory-name (format "Run missing from %s in: " bzr-missing-url))))
-        (let ((default-directory path))
-          (message "Running bzr missing from %s in %s" bzr-missing-url path)
-          (bzr-missing bzr-missing-url)))))))
+        (let* ((bzr-missing-url (match-string-no-properties 1))
+               (dest (cdr (assoc bzr-missing-url bzr-merge-or-pull-from-url-rules)))
+               (path (cadr dest))
+               (doit t))
+          (when path
+            (setq doit (y-or-n-p (format "Run missing from %s in %s? " bzr-missing-url path))))
+          (when doit
+            (unless path
+              (setq path (dvc-read-directory-name (format "Run missing from %s in: " bzr-missing-url))))
+            (let ((default-directory path))
+              (message "Running bzr missing from %s in %s" bzr-missing-url path)
+              (bzr-missing bzr-missing-url)))))))
 
 (defun dvc-gnus-article-view-patch (n)
   "View MIME part N, as patchset.
@@ -234,8 +234,8 @@ Otherwise `dvc-gnus-view-patch' is called."
       (goto-char (point-min))
       (if (or (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
               (progn (goto-char (point-min))
-                 (and (search-forward "Revision: " nil t)
-                  (search-forward "Archive: " nil t))))
+                     (and (search-forward "Revision: " nil t)
+                          (search-forward "Archive: " nil t))))
           (setq patch-type 'tla)
         (goto-char (point-min))
         ;; Committed revision 129 to http://my-arch.org/branch1

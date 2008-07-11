@@ -242,7 +242,7 @@ is the `dvc-bookmark-partner' itself."
   "Get url of partner at point even if partner urls
 are masked."
   (cadr (assoc (dvc-bookmark-unmask-nickname-at-point)
-              (dvc-bookmark-partner-url-from-nick (dvc-bookmarks-current-bookmark)))))
+               (dvc-bookmark-partner-url-from-nick (dvc-bookmarks-current-bookmark)))))
 
 ;; dvc-bookmarks-properties
 (defvar dvc-bookmarks-prop-file
@@ -269,9 +269,9 @@ are masked."
   "Get the list of all keys/values of hash-table
 values are given under string form"
   `(let ((li-items nil))
-    (maphash #'(lambda (x y) (push (list x y) li-items))
-             ,hash-table)
-    li-items))
+     (maphash #'(lambda (x y) (push (list x y) li-items))
+              ,hash-table)
+     li-items))
 
 (defmacro hash-get-symbol-keys (hash-table)
   "Get the list of all the keys in hash-table
@@ -326,10 +326,10 @@ state values can be closed or open"
    (let* ((current-tree (aref (dvc-bookmarks-current-bookmark) 1))
           (current-color (if (hash-has-key (intern current-tree)
                                            dvc-bookmarks-cache)
-                              (cdr (assoc
-                                    'color
-                                    (gethash (intern current-tree)
-                                             dvc-bookmarks-cache)))))
+                             (cdr (assoc
+                                   'color
+                                   (gethash (intern current-tree)
+                                            dvc-bookmarks-cache)))))
           (current-state (if (hash-has-key (intern current-tree)
                                            dvc-bookmarks-cache)
                              (cdr (assoc
@@ -746,8 +746,8 @@ and quit"
           (setq dvc-memorized-log-header (when nickname (format dvc-bookmarks-merge-template nickname)))
           (setq dvc-memorized-log-message nil)
           (message (if nickname
-          (format "Merging from %s, using URL %s" nickname partner)
-          (format "Merging from %s" partner)))
+                       (format "Merging from %s, using URL %s" nickname partner)
+                     (format "Merging from %s" partner)))
           (dvc-merge partner))
       (message "No local-tree defined for this bookmark entry."))))
 
@@ -758,9 +758,9 @@ and quit"
         (index 0))
     (if (member elm lis)
         (progn
-        (dolist (x lis)
-          (when (equal x elm)
-            (setq index n))
+          (dolist (x lis)
+            (when (equal x elm)
+              (setq index n))
             (setq n (+ n 1)))
           index)
       (error "No element %s in %s" elm lis))))
@@ -775,7 +775,7 @@ in list `lis'.
          (start-part-list (subseq lis 0 where))
          (mod-list (append (remove name-elm start-part-list)
                            (cons name-elm
-                           (remove name-elm (subseq lis where))))))
+                                 (remove name-elm (subseq lis where))))))
     mod-list))
 
 (defun dvc-add-to-list-at-ind (elm lis where)
@@ -829,7 +829,7 @@ Examples:
                (dvc-add-to-list-at-ind modif-list (remove subtree (remove name-elm lis)) subtree-index))
               ((member name-elm subtree)
                (let ((append-list (dvc-add-to-list-at-ind name-elm (remove subtree lis) where)))
-               (dvc-add-to-list-at-ind (remove name-elm subtree) append-list subtree-index)))
+                 (dvc-add-to-list-at-ind (remove name-elm subtree) append-list subtree-index)))
               (t
                (dvc-add-to-list-at-ind modif-list (remove subtree lis) subtree-index)))
       modif-list)))
@@ -870,7 +870,7 @@ Examples:
                 (not (member yank-point dvc-bookmark-alist)))
            (dvc-bookmarks-yank-from-sub-to-sub))
           (t (message "This yank is not implemented yet sorry!")))
-      (goto-char cur-pos)))
+    (goto-char cur-pos)))
 
 (defun dvc-bookmarks-yank-from-list-to-sub ()
   "Yank from list ==> sublist"
@@ -1125,8 +1125,8 @@ use it to kill/yank"
   (interactive)
   (setq dvc-bookmarks-tmp-yank-item (dvc-bookmarks-current-bookmark))
   (let ((buffer-read-only nil)
-         (current-tree (aref (dvc-bookmarks-current-bookmark) 1))
-         (parent))
+        (current-tree (aref (dvc-bookmarks-current-bookmark) 1))
+        (parent))
     (if (member (assoc current-tree dvc-bookmark-alist) dvc-bookmark-alist)
         (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
                                               (setq parent (dvc-get-parent-elm (aref x 1) dvc-bookmark-alist))
@@ -1149,8 +1149,8 @@ use it to kill/yank"
                                 (local-tree "~/")))) t)
           (ewoc-refresh dvc-bookmarks-cookie))
       (error "Tree %s already exist please choose another name" name)))
-    (dvc-bookmarks-save)
-    (dvc-bookmarks))
+  (dvc-bookmarks-save)
+  (dvc-bookmarks))
 
 
 (defun dvc-bookmarks-toggle-mark-entry ()
@@ -1243,13 +1243,13 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (interactive)
   (let* ((cur-data (dvc-bookmarks-current-bookmark))
          (partner-url (read-string (format "Add partner to '%s': "
-         (dvc-bookmark-name cur-data)))))
+                                           (dvc-bookmark-name cur-data)))))
     (if (not (member partner-url (dvc-bookmarks-get-partner-urls)))
         (progn
           (setf (dvc-bookmark-properties cur-data)
                 (append (dvc-bookmark-properties cur-data)
-                (list (cons 'partner
-                            (make-dvc-bookmark-partner :url partner-url)))))
+                        (list (cons 'partner
+                                    (make-dvc-bookmark-partner :url partner-url)))))
           (dvc-trace "dvc-bookmarks-add-partner %s" cur-data)
           (dvc-bookmarks-invalidate-current-bookmark))
       (message "%s is already a partner for %s"
@@ -1261,7 +1261,7 @@ If FORCE is non-nil, reload the file even if it was loaded before."
          (partners-alist (dvc-bookmark-partners-by-url cur-data))
          (partner-to-remove (dvc-completing-read
                              (format "Remove partner from %s: "
-                             (dvc-bookmark-name cur-data))
+                                     (dvc-bookmark-name cur-data))
                              (mapcar 'car partners-alist)
                              nil t nil nil
                              (dvc-bookmarks-partner-at-point))))
@@ -1299,12 +1299,12 @@ If FORCE is non-nil, reload the file even if it was loaded before."
   (let* ((url-at-point (dvc-bookmarks-partner-at-point))
          (bookmark (dvc-bookmarks-current-bookmark))
          (partner (cdr (assoc url-at-point
-         (dvc-bookmark-partners-by-url bookmark)))))
+                              (dvc-bookmark-partners-by-url bookmark)))))
     (if partner
         (progn
           (setf (dvc-bookmark-partner-nickname partner)
                 (read-string (format "Nickname for %s: " url-at-point)
-                (dvc-bookmark-partner-nickname partner)))
+                             (dvc-bookmark-partner-nickname partner)))
           (dvc-bookmarks-invalidate-current-bookmark)
           (message "Added nickname %s to the partner %s"
                    (dvc-bookmark-partner-nickname partner) url-at-point))

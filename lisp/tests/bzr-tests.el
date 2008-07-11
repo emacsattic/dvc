@@ -87,7 +87,7 @@ the test file."
      (bzr-tests--with-test-history (&key &allow-other-keys)
        ;; The test is simply that this doesn't crash.
        (dvc-log)
-       (dvc-tests-wait-async); let log display
+       (dvc-tests-wait-async)           ; let log display
        (dvc-revlist-show-item))))
 
   (file-diff
@@ -116,7 +116,7 @@ the test file."
    (save-window-excursion
      (bzr-tests--with-test-history (&key &allow-other-keys)
        (dvc-changelog)
-       (dvc-tests-wait-async); let log display
+       (dvc-tests-wait-async)           ; let log display
        (dvc-revision-next)
        (dvc-revlist-diff))))
 
@@ -127,9 +127,9 @@ the test file."
   (log
    (save-window-excursion
      (bzr-tests--with-test-history
-      (&key &allow-other-keys)
-      (dvc-diff))))
-)
+         (&key &allow-other-keys)
+       (dvc-diff))))
+  )
 ;;(elunit "bzr-one")
 
 (provide 'bzr-tests)

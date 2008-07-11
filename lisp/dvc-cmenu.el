@@ -64,10 +64,10 @@ Analogous to `mouse-position'.  Copied from avoid.el."
             (compute-motion (max (window-start w) (point-min)) ; start pos
                             ;; window-start can be < point-min if the
                             ;; latter has changed since the last redisplay
-                            '(0 . 0)    ; start XY
-                            point       ; stop pos
+                            '(0 . 0)                              ; start XY
+                            point                                 ; stop pos
                             (cons (window-width) (window-height)) ; stop XY: none
-                            (1- (window-width)) ; width
+                            (1- (window-width))                   ; width
                             (cons (window-hscroll w) 0) ; 0 may not be right?
                             (selected-window))))
       ;; compute-motion returns (pos HPOS VPOS prevhpos contin)
@@ -96,9 +96,9 @@ PREFIX is passed to `popup-menu'."
                    (y (cddr pos)))
               (set-mouse-position object x y)))
         (dvc-cmenu-popup-with-highlight 'dvc-highlight
-                                              b e
-                                              menu
-                                              prefix))
+                                        b e
+                                        menu
+                                        prefix))
     (error "No context-menu under the point")))
 
 (defun dvc-cmenu-popup-with-highlight (face begin end menu &optional prefix)

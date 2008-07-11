@@ -65,7 +65,7 @@ arg; root. Result is of the form:
   (assert (not (position ?{ branch-name)))
   (assert (not (position ?} branch-name)))
   (assert (not (position ?[ branch-name)))
-  (assert (not (position ?] branch-name)))
+          (assert (not (position ?] branch-name)))
   branch-name)
 
 (defstruct (xmtn--revlist-entry (:constructor xmtn--make-revlist-entry))
@@ -116,7 +116,7 @@ arg; root. Result is of the form:
         (assert (eql (length authors) len)
                 (eql (length dates) len)
                 (eql (length changelogs) len)))
-    (loop
+      (loop
        ;; FIXME: Matching the k-th author cert with the k-th date cert
        ;; and the k-th changelog cert, like we do here, is unlikely to
        ;; be correct in general.  That the relationship between date,
@@ -156,10 +156,10 @@ arg; root. Result is of the form:
               (setq revision-hash-ids (nthcdr (- len last-n) revision-hash-ids)))))
     (setq revision-hash-ids (coerce revision-hash-ids 'vector))
     (xmtn--dotimes-with-progress-reporter (i (length revision-hash-ids))
-      (case (length revision-hash-ids)
-        (1 "Setting up revlist buffer (1 revision)...")
-        (t (format "Setting up revlist buffer (%s revisions)..."
-                   (length revision-hash-ids))))
+        (case (length revision-hash-ids)
+          (1 "Setting up revlist buffer (1 revision)...")
+          (t (format "Setting up revlist buffer (%s revisions)..."
+                     (length revision-hash-ids))))
       ;; Maybe also show parents and children?  (Could add toggle
       ;; commands to show/hide these.)
       (lexical-let ((rev (aref revision-hash-ids i))
@@ -294,22 +294,22 @@ arg; root. Result is of the form:
      root
      (lambda (root)
        (xmtn-automate-with-session
-        (nil root)
-        (let ((branch (xmtn--tree-default-branch root)))
-          (list branch
-                (list
-                 (if dvc-revlist-last-n
-                     (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
-                   (format "Log for branch %s (all entries):" branch)))
-                '()
-                (xmtn--expand-selector
-                 root
-                 ;; This restriction to current branch is completely
-                 ;; arbitrary.
-                 (concat
-                  "b:" ;; returns all revs for current branch
-                  (xmtn--escape-branch-name-for-selector
-                   branch)))))))
+           (nil root)
+         (let ((branch (xmtn--tree-default-branch root)))
+           (list branch
+                 (list
+                  (if dvc-revlist-last-n
+                      (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
+                    (format "Log for branch %s (all entries):" branch)))
+                 '()
+                 (xmtn--expand-selector
+                  root
+                  ;; This restriction to current branch is completely
+                  ;; arbitrary.
+                  (concat
+                   "b:" ;; returns all revs for current branch
+                   (xmtn--escape-branch-name-for-selector
+                    branch)))))))
      first-line-only-p
      last-n)))
 
