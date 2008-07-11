@@ -73,9 +73,11 @@ the test file."
                    :file-name file-name)))))))
 
 (defmacro* bzr-tests--with-test-environment ((&rest keys) &body body)
+  (declare (indent 1) (debug sexp body))
   `(bzr-tests--call-with-test-environment (function* (lambda (,@keys) ,@body))))
 
 (defmacro* bzr-tests--with-test-history ((&rest keys) &body body)
+  (declare (indent 1) (debug sexp body))
   `(bzr-tests--call-with-test-history (function* (lambda (,@keys) ,@body))))
 
 

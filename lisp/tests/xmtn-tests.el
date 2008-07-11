@@ -123,9 +123,11 @@ YPFoLxe1V5oOyoe3ap0H
                    :revision-2 revision-2)))))))
 
 (defmacro* xmtn-tests--with-test-environment ((&rest keys) &body body)
+  (declare (indent 1) (debug (sexp body)))
   `(xmtn-tests--call-with-test-environment (function* (lambda (,@keys) ,@body))))
 
 (defmacro* xmtn-tests--with-test-history ((&rest keys) &body body)
+  (declare (indent 1) (debug (sexp body)))
   `(xmtn-tests--call-with-test-history (function* (lambda (,@keys) ,@body))))
 
 
