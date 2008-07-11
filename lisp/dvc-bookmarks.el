@@ -263,7 +263,7 @@ are masked."
       (save-buffer)
       (quit-window))))
 
-(set-dvc-bookmarks-cache)
+;;(set-dvc-bookmarks-cache)
 
 (defmacro hash-get-items (hash-table)
   "Get the list of all keys/values of hash-table
@@ -516,6 +516,8 @@ state values can be closed or open"
 With prefix argument ARG, reload the bookmarks file from disk."
   (interactive "P")
   (dvc-bookmarks-load-from-file arg)
+  (when (eq (hash-table-count dvc-bookmarks-cache) 0)
+    (set-dvc-bookmarks-cache))
   (dvc-switch-to-buffer (get-buffer-create "*dvc-bookmarks*"))
   (let ((cur-pos (point)))
     (toggle-read-only 0)
