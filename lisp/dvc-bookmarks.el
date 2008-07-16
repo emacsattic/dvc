@@ -238,11 +238,16 @@ is the `dvc-bookmark-partner' itself."
                                                   (match-string 0)))))
       nickname)))
 
-(defun dvc-bookmark-show-hidden-url-at-point ()
+(defun dvc-bookmark-get-hidden-url-at-point ()
   "Get url of partner at point even if partner urls
 are masked."
-  (cadr (assoc (dvc-bookmark-unmask-nickname-at-point)
-               (dvc-bookmark-partner-url-from-nick (dvc-bookmarks-current-bookmark)))))
+  (let ((url (cadr (assoc (dvc-bookmark-unmask-nickname-at-point)
+                          (dvc-bookmark-partner-url-from-nick (dvc-bookmarks-current-bookmark))))))
+    (when (stringp url)
+      (cond ((string-match "~/" url)
+             (expand-file-name url))
+            (t
+             url)))))
 
 ;; dvc-bookmarks-properties
 (defvar dvc-bookmarks-prop-file
@@ -697,10 +702,7 @@ and quit"
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (condition-case nil
-                           (expand-file-name
-                            (dvc-bookmark-show-hidden-url-at-point))
-                         (error nil))))
+              (partner (dvc-bookmark-get-hidden-url-at-point)))
           (message "Running dvc missing for %s, against %s"
                    (dvc-bookmark-name (dvc-bookmarks-current-bookmark))
                    partner)
@@ -714,10 +716,7 @@ and quit"
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (condition-case nil
-                           (expand-file-name
-                            (dvc-bookmark-show-hidden-url-at-point))
-                         (error nil)))
+              (partner (dvc-bookmark-get-hidden-url-at-point)))
               (nickname (dvc-bookmark-unmask-nickname-at-point)))
           (message (if partner
                        (if nickname
