@@ -716,7 +716,7 @@ and quit"
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
         (let ((default-directory local-tree)
-              (partner (dvc-bookmark-get-hidden-url-at-point)))
+              (partner (dvc-bookmark-get-hidden-url-at-point))
               (nickname (dvc-bookmark-unmask-nickname-at-point)))
           (message (if partner
                        (if nickname
