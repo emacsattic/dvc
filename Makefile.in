@@ -5,10 +5,7 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 
 # location of required programms
 TAR = @TAR@
-BZR = @BZR@
 RM   = @RM@
-XARGS = @XARGS@
-ARCH = @ARCH@
 prefix = @prefix@
 datadir= @datadir@
 datarootdir= @datarootdir@
@@ -25,107 +22,75 @@ INSTALL = @INSTALL@
 ##############################################################################
 all: dvc info dvc-load.el dvc-load-install.el
 
-maybe: dvc-maybe info dvc-load.el dvc-load-install.el
-
-Makefile: config.status @srcdir@/Makefile.in
+Makefile: config.status $(srcdir)/Makefile.in
 	./config.status $@
 
-dvc-load.el: config.status @srcdir@/dvc-load.el.in
+dvc-load.el: config.status $(srcdir)/dvc-load.el.in
 	./config.status $@
 
-dvc-load-install.el: config.status @srcdir@/dvc-load-install.el.in
+dvc-load-install.el: config.status $(srcdir)/dvc-load-install.el.in
 	./config.status $@
 
-@srcdir@/configure: @srcdir@/configure.ac
-	cd @srcdir@ ; autoconf
+$(srcdir)/configure: $(srcdir)/configure.ac
+	cd $(srcdir) ; autoconf
 	./config.status --recheck
 
-config.status: @srcdir@/configure
+config.status: $(srcdir)/configure
 	./config.status --recheck
 
-info:
-	$(MAKE) -C texinfo info
-pdf:
-	$(MAKE) -C texinfo pdf
-dvi:
-	$(MAKE) -C texinfo dvi
-html:
-	$(MAKE) -C texinfo html
+info pdf dvi html:
+	cd texinfo; $(MAKE) $@
 
-dvc: generated-files
+dvc:
 	cd lisp; $(MAKE)
 
-dvc-verbose: generated-files
+dvc-verbose:
 	cd lisp; $(MAKE) all-verbose
 
-install: dvc-load.el
-	@for i in $(SUBDIRS) ; do               \
-          $(MAKE) -C $$i install;               \
-        done
+%-recursive:
+	@for dir in $(SUBDIRS) ; do ( cd $$dir; $(MAKE) $* ) ; done
+
+install: dvc-load.el install-recursive
 	sed 's|$$(prefix)|$(prefix)|;s!$${datarootdir}!$(datarootdir)!' dvc-load-install.el \
 	> ${lispdir}/dvc-load.el
 
-uninstall:
-	@for i in $(SUBDIRS) ; do               \
-          $(MAKE) -C $$i uninstall;             \
-        done
+uninstall: uninstall-recursive
 	rmdir $(lispdir) || true
 
-clean:
-	@for i in $(SUBDIRS) ; do               \
-          $(MAKE) -C $$i clean;                 \
-        done
-	-$(RM) -f dvc-load.el dvc-load-install.el
+clean: clean-recursive
+	$(RM) -f dvc-load.el dvc-load-install.el
 
-distclean: clean
-	@for i in $(SUBDIRS) ; do               \
-          $(MAKE) -C $$i distclean;             \
-        done
-	-$(RM) -rf configure config.status config.log autom4te.cache/ Makefile
+distclean: clean distclean-recursive
+	$(RM) -rf configure config.status config.log autom4te.cache/ Makefile
 
 ##############################################################################
-TARFILES = configure $(shell cd @abs_top_srcdir@ && $(ARCH) inventory -s)
+distdir		= $(PACKAGE_TARNAME)-$(PACKAGE_VERSION)
 
-lisp/dvc-version.el:
-	cd lisp; make dvc-version.el
+lispfiles	= lisp/Makefile.in lisp/dvc-site.el.in \
+		  lisp/contrib/*.el lisp/tests/*.el lisp/*.el
+docfiles	= texinfo/Makefile.in texinfo/dvc.texinfo texinfo/dvc.info
+miscfiles	= Makefile.in COPYING INSTALL* install-sh move-if-change \
+		  dvc-load.el.in dvc-load-install.el.in \
+		  lisp/dvc-version.el \
+		  texinfo/dvc-version.texinfo \
+		  configure.ac configure
+extradist	=
 
-texinfo/dvc-version.texinfo:
-	cd texinfo; make dvc-version.texinfo
+distfiles = $(lispfiles) $(docfiles) $(miscfiles) $(extradist)
 
-generated-files: lisp/dvc-version.el \
-		 texinfo/dvc-version.texinfo
+dist:
+	$(RM) -rf $(distdir) $(distdir).tar.gz
+	mkdir $(distdir)
+	build=`pwd` ; dd=$$build/$(distdir) ; cd $(srcdir) ;	\
+	for f in $(distfiles) ; do d='.' ;			\
+	  if [ -f $$build/$$f ] ; then d=$$build ; fi ;		\
+	  e=`dirname $$f` ; f=`basename $$f` ;			\
+	  test -d $$dd/$$e || mkdir -p $$dd/$$e ;		\
+	  cp -p $$d/$$e/$$f $$dd/$$e/$$f ; done
+	$(TAR) cf - $(distdir) | gzip --best > $(distdir).tar.gz
+	$(RM) -rf $(distdir)
 
-TARDIRNAME = $(PACKAGE_TARNAME)-$(PACKAGE_VERSION)
-
-dist: tarball
-
-tarball: $(TARFILES:%=@abs_top_srcdir@/%)
-	scripts/make-tarball.sh $(TARDIRNAME).tar.gz
-	@echo "*** $(TARDIRNAME).tar.gz created ***"
-
-##############################################################################
-# for the creation of an XEmacs package
-PKGDIR =  $(shell pwd)/,,package/
-PKGINFO = $(PKGDIR)/lisp/xtla/_pkg.el
-xemacs-package:
-# 	cd @abs_top_srcdir@ && $(TLA) changes || \
-# 	(echo ERROR: There are changes in the tree, please commit before creating a tarball\!;\
-# 	 echo ERROR: since otherwise lisp/dvc-version.el is not correct\!; exit 1)
-	if [ "x@EMACS_FLAVOR@" != "xxemacs" ]; then \
-		echo "ERROR: Current build dir not configured for XEmacs,"; \
-		echo "ERROR: Please re-run configure with --with-emacs=xemacs."; \
-		exit 1; \
-	fi
-	-$(RM) -rf ,,package
-	cd lisp; make PACKAGEDIR=$(PKGDIR)/lisp/xtla install-pkg
-	cd texinfo; make info_dir=$(PKGDIR)/info install-pkg
-	(cd @srcdir@; $(TLA) changelog) > $(PKGDIR)/lisp/ChangeLog
-	echo ";;;###autoload" > $(PKGINFO)
-	echo "(package-provide 'xtla'" > $(PKGINFO)
-	echo "         :version 0.7" >> $(PKGINFO)
-	echo '         :author-version "'`$(TLA) logs -fr -d "@top_srcdir@" | head -1`'"' >> $(PKGINFO)
-	echo "         :type 'regular)" >> $(PKGINFO)
-	mkdir $(PKGDIR)/pkginfo;
-	touch $(PKGDIR)/pkginfo/MANIFEST.xtla;
-	cd $(PKGDIR); find -type f | cut -c3- > pkginfo/MANIFEST.xtla
-	cd ,,package; $(TAR) -cvzf ../xtla-pkg.tar.gz *
+tarball:
+	$(MAKE) dist				\
+	  distdir=$(PACKAGE_TARNAME)-snapshot	\
+	  extradist='debian/* docs/* scripts/*'

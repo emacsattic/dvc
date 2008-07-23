@@ -1,6 +1,5 @@
 @SET_MAKE@
 
-top_srcdir = @top_srcdir@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 
@@ -9,16 +8,13 @@ PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 prefix = @prefix@
 RM   = @RM@
 LS   = @LS@
-XARGS = @XARGS@
 ETAGS = @ETAGS@
-BZR = @BZR@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_DATA = @INSTALL_DATA@
 
 top_builddir = @top_builddir@
-builddir = @builddir@
 
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
@@ -37,7 +33,7 @@ FLAGS = @FLAGS@
 
 OTHERDIRS = @OTHERDIRS@
 
-EMACS_COMP = lispdir=$(lispdir) srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" builddir="$(builddir)" $(EMACS_PROG) $(FLAGS)
+EMACS_COMP = srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" $(EMACS_PROG) $(FLAGS)
 
 SYMLINKS = @SYMLINKS@
 LINKPATH = @LINKPATH@
@@ -87,17 +83,17 @@ install-elc:
 
 
 clean:
-	-$(RM) -f *.elc ./contrib/*.elc dvc-version.el dvc-site.el \
+	$(RM) -f *.elc ./contrib/*.elc dvc-version.el dvc-site.el \
 		dvc-load.el dvc-autoloads.el auto-autoloads.el custom-load.el .build-stamp
 
 clean-some:
 	$(EMACS_COMP) -f package-maint-clean-some-elc
 
-Makefile: @srcdir@/Makefile.in ../config.status
+Makefile: $(srcdir)/Makefile.in ../config.status
 	cd ..; ./config.status
 
 distclean: clean
-	-$(RM) -f Makefile
+	$(RM) -f Makefile
 
 TAGS: $(SRCS)
 	@if test "x$(ETAGS)" = "x" ; then                 \
@@ -121,7 +117,8 @@ dvc-version.el: $(top_srcdir)/configure
 	   echo '  "Version of DVC loaded.' ; \
 	   echo 'Please send bug reports to <$(PACKAGE_BUGREPORT)>.")' ; \
 	   echo "(provide 'dvc-version)" ) \
-	 > $@
+	 > $@-t
+	@$(top_srcdir)/move-if-change $@-t $@ >/dev/null
 
-dvc-site.el: ../config.status @srcdir@/dvc-site.el.in
+dvc-site.el: ../config.status $(srcdir)/dvc-site.el.in
 	(cd .. ; ./config.status lisp/$@)

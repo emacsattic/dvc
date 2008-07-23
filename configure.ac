@@ -126,15 +126,6 @@ AC_DEFUN([DVC_PROG],
       ])
   ])
 
-# Find an xargs program. A failure is not fatal, only clean/tarball will not
-# work
-AC_DEFUN([DVC_PROG_XARGS],
-  [ AC_CHECK_PROG(XARGS, xargs, xargs)
-    if test "x${XARGS}" = "x" ; then
-      AC_MSG_WARN([*** No xargs program found.])
-      AC_MSG_WARN([*** make clean/tarball will not work.])
-    fi ])
-
 AC_DEFUN([DVC_BAZ_OR_TLA],
   [ AC_MSG_CHECKING([arch branch to use])
     AC_ARG_WITH(arch,
@@ -338,16 +329,11 @@ DVC_PATH_INFO_DIR
 
 DVC_PROG(TLA, tla, tla program to use)
 DVC_PROG(BAZ, baz, baz program to use)
-DVC_PROG(BZR, bzr, Bazaar-NG)
-if test "x$BZR" = "x" ; then
-   BZR=${TRUE_PROG}
-fi
 DVC_BAZ_OR_TLA
 
 DVC_PROG_WARN(DIFF, diff, diff program to use)
 DVC_PROG_WARN(PATCH, patch, patch program to use)
 DVC_PROG_ETAGS
-DVC_PROG_XARGS
 DVC_PROG_GNU_TAR
 DVC_PROG_MAKEINFO
 DVC_PROG_TEXI2DVI
