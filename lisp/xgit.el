@@ -495,7 +495,11 @@ When called with a prefix argument, ask for the pull source."
                      :finished
                      (dvc-capturing-lambda (output error status arguments)
                        (with-current-buffer output
-                         (xgit-parse-pull-result t)))))
+                         (xgit-parse-pull-result t))
+                       (when xgit-pull-result
+                         (dvc-switch-to-buffer output)
+                         (when (y-or-n-p "Run xgit-whats-new? ")
+                           (xgit-whats-new))))))
 
 (defvar xgit-pull-result nil)
 (defun xgit-parse-pull-result (reset-parameters)
