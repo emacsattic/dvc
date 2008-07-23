@@ -149,7 +149,8 @@
 (defvar dvc-key-missing    ?m)          ; to run dvc missing
 
 ;;;###autoload
-(defvar dvc-key-buffer-prefix ?B)       ; perfix for switching XXX buffer
+(defvar dvc-key-buffer-prefix ?B)       ; prefix to switch to XXX buffer
+(defvar dvc-key-view-buffer-prefix ?v)  ; prefix to view XXX buffer
 (defvar dvc-key-directory-prefix ?D)
 
 ;;;###autoload
@@ -201,6 +202,11 @@
 (progn
   (defun dvc-prefix-kill-ring (&rest keys)
     (dvc-key-group dvc-key-kill-ring-prefix keys)))
+
+;;;###autoload
+(progn
+  (defun dvc-prefix-view-buffer (&rest keys)
+    (dvc-key-group dvc-key-view-buffer-prefix keys)))
 
 ;;;###autoload
 (progn
@@ -327,15 +333,21 @@
     (define-key map (dvc-prefix-file ?M) 'dvc-rename)
     (define-key map (dvc-prefix-file ?X) 'dvc-purge-files)
 
-    (define-key map (dvc-prefix-buffer
+    (define-key map (dvc-prefix-view-buffer
+                     ?p)                     'dvc-show-process-buffer)
+    (define-key map (dvc-prefix-view-buffer
+                     ?e)                     'dvc-show-last-error-buffer)
+    (define-key map (dvc-prefix-view-buffer
+                     ?p)                     'dvc-show-process-buffer)
+    (define-key map (dvc-prefix-view-buffer
                      dvc-key-diff)           'tla-changes-goto)
-    (define-key map (dvc-prefix-buffer
+    (define-key map (dvc-prefix-view-buffer
                      dvc-key-status)         'baz-status-goto)
-    (define-key map (dvc-prefix-buffer
+    (define-key map (dvc-prefix-view-buffer
                      dvc-key-inventory)      'tla-inventory-goto)
-    (define-key map (dvc-prefix-buffer
+    (define-key map (dvc-prefix-view-buffer
                      dvc-key-tree-lint)      'tla-tree-lint-goto)
-    (define-key map (dvc-prefix-buffer ?r)   'tla-tree-revisions-goto)
+    (define-key map (dvc-prefix-view-buffer ?r)   'tla-tree-revisions-goto)
 
     (define-key map (dvc-prefix-kill-ring ?a) 'tla-save-archive-to-kill-ring)
     (define-key map (dvc-prefix-kill-ring ?v) 'tla-save-version-to-kill-ring)
