@@ -307,7 +307,8 @@ Commands:
 (defun dvc-diff-in-ewoc-p ()
   "Return non-nil if in ewoc section of diff buffer."
   (let ((elem (ewoc-locate dvc-fileinfo-ewoc)))
-    (>= (ewoc-location elem) (line-beginning-position))))
+    (when elem
+      (>= (ewoc-location elem) (line-beginning-position)))))
 
 (defun dvc-diff-jump-to-change (&optional other-file)
   "Jump to the corresponding file and location of the change at point.
