@@ -91,7 +91,7 @@ the result in `tla--autoconf-has-%s-command'." cmd cmd cmd cmd)
                  (if answer 'yes 'no))
            answer)))))
 
-(tla--has-foo-command "escape") ; support for spaces in filename
+(tla--has-foo-command "escape")         ; support for spaces in filename
 (tla--has-foo-command "diff")
 (tla--has-foo-command "file-diff")
 (tla--has-foo-command "tree-id")

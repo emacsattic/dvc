@@ -84,11 +84,11 @@
                       "revision-list-entry-patch-printer" t) (nth 1 elem)))
       (entry-change (insert  (cadr elem)))
       (message (insert (dvc-face-add (cadr elem)
-                                      'dvc-messages)))
+                                     'dvc-messages)))
       (separator
        (case (car (cddr elem))
          (partner (insert "\n" (dvc-face-add (cadr elem)
-                                              'dvc-separator)))
+                                             'dvc-separator)))
          (bookmark (insert "\n" (dvc-face-add
                                  (concat "*** "
                                          (cadr elem)
@@ -96,20 +96,20 @@
                                  'dvc-separator) "\n")))))))
 
 (dvc-make-move-fn ewoc-next dvc-revision-next
-                  dvc-revlist-cookie)
+  dvc-revlist-cookie)
 
 (dvc-make-move-fn ewoc-prev dvc-revision-prev
-                  dvc-revlist-cookie)
+  dvc-revlist-cookie)
 
 (dvc-make-move-fn ewoc-next dvc-revision-next-unmerged
-                  dvc-revlist-cookie t)
+  dvc-revlist-cookie t)
 
 (dvc-make-move-fn ewoc-prev dvc-revision-prev-unmerged
-                  dvc-revlist-cookie t)
+  dvc-revlist-cookie t)
 
 (defun dvc-revlist-current-patch ()
   "Get the dvc-revlist-entry-patch at point."
-   (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie))))
+  (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie))))
 
 (defun dvc-revlist-current-patch-struct ()
   "Get the dvc-revlist-entry-patch-struct at point."
@@ -121,7 +121,7 @@
   (let* ((pos (point))
          (current (ewoc-locate
                    dvc-revlist-cookie))
-        (data (ewoc-data current)))
+         (data (ewoc-data current)))
     (setf (dvc-revlist-entry-patch-marked (nth 1 data)) t)
     (ewoc-invalidate dvc-revlist-cookie current)
     (goto-char pos)
@@ -460,7 +460,7 @@ refresh the revision list buffer.  It must take no arguments."
   "Save the log message for the actual patch."
   (interactive)
   (kill-new (dvc-revision-log-message-at-point)))
-  ;; TODO: (message "Copied log message for %s" (tla-changelog-revision-at-point)))
+;; TODO: (message "Copied log message for %s" (tla-changelog-revision-at-point)))
 
 (defun dvc-revlist-update ()
   "Update current workspace to revision at point"

@@ -103,7 +103,7 @@ An alist of rules to map email addresses to target directories.
 
 This is used by the `bzr-gnus-merge-bundle' function.
 Example setting: '((\"dvc-dev@gna.org\" \"~/work/bzr/dvc\"))"
-)
+  )
 ;; e.g.: (setq bzr-merge-bundle-mapping '(("dvc-dev@gna.org" "~/work/bzr/dvc")))
 (defun bzr-gnus-merge-bundle (handle)
   "Merge a bzr merge bundle via gnus.  HANDLE should be the handle of the part."

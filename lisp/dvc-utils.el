@@ -200,7 +200,7 @@ Anything else, ask for each sub-directory."
                          (yes-or-no-p (format "Recursive delete of %s "
                                               (dired-make-relative file)))))
             (if (eq recursive 'top) (setq recursive 'always)) ; Don't ask again.
-            (while files                ; Recursively delete (possibly asking).
+            (while files               ; Recursively delete (possibly asking).
               (dired-delete-file (car files) recursive)
               (setq files (cdr files))))
           (delete-directory file))))))
@@ -214,7 +214,7 @@ be incorrectly set, breaking a lot of Emacs function."
   (setq abbreviated-home-dir nil))
 
 (defun dvc-read-directory-name (prompt &optional dir default-dirname
-                                        mustmatch initial)
+                                       mustmatch initial)
   "Read directory name, prompting with PROMPT and completing in directory DIR.
 Value is not expanded---you must call `expand-file-name' yourself.
 Default name to DEFAULT-DIRNAME if user exits with the same
@@ -244,7 +244,7 @@ the value of `default-directory'."
   "Create a tarball with the content of DIR.
 If DIR does not yet exist, wait until it does exist.
 Then create the tarball TGZ-FILE-NAME and remove the contents of DIR."
-    ;;create the archive: tar cfz ,,cset.tar.gz ,,cset
+  ;;create the archive: tar cfz ,,cset.tar.gz ,,cset
   (while (not (file-exists-p dir)) ;;somewhat dirty, but seems to work...
     (sit-for 0.01))
   ;;(message "Calling tar cfz %s -C %s %s" tgz-file-name (file-name-directory dir) (file-name-nondirectory dir))
@@ -422,13 +422,13 @@ Does nothing otherwise.  Please use it for your debug messages."
 (defun dvc-trace-current-line ()
   "Display the line the cursor is in."
   (dvc-trace "Current-line(%s)=%s[_]%s"
-              (save-restriction (widen) (dvc-line-number-at-pos))
-              (buffer-substring-no-properties
-               (line-beginning-position)
-               (point))
-              (buffer-substring-no-properties
-               (point)
-               (line-end-position))))
+             (save-restriction (widen) (dvc-line-number-at-pos))
+             (buffer-substring-no-properties
+              (line-beginning-position)
+              (point))
+             (buffer-substring-no-properties
+              (point)
+              (line-end-position))))
 
 (defmacro dvc-features-list ()
   "Topological sort of the dependancy graph. Root comes last.
@@ -512,7 +512,7 @@ run \"make\"."
   (interactive
    (list (when current-prefix-arg
            (let* ((other (dvc-read-directory-name
-                         "Load DVC from: "))
+                          "Load DVC from: "))
                   (lispdir (concat (file-name-as-directory other)
                                    "lisp")))
              (if (file-directory-p lispdir)

@@ -57,8 +57,8 @@ outstanding uncommitted changes."
   (interactive "p")
   (if (and (numberp n) (< n 0))
       (progn
-          (setq xhg-gnus-import-patch-force t)
-          (setq n (- n)))
+        (setq xhg-gnus-import-patch-force t)
+        (setq n (- n)))
     (setq xhg-gnus-import-patch-force nil))
   (gnus-article-part-wrapper n 'xhg-gnus-import-patch))
 

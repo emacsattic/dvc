@@ -252,7 +252,7 @@ error if point is not on a file or directory."
         (error "not on a file or directory"))
     (let ((fileinfo (ewoc-data ewoc-entry)))
       (etypecase fileinfo
-        (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+        (dvc-fileinfo-file              ; also matches dvc-fileinfo-dir
          fileinfo)
 
         (dvc-fileinfo-legacy
@@ -293,7 +293,7 @@ of the file element on the line at point. Throws an error if
 point is not on a file element line."
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo
-      (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+      (dvc-fileinfo-file                ; also matches dvc-fileinfo-dir
        (dvc-fileinfo-path fileinfo))
 
       (dvc-fileinfo-legacy
@@ -337,8 +337,8 @@ point is not on a file element line."
                  )))
 
 (defun dvc-fileinfo-mark-dir-1 (fileinfo mark)
-;; `dir-compare' must be let-bound to the directory being marked.
-;; It can't be a normal parameter because this is called via ewoc-map.
+  ;; `dir-compare' must be let-bound to the directory being marked.
+  ;; It can't be a normal parameter because this is called via ewoc-map.
   (if (string-equal dir-compare (dvc-fileinfo-file-dir fileinfo))
       (let ((file (dvc-fileinfo-path fileinfo)))
         (if (dvc-fileinfo-file-exclude fileinfo)
@@ -364,7 +364,7 @@ point is not on a file element line."
   (let ((dir-compare (file-name-as-directory dir)))
     (ewoc-map (lambda (fileinfo)
                 (etypecase fileinfo
-                  (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+                  (dvc-fileinfo-file    ; also matches dvc-fileinfo-dir
                    (dvc-fileinfo-mark-dir-1 fileinfo mark))
 
                   (dvc-fileinfo-message nil)))
@@ -444,7 +444,7 @@ in that directory. Then move to previous ewoc entry."
   (interactive)
   (ewoc-map (lambda (fileinfo)
               (etypecase fileinfo
-                (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+                (dvc-fileinfo-file      ; also matches dvc-fileinfo-dir
                  (if (dvc-fileinfo-file-exclude fileinfo)
                      (progn
                        (message "not marking %s; excluded" (dvc-fileinfo-path fileinfo))
@@ -466,7 +466,7 @@ in that directory. Then move to previous ewoc entry."
   (setq dvc-buffer-marked-file-list nil)
   (ewoc-map (lambda (fileinfo)
               (etypecase fileinfo
-                (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+                (dvc-fileinfo-file      ; also matches dvc-fileinfo-dir
                  (if (dvc-fileinfo-file-mark fileinfo)
                      (progn
                        (setf (dvc-fileinfo-file-mark fileinfo) nil)
@@ -557,7 +557,7 @@ if there is no prev."
       (let ((fi (ewoc-data elem)))
         (if (and (dvc-fileinfo-file-p fi)
                  (dvc-fileinfo-file-mark fi))
-          (setq result (append result (list elem))))
+            (setq result (append result (list elem))))
         (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
     result))
 
@@ -571,7 +571,7 @@ if there is no prev."
       (let ((fi (ewoc-data elem)))
         (if (and (dvc-fileinfo-file-p fi)
                  (dvc-fileinfo-file-exclude fi))
-          (setq result (append result (list (dvc-fileinfo-path fi)))))
+            (setq result (append result (list (dvc-fileinfo-path fi)))))
         (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
     result))
 
@@ -681,7 +681,7 @@ workspace. Otherwise, call `dvc-remove-files'."
                  (dvc-fileinfo-legacy
                   ;; Don't have enough info to update this
                   nil))))
-             known-files)))))
+           known-files)))))
 
 (defun dvc-fileinfo--do-rename (fi-source fi-target elems)
   (dvc-rename (dvc-fileinfo-path fi-source)
@@ -724,12 +724,12 @@ MARKED-ELEMS, non-nil otherwise."
    (= 2 (length marked-elems))
    (let* ((fis (mapcar 'ewoc-data marked-elems))
           (stati (mapcar 'dvc-fileinfo-file-status fis)))
-    (or
-     (and (eq 'missing (nth 0 stati))
-          (eq 'unknown (nth 1 stati)))
+     (or
+      (and (eq 'missing (nth 0 stati))
+           (eq 'unknown (nth 1 stati)))
 
-     (and (eq 'missing (nth 1 stati))
-          (eq 'unknown (nth 0 stati)))))))
+      (and (eq 'missing (nth 1 stati))
+           (eq 'unknown (nth 0 stati)))))))
 
 (provide 'dvc-fileinfo)
 ;;; end of file

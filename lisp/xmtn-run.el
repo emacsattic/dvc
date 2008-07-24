@@ -311,11 +311,11 @@ This command resets xmtn's command version cache."
            (latest-major (first latest))
            (latest-minor (second latest)))
       (if (eval `(xmtn--version-case
-                   ((and (= ,latest-major latest-minor)
-                         (mainline> latest-major latest-minor))
-                    t)
-                   (t
-                    nil)))
+                  ((and (= ,latest-major latest-minor)
+                        (mainline> latest-major latest-minor))
+                   t)
+                  (t
+                   nil)))
           (message "%s (xmtn considers this version newer than %s.%s)"
                    version-string major minor)
         (message "%s" version-string))))

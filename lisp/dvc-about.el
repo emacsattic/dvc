@@ -111,7 +111,7 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
                             ((eq i 0) dvc-about-message-long-border-interval)
                             (t dvc-about-message-long-default-interval)))
             (return-from dvc-about-message-with-rolling)))
-          (garbage-collect)))))
+        (garbage-collect)))))
 
 ;;;###autoload
 (defun dvc-about ()
@@ -151,12 +151,12 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
   "Insert a button labeled with LABEL and launching FUNCTION.
 Helper function for `dvc-about'."
   (dvc-face-add label 'bold
-                 (let ((map (make-sparse-keymap)))
-                   (define-key map [return]  function)
-                   (define-key map "\C-m"    function)
-                   (define-key map [mouse-2] function)
-                   map)
-                 nil))
+                (let ((map (make-sparse-keymap)))
+                  (define-key map [return]  function)
+                  (define-key map "\C-m"    function)
+                  (define-key map [mouse-2] function)
+                  map)
+                nil))
 
 (provide 'dvc-about)
 ;; Local Variables:

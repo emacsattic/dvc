@@ -496,15 +496,15 @@ automatic log message extraction.")
 ;; Executable location
 ;;
 (defcustom dvc-diff-executable (dvc-first-set
-                                dvc-site-diff-executable
-                                "diff")
+                                   dvc-site-diff-executable
+                                 "diff")
   "*The name of the diff executable."
   :type 'string
   :group 'dvc)
 
 (defcustom dvc-patch-executable (dvc-first-set
-                                 dvc-site-patch-executable
-                                 "patch")
+                                    dvc-site-patch-executable
+                                  "patch")
   "*The name of the patch executable."
   :type 'string
   :group 'dvc)

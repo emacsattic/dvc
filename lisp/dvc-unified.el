@@ -119,15 +119,15 @@ not &rest."
                                           ,@(remove '&optional args)))))
 
 ;;;###autoload
-(defun dvc-clone (&optional dvc source-path dest-path)
+(defun dvc-clone (&optional dvc source-path dest-path rev)
   "Ask for the DVC to use and clone SOURCE-PATH."
-  (interactive)
+  (interactive "P")
   (when (interactive-p)
     (let* ((ffap-url-regexp
             (concat
              "\\`\\("
              "\\(ftp\\|https?\\|git\\|www\\)://" ; needs host
-             "\\)."                             ; require one more character
+             "\\)."                              ; require one more character
              ))
            (url-at-point (ffap-url-at-point))
            (all-candidates (map t 'symbol-name dvc-registered-backends))
@@ -145,11 +145,17 @@ not &rest."
       (setq source-path (read-string (format "%S-clone from path: " dvc) url-at-point))
       (setq dest-path (expand-file-name (dvc-read-directory-name
                                          (format "Destination Directory for %S-clone: " dvc)
-                                         nil nil nil "<default>")))))
+                                         nil nil nil "<default>")))
+      (if current-prefix-arg
+          (unless (not (eq dvc 'xhg))
+            (setq rev (read-string "FromRevision: ")))
+        nil)))
   (let ((default-directory (or (file-name-directory dest-path) default-directory)))
     (when (string= (file-name-nondirectory dest-path) "<default>")
       (setq dest-path nil))
-    (funcall (dvc-function dvc "dvc-clone") source-path dest-path)))
+    (if rev
+        (funcall (dvc-function dvc "dvc-clone") source-path dest-path rev)
+      (funcall (dvc-function dvc "dvc-clone") source-path dest-path))))
 
 ;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
@@ -253,11 +259,11 @@ but to-file-name does, just record the rename in the back-end"
   ;; If bookkeep-only nil, rename file in filesystem and back-end
   ;; If non-nil, rename file in back-end only.
   (interactive
-    (let* ((from-name (dvc-confirm-read-file-name "Rename: " t))
-           (to-name (dvc-confirm-read-file-name
-                     (format "Rename %s to: " from-name)
-                     nil "" from-name)))
-      (list from-name to-name)))
+   (let* ((from-name (dvc-confirm-read-file-name "Rename: " t))
+          (to-name (dvc-confirm-read-file-name
+                    (format "Rename %s to: " from-name)
+                    nil "" from-name)))
+     (list from-name to-name)))
 
   (if (file-exists-p from-name)
       (progn
@@ -270,13 +276,13 @@ but to-file-name does, just record the rename in the back-end"
         (dvc-call "dvc-rename" from-name to-name nil))
 
     ;; rename the file in the back-end only
-      (progn
-        ;; rename the file in the filesystem and back-end
-        (if (not (file-exists-p to-name))
-            (error "%s does not exist" to-name))
-        (when (file-directory-p to-name)
-          (setq to-name (file-name-as-directory to-name)))
-        (dvc-call "dvc-rename" from-name to-name t))))
+    (progn
+      ;; rename the file in the filesystem and back-end
+      (if (not (file-exists-p to-name))
+          (error "%s does not exist" to-name))
+      (when (file-directory-p to-name)
+        (setq to-name (file-name-as-directory to-name)))
+      (dvc-call "dvc-rename" from-name to-name t))))
 
 (defvar dvc-command-version nil)
 ;;;###autoload
@@ -344,10 +350,10 @@ reused. `default-directory' must be the tree root."
   (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
     (case (length log-edit-buffers)
       (0 ;; Need to create a new log-edit buffer. In the log-edit
-         ;; buffer, dvc-partner-buffer must be set to a buffer with a
-         ;; mode that dvc-current-file-list supports. That is
-         ;; currently dvc-diff-mode or dired-mode; we don't have a way
-         ;; to find dired-mode buffers, so we ignore those.
+       ;; buffer, dvc-partner-buffer must be set to a buffer with a
+       ;; mode that dvc-current-file-list supports. That is
+       ;; currently dvc-diff-mode or dired-mode; we don't have a way
+       ;; to find dired-mode buffers, so we ignore those.
        (let ((diff-status-buffers
               (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
                       (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)))
@@ -374,12 +380,12 @@ reused. `default-directory' must be the tree root."
                        default-directory)))))))
 
       (1 ;; Just reuse the buffer. In this call, we can't use
-         ;; dvc-buffer-current-active-dvc from the current buffer,
-         ;; because it might be nil (if we are in a source buffer). We
-         ;; want to use dvc-buffer-current-active-dvc from that buffer
-         ;; for this dvc-call, but we can't switch to it first,
-         ;; because dvc-log-edit needs the current buffer to set
-         ;; dvc-partner-buffer.
+       ;; dvc-buffer-current-active-dvc from the current buffer,
+       ;; because it might be nil (if we are in a source buffer). We
+       ;; want to use dvc-buffer-current-active-dvc from that buffer
+       ;; for this dvc-call, but we can't switch to it first,
+       ;; because dvc-log-edit needs the current buffer to set
+       ;; dvc-partner-buffer.
        (let ((dvc-temp-current-active-dvc
               (with-current-buffer (nth 1 (car log-edit-buffers)) dvc-buffer-current-active-dvc)))
          (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame no-init)))
@@ -387,7 +393,7 @@ reused. `default-directory' must be the tree root."
       (t ;; multiple matching buffers
        (if dvc-buffer-current-active-dvc
            (error "More than one log-edit buffer for %s in %s; can't tell which to use. Please close some."
-              dvc-buffer-current-active-dvc default-directory)
+                  dvc-buffer-current-active-dvc default-directory)
          (error "More than one log-edit buffer for %s; can't tell which to use. Please close some."
                 default-directory))))))
 
@@ -464,7 +470,7 @@ directories containing the files, and recursively below them."
       (if (not dir)
           (error "A file with no directory selected")))
     (when (y-or-n-p (format "Ignore %s? " msg))
-          (dvc-call "dvc-backend-ignore-file-extensions-in-dir" file-list))))
+      (dvc-call "dvc-backend-ignore-file-extensions-in-dir" file-list))))
 
 ;;;###autoload
 (defun dvc-missing (&optional other path force-prompt)

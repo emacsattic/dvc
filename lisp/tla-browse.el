@@ -55,7 +55,7 @@
 (defvar tla--browse-buffer-name "*tla-browse*")
 (defvar tla--browse-buffer-type 'browse)
 (dvc-add-buffer-type tla--browse-buffer-type
-                        tla--browse-buffer-name)
+                     tla--browse-buffer-name)
 
 ;; ----------------------------------------------------------------------------
 ;; Open node tracking
@@ -105,9 +105,9 @@ If TREE is opened, it is added.  Else it is removed."
          (c (widget-get node :category))
          (b (widget-get node :branch))
          (v (widget-get node :version)))
-  (if (widget-get tree :open)
-      (tla--browse-open-list-add a c b v)
-    (tla--browse-open-list-remove a c b v))))
+    (if (widget-get tree :open)
+        (tla--browse-open-list-add a c b v)
+      (tla--browse-open-list-remove a c b v))))
 
 (defun tla--browse-find-archives-root-widget ()
   "Return the root widget of archives tree."
@@ -227,7 +227,7 @@ WIDGET must be of type tla--widget-*-node."
           (progn (when flash
                    (goto-char (widget-get a :from))
                    (dvc-flash-line))
-            (return-from tla--browse-open nil))
+                 (return-from tla--browse-open nil))
         (error "Cannot find archive node for: %s" archive)))
     (tla--widget-node-toggle-subtree-internal a 'open)
 
@@ -238,7 +238,7 @@ WIDGET must be of type tla--widget-*-node."
           (progn (when flash
                    (goto-char (widget-get c :from))
                    (dvc-flash-line))
-            (return-from tla--browse-open nil))
+                 (return-from tla--browse-open nil))
         (error "Cannot find category node for: %s/%s" archive category)))
     (tla--widget-node-toggle-subtree-internal c 'open)
 
@@ -249,7 +249,7 @@ WIDGET must be of type tla--widget-*-node."
           (progn (when flash
                    (goto-char (widget-get b :from))
                    (dvc-flash-line))
-            (return-from tla--browse-open nil))
+                 (return-from tla--browse-open nil))
         (error "Cannot find branch node for: %s/%s--%s" archive category branch)))
     (tla--widget-node-toggle-subtree-internal b 'open)
 
@@ -259,7 +259,7 @@ WIDGET must be of type tla--widget-*-node."
         (progn (when flash
                  (goto-char (widget-get v :from))
                  (dvc-flash-line))
-          (return-from tla--browse-open nil))
+               (return-from tla--browse-open nil))
       (error "Cannot find branch node for: %s/%s--%s--%s" archive category branch version)))
   )
 
@@ -315,9 +315,9 @@ The keymap and menu are retrieved from WIDGET.
 The string is copied from VALUE.
 FACE is useds as the face."
   (let ((prop-value (dvc-face-add value
-                                   (if face face (widget-get widget :face))
-                                   (widget-get widget :keymap)
-                                   (widget-get widget :menu))))
+                                  (if face face (widget-get widget :face))
+                                  (widget-get widget :keymap)
+                                  (widget-get widget :menu))))
     (put-text-property 0 (length value)
                        'widget widget
                        prop-value)
@@ -421,9 +421,9 @@ CATEGORY, and/or BRANCH."
      (t (error "Cannot mirror to a source archive: `%s'" archive)))
     (tla-archive-mirror archive
                         (tla--name-category name)
-                          (tla--name-branch name)
-                          (tla--name-version name)
-                          nil)))
+                        (tla--name-branch name)
+                        (tla--name-version name)
+                        nil)))
 
 (defun tla--widget-node-synchronize-mirror-to-local ()
   "Synchronizes the mirror for the archive at point to local from remote."
@@ -806,7 +806,7 @@ This may be useful to search an archive named NAME."
 
 (defun tla--widget-archive-put-face-on-location (location)
   "Set face to LOCATION based on the location type(ftp, sftp, http or local)."
-(let ((face (case (tla--location-type location)
+  (let ((face (case (tla--location-type location)
                 (ftp 'tla-location-ftp)
                 (sftp 'tla-location-sftp)
                 (http 'tla-location-http)
@@ -858,8 +858,8 @@ Unmark widgets not associated with the default archive.
   (let* ((name (tla--widget-node-get-name))
          (archive (tla--name-archive name))
          (l (tla-name-read "New Category: "
-                            archive
-                            'prompt)))
+                           archive
+                           'prompt)))
     (tla-make-category (tla--name-archive l) (tla--name-category l))
     (tla--widget-node-refresh 1 nil (tla--name-archive l))
     (tla--browse-open t
@@ -1008,9 +1008,9 @@ Unmark widgets not associated with the default archive.
          (archive (tla--name-archive name))
          (category  (tla--name-category name))
          (l (tla-name-read "New Branch: "
-                            archive
-                            category
-                            'prompt)))
+                           archive
+                           category
+                           'prompt)))
     (tla-make-branch (tla--name-archive l)
                      (tla--name-category l)
                      (tla--name-branch l))
@@ -1113,10 +1113,10 @@ Unmark widgets not associated with the default archive.
          (category (tla--name-category name))
          (branch (tla--name-category name))
          (l (tla-name-read "New Version: "
-                            archive
-                            category
-                            branch
-                            'prompt)))
+                           archive
+                           category
+                           branch
+                           'prompt)))
     (tla-make-version (tla--name-archive l)
                       (tla--name-category l)
                       (tla--name-branch l)
@@ -1227,10 +1227,10 @@ The version is under the point or place where click EVENT is created."
              (branch-name (widget-get parent-node :branch)))
         (mapcar (lambda (version)
                   `(tla--widget-version-node
-                        :archive  ,archive-name
-                        :category ,category-name
-                        :branch   ,branch-name
-                        :version  ,(car version)))
+                    :archive  ,archive-name
+                    :category ,category-name
+                    :branch   ,branch-name
+                    :version  ,(car version)))
                 (let* ((l (cdr (tla--archive-tree-get-branch archive-name
                                                              category-name
                                                              branch-name))))
@@ -1360,7 +1360,7 @@ already opened are kept open."
 
   (interactive)
   (switch-to-buffer (dvc-get-buffer-create tla-arch-branch
-                     tla--browse-buffer-type))
+                                           tla--browse-buffer-type))
   (make-local-variable 'tla--browse-open-list)
   (setq truncate-lines t)
 

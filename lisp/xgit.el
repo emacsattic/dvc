@@ -45,8 +45,8 @@
   "Run git init."
   (interactive
    (list (expand-file-name (dvc-read-directory-name "Directory for git init: "
-                                                     (or default-directory
-                                                         (getenv "HOME"))))))
+                                                    (or default-directory
+                                                        (getenv "HOME"))))))
   (let ((default-directory (or dir default-directory)))
     (dvc-run-dvc-sync 'xgit (list "init-db")
                       :finished (dvc-capturing-lambda
@@ -345,7 +345,7 @@ This reset the index to HEAD, but doesn't touch files."
     (while (re-search-forward
             "^diff --git [^ ]+ b/\\(.*\\)$" nil t)
       (let* ((name (match-string-no-properties 1))
-              ;; added, removed are not yet working
+             ;; added, removed are not yet working
              (added (progn (forward-line 1)
                            (looking-at "^new file")))
              (removed (looking-at "^deleted file")))
@@ -360,8 +360,8 @@ This reset the index to HEAD, but doesn't touch files."
                               (t " "))
                         (cond ((or added removed) " ")
                               (t "M"))
-                        " " ; dir. directories are not
-                            ; tracked in git
+                        " "             ; dir. directories are not
+                                        ; tracked in git
                         nil))))))))
 
 (defun xgit-diff-1 (against-rev path dont-switch base-rev)
@@ -386,7 +386,7 @@ This reset the index to HEAD, but doesn't touch files."
                   'diff root 'xgit))
          (command-list (if (equal against-rev '(xgit (index)))
                            (if (equal base-rev local-tree)
-                             '("diff" "-M")
+                               '("diff" "-M")
                              (message "%S != %S" base-rev local-tree)
                              `("diff" "-M" "--cached" ,against))
                          `("diff" "-M" ,base ,against))))
@@ -394,16 +394,16 @@ This reset the index to HEAD, but doesn't touch files."
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xgit command-list
-                       :finished
-                       (dvc-capturing-lambda (output error status arguments)
-                         (dvc-show-changes-buffer output
-                                                  'xgit-parse-diff
-                                                  (capture buffer)
-                                                  nil nil
-                                                  (mapconcat
-                                                   (lambda (x) x)
-                                                   (cons "git" command-list)
-                                                   " "))))))
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (dvc-show-changes-buffer output
+                                                 'xgit-parse-diff
+                                                 (capture buffer)
+                                                 nil nil
+                                                 (mapconcat
+                                                  (lambda (x) x)
+                                                  (cons "git" command-list)
+                                                  " "))))))
 
 (defun xgit-last-revision (path)
   (if (xgit-use-index-p)
@@ -495,7 +495,11 @@ When called with a prefix argument, ask for the pull source."
                      :finished
                      (dvc-capturing-lambda (output error status arguments)
                        (with-current-buffer output
-                         (xgit-parse-pull-result t)))))
+                         (xgit-parse-pull-result t))
+                       (when xgit-pull-result
+                         (dvc-switch-to-buffer output)
+                         (when (y-or-n-p "Run xgit-whats-new? ")
+                           (xgit-whats-new))))))
 
 (defvar xgit-pull-result nil)
 (defun xgit-parse-pull-result (reset-parameters)
@@ -813,7 +817,7 @@ The value is determined based on `xgit-use-index'."
                 (customize-variable 'xgit-use-index)
                 (message "Use git index (y/n/a/e/c/?)? "))
                (help (message
-"\"Use the index\" (aka staging area) means add file content
+                      "\"Use the index\" (aka staging area) means add file content
 explicitly before commiting. Concretely, this means run commit
 without -a, and run diff without options.
 

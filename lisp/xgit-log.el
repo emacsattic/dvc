@@ -50,7 +50,7 @@
   (goto-char (point-min))
   (let ((root location)
         (intro-string)) ;; not used currently, but who knows
-    (when missing ;; skip the first status output
+    (when missing       ;; skip the first status output
       (re-search-forward (concat "^commit " xgit-hash-regexp "\n"))
       (beginning-of-line)
       (setq intro-string (buffer-substring-no-properties (point-min) (point)))
@@ -150,13 +150,13 @@
                ;; to leave room for mark.
                (or (xgit-revision-st-message struct) "?")))
       (newline)
-    ))
+      ))
   )
 
 (defun xgit-revlog-get-revision (rev-id)
   (let ((rev (car (dvc-revision-get-data rev-id))))
     (dvc-run-dvc-sync 'xgit `("show" ,rev)
-     :finished 'dvc-output-buffer-handler)))
+                      :finished 'dvc-output-buffer-handler)))
 
 (defun xgit-revlog-mode ()
   (interactive)
@@ -336,16 +336,16 @@ negative : Don't show patches, limit to n revisions."
       (erase-buffer))
     (xgit-changelog-mode)
     (dvc-run-dvc-sync 'xgit command-list
-                         :finished
-                         (dvc-capturing-lambda (output error status arguments)
-                           (progn
-                             (with-current-buffer (capture buffer)
-                               (let ((inhibit-read-only t))
-                                 (erase-buffer)
-                                 (insert-buffer-substring output)
-                                 (goto-char (point-min))
-                                 (insert (format "xgit log for %s\n\n" default-directory))
-                                 (toggle-read-only 1))))))))
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (progn
+                          (with-current-buffer (capture buffer)
+                            (let ((inhibit-read-only t))
+                              (erase-buffer)
+                              (insert-buffer-substring output)
+                              (goto-char (point-min))
+                              (insert (format "xgit log for %s\n\n" default-directory))
+                              (toggle-read-only 1))))))))
 
 (defconst xgit-changelog-start-regexp "^commit \\([0-9a-f]+\\)$")
 (defun xgit-changelog-next (n)

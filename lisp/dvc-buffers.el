@@ -544,7 +544,7 @@ New buffer has type TYPE (default 'errors), mode MODE (default
                          ,submenu
                          :enable t))
            )))
-       dvc-buffers-tree)
+     dvc-buffers-tree)
     (define-key menu [list-separator]
       '(menu-item "--"))
     (define-key menu [process-buffer]
@@ -695,7 +695,7 @@ To be run after an update or a merge."
       (pop-to-buffer buf)
       (dvc-do-in-xemacs
         (and (setq window-conf (get-buffer-window buffer))
-             window-conf;; we use window-conf only to get rid of warnings
+             window-conf ;; we use window-conf only to get rid of warnings
              (equal (window-frame (get-buffer-window buffer))
                     (selected-frame))))
       (dvc-do-in-gnu-emacs
@@ -718,8 +718,8 @@ if DOWN is non-nil, scroll down, otherwise, scroll up."
                     (scroll-up 2)
                   (message "end of buffer"))))
           (error (message "Can't scroll anymore."))
-        ))
-  (dvc-switch-to-buffer buffer)))
+          ))
+    (dvc-switch-to-buffer buffer)))
 
 (provide 'dvc-buffers)
 ;;; dvc-buffers.el ends here

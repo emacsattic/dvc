@@ -247,7 +247,7 @@ For use as add-log-file-name-function."
 from the ediff control buffer."
   (interactive "P")
   (let ((dvc-temp-current-active-dvc dvc-buffer-current-active-dvc))
-    (set-buffer ediff-buffer-B) ; DVC puts workspace version here
+    (set-buffer ediff-buffer-B)         ; DVC puts workspace version here
     (dvc-add-log-entry-internal other-frame)))
 
 (defun dvc-add-log-entry-internal (other-frame)
@@ -299,7 +299,7 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
       (setq bound (point))
       (unless (and (boundp 'add-log-keep-changes-together)
                    add-log-keep-changes-together)
-        (backward-paragraph) ; paragraph delimits entries for file
+        (backward-paragraph)            ; paragraph delimits entries for file
         (forward-line 1)
         (setq beg (point))))
     (goto-char beg)

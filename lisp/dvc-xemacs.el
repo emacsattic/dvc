@@ -37,7 +37,7 @@
   ;; The following require causes a infinite recursion as the (provide ...) is at
   ;; the file end.  Thus we live with the warnings about unknown variables etc.
   ;;(require 'dvc-core)
-)
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; fixes warnings about undefined variables
@@ -75,9 +75,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the unless check seems to fail
 ;;(unless (functionp 'replace-regexp-in-string)
-  (defun replace-regexp-in-string (regexp rep string
-                                          &optional fixedcase literal)
-    (replace-in-string string regexp rep literal))
+(defun replace-regexp-in-string (regexp rep string
+                                        &optional fixedcase literal)
+  (replace-in-string string regexp rep literal))
 ;;)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -72,7 +72,7 @@ the autoloads."
                                   (funcall (quote ,symb-dvc) ,@call-args))
                              `(call-interactively (quote ,symb-dvc)))))))
                  dvc-back-end-wrappers
-         )))
+                 )))
     `(progn
        (defvar dvc-registered-backends nil)
        (add-to-list 'dvc-registered-backends ,dvc)
@@ -89,7 +89,7 @@ the autoloads."
        ;; _x_git, ...), since it's done in alphabetical order. here,
        ;; we make sure all functions are declared, and since
        ;; dvc-register-dvc is called for each back-end, we've got it.
-              ,@wrappers-defs)))
+       ,@wrappers-defs)))
 
 (defvar dvc-backend-name "Unknown")
 
@@ -243,10 +243,10 @@ then use that value instead of the cache or searching."
                    ;; perhaps this is better.
                    (let ((selection
                           (dvc-completing-read
-                            (concat "back-end ("
-                                    (mapconcat (lambda (option) (car option)) options ", ")
-                                    "): ")
-                            options nil t)))
+                           (concat "back-end ("
+                                   (mapconcat (lambda (option) (car option)) options ", ")
+                                   "): ")
+                           options nil t)))
                      (setq dvc (intern selection))
                      (setq root (cadr (assoc dvc options)))))))
 
