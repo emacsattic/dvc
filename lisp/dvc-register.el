@@ -149,7 +149,7 @@ backend, use dvc-<prefix> instead."
       ;; no current dvc found; prompt for tree
       (let ((default-directory
               (dvc-read-directory-name "Local tree: ")))
-        (if (dvc-current-active-dvc nil t)
+        (if (dvc-current-active-dvc t)
             (apply 'dvc-apply postfix args)
           ;; user thinks this directory is a DVC directory; don't just
           ;; keep prompting.
