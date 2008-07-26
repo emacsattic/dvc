@@ -193,7 +193,7 @@ Pretty-print ELEM."
     ;; the merge group
     (define-key map (dvc-prefix-merge ?u)                     'dvc-update)
     (define-key map (dvc-prefix-merge ?f)                     'dvc-pull) ;; hint: fetch, p is reserved for push
-    (define-key map (dvc-prefix-merge ?m)                     'dvc-missing)
+    (define-key map (dvc-prefix-merge ?m)  '(lambda () (interactive) (dvc-missing nil default-directory)))
     (define-key map (dvc-prefix-merge ?M)                     'dvc-merge)
     map)
   "Keymap used in `dvc-diff-mode'.")
@@ -226,7 +226,7 @@ Pretty-print ELEM."
     ("Merge"
      ["Update" dvc-update t]
      ["Pull" dvc-pull t]
-     ["Show missing" dvc-missing t]
+     ["Show missing" (lambda () (interactive) (dvc-missing nil default-directory)) t]
      ["Merge" dvc-merge t]
      )
     ("Mark"

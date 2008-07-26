@@ -701,13 +701,12 @@ and quit"
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
-        (let ((default-directory local-tree)
-              (partner (dvc-bookmark-get-hidden-url-at-point)))
+        (let ((partner (dvc-bookmark-get-hidden-url-at-point)))
           (message "Running dvc missing for %s, against %s"
                    (dvc-bookmark-name (dvc-bookmarks-current-bookmark))
                    partner)
           (sit-for 1)
-          (dvc-missing partner))
+          (dvc-missing partner local-tree))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-pull ()
