@@ -7,25 +7,18 @@ PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 # location of required programms
 prefix = @prefix@
 RM   = @RM@
-LS   = @LS@
 ETAGS = @ETAGS@
+MKDIR_P = @MKDIR_P@
 INSTALL = @INSTALL@
-INSTALL_PROGRAM = @INSTALL_PROGRAM@
-INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_DATA = @INSTALL_DATA@
-
-top_builddir = @top_builddir@
 
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 
-datadir= @datadir@
 datarootdir= @datarootdir@
 lispdir = @lispdir@
-contribdir = contrib
 
 EMACS_PROG = @EMACS_PROG@
-EMACS_FLAVOR = @EMACS_FLAVOR@
 
 FLAGS = @FLAGS@
 
@@ -33,67 +26,46 @@ FLAGS = @FLAGS@
 
 OTHERDIRS = @OTHERDIRS@
 
-EMACS_COMP = srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" $(EMACS_PROG) $(FLAGS)
+ebatch = srcdir=$(srcdir) otherdirs="$(OTHERDIRS)" \
+ $(EMACS_PROG) -batch -q $(FLAGS) -l $(srcdir)/dvc-build.el -f
 
-SYMLINKS = @SYMLINKS@
-LINKPATH = @LINKPATH@
-
-alldeps = dvc-version.el dvc-site.el clean-some autoloads
+alldeps = dvc-version.el dvc-site.el autoloads
 
 all: $(alldeps)
-	$(EMACS_COMP) -f package-maint-compile
+	$(ebatch) dvc-build-compile
 
 all-verbose: $(alldeps)
-	$(EMACS_COMP) -f package-maint-compile-verbosely
+	$(ebatch) dvc-build-compile verbose
 
-install: install-el install-elc
-
-# This entry will never install .el files if there are no .elc files.
-install-el: autoloads
-	$(INSTALL) -d -m 0755 $(lispdir)/
-	for elc in *.elc; do                                                  \
-	    el=`basename $$elc c`;                                            \
-	    if test -f "$(srcdir)/$$el"; then                                 \
-	        echo "Install $$el in $(lispdir)/";                           \
-	        $(INSTALL_DATA) ${srcdir}/$$el $(lispdir)/;                   \
-	    fi;                                                               \
-        done;
-	if $(LS) $(contrib)/*.elc > /dev/null 2>&1; then                      \
-	    for elc in $(contribdir)/*.elc; do                                \
-	        el=`basename $$elc c`;                                        \
-	        if test -f "${srcdir}/$(contribdir)/$$el"; then               \
-	            echo "Install $(contribdir)/$$el in $(lispdir)/";         \
-	            $(INSTALL_DATA) ${srcdir}/$(contribdir)/$$el $(lispdir)/; \
-	        fi;                                                           \
-	    done;                                                             \
-	fi;
-
-install-elc:
-	$(INSTALL) -d -m 0755 $(lispdir)/
-	for elc in *.elc; do                                 \
-	    echo "Install $$elc in $(lispdir)/";             \
-	    $(INSTALL_DATA) $$elc $(lispdir)/;               \
-        done;
-	if $(LS) $(contribdir)/*.elc > /dev/null 2>&1; then  \
-	    for elc in $(contribdir)/*.elc; do               \
-	        echo "Install $$elc in $(lispdir)";          \
-	        $(INSTALL_DATA) $$elc $(lispdir);            \
-	    done;                                            \
-	fi;
-
+# We install foo.el only if there is also foo.elc.
+install: autoloads
+	$(MKDIR_P) -m 0755 "$(lispdir)"
+	@dlist='$(srcdir) $(srcdir)/contrib' ;		\
+	test '$(srcdir)' = '.' || dlist=". $$dlist" ;	\
+	for elc in *.elc ; do				\
+	  el=`echo $$elc | sed 's/.$$//'` ; orig= ;	\
+	  for d in $$dlist ; do				\
+	    if [ -r "$$d/$$el" ] ; then			\
+	      orig="$$d/$$el" ; break ; fi ; done ;	\
+	  test "$$orig" || continue ;			\
+	  echo Installing $$el ;			\
+	  $(INSTALL_DATA) "$$orig" "$(lispdir)" ;	\
+	  echo Installing $$elc ;			\
+	  $(INSTALL_DATA) $$elc "$(lispdir)" ;		\
+	done
 
 clean:
-	$(RM) -f *.elc ./contrib/*.elc dvc-version.el dvc-site.el \
-		dvc-load.el dvc-autoloads.el auto-autoloads.el custom-load.el .build-stamp
-
-clean-some:
-	$(EMACS_COMP) -f package-maint-clean-some-elc
+	$(RM) -f *.elc dvc-site.el \
+		dvc-autoloads.el auto-autoloads.el custom-load.el
 
 Makefile: $(srcdir)/Makefile.in ../config.status
 	cd ..; ./config.status
 
 distclean: clean
 	$(RM) -f Makefile
+
+maintainer-clean:
+	$(RM) -f dvc-version.el
 
 TAGS: $(SRCS)
 	@if test "x$(ETAGS)" = "x" ; then                 \
@@ -104,9 +76,7 @@ TAGS: $(SRCS)
 
 ##############################################################################
 autoloads:
-	$(EMACS_COMP) -f package-maint-make-cus-load $(srcdir)
-	$(EMACS_COMP) -f package-maint-make-auto-load $(srcdir)
-	$(EMACS_COMP) -f package-maint-make-load
+	$(ebatch) dvc-build-autoloads $(srcdir)
 
 
 ##############################################################################
@@ -117,8 +87,10 @@ dvc-version.el: $(top_srcdir)/configure
 	   echo '  "Version of DVC loaded.' ; \
 	   echo 'Please send bug reports to <$(PACKAGE_BUGREPORT)>.")' ; \
 	   echo "(provide 'dvc-version)" ) \
-	 > $@-t
-	@$(top_srcdir)/move-if-change $@-t $@ >/dev/null
+	 > $@
 
 dvc-site.el: ../config.status $(srcdir)/dvc-site.el.in
 	(cd .. ; ./config.status lisp/$@)
+
+.PHONY: all all-verbose autoloads install \
+	clean distclean maintainer-clean

@@ -243,18 +243,10 @@ TEST
     AC_SUBST(SITEFLAG)
 ])
 
-# copied from gnus aclocal.m4
 AC_DEFUN([DVC_BUILD_FLAGS], [
-  AC_MSG_CHECKING([which options to pass on to (X)Emacs])
-  if test "x$FLAGS" = "x"; then
-    if test "x$EMACS_FLAVOR" = "xxemacs"; then
-      FLAGS="-batch ${SITEFLAG} -no-autoloads -l \$(srcdir)/dvc-build.el"
-    else
-      FLAGS="-batch -q ${SITEFLAG} -no-init-file -l \$(srcdir)/dvc-build.el"
-    fi
-  else
-    FLAGS=$FLAGS
-  fi
+  AC_MSG_CHECKING([extra options for (X)Emacs batch mode])
+  FLAGS=$SITEFLAG
+  test "x$EMACS_FLAVOR" = "xxemacs" && FLAGS="$FLAGS -no-autoloads"
   AC_MSG_RESULT($FLAGS)
   AC_SUBST(FLAGS)
 ])
@@ -310,14 +302,14 @@ unset GREP_OPTIONS
 AC_COPYRIGHT([Copyright (C) 2004-2007 Robert Widhopf-Fenk <hack@robf.de> and the DVC team])
 
 AC_CONFIG_SRCDIR([configure.ac])
-AC_CONFIG_FILES([Makefile lisp/Makefile texinfo/Makefile dvc-load.el dvc-load-install.el lisp/dvc-site.el])
+AC_CONFIG_FILES([Makefile lisp/Makefile texinfo/Makefile dvc-load.el lisp/dvc-site.el])
 
 # Common system utilities checking:
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
+AC_PROG_MKDIR_P
 AC_PROG_LN_S
 AC_PATH_PROG(RM, rm, /bin/rm)
-AC_PATH_PROG(LS, ls, /bin/ls)
 AC_PATH_PROG(GREP, grep, /bin/grep)
 AC_PATH_PROG(TRUE_PROG, true, /bin/true)
 

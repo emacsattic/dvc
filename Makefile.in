@@ -7,28 +7,22 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 TAR = @TAR@
 RM   = @RM@
 prefix = @prefix@
-datadir= @datadir@
 datarootdir= @datarootdir@
+info_dir = @info_dir@
 srcdir = @srcdir@
 lispdir= @lispdir@
 
 SUBDIRS = lisp texinfo
 
-EMACS_PROG = @EMACS_PROG@
-EMACS_FLAVOR = @EMACS_FLAVOR@
-EMACS_VERSION = @EMACS_VERSION@
-INSTALL = @INSTALL@
+MKDIR_P = @MKDIR_P@
 
 ##############################################################################
-all: dvc info dvc-load.el dvc-load-install.el
+all: dvc info dvc-load.el
 
 Makefile: config.status $(srcdir)/Makefile.in
 	./config.status $@
 
 dvc-load.el: config.status $(srcdir)/dvc-load.el.in
-	./config.status $@
-
-dvc-load-install.el: config.status $(srcdir)/dvc-load-install.el.in
 	./config.status $@
 
 $(srcdir)/configure: $(srcdir)/configure.ac
@@ -51,8 +45,10 @@ dvc-verbose:
 	@for dir in $(SUBDIRS) ; do ( cd $$dir; $(MAKE) $* ) ; done
 
 install: dvc-load.el install-recursive
-	sed 's|$$(prefix)|$(prefix)|;s!$${datarootdir}!$(datarootdir)!' dvc-load-install.el \
-	> ${lispdir}/dvc-load.el
+	sed -e 's|@''lispdir''@|'"$(lispdir)"'|'	\
+	    -e 's|@''info_dir''@|'"$(info_dir)"'|'	\
+	    $(srcdir)/dvc-load-install.el.in		\
+	  > $(lispdir)/dvc-load.el
 
 uninstall: uninstall-recursive
 	rmdir $(lispdir) || true
@@ -63,13 +59,15 @@ clean: clean-recursive
 distclean: clean distclean-recursive
 	$(RM) -rf configure config.status config.log autom4te.cache/ Makefile
 
+maintainer-clean: maintainer-clean-recursive
+
 ##############################################################################
 distdir		= $(PACKAGE_TARNAME)-$(PACKAGE_VERSION)
 
 lispfiles	= lisp/Makefile.in lisp/dvc-site.el.in \
 		  lisp/contrib/*.el lisp/tests/*.el lisp/*.el
 docfiles	= texinfo/Makefile.in texinfo/dvc.texinfo texinfo/dvc.info
-miscfiles	= Makefile.in COPYING INSTALL* install-sh move-if-change \
+miscfiles	= Makefile.in COPYING INSTALL* install-sh \
 		  dvc-load.el.in dvc-load-install.el.in \
 		  lisp/dvc-version.el \
 		  texinfo/dvc-version.texinfo \
@@ -85,7 +83,7 @@ dist:
 	for f in $(distfiles) ; do d='.' ;			\
 	  if [ -f $$build/$$f ] ; then d=$$build ; fi ;		\
 	  e=`dirname $$f` ; f=`basename $$f` ;			\
-	  test -d $$dd/$$e || mkdir -p $$dd/$$e ;		\
+	  test -d $$dd/$$e || $(MKDIR_P) $$dd/$$e ;		\
 	  cp -p $$d/$$e/$$f $$dd/$$e/$$f ; done
 	$(TAR) cf - $(distdir) | gzip --best > $(distdir).tar.gz
 	$(RM) -rf $(distdir)
@@ -94,3 +92,8 @@ tarball:
 	$(MAKE) dist				\
 	  distdir=$(PACKAGE_TARNAME)-snapshot	\
 	  extradist='debian/* docs/* scripts/*'
+
+.PHONY: all info pdf dvi html dvc dvc-verbose \
+	install uninstall \
+	clean distclean maintainer-clean \
+	dist tarball
