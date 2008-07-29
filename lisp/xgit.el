@@ -164,8 +164,9 @@ new file.")
 
 (defun xgit-parse-status-sort (status-list)
   "Sort STATUS-LIST according to :status in the order
-added, modified, renamed, copied, deleted, unknown."
-  (let ((order '((added . 1) (modified . 2)
+conflict, added, modified, renamed, copied, deleted, unknown."
+  (let ((order '((conflict . 0)
+                 (added . 1) (modified . 2)
                  (rename-source . 3) (rename-target . 3)
                  (copy-source . 4) (copy-target . 4)
                  (deleted . 5) (unknown . 6)))
@@ -253,6 +254,8 @@ added, modified, renamed, copied, deleted, unknown."
                                 (cons (list :file orig :dir nil
                                             :status 'copy-source :indexed t)
                                       status-list))))))
+                    ((string= status-string "unmerged")
+                     (setq status 'conflict))
                     (t
                      (setq status nil)))
               (when status
