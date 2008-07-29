@@ -258,7 +258,7 @@ FILE is filename in repostory to filter logs by matching filename."
 
     ;; the merge group
     (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
-    (define-key map (dvc-prefix-merge ?m) 'dvc-missing)
+    (define-key map (dvc-prefix-merge ?m) '(lambda () (interactive) (dvc-missing nil default-directory)))
     map)
   "Keymap used in `xgit-changelog-mode'.")
 

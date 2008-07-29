@@ -79,7 +79,7 @@ The file will contain a setq setting the vars during loading by
 
 ;;;###autoload
 (defun dvc-load-state (&optional state-file)
-  "Load `dvc-state-file-name`, i.e. evaluate its content."
+  "Load STATE-FILE (default `dvc-state-file-name`), i.e. evaluate its content."
   (let ((state-file (or state-file
                         (expand-file-name dvc-state-file-name
                                           dvc-config-directory))))
