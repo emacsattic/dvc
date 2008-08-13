@@ -1,6 +1,6 @@
 ;;; dvc-build.el --- compile-time helper.
 
-;; Copyright (C) 2004-2007 by all contributors
+;; Copyright (C) 2004-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;;      Thien-Thi Nguyen <ttn@gnuvola.org>
@@ -37,7 +37,7 @@
 (defvar srcdir (or (getenv "srcdir")
                    (error "Env var `srcdir' not set")))
 (defvar otherdirs (or (getenv "otherdirs")
-                      (error "Env var `otherdirs' not set")))
+                      ""))
 
 ;; Standard
 
@@ -75,10 +75,9 @@
 ;; Internal vars are named --foo.
 
 ;; Platform-specific filenames.
-(defvar --autoloads-filename (expand-file-name
-                              (if (featurep 'xemacs)
+(defvar --autoloads-filename (if (featurep 'xemacs)
                                   "auto-autoloads.el"
-                                "dvc-autoloads.el")))
+                                "dvc-autoloads.el"))
 
 (defvar --custom-autoloads-filename (expand-file-name
                                      (if (featurep 'xemacs)
@@ -334,7 +333,7 @@ fixed in Emacs after 21.3."
                           t nil))
             ad-do-it))
         (put 'define-derived-mode 'doc-string-elt 3))
-      (let ((generated-autoload-file --autoloads-filename)
+      (let ((generated-autoload-file (expand-file-name --autoloads-filename))
             (make-backup-files nil)
             (autoload-package-name "dvc"))
         (if (featurep 'xemacs)
