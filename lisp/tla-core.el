@@ -435,7 +435,7 @@ Examples:
         masked))))
 
 (defun tla--name-match (target mask)
-"Compare the fully qualified revision list TARGET with a MASK.
+  "Compare the fully qualified revision list TARGET with a MASK.
 Each parameter is a list.  The elements of the both lists are compared
 via a regexp match.  When the mask part of a component is nil, this
 comparision is skipped.
@@ -445,7 +445,7 @@ Here are some examples:
  '(nil \"xt.*\" \"main\" nil nil)) => t
 \(tla--name-match
  '(\"xsteve@nit.at--public\" \"xtla\" \"main\" \"0.1\" \"patch-116\")
- '(nil \"xt.*\" \"devel\" nil nil)) => nil"  ;"
+ '(nil \"xt.*\" \"devel\" nil nil)) => nil" ;"
   (let ((tl target)
         (ml mask)
         (t-part)
@@ -681,32 +681,32 @@ If IGNORE-ERROR is non-nil, don't throw errors."
         (category (tla--name-category basename))
         (branch (tla--name-branch basename))
         (version (tla--name-version basename)))
-  (cond
-   (version
-    (tla--archive-tree-build-revisions archive
-                                       category
-                                       branch
-                                       version
-                                       use-cache
-                                       ignore-error))
-   (branch
-    (tla--archive-tree-build-versions archive
-                                      category
-                                      branch
-                                      use-cache
-                                      ignore-error))
-   (category
-    (tla--archive-tree-build-branches archive
-                                      category
-                                      use-cache
-                                      ignore-error))
-   (archive
-    (tla--archive-tree-build-categories archive
+    (cond
+     (version
+      (tla--archive-tree-build-revisions archive
+                                         category
+                                         branch
+                                         version
+                                         use-cache
+                                         ignore-error))
+     (branch
+      (tla--archive-tree-build-versions archive
+                                        category
+                                        branch
                                         use-cache
                                         ignore-error))
-   (t
-    (tla--archive-tree-build-archives use-cache
-                                      ignore-error)))))
+     (category
+      (tla--archive-tree-build-branches archive
+                                        category
+                                        use-cache
+                                        ignore-error))
+     (archive
+      (tla--archive-tree-build-categories archive
+                                          use-cache
+                                          ignore-error))
+     (t
+      (tla--archive-tree-build-archives use-cache
+                                        ignore-error)))))
 
 (defun tla--archive-tree-build-archives (&optional use-cache ignore-error)
   "Builds the list of archives.
@@ -830,11 +830,11 @@ If IGNORE-ERROR is non-nil, don't throw errors."
     (let ((basename (tla--name-construct archive category branch)))
       (message "building versions for `%s'..." basename)
       (tla--run-tla-sync (list "versions" basename)
-                       :finished 'dvc-null-handler
-                       :error
-                       (if ignore-error
-                           'dvc-null-handler
-                         'dvc-default-error-function))
+                         :finished 'dvc-null-handler
+                         :error
+                         (if ignore-error
+                             'dvc-null-handler
+                           'dvc-default-error-function))
       (message "building versions for `%s'...done" basename)
       (sit-for 0)
       (message nil))
@@ -874,8 +874,8 @@ Returns the content of the field FIELD, extracted from the log
 LOG-AS-STRING. FIELD is just the name of the field, without trailing
 \": \""
   (with-temp-buffer
-   (insert log-as-string)
-   (tla--read-field field)))
+    (insert log-as-string)
+    (tla--read-field field)))
 
 (defun tla--read-complete-log-string (&optional buffer)
   "Read the output of \"baz .. --complete-log\", starting at \"N chars\".
@@ -1012,7 +1012,7 @@ callback afterwards."
                  (forward-line 1)
                  (setq revision (buffer-substring-no-properties
                                  (line-beginning-position)
-                                   (line-end-position))))
+                                 (line-end-position))))
                (forward-line 1)
                (if (capture details)
                    (if (tla-revisions-has-complete-log-option)
@@ -1061,7 +1061,7 @@ callback afterwards."
 Details include summary lines, dates, and creator in the archive tree."
   (let ((vtree (tla--archive-tree-get-version archive category branch
                                               version)))
-    (and (cdr vtree) ;; revision list is here
+    (and (cdr vtree)            ;; revision list is here
          (cadr (cadr vtree))))) ;; summary line also
 
 ;; ----------------------------------------------------------------------------
@@ -1481,8 +1481,8 @@ values for WHAT:
                             (member string completions)
                           (try-completion string (mapcar 'list
                                                          completions)))))))
-;;          (dvc-trace "string=%s predicate=%S what=%s ==> result=%S\ncompletions=%S"
-;;                      string predicate what result completions)
+          ;; (dvc-trace "string=%s predicate=%S what=%s ==> result=%S\ncompletions=%S"
+          ;;            string predicate what result completions)
           result)))))
 
 (defconst tla-part-of-name-regex "\\([^/ \t\n-]\\|-[^-]\\)+")
@@ -1500,12 +1500,12 @@ mandatory. (allows to distinguish between Arch archives and emails.
 If EXACT is non-nil, match exactly LEVEL."
   (let ((qmark (if exact "" "?")))
     (concat
-     "\\([^/@ \t\n]+" "@" "[^/ \t\n]+";; email
+     "\\([^/@ \t\n]+" "@" "[^/ \t\n]+" ;; email
      "\\(--"
-     "[^/ \t\n]+\\)?";; suffix (not mandatory)
+     "[^/ \t\n]+\\)?" ;; suffix (not mandatory)
      (when (>= level 1)
        (concat
-        "/\\(" ;; Separator archive/category
+        "/\\("                 ;; Separator archive/category
         tla-part-of-name-regex ;; category
         (when (>= level 2)
           (concat
@@ -1516,12 +1516,12 @@ If EXACT is non-nil, match exactly LEVEL."
              (concat
               "\\("
               "--"
-              "[0-9]+[.0-9]*";; version
+              "[0-9]+[.0-9]*" ;; version
               (when (>= level 4)
                 (concat
                  "\\("
                  "--"
-                 "\\(base\\|patch\\|version\\|versionfix\\)-[0-9]+";; patch
+                 "\\(base\\|patch\\|version\\|versionfix\\)-[0-9]+" ;; patch
                  "\\)" qmark))
               "\\)" qmark))
            "\\)" qmark))
@@ -1559,7 +1559,7 @@ If this does not succeed, use the revision at point, when in tla-changelog-mode.
 (defvar tla--name-read-debug nil
   "If non-nil, `condition-case' in `tla-name-read' is made disabled.")
 (defun tla-name-read (&optional prompt archive category
-                                 branch version revision)
+                                branch version revision)
   "Read a name.
 To get help on the user interface of `tla-name-read', please type
 M-x tla-name-read-help RET.
@@ -1683,7 +1683,7 @@ following commands are available:
 True if RESULT (a string) is not sufficient when the user is
 prompted for ARCHIVE CATEGORY BRANCH VERSION REVISION."
   (let ((res-split (tla--name-split result)))
-    (or (and (eq archive 'prompt) ;; archive required
+    (or (and (eq archive 'prompt)                 ;; archive required
              (not (tla--name-archive res-split))) ;; but not provided
         (and (eq category 'prompt)
              (not (tla--name-category res-split)))
@@ -1703,7 +1703,7 @@ is prompted for ARCHIVE CATEGORY BRANCH VERSION REVISION.
 For example, will return true if the user entered
 foo@bar--2004/xtla--main while prompted only for a category."
   (let ((res-split (tla--name-split result)))
-    (or (and (not revision) ;; revision not needed
+    (or (and (not revision)                  ;; revision not needed
              (tla--name-revision res-split)) ;; but provided
         (and (not version)
              (tla--name-version res-split))
@@ -1793,12 +1793,12 @@ ELISP> (tla--archive-name-source \"jet@gyve.org--xtla-SOURCE\")
 nil"
   (let* ((type (tla--archive-type archive))
          (source (cond
-                 ((eq 'normal type)
-                  (concat archive "-SOURCE"))
-                 ((eq 'mirror type)
-                  (string-match "\\(.*\\)-MIRROR$" archive)
-                  (match-string 1 archive))
-                 (t nil))))
+                  ((eq 'normal type)
+                   (concat archive "-SOURCE"))
+                  ((eq 'mirror type)
+                   (string-match "\\(.*\\)-MIRROR$" archive)
+                   (match-string 1 archive))
+                  (t nil))))
     (if existence-check
         (progn
           (tla--archive-tree-build-archives t)
@@ -1842,7 +1842,7 @@ If revision is nil, return the ancestor of the last revision
 of the local tree."
   (interactive
    (list (tla-name-read "Compute direct ancestor of: "
-                         'prompt 'prompt 'prompt 'prompt 'prompt)))
+                        'prompt 'prompt 'prompt 'prompt 'prompt)))
   (let ((ancestor
          (tla--run-tla-sync (list "ancestry-graph" "--immediate"
                                   (and revision

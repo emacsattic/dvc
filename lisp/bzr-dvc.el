@@ -111,5 +111,7 @@ Usually that file is placed in the tree-root of the working tree.")
 
 (defalias 'bzr-dvc-annotate-time 'bzr-annotate-time)
 
+(defalias 'bzr-dvc-clone 'bzr-checkout)
+
 (provide 'bzr-dvc)
 ;;; bzr-dvc.el ends here

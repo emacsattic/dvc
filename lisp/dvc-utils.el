@@ -40,15 +40,15 @@
 (progn
   (defmacro dvc-do-in-gnu-emacs (&rest body)
     "Execute BODY if in GNU/Emacs."
+    (declare (indent defun) (debug (body)))
     (unless (featurep 'xemacs) `(progn ,@body))))
-(put 'dvc-do-in-gnu-emacs 'lisp-indent-hook 'defun)
 
 ;;;###autoload
 (progn
   (defmacro dvc-do-in-xemacs (&rest body)
     "Execute BODY if in XEmacs."
+    (declare (indent defun) (debug (body)))
     (when (featurep 'xemacs) `(progn ,@body))))
-(put 'dvc-do-in-xemacs 'lisp-indent-hook 'defun)
 
 (defconst dvc-mouse-2
   (if (featurep 'xemacs)
@@ -105,7 +105,7 @@ front."
   (if (featurep 'xemacs)
       (if append
           (when (not (member element (eval list-var)))
-	    (set list-var (append (eval list-var) (list element))))
+            (set list-var (append (eval list-var) (list element))))
         (add-to-list list-var element))
     (add-to-list list-var element append)))
 
@@ -136,26 +136,26 @@ whitespace, use `(split-string STRING split-string-default-separators)'.
 
 Modifies the match data; use `save-match-data' if necessary."
   (let ((keep-nulls (not (if separators omit-nulls t)))
-	(rexp (or separators split-string-default-separators))
-	(start 0)
-	notfirst
-	(list nil))
+        (rexp (or separators split-string-default-separators))
+        (start 0)
+        notfirst
+        (list nil))
     (while (and (string-match rexp string
-			      (if (and notfirst
-				       (= start (match-beginning 0))
-				       (< start (length string)))
-				  (1+ start) start))
-		(< start (length string)))
+                              (if (and notfirst
+                                       (= start (match-beginning 0))
+                                       (< start (length string)))
+                                  (1+ start) start))
+                (< start (length string)))
       (setq notfirst t)
       (if (or keep-nulls (< start (match-beginning 0)))
-	  (setq list
-		(cons (substring string start (match-beginning 0))
-		      list)))
+          (setq list
+                (cons (substring string start (match-beginning 0))
+                      list)))
       (setq start (match-end 0)))
     (if (or keep-nulls (< start (length string)))
-	(setq list
-	      (cons (substring string start)
-		    list)))
+        (setq list
+              (cons (substring string start)
+                    list)))
     (nreverse list)))
 
 (eval-and-compile
@@ -174,8 +174,8 @@ DIR must be a directory name, not a file name."
           (setq dir (expand-file-name dir)))
       (if (string-match (concat "^" (regexp-quote dir)) file)
           (substring file (match-end 0))
-;;;  (or no-error
-;;;(error "%s: not in directory tree growing at %s" file dir))
+        ;; (or no-error
+        ;;     (error "%s: not in directory tree growing at %s" file dir))
         file))
     ;; Delete file, possibly delete a directory and all its files.
     ;; This function is useful outside of dired.  One could change it's name
@@ -200,7 +200,7 @@ Anything else, ask for each sub-directory."
                          (yes-or-no-p (format "Recursive delete of %s "
                                               (dired-make-relative file)))))
             (if (eq recursive 'top) (setq recursive 'always)) ; Don't ask again.
-            (while files		; Recursively delete (possibly asking).
+            (while files               ; Recursively delete (possibly asking).
               (dired-delete-file (car files) recursive)
               (setq files (cdr files))))
           (delete-directory file))))))
@@ -214,7 +214,7 @@ be incorrectly set, breaking a lot of Emacs function."
   (setq abbreviated-home-dir nil))
 
 (defun dvc-read-directory-name (prompt &optional dir default-dirname
-                                        mustmatch initial)
+                                       mustmatch initial)
   "Read directory name, prompting with PROMPT and completing in directory DIR.
 Value is not expanded---you must call `expand-file-name' yourself.
 Default name to DEFAULT-DIRNAME if user exits with the same
@@ -244,7 +244,7 @@ the value of `default-directory'."
   "Create a tarball with the content of DIR.
 If DIR does not yet exist, wait until it does exist.
 Then create the tarball TGZ-FILE-NAME and remove the contents of DIR."
-    ;;create the archive: tar cfz ,,cset.tar.gz ,,cset
+  ;;create the archive: tar cfz ,,cset.tar.gz ,,cset
   (while (not (file-exists-p dir)) ;;somewhat dirty, but seems to work...
     (sit-for 0.01))
   ;;(message "Calling tar cfz %s -C %s %s" tgz-file-name (file-name-directory dir) (file-name-nondirectory dir))
@@ -422,13 +422,13 @@ Does nothing otherwise.  Please use it for your debug messages."
 (defun dvc-trace-current-line ()
   "Display the line the cursor is in."
   (dvc-trace "Current-line(%s)=%s[_]%s"
-              (save-restriction (widen) (dvc-line-number-at-pos))
-              (buffer-substring-no-properties
-               (line-beginning-position)
-               (point))
-              (buffer-substring-no-properties
-               (point)
-               (line-end-position))))
+             (save-restriction (widen) (dvc-line-number-at-pos))
+             (buffer-substring-no-properties
+              (line-beginning-position)
+              (point))
+             (buffer-substring-no-properties
+              (point)
+              (line-end-position))))
 
 (defmacro dvc-features-list ()
   "Topological sort of the dependancy graph. Root comes last.
@@ -512,7 +512,7 @@ run \"make\"."
   (interactive
    (list (when current-prefix-arg
            (let* ((other (dvc-read-directory-name
-                         "Load DVC from: "))
+                          "Load DVC from: "))
                   (lispdir (concat (file-name-as-directory other)
                                    "lisp")))
              (if (file-directory-p lispdir)
@@ -573,7 +573,7 @@ it is a valid project tree."
       (always (dvc-tree-root (dvc-read-directory-name prompt)))
 
       (unless-specified
-       (if (or directory prefer-current)
+       (if (or directory (and prefer-current root))
            (if root
                root
              (error "%s directory is not a DVC managed directory" directory))
@@ -606,6 +606,7 @@ FUNCTION is the name of the function to declare.
 COOKIE is the ewoc to navigate in.
 if ONLY-UNMERGED is non-nil, then, navigate only through revisions not
 merged by another revision in the same list."
+  (declare (indent 2) (debug (&define functionp name symbolp booleanp)))
   `(defun ,function ()
      (interactive)
      (let* ((elem (ewoc-locate ,cookie))

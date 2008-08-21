@@ -135,6 +135,7 @@ An example for the well-read Lisp fan:
       (funcall l 'dummy-arg)))
 
   => (dynamic-x lexical-y dummy-arg)"
+  (declare (indent 1) (debug (sexp body)))
   (let* ((captured-values nil)
          (body (dvc-capturing-lambda-helper body)))
     `(list 'lambda ',args
@@ -143,8 +144,6 @@ An example for the well-read Lisp fan:
                    . ,body)
                  ,@(mapcar #'(lambda (arg) (list 'quote arg)) args)
                  (list 'quote (list ,@(mapcar #'cdr captured-values))))))))
-(put 'dvc-capturing-lambda 'lisp-indent-function 1)
-(put 'dvc-capturing-lambda 'edebug-form-spec '(sexp body))
 
 (defun dvc-lexical-let-perform-replacement-in-source ()
   "Replace instances of quoted lambda forms with `lexical-let'

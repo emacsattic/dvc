@@ -49,7 +49,7 @@ a common base directory.")
 ;;(setq bzr-mail-notification-destination
 ;;      '(("dvc-dev-bzr" ("[commit][dvc] " "dvc-dev@gna.org" "http://xsteve.nit.at/dvc/"))))
 (defcustom bzr-mail-notification-destination nil
-"*Preset some useful values for commit emails.
+  "*Preset some useful values for commit emails.
 
 An alist of rules to map branch names to target
 email addresses and the prefix string for the subject line.
@@ -57,10 +57,10 @@ email addresses and the prefix string for the subject line.
 This is used by the `bzr-send-commit-notification' function."
   :type '(repeat (list :tag "Rule"
                        (string :tag "Bzr branch nick")
-                (list :tag "Target"
-                      (string :tag "Email subject prefix")
-                      (string :tag "Email address")
-                      (string :tag "Bzr branch location"))))
+                       (list :tag "Target"
+                             (string :tag "Email subject prefix")
+                             (string :tag "Email address")
+                             (string :tag "Bzr branch location"))))
   :group 'dvc)
 
 
@@ -75,12 +75,12 @@ pulled-something: If something was pulled.")
   "Run bzr init."
   (interactive
    (list (expand-file-name (dvc-read-directory-name "Directory for bzr init: "
-                                                     (or default-directory
-                                                         (getenv "HOME"))))))
+                                                    (or default-directory
+                                                        (getenv "HOME"))))))
   (dvc-run-dvc-sync 'bzr (list "init" dir)
-                     :finished (dvc-capturing-lambda
-                                   (output error status arguments)
-                                 (message "bzr init %s finished" dir))))
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr init %s finished" dir))))
 
 (defun bzr-init-repository (&optional dir)
   "Run bzr init-repository.
@@ -95,11 +95,12 @@ via bzr init-repository."
                              default-directory
                              (getenv "HOME"))))))
   (dvc-run-dvc-sync 'bzr (list "init-repository" dir)
-                     :finished (dvc-capturing-lambda
-                                   (output error status arguments)
-                                 (message "bzr init-repository '%s' finished" dir)))
+                    :finished (dvc-capturing-lambda
+                                  (output error status arguments)
+                                (message "bzr init-repository '%s' finished" dir)))
   dir)
 
+;;;###autoload
 (defun bzr-checkout (branch-location to-location &optional lightweight revision)
   "Run bzr checkout."
   (interactive
@@ -115,15 +116,22 @@ via bzr init-repository."
           (lw (y-or-n-p "Do a lightweight checkout? "))
           (rev nil))
      (list branch-loc to-loc lw rev)))
+  (if current-prefix-arg
+      (setq revision (read-string "FromRevision: "))
+    (setq revision nil))
   (dvc-run-dvc-sync 'bzr (list "checkout"
                                (when lightweight "--lightweight")
-                               branch-location to-location)
+                               branch-location
+                               to-location
+                               (when revision "-r")
+                               revision)
                     :finished (dvc-capturing-lambda
                                   (output error status arguments)
-                                (message "bzr checkout%s %s -> %s finished"
+                                (message "bzr checkout%s %s at rev %s -> %s finished"
                                          (if lightweight " --lightweight" "")
-                                         branch-location to-location)
+                                         branch-location revision to-location)
                                 (dired to-location))))
+
 
 ;;;###autoload
 (defun bzr-pull (&optional repo-path)
@@ -176,11 +184,11 @@ When called with a prefix argument, add the --remember option"
   (interactive "sMerge bzr bundle: ")
   (message "bzr-merge-bundle: %s (%s)" bundle-file default-directory)
   (dvc-run-dvc-sync 'bzr (list "merge" bundle-file)
-                     :finished
-                     (dvc-capturing-lambda
-                         (output error status arguments)
-                       (message "bzr merge finished => %s"
-                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
+                    :finished
+                    (dvc-capturing-lambda
+                        (output error status arguments)
+                      (message "bzr merge finished => %s"
+                               (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
 (defvar bzr-merge-or-pull-from-url-rules nil
   "An alist that maps repository urls to working copies. This rule is used by
@@ -419,9 +427,9 @@ This is done by looking at the 'You are missing ... revision(s):' string in the 
 the subject line, the rest of the subject line contains the summary line
 of the commit. Additionally the destination email address can be specified."
   (interactive)
-  (let* ((dest-specs (cadar bzr-mail-notification-destination));;(tla--name-match-from-list
-                     ;;(tla--name-split (tla-changelog-revision-at-point))
-                     ;;tla-mail-notification-destination))
+  (let* ((dest-specs (cadar bzr-mail-notification-destination)) ;;(tla--name-match-from-list
+         ;;(tla--name-split (tla-changelog-revision-at-point))
+         ;;tla-mail-notification-destination))
          (rev (bzr-get-revision-at-point))
          (branch-location (nth 2 dest-specs))
          (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
@@ -483,44 +491,44 @@ of the commit. Additionally the destination email address can be specified."
                  (ewoc-enter-last dvc-fileinfo-ewoc
                                   (make-dvc-fileinfo-message :text msg)))
                (cond
-                 ((string-equal msg "added:")
-                  (setq current-status 'added))
-                 ((string-equal msg "conflicts:")
-                  (setq current-status 'conflict))
-                 ((string-equal msg "modified:")
-                  (setq current-status 'modified))
-                 ((string-equal msg "removed:")
-                  (setq current-status 'missing))
-                 ((string-equal msg "unknown:")
-                  (setq current-status 'unknown))
-                 ((string-equal msg "pending merges:")
-                  (setq current-status nil))
-		 ((string-equal msg "renamed:")
-		  ;; Rename case is handled explictly below
-                  (setq current-status nil))
-                 (t
-                  (error "unrecognized label %s in bzr-parse-status" msg)))))
+                ((string-equal msg "added:")
+                 (setq current-status 'added))
+                ((string-equal msg "conflicts:")
+                 (setq current-status 'conflict))
+                ((string-equal msg "modified:")
+                 (setq current-status 'modified))
+                ((string-equal msg "removed:")
+                 (setq current-status 'missing))
+                ((string-equal msg "unknown:")
+                 (setq current-status 'unknown))
+                ((string-equal msg "pending merges:")
+                 (setq current-status nil))
+                ((string-equal msg "renamed:")
+                 ;; Rename case is handled explictly below
+                 (setq current-status nil))
+                (t
+                 (error "unrecognized label %s in bzr-parse-status" msg)))))
 
             ((looking-at "^ +\\([^ ][^\n]*?\\)\\([/@]\\)? => \\([^\n]*?\\)\\([/@]\\)?$")
              ;; a renamed file
              (let ((oldname (match-string-no-properties 1))
                    (dir (match-string-no-properties 2))
                    (newname (match-string-no-properties 3)))
-             (with-current-buffer changes-buffer
-               (ewoc-enter-last dvc-fileinfo-ewoc
-                                (make-dvc-fileinfo-file
-                                 :mark nil
-                                 :dir dir
-                                 :file newname
-                                 :status 'rename-target
-                                 :more-status oldname))
-               (ewoc-enter-last dvc-fileinfo-ewoc
-                                (make-dvc-fileinfo-file
-                                 :mark nil
-                                 :dir dir
-                                 :file oldname
-                                 :status 'rename-source
-                                 :more-status newname)))))
+               (with-current-buffer changes-buffer
+                 (ewoc-enter-last dvc-fileinfo-ewoc
+                                  (make-dvc-fileinfo-file
+                                   :mark nil
+                                   :dir dir
+                                   :file newname
+                                   :status 'rename-target
+                                   :more-status oldname))
+                 (ewoc-enter-last dvc-fileinfo-ewoc
+                                  (make-dvc-fileinfo-file
+                                   :mark nil
+                                   :dir dir
+                                   :file oldname
+                                   :status 'rename-source
+                                   :more-status newname)))))
 
             ((looking-at " +\\(?:Text conflict in \\)?\\([^\n]*?\\)\\([/@*]\\)?$")
              ;; A typical file in a file group, or a pending merge message
@@ -564,14 +572,14 @@ of the commit. Additionally the destination email address can be specified."
          (if (> (point-max) (point-min))
              (dvc-show-changes-buffer output 'bzr-parse-status
                                       (capture buffer))
-         (dvc-diff-no-changes (capture buffer)
-                             "No changes in %s"
-                             (capture root))))
+           (dvc-diff-no-changes (capture buffer)
+                                "No changes in %s"
+                                (capture root))))
        :error
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-error-in-process (capture buffer)
-                                     "Error in diff process"
-                                     output error))))))
+                                    "Error in diff process"
+                                    output error))))))
 
 (defun bzr-parse-inventory (changes-buffer)
   ;;(dvc-trace "bzr-parse-inventory (while)")
@@ -615,8 +623,8 @@ of the commit. Additionally the destination email address can be specified."
        :error
        (dvc-capturing-lambda (output error status arguments)
          (dvc-diff-error-in-process (capture buffer)
-                                     "Error in inventory process"
-                                     output error))))))
+                                    "Error in inventory process"
+                                    output error))))))
 
 ;;;###autoload
 (defun bzr-add (file)
@@ -634,7 +642,7 @@ of the commit. Additionally the destination email address can be specified."
   (dvc-trace "bzr-add-files: %s" files)
   (let ((default-directory (bzr-tree-root)))
     (dvc-run-dvc-sync 'bzr (append '("add" "--no-recurse") (mapcar #'file-relative-name
-                                                    files))
+                                                                   files))
                       :finished (dvc-capturing-lambda
                                     (output error status arguments)
                                   (message "bzr add finished")))))
@@ -645,10 +653,10 @@ of the commit. Additionally the destination email address can be specified."
   (dvc-trace "bzr-revert-files: %s" files)
   (let ((default-directory (bzr-tree-root)))
     (dvc-run-dvc-sync 'bzr (append '("revert") (mapcar #'file-relative-name files))
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (dvc-revert-some-buffers default-directory)
-                                (message "bzr revert finished")))))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (dvc-revert-some-buffers default-directory)
+                                  (message "bzr revert finished")))))
 
 ;;;###autoload
 (defun bzr-dvc-remove-files (&rest files)
@@ -723,7 +731,7 @@ LOCAL is ignored on non-bound branches."
     (dvc-tips-popup-maybe)))
 
 (defcustom bzr-work-offline 'prompt
-"*Whether bzr commit should use --local for bound branches by default.
+  "*Whether bzr commit should use --local for bound branches by default.
 
 Possible values are:
 t: work offline  (use --local systematialy)
@@ -989,7 +997,7 @@ LAST-REVISION looks like
   "Run bzr whoami."
   (interactive)
   (let ((whoami (dvc-run-dvc-sync 'bzr (list "whoami")
-                                   :finished 'dvc-output-buffer-handler)))
+                                  :finished 'dvc-output-buffer-handler)))
     (when (interactive-p)
       (message "bzr whoami: %s" whoami))
     whoami))
@@ -1000,7 +1008,7 @@ When called with a prefix argument, ask for the new nick-name, otherwise
 display the current one."
   (interactive "P")
   (let ((nick (dvc-run-dvc-sync 'bzr (list "nick")
-                                   :finished 'dvc-output-buffer-handler)))
+                                :finished 'dvc-output-buffer-handler)))
     (if (not new-nick)
         (progn
           (when (interactive-p)
@@ -1055,8 +1063,8 @@ display the current one."
   (interactive)
   (if (interactive-p)
       (dvc-run-dvc-display-as-info 'bzr '("version-info"))
-  (dvc-run-dvc-sync 'bzr (list "version-info")
-                    :finished 'dvc-output-buffer-handler)))
+    (dvc-run-dvc-sync 'bzr (list "version-info")
+                      :finished 'dvc-output-buffer-handler)))
 
 (defun bzr-upgrade ()
   "Run bzr upgrade."
@@ -1185,14 +1193,14 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   "Major mode to display bzr annotate output."
   (dvc-annotate-display-autoscale t)
   (dvc-annotate-lines (point-max))
-  ;(xgit-annotate-hide-revinfo)
+  ;;(xgit-annotate-hide-revinfo)
   (toggle-read-only 1))
 
 (defun bzr-switch-checkout (target)
   "Switch the checkout to the branch TARGET"
   (interactive "sURL of the branch to switch to: ")
-  (dvc-run-dvc-sync 'bzr (list "switch" target)  
-		    :finished 'dvc-output-buffer-handler)
+  (dvc-run-dvc-sync 'bzr (list "switch" target)
+                    :finished 'dvc-output-buffer-handler)
   (dvc-revert-some-buffers)
   (dvc-trace "Switched checkout to  %s" target)
   )

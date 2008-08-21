@@ -109,7 +109,7 @@
                                       (xgit-revision-st-commit elem))))))))
         (setq elem (make-xgit-revision-st)))))
   (with-current-buffer log-buffer
-      (goto-char (point-min))))
+    (goto-char (point-min))))
 
 
 (provide 'xgit-revision)

@@ -19,9 +19,6 @@
 
 # Process this file with autoconf to produce a new configure script
 
-m4_define([DVC_PRE_INIT],
-[ m4_define([DVC_VERSION], 0) ])
-
 # DVC_ARG_SUBST(VAR, OPTION, VAL, DESC[, DEFAULT[, ACTION]])
 #
 # Substitute the autoconf variable VAR to a value specified by the user
@@ -128,15 +125,6 @@ AC_DEFUN([DVC_PROG],
         AC_CHECK_PROG($1, $2, $2)
       ])
   ])
-
-# Find an xargs program. A failure is not fatal, only clean/tarball will not
-# work
-AC_DEFUN([DVC_PROG_XARGS],
-  [ AC_CHECK_PROG(XARGS, xargs, xargs)
-    if test "x${XARGS}" = "x" ; then
-      AC_MSG_WARN([*** No xargs program found.])
-      AC_MSG_WARN([*** make clean/tarball will not work.])
-    fi ])
 
 AC_DEFUN([DVC_BAZ_OR_TLA],
   [ AC_MSG_CHECKING([arch branch to use])
@@ -255,18 +243,10 @@ TEST
     AC_SUBST(SITEFLAG)
 ])
 
-# copied from gnus aclocal.m4
 AC_DEFUN([DVC_BUILD_FLAGS], [
-  AC_MSG_CHECKING([which options to pass on to (X)Emacs])
-  if test "x$FLAGS" = "x"; then
-    if test "x$EMACS_FLAVOR" = "xxemacs"; then
-      FLAGS="-batch ${SITEFLAG} -no-autoloads -l \$(srcdir)/dvc-build.el"
-    else
-      FLAGS="-batch -q ${SITEFLAG} -no-init-file -l \$(srcdir)/dvc-build.el"
-    fi
-  else
-    FLAGS=$FLAGS
-  fi
+  AC_MSG_CHECKING([extra options for (X)Emacs batch mode])
+  FLAGS=$SITEFLAG
+  test "x$EMACS_FLAVOR" = "xxemacs" && FLAGS="$FLAGS -no-autoloads"
   AC_MSG_RESULT($FLAGS)
   AC_SUBST(FLAGS)
 ])
@@ -311,21 +291,8 @@ TEST
     AC_SUBST(HAS_TREE_WIDGET)
   ])
 
-dnl dnl AC_DEFUN([DVC_RELEASE_ID],
-dnl dnl         [ AC_MSG_CHECKING(for release ID)
-dnl dnl           AC_ARG_WITH([release-id],
-dnl dnl             AC_HELP_STRING([--with-release-id=ID],
-dnl dnl             [Version number for an official release]),
-dnl dnl             [ RELEASE_ID="${withval}";
-dnl dnl               AC_MSG_RESULT(${RELEASE_ID})],
-dnl dnl             [ RELEASE_ID="";
-dnl dnl               AC_MSG_RESULT(none)])]
-dnl dnl           AC_SUBST(RELEASE_ID))
-
-
 ##############################################################################
-DVC_PRE_INIT
-AC_INIT([DVC], [DVC_VERSION], [dvc-dev@gna.org])
+AC_INIT([DVC], [0], [dvc-dev@gna.org])
 
 # It seems that the latest GNU Emacs sets --always-color to GREP_OPTIONS (for M-x grep?).
 # So configure will confuse if it is run from emacs's *shell*.
@@ -335,14 +302,14 @@ unset GREP_OPTIONS
 AC_COPYRIGHT([Copyright (C) 2004-2007 Robert Widhopf-Fenk <hack@robf.de> and the DVC team])
 
 AC_CONFIG_SRCDIR([configure.ac])
-AC_CONFIG_FILES([Makefile lisp/Makefile texinfo/Makefile dvc-load.el dvc-load-install.el lisp/dvc-site.el])
+AC_CONFIG_FILES([Makefile lisp/Makefile texinfo/Makefile dvc-load.el lisp/dvc-site.el])
 
 # Common system utilities checking:
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
+AC_PROG_MKDIR_P
 AC_PROG_LN_S
 AC_PATH_PROG(RM, rm, /bin/rm)
-AC_PATH_PROG(LS, ls, /bin/ls)
 AC_PATH_PROG(GREP, grep, /bin/grep)
 AC_PATH_PROG(TRUE_PROG, true, /bin/true)
 
@@ -354,22 +321,16 @@ DVC_PATH_INFO_DIR
 
 DVC_PROG(TLA, tla, tla program to use)
 DVC_PROG(BAZ, baz, baz program to use)
-DVC_PROG(BZR, bzr, Bazaar-NG)
-if test "x$BZR" = "x" ; then
-   BZR=${TRUE_PROG}
-fi
 DVC_BAZ_OR_TLA
 
 DVC_PROG_WARN(DIFF, diff, diff program to use)
 DVC_PROG_WARN(PATCH, patch, patch program to use)
 DVC_PROG_ETAGS
-DVC_PROG_XARGS
 DVC_PROG_GNU_TAR
 DVC_PROG_MAKEINFO
 DVC_PROG_TEXI2DVI
 DVC_OTHERDIRS
 DVC_HAS_TREE_WIDGET
-dnl dnl DVC_RELEASE_ID
 
 # is there a sane way to set this to a useful default?
 DVC_ARG_SUBST([PACKAGEDIR], [package-dir], [DIR],

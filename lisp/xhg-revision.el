@@ -98,7 +98,7 @@
         (setq elem (make-xhg-revision-st))
         (forward-line 1))))
   (with-current-buffer log-buffer
-      (goto-char (point-min))))
+    (goto-char (point-min))))
 
 ;;;###autoload
 (defun xhg-dvc-log (path last-n)
@@ -120,7 +120,7 @@
 (defun xhg-name-construct (rev-id)
   (case (car rev-id)
     (local (nth 1 rev-id))
-      (t (error "Not implemented (rev-id=%s)" rev-id))))
+    (t (error "Not implemented (rev-id=%s)" rev-id))))
 
 (provide 'xhg-revision)
 ;;; xhg-revision.el ends here

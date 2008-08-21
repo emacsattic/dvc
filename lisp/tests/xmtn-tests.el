@@ -123,9 +123,11 @@ YPFoLxe1V5oOyoe3ap0H
                    :revision-2 revision-2)))))))
 
 (defmacro* xmtn-tests--with-test-environment ((&rest keys) &body body)
+  (declare (indent 1) (debug (sexp body)))
   `(xmtn-tests--call-with-test-environment (function* (lambda (,@keys) ,@body))))
 
 (defmacro* xmtn-tests--with-test-history ((&rest keys) &body body)
+  (declare (indent 1) (debug (sexp body)))
   `(xmtn-tests--call-with-test-history (function* (lambda (,@keys) ,@body))))
 
 
@@ -162,40 +164,40 @@ YPFoLxe1V5oOyoe3ap0H
      (assert (xmtn-match [foo bar] ((a . b) nil) ([foo bar] t)))
      (assert (xmtn-match nil (nil t)))))
   (xmtn--version-case
-    (flet ((xmtn--latest-mtn-release () ;flet has dynamic scope in Emacs Lisp
-                                     '(2 5 "y")))
-      (let* ((xmtn-executable 'xmtn-dummy)
-             (xmtn--*command-version-cached-for-executable* xmtn-executable))
-        (let ((xmtn--*cached-command-version* '(2 5 "x")))
-          (assert
-           (xmtn--version-case
-             ((and (= 2 5) (>= 2 5) (or (= 2 4) (<= 3 0))
-                   (<= 2 6) (/= 1 5) (not (/= 2 5))
-                   (not (>= 2 6))
-                   (not (<= 2 4))
-                   (not (< 2 5))
-                   (not (< 2 4))) t)
-             (t nil)))
-          (assert
-           (not (ignore-errors
-                  (xmtn--version-case
-                    (nil t)))))
-          (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
-          (assert (xmtn--version-case ((mainline> 2 5) t) (t nil)))
-          (assert (xmtn--version-case ((mainline> 2 6) nil) (t t))))
-        (let ((xmtn--*cached-command-version* '(2 5 "y")))
-          (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
-          (assert (xmtn--version-case ((mainline> 2 5) nil) (t t)))
-          (assert (xmtn--version-case ((mainline> 2 6) nil) (t t))))
-        (let ((xmtn--*cached-command-version* '(1 5 "w")))
-          (assert (xmtn--version-case ((mainline> 2 4) nil) (t t)))
-          (assert (xmtn--version-case ((mainline> 2 5) nil) (t t)))
-          (assert (xmtn--version-case ((mainline> 1 4) t) (t nil)))
-          (assert (xmtn--version-case ((mainline> 1 5) nil) (t t))))
-        (let ((xmtn--*cached-command-version* '(2 6 "z")))
-          (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
-          (assert (xmtn--version-case ((mainline> 2 5) t) (t nil)))
-          (assert (xmtn--version-case ((mainline> 2 6) nil) (t t)))))))
+   (flet ((xmtn--latest-mtn-release ()  ;flet has dynamic scope in Emacs Lisp
+                                    '(2 5 "y")))
+     (let* ((xmtn-executable 'xmtn-dummy)
+            (xmtn--*command-version-cached-for-executable* xmtn-executable))
+       (let ((xmtn--*cached-command-version* '(2 5 "x")))
+         (assert
+          (xmtn--version-case
+           ((and (= 2 5) (>= 2 5) (or (= 2 4) (<= 3 0))
+                 (<= 2 6) (/= 1 5) (not (/= 2 5))
+                 (not (>= 2 6))
+                 (not (<= 2 4))
+                 (not (< 2 5))
+                 (not (< 2 4))) t)
+           (t nil)))
+         (assert
+          (not (ignore-errors
+                 (xmtn--version-case
+                  (nil t)))))
+         (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
+         (assert (xmtn--version-case ((mainline> 2 5) t) (t nil)))
+         (assert (xmtn--version-case ((mainline> 2 6) nil) (t t))))
+       (let ((xmtn--*cached-command-version* '(2 5 "y")))
+         (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
+         (assert (xmtn--version-case ((mainline> 2 5) nil) (t t)))
+         (assert (xmtn--version-case ((mainline> 2 6) nil) (t t))))
+       (let ((xmtn--*cached-command-version* '(1 5 "w")))
+         (assert (xmtn--version-case ((mainline> 2 4) nil) (t t)))
+         (assert (xmtn--version-case ((mainline> 2 5) nil) (t t)))
+         (assert (xmtn--version-case ((mainline> 1 4) t) (t nil)))
+         (assert (xmtn--version-case ((mainline> 1 5) nil) (t t))))
+       (let ((xmtn--*cached-command-version* '(2 6 "z")))
+         (assert (xmtn--version-case ((mainline> 2 4) t) (t nil)))
+         (assert (xmtn--version-case ((mainline> 2 5) t) (t nil)))
+         (assert (xmtn--version-case ((mainline> 2 6) nil) (t t)))))))
   (log
    (save-window-excursion
      (xmtn-tests--with-test-history (&key &allow-other-keys)
@@ -261,7 +263,7 @@ YPFoLxe1V5oOyoe3ap0H
      (xmtn-tests--with-test-environment (&key root)
        (let ((file-name umlaut))
          (let ((file-name-coding-system 'utf-8)) ; not sure about this...
-           (with-temp-file file-name ; create empty file
+           (with-temp-file file-name             ; create empty file
              (progn)))
          (xmtn--add-files root (list file-name))
          (let ((manifest (xmtn--get-manifest root `(local-tree ,root))))
@@ -274,12 +276,12 @@ YPFoLxe1V5oOyoe3ap0H
          ;; doesn't matter as much as the fact that monotone receives
          ;; it correctly.
          (xmtn--with-automate-command-output-basic-io-parser
-           (next-stanza root (xmtn--version-case
-                               ((mainline> 0 35) `("get_attributes" ,file-name))
-                               (t `("attributes" ,file-name))))
-          (xmtn-match (funcall next-stanza)
-            ((("format_version" (string "1")))))
-          (assert (null (funcall next-stanza)) t))))))
+             (next-stanza root (xmtn--version-case
+                                ((mainline> 0 35) `("get_attributes" ,file-name))
+                                (t `("attributes" ,file-name))))
+           (xmtn-match (funcall next-stanza)
+             ((("format_version" (string "1")))))
+           (assert (null (funcall next-stanza)) t))))))
   (non-ascii-file-contents
    (let ((umlaut (string (make-char 'latin-iso8859-1 #xe4)))) ; umlaut a
      (xmtn-tests--with-test-environment (&key root)
@@ -354,10 +356,10 @@ YPFoLxe1V5oOyoe3ap0H
      (let ((file-name-2 "bar"))
        (xmtn--run-command-sync root
                                (xmtn--version-case
-                                 ((>= 0 34)
-                                  `("mv" "--" ,file-name-1 ,file-name-2))
-                                 (t
-                                  `("mv" "-e" "--" ,file-name-1 ,file-name-2))))
+                                ((>= 0 34)
+                                 `("mv" "--" ,file-name-1 ,file-name-2))
+                                (t
+                                 `("mv" "-e" "--" ,file-name-1 ,file-name-2))))
        (with-temp-buffer
          (xmtn--revision-get-file-helper file-name-2 revision-2)
          (assert (equal (buffer-substring (point-min) (point-max))
@@ -374,33 +376,33 @@ YPFoLxe1V5oOyoe3ap0H
          (dvc-tests-wait-async)))))
   (stdio-command-options
    (xmtn--version-case
-     ((>= 0 31)
-      (xmtn-tests--with-test-history (&key root file-name
-                                           revision-1 revision-2
-                                           &allow-other-keys)
-        (let ((root default-directory))
-          (assert
-           (equal
-            (xmtn-automate-simple-command-output-lines
-             root `(("revision" ,revision-1
-                     "revision" ,revision-2)
-                    "content_diff" ,file-name))
-            '("============================================================"
-              "--- file-1	3f786850e387550fdab836ed7e6dc881de23001b"
-              "+++ file-1	89e6c98d92887913cadf06b2adb97f26cde4849b"
-              "@@ -1 +1 @@"
-              "-a"
-              "+b"))
-           t))))
-     (t
-      (xmtn-tests--with-test-history (&key root file-name
-                                           revision-1 revision-2)
-        (assert (not (ignore-errors
-                       (message "%S" (xmtn-automate-simple-command-output-lines
-                        root `(("revision" ,revision-1
-                                "revision" ,revision-2)
-                               "content_diff" ,file-name)))
-                       t)))))))
+    ((>= 0 31)
+     (xmtn-tests--with-test-history (&key root file-name
+                                          revision-1 revision-2
+                                          &allow-other-keys)
+       (let ((root default-directory))
+         (assert
+          (equal
+           (xmtn-automate-simple-command-output-lines
+            root `(("revision" ,revision-1
+                    "revision" ,revision-2)
+                   "content_diff" ,file-name))
+           '("============================================================"
+             "--- file-1	3f786850e387550fdab836ed7e6dc881de23001b"
+             "+++ file-1	89e6c98d92887913cadf06b2adb97f26cde4849b"
+             "@@ -1 +1 @@"
+             "-a"
+             "+b"))
+          t))))
+    (t
+     (xmtn-tests--with-test-history (&key root file-name
+                                          revision-1 revision-2)
+       (assert (not (ignore-errors
+                      (message "%S" (xmtn-automate-simple-command-output-lines
+                                     root `(("revision" ,revision-1
+                                             "revision" ,revision-2)
+                                            "content_diff" ,file-name)))
+                      t)))))))
   (xmtn-dvc-command-version
    ;; Should not error.
    (xmtn-dvc-command-version))
@@ -491,42 +493,42 @@ YPFoLxe1V5oOyoe3ap0H
      (assert (not (xmtn--file-registered-p root "nonexistent-file")))))
 
   (dvc-status-add
-     (save-window-excursion
-       (xmtn-tests--with-test-environment
-        (&key &allow-other-keys)
-        ;; add and commit an unknown file, using dvc-status keystrokes
-        (with-temp-file "unknown" (insert "unknown - to be added\n"))
-        (with-temp-file "unknown-marked" (insert "unknown, marked\n"))
-        (dvc-status)
-        (dvc-tests-wait-async)
-        (assert (looking-at "   unknown       unknown"))
-        (execute-kbd-macro (vector dvc-key-add))
-        (dvc-tests-wait-async)
-        (assert (looking-at "   added         unknown"))
-        (forward-line)
-        (assert (looking-at "   unknown       unknown-marked"))
-        (execute-kbd-macro (vector dvc-key-mark dvc-key-add))
-        ;; FIXME: checking for the mark doesn't work; something about the fontification of the line.
-        (dvc-tests-wait-async)
-        (execute-kbd-macro (vector dvc-key-unmark))
-        (assert (looking-at "   added         unknown-marked"))
-        ;; FIXME: commit hangs when run from this test, in xmtn--insert-log-edit-hints, which runs stuff asynchronously
-;;         (execute-kbd-macro (vector dvc-key-commit))
-;;         (dvc-tests-wait-async)
-;;         (debug)
-;;         (execute-kbd-macro (vector "C-c" "C-c"))
-        ;; this works
-        (dvc-log-edit)
-        (dvc-tests-wait-async)
-        (dvc-log-edit-done)
-        (dvc-tests-wait-async)
+   (save-window-excursion
+     (xmtn-tests--with-test-environment
+         (&key &allow-other-keys)
+       ;; add and commit an unknown file, using dvc-status keystrokes
+       (with-temp-file "unknown" (insert "unknown - to be added\n"))
+       (with-temp-file "unknown-marked" (insert "unknown, marked\n"))
+       (dvc-status)
+       (dvc-tests-wait-async)
+       (assert (looking-at "   unknown       unknown"))
+       (execute-kbd-macro (vector dvc-key-add))
+       (dvc-tests-wait-async)
+       (assert (looking-at "   added         unknown"))
+       (forward-line)
+       (assert (looking-at "   unknown       unknown-marked"))
+       (execute-kbd-macro (vector dvc-key-mark dvc-key-add))
+       ;; FIXME: checking for the mark doesn't work; something about the fontification of the line.
+       (dvc-tests-wait-async)
+       (execute-kbd-macro (vector dvc-key-unmark))
+       (assert (looking-at "   added         unknown-marked"))
+       ;; FIXME: commit hangs when run from this test, in xmtn--insert-log-edit-hints, which runs stuff asynchronously
+       ;;  (execute-kbd-macro (vector dvc-key-commit))
+       ;;  (dvc-tests-wait-async)
+       ;;  (debug)
+       ;;  (execute-kbd-macro (vector "C-c" "C-c"))
+       ;; this works
+       (dvc-log-edit)
+       (dvc-tests-wait-async)
+       (dvc-log-edit-done)
+       (dvc-tests-wait-async)
 
-        ;; currently need dvc-status-refresh to see results of the
-        ;; commit; eventually dvc-status will edit the ewoc directly
-        (dvc-status-refresh)
-        (dvc-tests-wait-async)
-        (assert (looking-at "$"))
-        )))
+       ;; currently need dvc-status-refresh to see results of the
+       ;; commit; eventually dvc-status will edit the ewoc directly
+       (dvc-status-refresh)
+       (dvc-tests-wait-async)
+       (assert (looking-at "$"))
+       )))
   )
 
 (defvar xmtn-tests--profile-history (list))
@@ -565,13 +567,13 @@ YPFoLxe1V5oOyoe3ap0H
                     (eval command)
                     (let ((end-time (current-time)))
                       (incf run-time (elp-elapsed-time start-time
-                                                        end-time))))))
+                                                       end-time))))))
               (assert (let ((start-time (current-time)))
                         (prog1
                             (garbage-collect)
                           (let ((end-time (current-time)))
                             (incf gc-time (elp-elapsed-time start-time
-                                                             end-time))))))))
+                                                            end-time))))))))
       (elp-results)
       (setq truncate-lines t)
       (goto-char (point-min))
@@ -609,7 +611,7 @@ YPFoLxe1V5oOyoe3ap0H
                     (eval command)
                     (let ((end-time (current-time)))
                       (incf run-time (elp-elapsed-time start-time
-                                                        end-time))))))))
+                                                       end-time))))))))
       (switch-to-buffer-other-window (get-buffer-create
                                       "*xmtn timing results*"))
       (erase-buffer)

@@ -80,7 +80,7 @@
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
-    (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
+    (define-key map [?p] 'xhg-qpop)  ;; mnemonic: stack gets smaller
     (define-key map [?t] 'xhg-qtop)
     (define-key map [?+] 'xhg-qnext)
     (define-key map [?-] 'xhg-qprev)
@@ -162,11 +162,11 @@ When called with a prefix argument run hg qnew -f."
       (setq message-buf (current-buffer))
       (insert new-message)
       (save-buffer))
-  (dvc-run-dvc-sync 'xhg (list "qrefresh" "--logfile" logfile-name))
-  (kill-buffer message-buf)
-  (delete-file logfile-name)
-  (let ((dvc-buffer-quit-mode 'kill))
-    (dvc-buffer-quit))))
+    (dvc-run-dvc-sync 'xhg (list "qrefresh" "--logfile" logfile-name))
+    (kill-buffer message-buf)
+    (delete-file logfile-name)
+    (let ((dvc-buffer-quit-mode 'kill))
+      (dvc-buffer-quit))))
 
 (defvar xhg-qrefresh-edit-message-mode-map
   (let ((map (make-sparse-keymap)))
@@ -293,9 +293,9 @@ Run the command hg qdelete -r qbase:qtip
 Called with prefix-arg, do not prompt for confirmation"
   (interactive)
   (let ((tip (with-temp-buffer
-              (apply #'call-process "hg" nil t nil
-                     (list "tip" "--template" "#rev#"))
-              (buffer-string)))
+               (apply #'call-process "hg" nil t nil
+                      (list "tip" "--template" "#rev#"))
+               (buffer-string)))
         (confirm))
     (if current-prefix-arg
         (progn
@@ -327,9 +327,9 @@ Called with prefix-arg, do not prompt for confirmation"
   "Run hg qtop."
   (interactive)
   (let ((top (dvc-run-dvc-sync 'xhg '("qtop")
-                                   :finished 'dvc-output-buffer-handler
-                                   :error (lambda (output error status arguments)
-                                            nil))))
+                               :finished 'dvc-output-buffer-handler
+                               :error (lambda (output error status arguments)
+                                        nil))))
     (when (interactive-p)
       (if top
           (message "Mercurial qtop: %s" top)
@@ -341,7 +341,7 @@ Called with prefix-arg, do not prompt for confirmation"
   "Run hg qnext."
   (interactive)
   (let ((next (dvc-run-dvc-sync 'xhg '("qnext")
-                                   :finished 'dvc-output-buffer-handler)))
+                                :finished 'dvc-output-buffer-handler)))
     (when (interactive-p)
       (message "Mercurial qnext: %s" next))
     next))
@@ -351,7 +351,7 @@ Called with prefix-arg, do not prompt for confirmation"
   "Run hg qprev."
   (interactive)
   (let ((prev (dvc-run-dvc-sync 'xhg '("qprev")
-                                   :finished 'dvc-output-buffer-handler)))
+                                :finished 'dvc-output-buffer-handler)))
     (when (interactive-p)
       (message "Mercurial qprev: %s" prev))
     prev))
@@ -376,13 +376,13 @@ Called with prefix-arg, do not prompt for confirmation"
   "Merge all applied patches in a single patch"
   (interactive "FPatchName: ")
   (let* ((base (with-temp-buffer
-                (apply #'call-process "hg" nil t nil
-                       '("parents"
-                         "-r"
-                         "qbase"
-                         "--template"
-                         "#rev#"))
-                (buffer-string)))
+                 (apply #'call-process "hg" nil t nil
+                        '("parents"
+                          "-r"
+                          "qbase"
+                          "--template"
+                          "#rev#"))
+                 (buffer-string)))
          (patch (with-temp-buffer
                   (apply #'call-process "hg" nil t nil
                          (list "diff"
@@ -412,18 +412,18 @@ Called with prefix-arg, do not prompt for confirmation"
 ;;;###autoload
 (defun xhg-qimport (patch &optional push)
   "Run hg qimport"
-    (interactive (list (read-file-name "Import hg qpatch: "
-                                       nil
-                                       nil
-                                       t
-                                       (when
-                                           (eq major-mode 'dired-mode)
-                                         (file-name-nondirectory (dired-get-filename))))))
+  (interactive (list (read-file-name "Import hg qpatch: "
+                                     nil
+                                     nil
+                                     t
+                                     (when
+                                         (eq major-mode 'dired-mode)
+                                       (file-name-nondirectory (dired-get-filename))))))
   (if current-prefix-arg
       (progn
-	(and (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
+        (and (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
              (dvc-run-dvc-sync 'xhg (list "qpush")))
-	(message "Ok patch %s added" patch))
+        (message "Ok patch %s added" patch))
     (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
     (message "Ok patch %s added ; don't forget to qpush" patch)))
 
@@ -518,10 +518,10 @@ that is used in the generated email."
   (interactive)
   (let ((patch-name (or patch (xhg-mq-patch-name-at-point)))
         (cur-buf (current-buffer)))
-      (find-file-other-window (xhg-mq-patch-file-name patch-name))
-      (toggle-read-only 1)
-      (diff-mode)
-      (pop-to-buffer cur-buf)))
+    (find-file-other-window (xhg-mq-patch-file-name patch-name))
+    (toggle-read-only 1)
+    (diff-mode)
+    (pop-to-buffer cur-buf)))
 
 ;; --------------------------------------------------------------------------------
 ;; the xhg mq mode
@@ -536,7 +536,7 @@ that is used in the generated email."
     (define-key map [down] 'xhg-mq-next)
     (define-key map [up] 'xhg-mq-previous)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
-    (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
+    (define-key map [?p] 'xhg-qpop)  ;; mnemonic: stack gets smaller
     (define-key map [?=] 'xhg-qdiff-at-point)
     (define-key map [?E] 'xhg-mq-export-via-mail)
     (define-key map [?M] 'xhg-qrename)

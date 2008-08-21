@@ -101,12 +101,12 @@ Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
       (goto-char (point-min))
       (when (and (re-search-forward (car delim-pair) nil t)
                  (re-search-forward (cadr delim-pair) nil t))
-      (goto-char (point-min))
-      (let* ((start-pos (+ (re-search-forward (car delim-pair)) 1))
-             (end-pos (- (progn (re-search-forward (cadr delim-pair)) (line-beginning-position)) 1))
-             (log-message (buffer-substring-no-properties start-pos end-pos)))
-        (setq dvc-memorized-log-message log-message)
-        (message "Extracted the patch log message from '%s'" dvc-memorized-log-header)))))
+        (goto-char (point-min))
+        (let* ((start-pos (+ (re-search-forward (car delim-pair)) 1))
+               (end-pos (- (progn (re-search-forward (cadr delim-pair)) (line-beginning-position)) 1))
+               (log-message (buffer-substring-no-properties start-pos end-pos)))
+          (setq dvc-memorized-log-message log-message)
+          (message "Extracted the patch log message from '%s'" dvc-memorized-log-header)))))
   (gnus-article-show-summary))
 
 (defvar dvc-gnus-override-window-config nil)
@@ -173,7 +173,7 @@ Otherwise `dvc-gnus-apply-patch' is called."
 
 (defvar dvc-gnus-select-patch-dir-function nil)
 (defun dvc-gnus-article-apply-patch-with-selected-destination (n)
-  "Apply a patch via ediff.
+  "Apply a patch via the emacs diff-mode.
 Allow to select the target directory from one of
 `dvc-gnus-patch-desitination-candidates'."
   (interactive "p")
@@ -204,18 +204,18 @@ Otherwise `dvc-gnus-apply-patch' is called."
     (goto-char (point-min))
     (if (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
             (re-search-forward "^Committed revision [0-9]+ to \\(.+\\)$" nil t))
-    (let* ((bzr-missing-url (match-string-no-properties 1))
-           (dest (cdr (assoc bzr-missing-url bzr-merge-or-pull-from-url-rules)))
-           (path (cadr dest))
-           (doit t))
-      (when path
-        (setq doit (y-or-n-p (format "Run missing from %s in %s? " bzr-missing-url path))))
-      (when doit
-        (unless path
-          (setq path (dvc-read-directory-name (format "Run missing from %s in: " bzr-missing-url))))
-        (let ((default-directory path))
-          (message "Running bzr missing from %s in %s" bzr-missing-url path)
-          (bzr-missing bzr-missing-url)))))))
+        (let* ((bzr-missing-url (match-string-no-properties 1))
+               (dest (cdr (assoc bzr-missing-url bzr-merge-or-pull-from-url-rules)))
+               (path (cadr dest))
+               (doit t))
+          (when path
+            (setq doit (y-or-n-p (format "Run missing from %s in %s? " bzr-missing-url path))))
+          (when doit
+            (unless path
+              (setq path (dvc-read-directory-name (format "Run missing from %s in: " bzr-missing-url))))
+            (let ((default-directory path))
+              (message "Running bzr missing from %s in %s" bzr-missing-url path)
+              (bzr-missing bzr-missing-url)))))))
 
 (defun dvc-gnus-article-view-patch (n)
   "View MIME part N, as patchset.
@@ -234,8 +234,8 @@ Otherwise `dvc-gnus-view-patch' is called."
       (goto-char (point-min))
       (if (or (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
               (progn (goto-char (point-min))
-                 (and (search-forward "Revision: " nil t)
-                  (search-forward "Archive: " nil t))))
+                     (and (search-forward "Revision: " nil t)
+                          (search-forward "Archive: " nil t))))
           (setq patch-type 'tla)
         (goto-char (point-min))
         ;; Committed revision 129 to http://my-arch.org/branch1
@@ -282,17 +282,20 @@ the patch sould be applied."
   (let ((dvc-patch-name (concat (dvc-make-temp-name "dvc-patch") ".diff"))
         (window-conf (current-window-configuration))
         (patch-buff))
+    (dvc-buffer-push-previous-window-config window-conf)
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
     (diff-mode)
-    (dvc-buffer-push-previous-window-config window-conf)
     (toggle-read-only 1)
     (setq patch-buff (current-buffer))
     (delete-other-windows)
-    (let ((default-directory (dvc-gnus-suggest-apply-patch-directory)))
-      (flet ((ediff-get-default-file-name () default-directory))
-        (ediff-patch-file 2 patch-buff))))
-    (setq dvc-gnus-override-window-config (current-window-configuration)))
+    (setq default-directory (dvc-gnus-suggest-apply-patch-directory))
+    ;; 07.07.2008: applying with ediff only works well when only one file is given.
+    ;; (flet ((ediff-get-default-file-name (&optional default) (if default default default-directory)))
+    ;;   (ediff-patch-file 2 patch-buff))
+    (diff-hunk-next)
+    (message "You can apply the patch hunks now by using C-c C-a.")
+    (setq dvc-gnus-override-window-config (current-window-configuration))))
 
 (defun dvc-gnus-view-patch (handle)
   "View the patch corresponding to HANDLE."

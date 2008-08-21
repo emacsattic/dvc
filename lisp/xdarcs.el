@@ -37,8 +37,8 @@
   "Run darcs initialize."
   (interactive
    (list (expand-file-name (dvc-read-directory-name "Directory for darcs initialize: "
-                                                     (or default-directory
-                                                         (getenv "HOME"))))))
+                                                    (or default-directory
+                                                        (getenv "HOME"))))))
   (let ((default-directory dir))
     (dvc-run-dvc-sync 'xdarcs (list "initialize")
                       :finished (dvc-capturing-lambda
@@ -90,16 +90,16 @@
                    (setq status "M"
                          modif "M")
                    (when (or (string-match "\\(.+\\) -[0-9]+ \\+[0-9]+$"
-					   elem)
-			     (string-match "\\(.+\\) [+-][0-9]+$"
-					   elem))
+                                           elem)
+                             (string-match "\\(.+\\) [+-][0-9]+$"
+                                           elem))
                      (setq elem (match-string 1 elem))))
                   ;; ???a
                   ((eq modif-char ?a)
                    (setq status "?"))
-		  ((eq modif-char ?A)
-		   (setq status "A"
-			 modif " "))
+                  ((eq modif-char ?A)
+                   (setq status "A"
+                         modif " "))
                   ((eq modif-char ?R)
                    (setq status "D"))
                   ((eq modif-char ??)
@@ -185,8 +185,8 @@
   "^\\(Mon\\|Tue\\|Wed\\|Thu\\|Fri\\|Sat\\|Sun\\).+$")
 
 (defvar xdarcs-missing-font-lock-keywords
-   `((,xdarcs-missing-patch-start-regexp . font-lock-function-name-face)
-     ("^hunk.+" . font-lock-variable-name-face))
+  `((,xdarcs-missing-patch-start-regexp . font-lock-function-name-face)
+    ("^hunk.+" . font-lock-variable-name-face))
   "Keywords in `xdarcs-missing-mode'.")
 
 (define-derived-mode xdarcs-missing-mode fundamental-mode
@@ -259,7 +259,7 @@ repository."
 
 ;;;###autoload
 (defun xdarcs-dvc-diff (&optional against path dont-switch)
-    (interactive (list nil nil current-prefix-arg))
+  (interactive (list nil nil current-prefix-arg))
   (let* ((cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
          (root (dvc-tree-root cur-dir))
@@ -272,10 +272,10 @@ repository."
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xdarcs command-list
-                       :finished
-                       (dvc-capturing-lambda (output error status arguments)
-                         (dvc-show-changes-buffer output 'xdarcs-parse-diff
-                                                  (capture buffer))))))
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (dvc-show-changes-buffer output 'xdarcs-parse-diff
+                                                 (capture buffer))))))
 ;; --------------------------------------------------------------------------------
 ;; dvc revision support
 ;; --------------------------------------------------------------------------------
@@ -331,9 +331,9 @@ LAST-REVISION looks like
   (dvc-trace "xdarcs-revert-files: %s" files)
   (let ((default-directory (xdarcs-tree-root)))
     (dvc-run-dvc-sync 'xdarcs (append '("revert" "-a") (mapcar #'file-relative-name files))
-		      :finished (dvc-capturing-lambda
-				    (output error status arguments)
-				  (message "xdarcs revert finished")))))
+                      :finished (dvc-capturing-lambda
+                                    (output error status arguments)
+                                  (message "xdarcs revert finished")))))
 
 ;;;###autoload
 (defun xdarcs-dvc-remove-files (&rest files)

@@ -73,9 +73,11 @@ the test file."
                    :file-name file-name)))))))
 
 (defmacro* bzr-tests--with-test-environment ((&rest keys) &body body)
+  (declare (indent 1) (debug sexp body))
   `(bzr-tests--call-with-test-environment (function* (lambda (,@keys) ,@body))))
 
 (defmacro* bzr-tests--with-test-history ((&rest keys) &body body)
+  (declare (indent 1) (debug sexp body))
   `(bzr-tests--call-with-test-history (function* (lambda (,@keys) ,@body))))
 
 
@@ -85,7 +87,7 @@ the test file."
      (bzr-tests--with-test-history (&key &allow-other-keys)
        ;; The test is simply that this doesn't crash.
        (dvc-log)
-       (dvc-tests-wait-async); let log display
+       (dvc-tests-wait-async)           ; let log display
        (dvc-revlist-show-item))))
 
   (file-diff
@@ -114,21 +116,21 @@ the test file."
    (save-window-excursion
      (bzr-tests--with-test-history (&key &allow-other-keys)
        (dvc-changelog)
-       (dvc-tests-wait-async); let log display
+       (dvc-tests-wait-async)           ; let log display
        (dvc-revision-next)
        (dvc-revlist-diff))))
 
   )
-;(elunit "bzr")
+;;(elunit "bzr")
 
 (defsuite bzr-one
   (log
    (save-window-excursion
      (bzr-tests--with-test-history
-      (&key &allow-other-keys)
-      (dvc-diff))))
-)
-;(elunit "bzr-one")
+         (&key &allow-other-keys)
+       (dvc-diff))))
+  )
+;;(elunit "bzr-one")
 
 (provide 'bzr-tests)
 ;;; bzr-tests.el ends here

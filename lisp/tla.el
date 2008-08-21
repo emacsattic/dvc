@@ -291,19 +291,19 @@ minibuffer:
                              tla--name-read-extension-keydefs))
         (line ""))
     (dolist (func interesting)
-        (let* ((keys (where-is-internal func tla--name-read-minibuf-map))
-               (keys1 "")
-               (func (symbol-name func)))
-          (while keys
-            (when (not (eq 'menu-bar (aref (car keys) 0)))
-              (setq keys1 (if (string= keys1 "") (key-description (car keys))
-                            (concat keys1 ", "
-                                    (key-description (car keys))))))
-            (setq keys (cdr keys)))
-          (setq func (progn (string-match "tla-name-read-\\(.+\\)"
-                                          func)
-                            (match-string 1 func)))
-          (setq line (concat line (format "%s => `%s'" keys1 func) "    "))))
+      (let* ((keys (where-is-internal func tla--name-read-minibuf-map))
+             (keys1 "")
+             (func (symbol-name func)))
+        (while keys
+          (when (not (eq 'menu-bar (aref (car keys) 0)))
+            (setq keys1 (if (string= keys1 "") (key-description (car keys))
+                          (concat keys1 ", "
+                                  (key-description (car keys))))))
+          (setq keys (cdr keys)))
+        (setq func (progn (string-match "tla-name-read-\\(.+\\)"
+                                        func)
+                          (match-string 1 func)))
+        (setq line (concat line (format "%s => `%s'" keys1 func) "    "))))
     (dvc-about-message-with-rolling line)
     ))
 
@@ -318,11 +318,11 @@ for`tla-name-read'."
   (setq tree (tla-tree-root (or tree default-directory) t))
   (let ((tree-rev (tla-tree-version-list tree)))
     (tla-name-read prompt
-                    (if tree-rev (tla--name-archive tree-rev) 'prompt)
-                    (if tree-rev (tla--name-category tree-rev) 'prompt)
-                    (if tree-rev (tla--name-branch tree-rev) 'prompt)
-                    (if tree-rev (tla--name-version tree-rev) 'prompt)
-                    'prompt)))
+                   (if tree-rev (tla--name-archive tree-rev) 'prompt)
+                   (if tree-rev (tla--name-category tree-rev) 'prompt)
+                   (if tree-rev (tla--name-branch tree-rev) 'prompt)
+                   (if tree-rev (tla--name-version tree-rev) 'prompt)
+                   'prompt)))
 
 ;;
 ;; Version for the tree of default directory
@@ -866,9 +866,9 @@ unless prefix argument ARG is non-nil."
   (let ((default-directory (or directory default-directory)))
     (if arg
         (pop-to-buffer (dvc-get-buffer-create tla-arch-branch 'inventory
-                                               default-directory))
+                                              default-directory))
       (switch-to-buffer (dvc-get-buffer-create tla-arch-branch 'inventory
-                                                default-directory))))
+                                               default-directory))))
   (tla-inventory-mode)
   (tla--run-tla-sync
    ;; We have to provide all file types or tla inventory won't display
@@ -890,11 +890,11 @@ unless prefix argument ARG is non-nil."
                   (question (string= (match-string 2 item) "?"))
                   (escaped-filename (match-string 4 item))
                   (type (string-to-char (match-string 3 item))))
-            (push (list tla-type
-                        question
-                        (tla-unescape escaped-filename)
-                        type)
-                  inventory-list))))
+              (push (list tla-type
+                          question
+                          (tla-unescape escaped-filename)
+                          type)
+                    inventory-list))))
         list)
        (setq inventory-list (reverse inventory-list))
        (set (make-local-variable 'tla-inventory-list)
@@ -911,7 +911,7 @@ selecting only files to print."
     (erase-buffer)
     (set (make-local-variable 'tla-inventory-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
-		       #'tla-inventory-printer)))
+                       #'tla-inventory-printer)))
     (tla-inventory-insert-headers)
     (dolist (elem tla-inventory-list)
       (let ((type (car elem))
@@ -931,40 +931,40 @@ selecting only files to print."
 ;; I(Masatake) introduces a table-lookup code instead
 ;; of case statement.
 ;; OLD case based code is here:
-;(defun tla--inventory-chose-face (type)
-;  "Return a face adapted to TYPE, which can be J, S, P, T or U."
-;  (case type
-;    (?J 'tla-junk)                      ; 74
-;    (?P 'dvc-ignored)                  ; 80
-;    (?S 'dvc-source)                    ; 83
-;    (?T 'dvc-nested-tree)               ; 84
-;    (?U 'dvc-unrecognized)              ; 85
-;    ))
+;;(defun tla--inventory-chose-face (type)
+;;  "Return a face adapted to TYPE, which can be J, S, P, T or U."
+;;  (case type
+;;    (?J 'tla-junk)                      ; 74
+;;    (?P 'dvc-ignored)                  ; 80
+;;    (?S 'dvc-source)                    ; 83
+;;    (?T 'dvc-nested-tree)               ; 84
+;;    (?U 'dvc-unrecognized)              ; 85
+;;    ))
 
 ;; The new table-lookup code is here:
 (defconst tla--inventory-chose-face-table
   [
-    nil                                 ; ?B: 66->0
-    nil                                 ; 67
-    nil                                 ; 68
-    nil                                 ; 69
-    nil                                 ; 79
-    nil                                 ; 71
-    nil                                 ; 72
-    nil                                 ; 73
-    tla-junk                            ; ?J: 74->0
-    nil                                 ; 75
-    nil                                 ; 76
-    nil                                 ; 77
-    nil                                 ; 78
-    nil                                 ; 79
-    dvc-ignored                        ; ?P: 80
-    nil                                 ; 81
-    nil                                 ; 82
-    dvc-source                          ; ?S: 83
-    dvc-nested-tree                     ; :T: 84
-    dvc-unrecognized                    ; :U: 85
-    ]
+   nil                                  ; ?B: 66->0
+   nil                                  ; 67
+   nil                                  ; 68
+   nil                                  ; 69
+   nil                                  ; 79
+   nil                                  ; 71
+   nil                                  ; 72
+   nil                                  ; 73
+   tla-junk                             ; ?J: 74->0
+   nil                                  ; 75
+   nil                                  ; 76
+   nil                                  ; 77
+   nil                                  ; 78
+   nil                                  ; 79
+   dvc-ignored                          ; ?P: 80
+   nil                                  ; 81
+   nil                                  ; 82
+   dvc-source                           ; ?S: 83
+   dvc-nested-tree                      ; :T: 84
+   dvc-unrecognized                     ; :U: 85
+   ]
   "from-type-to-face table used in 'tla--inventory-chose-face'
 This is for optimization. ")
 
@@ -972,7 +972,7 @@ This is for optimization. ")
   "Return a face adapted to TYPE, which can be J, S, P, T or U."
   (aref
    tla--inventory-chose-face-table
-    (- type ?B)))
+   (- type ?B)))
 
 (defun tla-inventory-printer (elem)
   "Ewoc printer for `tla-inventory-cookie'.
@@ -985,9 +985,9 @@ Pretty print ELEM."
     (insert (if (member file dvc-buffer-marked-file-list)
                 (concat " " dvc-mark " ") "   "))
     (insert (dvc-face-add (format "%c%s  "
-                                   type
-                                   (if question "?" " "))
-                           face)
+                                  type
+                                  (if question "?" " "))
+                          face)
             (dvc-face-add
              (format "%s%s" file
                      (case file-type (?d "/") (?> "@") (t "")))
@@ -1074,34 +1074,34 @@ non-nil, then this function is used instead of `y-or-n-p'."
          (tagging-method (tla-id-tagging-method nil))
          (separator
           (dvc-face-add (make-string
-                          (max (+ (length "Directory: ")   (length default-directory))
-                               (+ (length "Default Tree Version: ") (length tree-version))
-                               (+ (length "ID Tagging Method: ") (length tagging-method)))
-                          ?\ )
-                         'dvc-separator)))
+                         (max (+ (length "Directory: ")   (length default-directory))
+                              (+ (length "Default Tree Version: ") (length tree-version))
+                              (+ (length "ID Tagging Method: ") (length tagging-method)))
+                         ?\ )
+                        'dvc-separator)))
     (ewoc-set-hf
      tla-inventory-cookie
      (concat
       "Directory: "    (dvc-face-add default-directory 'dvc-local-directory
-                                      (lexical-let
-                                          ((map  (make-sparse-keymap))
-                                           (func (lambda ()
-                                                   (interactive)
-                                                   (dired default-directory))))
-                                        (define-key map [return]  func)
-                                        (define-key map "\C-m"    func)
-                                        (define-key map [mouse-2] func)
-                                        map)
-                                      nil
-                                      "Run Dired Here") "\n"
+                                     (lexical-let
+                                         ((map  (make-sparse-keymap))
+                                          (func (lambda ()
+                                                  (interactive)
+                                                  (dired default-directory))))
+                                       (define-key map [return]  func)
+                                       (define-key map "\C-m"    func)
+                                       (define-key map [mouse-2] func)
+                                       map)
+                                     nil
+                                     "Run Dired Here") "\n"
       "Default Tree Version: " (dvc-face-add tree-version 'tla-archive-name
-                                              'tla-inventory-default-version-map
-                                              (tla--partner-create-menu
-                                               'tla-generic-set-tree-version
-                                               "Change the Default Tree Version")) "\n"
+                                             'tla-inventory-default-version-map
+                                             (tla--partner-create-menu
+                                              'tla-generic-set-tree-version
+                                              "Change the Default Tree Version")) "\n"
       "ID Tagging Method: " (dvc-face-add tagging-method 'tla-tagging-method
-                                           'tla-inventory-tagging-method-map
-                                           tla-inventory-tagging-method-menu) "\n"
+                                          'tla-inventory-tagging-method-map
+                                          tla-inventory-tagging-method-menu) "\n"
       separator "\n")
      (concat "\n" separator))))
 
@@ -1129,12 +1129,12 @@ specified."
             (end-of-line)
             (newline))
           t) ;; return
-;;       (if (not (or noerror
-;;                    (yes-or-no-p (format "The marker %S was not found! Commit anyway? "
-;;                                         dvc-log-edit-file-list-marker))))
-;;           (error (format "The marker %s was not found!"
-;;                          dvc-log-edit-file-list-marker))
-;;         nil)
+      ;; (if (not (or noerror
+      ;;              (yes-or-no-p (format "The marker %S was not found! Commit anyway? "
+      ;;                                   dvc-log-edit-file-list-marker))))
+      ;;     (error (format "The marker %s was not found!"
+      ;;                    dvc-log-edit-file-list-marker))
+      ;;   nil)
       )))
 
 (defun tla-changes-file-list ()
@@ -1144,13 +1144,13 @@ Return 'dont-know if the list can't be computed easily.
 
 The result is based on `dvc-fileinfo-ewoc'."
   (if dvc-fileinfo-ewoc
-    (let ((res nil))
-      (ewoc-map (lambda (fi)
-                  (let ((x (dvc-fileinfo-legacy-data fi)))
-                    (when (eq (car x) 'file)
-                      (push (cadr x) res))))
-                dvc-fileinfo-ewoc)
-      res)
+      (let ((res nil))
+        (ewoc-map (lambda (fi)
+                    (let ((x (dvc-fileinfo-legacy-data fi)))
+                      (when (eq (car x) 'file)
+                        (push (cadr x) res))))
+                  dvc-fileinfo-ewoc)
+        res)
     'dont-know))
 
 ;;;###autoload
@@ -1234,7 +1234,7 @@ the list of marked files, and potentially run a selected file commit."
        result)
     (while (not (eq node header))
       (if (apply predicate (ewoc--node-data node) args)
-	  (push node result))
+          (push node result))
       (setq node (ewoc--node-prev dll node)))
     (nreverse result)))
 
@@ -1278,6 +1278,7 @@ the list of marked files, and potentially run a selected file commit."
                                  recursive
                                  expression
                                  &optional expression-rec)
+  (declare (indent 2) (debug (&define name sexp form form symbolp body)))
   `(defun ,function-to-define ,args
      ,(format "Run \"tla %s\".
 
@@ -1322,7 +1323,7 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
                       (buffer-read-only nil))
                   (dolist (subtree subtrees)
                     (let ((buffer-sub (dvc-get-buffer-create tla-arch-branch
-                                       'diff subtree)))
+                                                             'diff subtree)))
                       (with-current-buffer buffer-sub
                         (dvc-save-some-buffers)
                         (let ((inhibit-read-only t))
@@ -1341,28 +1342,28 @@ diffs. When AGAINST is non-nil, use it as comparison tree." command)
                                    subtree-message))))))))))
 
 (tla-recursive-command tla-changes-rec (&optional summary against)
-                       (tla--changes-command)
-                       (dvc-prepare-changes-buffer
-                        (or against
-                            `(,tla-arch-branch (last-revision ,root 1)))
-                        `(tla (local-tree ,root))
-                        'diff
-                        default-directory
-                        tla-arch-branch)
-                       tla-changes-recursive
-                       (progn
-                         (setq tla--changes-summary summary)
-                         (tla--changes-internal (not summary)
-                                                against
-                                                root buffer nil))
-                       (progn
-                         (setq tla--changes-summary (capture summary))
-                         (tla--changes-internal
-                          (not (capture summary))
-                          nil ;; TODO "against" what for a nested tree?
-                          subtree
-                          buffer-sub
-                          (capture buffer))))
+  (tla--changes-command)
+  (dvc-prepare-changes-buffer
+   (or against
+       `(,tla-arch-branch (last-revision ,root 1)))
+   `(tla (local-tree ,root))
+   'diff
+   default-directory
+   tla-arch-branch)
+  tla-changes-recursive
+  (progn
+    (setq tla--changes-summary summary)
+    (tla--changes-internal (not summary)
+                           against
+                           root buffer nil))
+  (progn
+    (setq tla--changes-summary (capture summary))
+    (tla--changes-internal
+     (not (capture summary))
+     nil ;; TODO "against" what for a nested tree?
+     subtree
+     buffer-sub
+     (capture buffer))))
 
 ;;;###autoload
 (defun tla-changes (&optional summary against dont-switch)
@@ -1387,7 +1388,7 @@ DONT-SWITCH is necessary for DVC, but currently ignored."
 Value is chosen depending on user configuration and arch branch."
   (if tla-three-way-merge
       (if (tla-merge-has-two-way-option)
-          nil ;; Requested a 3-way, but it's the default.
+          nil          ;; Requested a 3-way, but it's the default.
         "--three-way") ;; Requested a 3-way, not the default.
     (if (tla-merge-has-two-way-option)
         "--two-way"
@@ -1425,7 +1426,7 @@ Value is chosen depending on user configuration and arch branch."
                                               (eq (cadr x) (capture buffer)))
                                      (setcar (cdr (cddr x))
                                              (if modifs 'updated 'no-changes)))
-                                 ))
+                                   ))
                                ;; (ewoc-refresh dvc-fileinfo-ewoc)))
                                dvc-fileinfo-ewoc)
                      ))
@@ -1441,17 +1442,17 @@ Value is chosen depending on user configuration and arch branch."
        ))))
 
 (tla-recursive-command tla-update-rec (tree &optional handle recursive)
-                       (tla--update-command)
-                       (dvc-prepare-changes-buffer
-                        `(,tla-arch-branch (last-revision ,default-directory))
-                        `(,tla-arch-branch (local-tree ,default-directory))
-                        'diff
-                        default-directory
-                        tla-arch-branch)
-                       tla-update-recursive
-                       (tla--update-internal root buffer nil handle)
-                       (tla--update-internal subtree buffer-sub (capture buffer)
-                                             (capture handle)))
+  (tla--update-command)
+  (dvc-prepare-changes-buffer
+   `(,tla-arch-branch (last-revision ,default-directory))
+   `(,tla-arch-branch (local-tree ,default-directory))
+   'diff
+   default-directory
+   tla-arch-branch)
+  tla-update-recursive
+  (tla--update-internal root buffer nil handle)
+  (tla--update-internal subtree buffer-sub (capture buffer)
+                        (capture handle)))
 
 ;;;###autoload
 (defun tla-update (tree &optional handle recursive)
@@ -1505,7 +1506,7 @@ nested project of a bigger one. MASTER-BUFFER is the buffer in which
 the root of the projects is displayed."
   (with-current-buffer buffer
     (dvc-trace "against=%S, (dvc-revision-get-data against)=%S"
-                against (dvc-revision-get-data against))
+               against (dvc-revision-get-data against))
     (tla--run-tla-async
      `(,(if (eq tla-arch-branch 'tla) "changes" "diff")
        ,(when (and (eq tla-arch-branch 'tla) diffs) "--diffs")
@@ -1527,84 +1528,84 @@ the root of the projects is displayed."
           (t (when against (message "WRONG REVISION: %S" against) (sit-for 1) (debug)))))
      :finished
      (dvc-capturing-lambda (output error status arguments)
-        (if (capture master-buffer)
-            (message "No changes in subtree %s" (capture root))
-          (message "No changes in %s" (capture root)))
-        (with-current-buffer (capture buffer)
-          (let ((inhibit-read-only t))
-            (dvc-fileinfo-delete-messages)
-            (ewoc-enter-last dvc-fileinfo-ewoc
-                             (make-dvc-fileinfo-message
-                              :text (concat "* No changes in "
-                                            (capture root) ".\n\n")))
-            (when (capture master-buffer)
-              (with-current-buffer (capture master-buffer)
-                (ewoc-map (lambda (fi)
-                            (let ((x (dvc-fileinfo-legacy-data fi)))
-                              (when (and (eq (car x) 'subtree)
-                                         (eq (cadr x) (capture buffer)))
-                                (setcar (cdr (cddr x)) 'no-changes)))
-                            )
-                          ;; (ewoc-refresh dvc-fileinfo-ewoc)))
-                          dvc-fileinfo-ewoc)))
-            (ewoc-refresh dvc-fileinfo-ewoc))))
+       (if (capture master-buffer)
+           (message "No changes in subtree %s" (capture root))
+         (message "No changes in %s" (capture root)))
+       (with-current-buffer (capture buffer)
+         (let ((inhibit-read-only t))
+           (dvc-fileinfo-delete-messages)
+           (ewoc-enter-last dvc-fileinfo-ewoc
+                            (make-dvc-fileinfo-message
+                             :text (concat "* No changes in "
+                                           (capture root) ".\n\n")))
+           (when (capture master-buffer)
+             (with-current-buffer (capture master-buffer)
+               (ewoc-map (lambda (fi)
+                           (let ((x (dvc-fileinfo-legacy-data fi)))
+                             (when (and (eq (car x) 'subtree)
+                                        (eq (cadr x) (capture buffer)))
+                               (setcar (cdr (cddr x)) 'no-changes)))
+                           )
+                         ;; (ewoc-refresh dvc-fileinfo-ewoc)))
+                         dvc-fileinfo-ewoc)))
+           (ewoc-refresh dvc-fileinfo-ewoc))))
      :error
      (dvc-capturing-lambda (output error status arguments)
-        (if (/= 1 status)
-            (let ((lint-pb
-                   (with-current-buffer error
-                     (goto-char (point-min))
-                     (re-search-forward "(try \\(tree-lint\\|status --lint\\))"
-                                        nil t))))
-              (if lint-pb
-                  (progn
-                    (message "Tree is not lint clean. Running lint")
-                    (save-window-excursion
-                      (tla-tree-lint (capture root)))
-                    (let ((buffer (dvc-get-buffer
-                                   tla-arch-branch
-                                   'tree-lint (capture root))))
-                      (when buffer
-                        (switch-to-buffer buffer)
-                        ;; (dvc-trace "buf=%S" (buffer-name))
-                        (set (make-local-variable
-                              'tla--tree-lint-nowarning-fn)
-                             ;; I prefer not trying to nest
-                             ;; dvc-capturing-lambda ...
-                             `(lambda ()
-                                (tla--changes-internal
-                                 ,(capture diffs) ,(capture against)
-                                 ,(capture root) ,(capture buffer)
-                                 ,(capture master-buffer))
-                                (switch-to-buffer
-                                 (dvc-get-buffer
-                                  tla-arch-branch 'diff
-                                  ,(capture root))))))))
-                (with-current-buffer (capture buffer)
-                  (dvc-fileinfo-delete-messages)
-                  (ewoc-enter-last
-                   dvc-fileinfo-ewoc
-                   (make-dvc-fileinfo-message
-                    :text (concat "* error in process:\n"
-                                  (dvc-buffer-content output)
-                                  (dvc-buffer-content error))))
-                  (ewoc-refresh dvc-fileinfo-ewoc)
-                  (message "Error in diff process"))))
-          (dvc-show-changes-buffer output
-                                   (if (eq tla-arch-branch 'tla)
-                                       'tla--parse-other 'tla--parse-baz-diff)
-                                   (capture buffer)
-                                   (capture master-buffer)
-                                   "^[^*\\.]")
-          ;; FIXME: DVC does not currently support nested trees
-          (when (capture master-buffer)
-            (with-current-buffer (capture master-buffer)
-              (ewoc-map (lambda (fi)
-                          (let ((x (dvc-fileinfo-legacy-data fi)))
-                            (when (and (eq (car x) 'subtree)
-                                       (eq (cadr x) (capture buffer)))
-                              (setcar (cdddr x) 'changes))))
-                        dvc-fileinfo-ewoc)))))
+       (if (/= 1 status)
+           (let ((lint-pb
+                  (with-current-buffer error
+                    (goto-char (point-min))
+                    (re-search-forward "(try \\(tree-lint\\|status --lint\\))"
+                                       nil t))))
+             (if lint-pb
+                 (progn
+                   (message "Tree is not lint clean. Running lint")
+                   (save-window-excursion
+                     (tla-tree-lint (capture root)))
+                   (let ((buffer (dvc-get-buffer
+                                  tla-arch-branch
+                                  'tree-lint (capture root))))
+                     (when buffer
+                       (switch-to-buffer buffer)
+                       ;; (dvc-trace "buf=%S" (buffer-name))
+                       (set (make-local-variable
+                             'tla--tree-lint-nowarning-fn)
+                            ;; I prefer not trying to nest
+                            ;; dvc-capturing-lambda ...
+                            `(lambda ()
+                               (tla--changes-internal
+                                ,(capture diffs) ,(capture against)
+                                ,(capture root) ,(capture buffer)
+                                ,(capture master-buffer))
+                               (switch-to-buffer
+                                (dvc-get-buffer
+                                 tla-arch-branch 'diff
+                                 ,(capture root))))))))
+               (with-current-buffer (capture buffer)
+                 (dvc-fileinfo-delete-messages)
+                 (ewoc-enter-last
+                  dvc-fileinfo-ewoc
+                  (make-dvc-fileinfo-message
+                   :text (concat "* error in process:\n"
+                                 (dvc-buffer-content output)
+                                 (dvc-buffer-content error))))
+                 (ewoc-refresh dvc-fileinfo-ewoc)
+                 (message "Error in diff process"))))
+         (dvc-show-changes-buffer output
+                                  (if (eq tla-arch-branch 'tla)
+                                      'tla--parse-other 'tla--parse-baz-diff)
+                                  (capture buffer)
+                                  (capture master-buffer)
+                                  "^[^*\\.]")
+         ;; FIXME: DVC does not currently support nested trees
+         (when (capture master-buffer)
+           (with-current-buffer (capture master-buffer)
+             (ewoc-map (lambda (fi)
+                         (let ((x (dvc-fileinfo-legacy-data fi)))
+                           (when (and (eq (car x) 'subtree)
+                                      (eq (cadr x) (capture buffer)))
+                             (setcar (cdddr x) 'changes))))
+                       dvc-fileinfo-ewoc)))))
      )))
 
 (defconst tla-verbose-format-spec
@@ -1644,8 +1645,8 @@ the root of the projects is displayed."
                 (ewoc-enter-last
                  dvc-fileinfo-ewoc
                  (make-dvc-fileinfo-legacy
-                    :data (list 'file (tla-unescape file)
-                                modif dir))))
+                  :data (list 'file (tla-unescape file)
+                              modif dir))))
               (forward-line 1)))
           (while (looking-at "^--- /dev/null\n\\+\\+\\+ mod/\\(.*\\)$")
             (let ((file (match-string 1)))
@@ -1653,8 +1654,8 @@ the root of the projects is displayed."
                 (ewoc-enter-last
                  dvc-fileinfo-ewoc
                  (make-dvc-fileinfo-legacy
-                    :data (list 'file (tla-unescape file)
-                                modif dir))))
+                  :data (list 'file (tla-unescape file)
+                              modif dir))))
               (forward-line 1)
               (re-search-forward "^\\(---\\|$\\|\\*\\)" nil t)
               (beginning-of-line))))))
@@ -1778,10 +1779,10 @@ CHANGES-BUFFER is the target buffer."
                 (ewoc-enter-last
                  dvc-fileinfo-ewoc
                  (make-dvc-fileinfo-legacy
-                    :data (list 'file
-                                (tla-unescape newname)
-                                baz-status baz-modif dir
-                                (tla-unescape file))))
+                  :data (list 'file
+                              (tla-unescape newname)
+                              baz-status baz-modif dir
+                              (tla-unescape file))))
               (ewoc-enter-last
                dvc-fileinfo-ewoc
                (make-dvc-fileinfo-legacy
@@ -1803,7 +1804,7 @@ CHANGES-BUFFER is the target buffer."
                (added    (not (string= (match-string-no-properties 1)
                                        "orig/"))))
           (dvc-trace "entering file %S in ewoc (orig=%S, renamed=%S, added=%S)"
-                      newname origname renamed added)
+                     newname origname renamed added)
           (with-current-buffer changes-buffer
             (ewoc-enter-last
              dvc-fileinfo-ewoc
@@ -1815,7 +1816,7 @@ CHANGES-BUFFER is the target buffer."
                                 (t " "))
                           (cond (added " ")
                                 (t "M"))
-                          " " ; dir
+                          " "           ; dir
                           (when (and renamed
                                      (not added))
                             origname))))))))))
@@ -1831,17 +1832,17 @@ The changeset is stored in DIRECTORY."
                      :finished (lambda (output error status arguments)
                                  (dvc-trace "tla-changes-save: 0"))
                      :error (dvc-capturing-lambda (output error status arguments)
-                               (case status
-                                 (1 (message "tla-changes-save to %s finished" (capture directory)))
-                                 (otherwise (dvc-default-error-function
-                                             output error status arguments))))))
+                              (case status
+                                (1 (message "tla-changes-save to %s finished" (capture directory)))
+                                (otherwise (dvc-default-error-function
+                                            output error status arguments))))))
 
 (defun tla-changes-save-as-tgz (file-name)
   "Run \"tla changes -o\" to create .tar.gz file.
 The changeset is stored in the tarball 'FILE-NAME.tar.gz'."
   (interactive "FFile to store the changeset (without .tar.gz extension): ")
   (let* ((changeset-dir (expand-file-name file-name))
-        (tgz-file-name (concat changeset-dir ".tar.gz")))
+         (tgz-file-name (concat changeset-dir ".tar.gz")))
     (when (file-directory-p changeset-dir)
       (error "The changeset directory %s does already exist" changeset-dir))
     (when (file-exists-p tgz-file-name)
@@ -1872,20 +1873,20 @@ If DIRECTORY is nil or an empty string, just show the delta using --diffs."
   (interactive (list
                 (tla--name-construct
                  (tla-name-read "Base: "
-                                 'prompt 'prompt 'prompt 'prompt 'prompt))
+                                'prompt 'prompt 'prompt 'prompt 'prompt))
                 (tla--name-construct
                  (tla-name-read "Modified: "
-                                 'prompt 'prompt 'prompt 'prompt 'prompt))
+                                'prompt 'prompt 'prompt 'prompt 'prompt))
                 (when current-prefix-arg
                   'ask)))
 
   (when (eq directory 'ask)
     (setq directory
           (dvc-read-directory-name "Stored to: "
-                                    (tla-tree-root default-directory t)
-                                    (tla-tree-root default-directory t)
-                                    nil
-                                    "")))
+                                   (tla-tree-root default-directory t)
+                                   (tla-tree-root default-directory t)
+                                   nil
+                                   "")))
 
   (when (and directory (stringp directory) (string= directory ""))
     (setq directory nil))
@@ -1911,12 +1912,12 @@ If DIRECTORY is nil or an empty string, just show the delta using --diffs."
     (tla--run-tla-async args
                         :finished
                         (dvc-capturing-lambda (output error status arguments)
-                           (if (capture directory)
-                               (tla--delta-show-directory (capture directory) (capture run-dired-p))
-                             (tla--delta-show-diff-on-buffer
-                              (capture buffer)
-                              output (capture base) (capture modified)
-                              (capture dont-switch)))))
+                          (if (capture directory)
+                              (tla--delta-show-directory (capture directory) (capture run-dired-p))
+                            (tla--delta-show-diff-on-buffer
+                             (capture buffer)
+                             output (capture base) (capture modified)
+                             (capture dont-switch)))))
     buffer))
 
 (defun tla--delta-show-diff-on-buffer (buffer output base modified &optional dont-switch)
@@ -2048,13 +2049,13 @@ will be used for the variables `dvc-diff-base' and
                            directory)
                      :finished
                      (dvc-capturing-lambda (output error status arguments)
-                        (dvc-show-changes-buffer output
-                                                 (if (capture without-diff)
-                                                     'tla--parse-other
-                                                   'tla--parse-show-changeset)
-                                                 (capture buffer)
-                                                 (capture dvc-switch-to-buffer-first))
-                        (dvc-post-switch-to-buffer))))
+                       (dvc-show-changes-buffer output
+                                                (if (capture without-diff)
+                                                    'tla--parse-other
+                                                  'tla--parse-show-changeset)
+                                                (capture buffer)
+                                                (capture dvc-switch-to-buffer-first))
+                       (dvc-post-switch-to-buffer))))
 
 (defun tla-show-changeset-from-tgz (file)
   "Show the archived changeset from a tar.gz FILE.
@@ -2112,7 +2113,7 @@ If REVERSE is non-nil, use --reverse too."
                                    ;; (tla--show-last--process-buffer)
                                    (dvc-show-changes-buffer output 'tla--parse-other (capture buffer))
                                    (message "tla apply-changeset finished")
-                                  (dvc-revert-some-buffers (capture target))))))
+                                   (dvc-revert-some-buffers (capture target))))))
 
 (defun tla-apply-changeset-from-tgz (file tree show-changeset)
   "Apply changeset in FILE to TREE.
@@ -2141,11 +2142,11 @@ be applied. Otherwise apply the changeset without confirmation."
                  (list (buffer-file-name)
                        (list 'revision
                              (tla-name-read "Base revision: "
-                                             (tla--name-archive version-list)
-                                             (tla--name-category version-list)
-                                             (tla--name-branch version-list)
-                                             (tla--name-version version-list)
-                                             'prompt)))))
+                                            (tla--name-archive version-list)
+                                            (tla--name-category version-list)
+                                            (tla--name-branch version-list)
+                                            (tla--name-version version-list)
+                                            'prompt)))))
   (dvc-ediff-buffers
    (or (get-file-buffer file) (find-file-noselect file))
    (tla-file-get-revision-in-buffer file base)))
@@ -2179,17 +2180,17 @@ name, and the file will be diffed according to this revision."
          (message "No changes in this arch working copy"))
        :error
        (dvc-capturing-lambda (output error status arguments)
-          (if (= 1 status)
-              (progn
-                (with-current-buffer (capture buffer)
-                  (let ((inhibit-read-only t))
-                    (erase-buffer)
-                    (insert-buffer-substring output)
-                    (toggle-read-only 1)))
-                (unless (or dvc-switch-to-buffer-first (capture dont-switch))
-                  (dvc-switch-to-buffer (capture buffer))))
-            (dvc-default-error-function
-             output error status arguments)))))))
+         (if (= 1 status)
+             (progn
+               (with-current-buffer (capture buffer)
+                 (let ((inhibit-read-only t))
+                   (erase-buffer)
+                   (insert-buffer-substring output)
+                   (toggle-read-only 1)))
+               (unless (or dvc-switch-to-buffer-first (capture dont-switch))
+                 (dvc-switch-to-buffer (capture buffer))))
+           (dvc-default-error-function
+            output error status arguments)))))))
 
 (defvar tla-mine-string "TREE")
 (defvar tla-his-string "MERGE-SOURCE")
@@ -2389,7 +2390,7 @@ and this revision will be used as a reference."
 
 (defun tla-undo (tree &optional
                       archive category branch version revision)
-  ; checkdoc-params: (archive category branch version revision)
+  ;;checkdoc-params: (archive category branch version revision)
   "Undo whole local TREE against ARCHIVE/CATEGORY-BRANCH-VERSION-REVISION.
 If ARCHIVE is nil, default ARCHIVE/CATEGORY-BRANCH-VERSION-REVISION
 associated with TREE.
@@ -2411,7 +2412,7 @@ running tla undo."
 
 (defun tla--undo-internal (tree &optional dont-ask-for-confirmation no-output
                                 archive category branch version revision)
-  ; checkdoc-params: (tree archive category branch version revision)
+  ;;checkdoc-params: (tree archive category branch version revision)
   "Internal function used by `tla-undo'.
 If DONT-ASK-FOR-CONFIRMATION is given, don't show the changes buffer and don't
 ask for confirmation.
@@ -2423,11 +2424,11 @@ If NO-OUTPUT is given, run tla undo with the --no-output flag."
                       (tla-changes)))
     (sit-for 1)) ;;tla-changes should start before the yes-or-no-p query
   (when (or dont-ask-for-confirmation (yes-or-no-p
-         (if archive
-             (format "Revert whole local tree (%s) from `%s'? "
-                     tree (tla--name-construct
-                           archive category branch version revision))
-           (format "Revert whole local tree (%s) from default revision? " tree))))
+                                       (if archive
+                                           (format "Revert whole local tree (%s) from `%s'? "
+                                                   tree (tla--name-construct
+                                                         archive category branch version revision))
+                                         (format "Revert whole local tree (%s) from default revision? " tree))))
     (let ((default-directory tree)
           (rev (when archive (tla--name-construct archive category branch version revision)))
           (extra-flags (when no-output "--no-output")))
@@ -2438,7 +2439,7 @@ If NO-OUTPUT is given, run tla undo with the --no-output flag."
       ;; basically saying YES should delete them and
       ;; perform the undo operation again
       ))
-    (dvc-revert-some-buffers tree))
+  (dvc-revert-some-buffers tree))
 
 (defun tla--get-undo-changeset-names ()
   "Get the list of directories starting with \",,undo-\".
@@ -2488,8 +2489,8 @@ Changes are computed since last commit (or REVISION if specified)."
                    (buffer-string))
       (error "No modification in this file"))
     (dvc-ediff-buffers (or (get-file-buffer file)
-                            (find-file-noselect file))
-                        original)))
+                           (find-file-noselect file))
+                       original)))
 
 ;;;###autoload
 (defun tla-file-view-original (file &optional revision)
@@ -2569,8 +2570,8 @@ revision, non-nil means a revision to pass as command line argument."
                       (list "file-find" file revision)
                       :finished
                       (dvc-capturing-lambda (output error
-                                                     status
-                                                     arguments)
+                                                    status
+                                                    arguments)
                         (with-current-buffer output
                           (goto-char (point-min))
                           (re-search-forward "^[^*]")
@@ -2820,8 +2821,8 @@ If not, offer to create it or to register it."
   "Run tla init-tree."
   (interactive
    (let* ((dir (list (dvc-read-directory-name "Directory to init: "
-                                               (or default-directory
-                                                   (getenv "HOME")))))
+                                              (or default-directory
+                                                  (getenv "HOME")))))
           (version (tla-name-read (format "Set version for `%s' to: "
                                           default-directory)
                                   'prompt 'prompt 'prompt 'prompt)))
@@ -2849,8 +2850,8 @@ If SYNCHRONOUSLY is non-nil, run \"tla import\" synchronously.
 Else run it asynchronously."
   (interactive)
   (let* ((base (dvc-read-directory-name "Directory containing files to import: "
-                                         (or default-directory
-                                             (getenv "HOME"))))
+                                        (or default-directory
+                                            (getenv "HOME"))))
          (l (tla-name-read (format "Import `%s' to: " base)
                            (if archive archive (tla-my-default-archive))
                            'prompt 'prompt 'prompt))
@@ -2903,32 +2904,32 @@ as the place where changelog is got."
   "Run tla logs."
   (interactive)
   (let ((default-directory (dvc-read-project-tree-maybe))
-;        (details (or dvc-revisions-shows-date
-;                     dvc-revisions-shows-creator
-;                     dvc-revisions-shows-summary))
+        ;; (details (or dvc-revisions-shows-date
+        ;;              dvc-revisions-shows-creator
+        ;;              dvc-revisions-shows-summary))
         )
     (tla--run-tla-async
      (list "logs" "--full" "--reverse"
            (when (tla-revisions-has-complete-log-option) "--complete-log")
 
-                                        ;           (when details "--date")
-                                        ;           (when details "--creator")
-                                        ;           (when details "--summary"))
+           ;;           (when details "--date")
+           ;;           (when details "--creator")
+           ;;           (when details "--summary"))
            )
      :finished
      (dvc-capturing-lambda (output error status arguments)
-        (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
-              (buffer (dvc-get-buffer-create tla-arch-branch 'log (tla-tree-root))))
-          (dvc-switch-to-buffer buffer)
-          (tla-revision-list-mode)
-          (tla--revisions-parse-list 'log nil ;;(capture details)
-                                     nil ;; TODO (merges)
-                                     output nil
-                                     dvc-revlist-cookie)
-          (setq dvc-buffer-refresh-function 'tla-logs))
-        (goto-char (point-min))
-        (dvc-revision-prev)
-        (recenter -4)))))
+       (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+             (buffer (dvc-get-buffer-create tla-arch-branch 'log (tla-tree-root))))
+         (dvc-switch-to-buffer buffer)
+         (tla-revision-list-mode)
+         (tla--revisions-parse-list 'log nil ;;(capture details)
+                                    nil      ;; TODO (merges)
+                                    output nil
+                                    dvc-revlist-cookie)
+         (setq dvc-buffer-refresh-function 'tla-logs))
+       (goto-char (point-min))
+       (dvc-revision-prev)
+       (recenter -4)))))
 
 ;;;###autoload
 (defun tla-help (command)
@@ -2940,15 +2941,15 @@ as the place where changelog is got."
            '("help")
            :finished
            (dvc-capturing-lambda (output error status arguments)
-              (with-current-buffer output
-                (goto-char (point-min))
-                (let (listcmd)
-                  (while (re-search-forward
-                          " *\\([^ ]*\\) : " nil t)
-                    (setq listcmd
-                          (cons (list (match-string 1))
-                                listcmd)))
-                  listcmd)))))))
+             (with-current-buffer output
+               (goto-char (point-min))
+               (let (listcmd)
+                 (while (re-search-forward
+                         " *\\([^ ]*\\) : " nil t)
+                   (setq listcmd
+                         (cons (list (match-string 1))
+                               listcmd)))
+                 listcmd)))))))
   (tla--run-tla-sync (list command "-H")))
 
 (defun tla-tree-version-list-tla ()
@@ -3309,7 +3310,7 @@ i.e. the destination mirror."
   (interactive (list (car (tla-name-read "Archive to fixup: " 'prompt))))
   (tla--run-tla-async (list "archive-fixup" archive)
                       :finished (dvc-capturing-lambda (output error status arguments)
-                                   (message "tla archive-fixup %s finished" (capture archive)))
+                                  (message "tla archive-fixup %s finished" (capture archive)))
                       ))
 
 ;;;###autoload
@@ -3343,19 +3344,19 @@ i.e. the destination mirror."
                                 (tla--show-ancestor-option)
                                 from)
                           :finished (dvc-capturing-lambda (output error status arguments)
-                                       ;; (tla--show-last--process-buffer)
-                                       (dvc-show-changes-buffer
-                                        output 'tla--parse-other (capture buffer))
-                                       (message "merge command finished")
-                                       (dvc-revert-some-buffers (capture to-tree)))
+                                      ;; (tla--show-last--process-buffer)
+                                      (dvc-show-changes-buffer
+                                       output 'tla--parse-other (capture buffer))
+                                      (message "merge command finished")
+                                      (dvc-revert-some-buffers (capture to-tree)))
                           :error (dvc-capturing-lambda (output error status arguments)
-                                    (case status
-                                      ;; 2 stands for an error.
-                                      (2 (dvc-default-error-function
-                                          output error status arguments))
-                                      ;; How about other status?
-                                      (otherwise (dvc-show-changes-buffer output 'tla--parse-other)
-                                                 output nil (capture buffer))))))))
+                                   (case status
+                                     ;; 2 stands for an error.
+                                     (2 (dvc-default-error-function
+                                         output error status arguments))
+                                     ;; How about other status?
+                                     (otherwise (dvc-show-changes-buffer output 'tla--parse-other)
+                                                output nil (capture buffer))))))))
 
 (defun tla--replay-arguments ()
   "Build an argument list for the replay command.
@@ -3364,11 +3365,11 @@ and `tla-replay'."
   (list (tla--name-construct
          (tla-name-read (if current-prefix-arg
                             "Reversely relay version or revision: "
-                            "Relay version or revision: ")
-                         'prompt 'prompt 'prompt 'prompt 'maybe))
+                          "Relay version or revision: ")
+                        'prompt 'prompt 'prompt 'prompt 'maybe))
         (dvc-read-directory-name (if current-prefix-arg
-                                      "Reversely replay in tree: "
-                                      "Replay in tree: "))
+                                     "Reversely replay in tree: "
+                                   "Replay in tree: "))
         current-prefix-arg))
 
 (defun tla-replay-reverse (from &optional to-tree arg)
@@ -3401,18 +3402,18 @@ If REVERSE is non-nil, reverse the requested revision."
       (when dvc-switch-to-buffer-first
         (dvc-switch-to-buffer buffer))
       (tla--run-tla-async `("replay"
-;;                             ,(when tla-use-forward-option "--forward")
+                            ;; ,(when tla-use-forward-option "--forward")
                             ,(when reverse "--reverse")
                             ,(when tla-use-skip-present-option "--skip-present")
                             ,@(if (listp from)
                                   from
                                 (list from)))
                           :finished (dvc-capturing-lambda (output error status arguments)
-                                       (dvc-show-changes-buffer output
-                                                                'tla--parse-other
-                                                                (capture buffer))
-                                       (message "tla replay finished")
-                                       (dvc-revert-some-buffers (capture to-tree)))
+                                      (dvc-show-changes-buffer output
+                                                               'tla--parse-other
+                                                               (capture buffer))
+                                      (message "tla replay finished")
+                                      (dvc-revert-some-buffers (capture to-tree)))
                           :error (lambda (output error status arguments)
                                    (dvc-show-error-buffer error)
                                    (dvc-show-last-process-buffer))))))
@@ -3422,7 +3423,7 @@ If REVERSE is non-nil, reverse the requested revision."
   (interactive (list
                 (tla--name-construct
                  (tla-name-read "Sync tree with revision: "
-                                 'prompt 'prompt 'prompt 'prompt 'prompt))
+                                'prompt 'prompt 'prompt 'prompt 'prompt))
                 (dvc-read-directory-name "Sync tree: ")))
   (let ((default-directory (or to-tree default-directory)))
     (or (dvc-save-some-buffers)
@@ -3432,9 +3433,9 @@ If REVERSE is non-nil, reverse the requested revision."
     (dvc-show-last-process-buffer)
     (tla--run-tla-async `("sync-tree" ,from)
                         :finished (dvc-capturing-lambda (output error status arguments)
-                                     (dvc-show-last-process-buffer)
-                                     (message "tla sync-tree finished")
-                                     (dvc-revert-some-buffers (capture to-tree)))
+                                    (dvc-show-last-process-buffer)
+                                    (message "tla sync-tree finished")
+                                    (dvc-revert-some-buffers (capture to-tree)))
                         :error (lambda (output error status arguments)
                                  (dvc-show-changes-buffer
                                   output 'tla--parse-other
@@ -3447,7 +3448,7 @@ If REVERSE is non-nil, reverse the requested revision."
 After running update, execute HANDLE (function taking no argument)."
   (interactive (list (expand-file-name
                       (dvc-read-directory-name "Switch in tree: " nil
-                                                nil nil ""))
+                                               nil nil ""))
                      (tla-name-read "Switch to version: "
                                     'prompt 'prompt 'prompt 'maybe 'maybe)))
   (unless (tla-has-switch-command)
@@ -3530,19 +3531,19 @@ Else it runs asynchronously."
           (tla-name-read "Tag version: " 'prompt 'prompt 'prompt
                          'prompt))
          (tla--tag-does-cacherev)
-	 nil))
+         nil))
   (when (tla-has-merge-command)
     (error "tla-tag not available. Use baz-branch instead."))
   (funcall (if synchronously 'tla--run-tla-sync 'tla--run-tla-async)
-	   (list (when (tla-has-branch-command) "branch" "tag")
-		 (when (tla-tag-has-setup-option) "--setup")
-		 (when (not cacherev) "--no-cacherev")
-		 source-revision tag-version)))
+           (list (when (tla-has-branch-command) "branch" "tag")
+                 (when (tla-tag-has-setup-option) "--setup")
+                 (when (not cacherev) "--no-cacherev")
+                 source-revision tag-version)))
 
 (defun tla-set-tree-version (version)
   "Run tla set-tree-version VERSION."
   (interactive (list (tla-name-read "Set tree version to: "
-                                     'prompt 'prompt 'prompt 'prompt)))
+                                    'prompt 'prompt 'prompt 'prompt)))
 
   (let ((new-version (tla--name-construct version))
         (old-version (tla-tree-version)))
@@ -3640,11 +3641,11 @@ This is invoked by ewoc when displaying the bookmark list."
                                (- tla-bookmarks-align 3)
                                'dvc-bookmark-name)
   (insert (dvc-face-add (tla--name-construct
-                          (cdr (assoc 'location (cdr element))))
-                         'dvc-revision-name
-                         'tla-bookmarks-entry-map
-                         tla-bookmarks-entry-menu
-                         ))
+                         (cdr (assoc 'location (cdr element))))
+                        'dvc-revision-name
+                        'tla-bookmarks-entry-map
+                        tla-bookmarks-entry-menu
+                        ))
   (when tla-bookmarks-show-details
     (newline)
     (insert-char ?\  tla-bookmarks-align)
@@ -3776,7 +3777,7 @@ tla processes with the appropriate handlers to fill in the ewoc."
     (erase-buffer)
     (set (make-local-variable 'dvc-revlist-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
-		       #'dvc-revlist-printer)))
+                       #'dvc-revlist-printer)))
     (dvc-kill-process-maybe (current-buffer))
     (dolist (item tla-missing-buffer-todolist)
       (case (car item)
@@ -3811,55 +3812,55 @@ tla processes with the appropriate handlers to fill in the ewoc."
                 ,version)
               :finished
               (dvc-capturing-lambda (output error status arguments)
-                 (when (and (dvc-get-buffer tla-arch-branch 'missing)
-                            (buffer-live-p (dvc-get-buffer
-                                            tla-arch-branch 'missing)))
-                   (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing)
-                     (when (ewoc-p dvc-revlist-cookie)
-                       (let* ((cookie dvc-revlist-cookie)
-                              (to-delete (ewoc-next cookie (capture node)))
-                              (prev (ewoc-prev
-                                     dvc-revlist-cookie
-                                     to-delete))
-                              (cur (ewoc-locate
-                                    dvc-revlist-cookie))
-                              (deleted (eq cur to-delete)))
-                         (tla--revisions-parse-list
-                          'missing nil
-                          nil
-                          output (capture node) cookie
-                          'tla-revision-compute-merged-by
-                          )
-                         (dvc-ewoc-delete cookie to-delete)
-                         (ewoc-refresh dvc-revlist-cookie)
-                         (let ((loc (if deleted
-                                        (ewoc-next
-                                         dvc-revlist-cookie
-                                         prev)
-                                      cur)))
-                           (when loc
-                             (goto-char (ewoc-location loc)))))))))
+                (when (and (dvc-get-buffer tla-arch-branch 'missing)
+                           (buffer-live-p (dvc-get-buffer
+                                           tla-arch-branch 'missing)))
+                  (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing)
+                    (when (ewoc-p dvc-revlist-cookie)
+                      (let* ((cookie dvc-revlist-cookie)
+                             (to-delete (ewoc-next cookie (capture node)))
+                             (prev (ewoc-prev
+                                    dvc-revlist-cookie
+                                    to-delete))
+                             (cur (ewoc-locate
+                                   dvc-revlist-cookie))
+                             (deleted (eq cur to-delete)))
+                        (tla--revisions-parse-list
+                         'missing nil
+                         nil
+                         output (capture node) cookie
+                         'tla-revision-compute-merged-by
+                         )
+                        (dvc-ewoc-delete cookie to-delete)
+                        (ewoc-refresh dvc-revlist-cookie)
+                        (let ((loc (if deleted
+                                       (ewoc-next
+                                        dvc-revlist-cookie
+                                        prev)
+                                     cur)))
+                          (when loc
+                            (goto-char (ewoc-location loc)))))))))
               :error
               (dvc-capturing-lambda (output error status arguments)
-                 (when (and (dvc-get-buffer tla-arch-branch 'missing)
-                            (buffer-live-p (dvc-get-buffer
-                                            tla-arch-branch 'missing)))
-                   (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing)
-                     (when (ewoc-p dvc-revlist-cookie)
-                       (let* ((cookie dvc-revlist-cookie)
-                              (to-delete (ewoc-next cookie (capture node))))
-                         (setf (ewoc-data to-delete)
-                               (list 'message
-                                     (concat
-                                      "Error in "
-                                      (tla-arch-branch-name)
-                                      " process for "
-                                      (capture shorttext)
-                                      ":\n"
-                                      (dvc-buffer-content
-                                       error))))))))
-                 (message "Abnormal exit with code %d!\n%s" status
-                          (dvc-buffer-content error)))))))
+                (when (and (dvc-get-buffer tla-arch-branch 'missing)
+                           (buffer-live-p (dvc-get-buffer
+                                           tla-arch-branch 'missing)))
+                  (with-current-buffer (dvc-get-buffer-create tla-arch-branch 'tla-missing)
+                    (when (ewoc-p dvc-revlist-cookie)
+                      (let* ((cookie dvc-revlist-cookie)
+                             (to-delete (ewoc-next cookie (capture node))))
+                        (setf (ewoc-data to-delete)
+                              (list 'message
+                                    (concat
+                                     "Error in "
+                                     (tla-arch-branch-name)
+                                     " process for "
+                                     (capture shorttext)
+                                     ":\n"
+                                     (dvc-buffer-content
+                                      error))))))))
+                (message "Abnormal exit with code %d!\n%s" status
+                         (dvc-buffer-content error)))))))
         (separator
          ;; This item is a separator -- the name of a bookmark.
          ;; ITEM is of the form:
@@ -3884,45 +3885,45 @@ tla processes with the appropriate handlers to fill in the ewoc."
            (tla--run-tla-async
             '("changes")
             :error (dvc-capturing-lambda (output error status arguments)
-                      (with-current-buffer (capture cur-buf)
-                        (let* ((prev (ewoc-prev
-                                      dvc-revlist-cookie
-                                      (capture to-delete)))
-                               (cur (ewoc-locate
-                                     dvc-revlist-cookie))
-                               (deleted (eq cur (capture to-delete))))
-                          (tla-bookmarks-missing-parse-changes
-                           output (capture parent-node))
-                          (dvc-ewoc-delete dvc-revlist-cookie (capture to-delete))
-                          (ewoc-refresh dvc-revlist-cookie)
-                          (let ((loc (if deleted
-                                         (ewoc-next
-                                          dvc-revlist-cookie
-                                          prev)
-                                       cur)))
-                            (when loc
-                              (goto-char (ewoc-location loc)))))))
-            :finished (dvc-capturing-lambda (output error status arguments)
-                         (with-current-buffer (capture cur-buf)
-                           (let* ((prev (ewoc-prev
+                     (with-current-buffer (capture cur-buf)
+                       (let* ((prev (ewoc-prev
+                                     dvc-revlist-cookie
+                                     (capture to-delete)))
+                              (cur (ewoc-locate
+                                    dvc-revlist-cookie))
+                              (deleted (eq cur (capture to-delete))))
+                         (tla-bookmarks-missing-parse-changes
+                          output (capture parent-node))
+                         (dvc-ewoc-delete dvc-revlist-cookie (capture to-delete))
+                         (ewoc-refresh dvc-revlist-cookie)
+                         (let ((loc (if deleted
+                                        (ewoc-next
                                          dvc-revlist-cookie
-                                         (capture to-delete)))
-                                  (cur (ewoc-locate
-                                        dvc-revlist-cookie))
-                                  (deleted (eq cur (capture to-delete))))
-                             (dvc-ewoc-delete dvc-revlist-cookie (capture to-delete))
-                             (ewoc-refresh dvc-revlist-cookie)
-                             (let ((loc (if deleted
-                                            (ewoc-next
-                                             dvc-revlist-cookie
-                                             prev)
-                                          cur)))
-                               (when loc
-                                 (goto-char (ewoc-location loc)))))))
+                                         prev)
+                                      cur)))
+                           (when loc
+                             (goto-char (ewoc-location loc)))))))
+            :finished (dvc-capturing-lambda (output error status arguments)
+                        (with-current-buffer (capture cur-buf)
+                          (let* ((prev (ewoc-prev
+                                        dvc-revlist-cookie
+                                        (capture to-delete)))
+                                 (cur (ewoc-locate
+                                       dvc-revlist-cookie))
+                                 (deleted (eq cur (capture to-delete))))
+                            (dvc-ewoc-delete dvc-revlist-cookie (capture to-delete))
+                            (ewoc-refresh dvc-revlist-cookie)
+                            (let ((loc (if deleted
+                                           (ewoc-next
+                                            dvc-revlist-cookie
+                                            prev)
+                                         cur)))
+                              (when loc
+                                (goto-char (ewoc-location loc)))))))
             ))))
       (ewoc-set-hf dvc-revlist-cookie ""
                    (concat "\n" (dvc-face-add "end."
-                                               'dvc-separator)))))
+                                              'dvc-separator)))))
   (goto-char (point-min))
   ;; If all processes have been run synchronously,
   ;; tla--nb-active-processes is 1 now, and we should run the
@@ -4132,30 +4133,30 @@ parsed."
                  (tla--name-split revision)
                  nil
                  (dvc-capturing-lambda (output error status arguments)
-                    (with-current-buffer output
-                      (setf (tla--revision-date (capture rev-struct))
-                            (tla--read-field "Standard-date"))
-                      (setf (tla--revision-creator (capture rev-struct))
-                            (tla--read-field "Creator"))
-                      (setf (tla--revision-summary (capture rev-struct))
-                            (tla--read-field "Summary"))
-                      (setf (tla--revision-merges (capture rev-struct))
-                            (remove (capture revision)
-                                    (split-string (tla--read-field
-                                                   "New-patches")))))
-                    (dvc-trace "rev-struct=%s" (capture rev-struct))
-                    (dvc-trace "elem=%s" (capture elem))
-                    (with-current-buffer (capture parent-buffer)
-                      (setq tla--nb-active-processes
-                            (- tla--nb-active-processes 1))
-                      (when (and (capture callback)
-                                 (zerop tla--nb-active-processes))
-                        (funcall (capture callback))))
-                    (let* ((cur (and
-                                 dvc-revlist-cookie
-                                 (ewoc-locate dvc-revlist-cookie))))
-                      (ewoc-refresh (capture cookie))
-                      (when cur (goto-char (ewoc-location cur))))))
+                   (with-current-buffer output
+                     (setf (tla--revision-date (capture rev-struct))
+                           (tla--read-field "Standard-date"))
+                     (setf (tla--revision-creator (capture rev-struct))
+                           (tla--read-field "Creator"))
+                     (setf (tla--revision-summary (capture rev-struct))
+                           (tla--read-field "Summary"))
+                     (setf (tla--revision-merges (capture rev-struct))
+                           (remove (capture revision)
+                                   (split-string (tla--read-field
+                                                  "New-patches")))))
+                   (dvc-trace "rev-struct=%s" (capture rev-struct))
+                   (dvc-trace "elem=%s" (capture elem))
+                   (with-current-buffer (capture parent-buffer)
+                     (setq tla--nb-active-processes
+                           (- tla--nb-active-processes 1))
+                     (when (and (capture callback)
+                                (zerop tla--nb-active-processes))
+                       (funcall (capture callback))))
+                   (let* ((cur (and
+                                dvc-revlist-cookie
+                                (ewoc-locate dvc-revlist-cookie))))
+                     (ewoc-refresh (capture cookie))
+                     (when cur (goto-char (ewoc-location cur))))))
                 )))
           (if last-node
               (setq last-node
@@ -4240,12 +4241,12 @@ from."
                  src destination)
            :finished
            (dvc-capturing-lambda (output error status arguments)
-              (tla-bookmarks-add (capture name) (tla--name-split (capture destination)))
-              (tla-bookmarks-add-partner (assoc (capture name) tla-bookmarks-alist)
-                                         (capture src) t))
+             (tla-bookmarks-add (capture name) (tla--name-split (capture destination)))
+             (tla-bookmarks-add-partner (assoc (capture name) tla-bookmarks-alist)
+                                        (capture src) t))
            :error
            (dvc-capturing-lambda (output error status arguments)
-              (error "Fail to create a tag for %s" (capture src)))))))
+             (error "Fail to create a tag for %s" (capture src)))))))
     (setq tla-bookmarks-marked-list nil)
     (ewoc-refresh tla-bookmarks-cookie)))
 
@@ -4273,7 +4274,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (erase-buffer)
     (set (make-local-variable 'tla-bookmarks-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
-			 #'tla-bookmarks-printer)))
+                       #'tla-bookmarks-printer)))
     (set (make-local-variable 'tla-bookmarks-marked-list) nil)
     (dolist (elem tla-bookmarks-alist)
       (ewoc-enter-last tla-bookmarks-cookie elem))
@@ -4472,7 +4473,7 @@ This is an internal function."
 (defun tla-bookmarks-add (name revision-spec)
   "Add a bookmark named NAME for REVISION-SPEC."
   (interactive (let* ((fq (tla-name-read "Version: "
-                                          'prompt 'prompt 'prompt 'prompt))
+                                         'prompt 'prompt 'prompt 'prompt))
                       (n  (read-string (format "Name of the bookmark for `%s': "
                                                (tla--name-construct fq)))))
                  (list n fq)))
@@ -4603,6 +4604,7 @@ If FORCE is non-nil, don't ask for confirmation."
 (defmacro tla--bookmarks-make-edit-fn (name field read-fn)
   "Define an interactive function called NAME for editing FIELD of a bookmark
 entry."
+  (declare (indent 2) (debug (&define name form function-form)))
   `(defun ,name (bookmarks value &optional dont-save)
      "Adds the directory VALUE to the list of local trees of bookmark
 BOOKMARK.
@@ -4630,18 +4632,19 @@ Unless DONT-SAVE is non-nil, save the bookmark file."
          (tla-bookmarks)))))
 
 (tla--bookmarks-make-edit-fn
- tla-bookmarks-edit-summary
- 'summary-format
- (lambda (prompt val)
-   (read-string (format
-                 "Summary for %s (use %%s for the merge string): "
-                 prompt)
-                val)))
+    tla-bookmarks-edit-summary
+    'summary-format
+  (lambda (prompt val)
+    (read-string (format
+                  "Summary for %s (use %%s for the merge string): "
+                  prompt)
+                 val)))
 
 (defmacro tla-bookmarks-make-add-fn (name field message-already message-add)
   "Define a function called NAME for adding FIELD to a bookmark entry.
 This function will display MESSAGE-ALREADY if the user tries to add a field
 twice, and will display MESSAGE-ADD when a new field is successfully added."
+  (declare (indent 2) (debug (&define name form stringp stringp)))
   `(defun ,name (bookmark value &optional dont-save)
      "Adds the directory VALUE to the list of local trees of bookmark
 BOOKMARK.
@@ -4653,7 +4656,7 @@ Unless DONT-SAVE is non-nil, save the bookmark file."
              (progn
                (message ,message-add)
                (setcdr field-contents (cons value
-                                         (cdr field-contents)))))
+                                            (cdr field-contents)))))
          (progn
            (message ,message-add)
            (setcdr bookmark (cons (list ,field value)
@@ -4665,27 +4668,28 @@ Unless DONT-SAVE is non-nil, save the bookmark file."
   )
 
 (tla-bookmarks-make-add-fn tla-bookmarks-add-tree
-                           'local-tree
-                           "Local tree already in the list"
-                           "Local tree added to your bookmarks")
+    'local-tree
+  "Local tree already in the list"
+  "Local tree added to your bookmarks")
 
 (tla-bookmarks-make-add-fn tla-bookmarks-add-partner
-                           'partners
-                           "Partner already in the list"
-                           "Partner added to your bookmarks")
+    'partners
+  "Partner already in the list"
+  "Partner added to your bookmarks")
 
 (tla-bookmarks-make-add-fn tla-bookmarks-add-group
-                           'groups
-                           "Group already in the list"
-                           "Group added to your bookmarks")
+    'groups
+  "Group already in the list"
+  "Group added to your bookmarks")
 
 (tla-bookmarks-make-add-fn tla-bookmarks-add-nickname
-                           'nickname
-                           "Nickname already in the list"
-                           "Nickname added to your bookmark")
+    'nickname
+  "Nickname already in the list"
+  "Nickname added to your bookmark")
 
 (defmacro tla-bookmarks-make-delete-fn (name field)
   "Define a function called NAME for removing FIELD from bookmark entries."
+  (declare (indent 2) (debug (&define name form)))
   `(defun ,name (bookmark value &optional dont-save)
      "Deletes the directory VALUE to the list of local trees of bookmark
 BOOKMARK."
@@ -4704,16 +4708,16 @@ BOOKMARK."
   )
 
 (tla-bookmarks-make-delete-fn tla-bookmarks-delete-tree
-                              'local-tree)
+    'local-tree)
 
 (tla-bookmarks-make-delete-fn tla-bookmarks-delete-partner
-                              'partners)
+    'partners)
 
 (tla-bookmarks-make-delete-fn tla-bookmarks-delete-group
-                              'groups)
+    'groups)
 
 (tla-bookmarks-make-delete-fn tla-bookmarks-delete-nickname
-                              'nickname)
+    'nickname)
 
 (defun tla-bookmarks-add-partner-interactive ()
   "Add a partner to the current or marked bookmarks."
@@ -4723,7 +4727,7 @@ BOOKMARK."
                                          tla-bookmarks-cookie)))))
         (partner (tla--name-construct
                   (tla-name-read "Add partner version: "
-                                  'prompt 'prompt 'prompt 'prompt))))
+                                 'prompt 'prompt 'prompt 'prompt))))
     (dolist (bookmark bookmarks)
       (tla-bookmarks-add-partner bookmark partner t))
     (tla-bookmarks-save-to-file)
@@ -4811,8 +4815,8 @@ BOOKMARK."
                                           tla-bookmarks-cookie)))))
          (choices (apply 'append
                          (mapcar (lambda (x)
-                                     (cdr (assoc 'local-tree
-                                                 (cdr x))))
+                                   (cdr (assoc 'local-tree
+                                               (cdr x))))
                                  bookmarks)))
          (choices-alist (mapcar (lambda (x) (list x)) choices))
          (local-tree (dvc-completing-read "Local tree to remove: "
@@ -4860,8 +4864,8 @@ BOOKMARK."
                                           tla-bookmarks-cookie)))))
          (choices (apply 'append
                          (mapcar (lambda (x)
-                                     (cdr (assoc 'groups
-                                                 (cdr x))))
+                                   (cdr (assoc 'groups
+                                               (cdr x))))
                                  bookmarks)))
          (choices-alist (mapcar (lambda (x) (list x)) choices))
          (group (dvc-completing-read "Group to remove: " choices-alist)))
@@ -4930,7 +4934,7 @@ BOOKMARK."
                             (oldname (car (ewoc-data elem))))
                        (kill-buffer (current-buffer))
                        (pop-to-buffer (dvc-get-buffer-create tla-arch-branch
-                                       'bookmark))
+                                                             'bookmark))
                        (setcar (ewoc-data elem) (car newval))
                        (setcdr (ewoc-data elem) (cdr newval))
                        (let ((list tla-bookmarks-alist)
@@ -4954,7 +4958,7 @@ VERSION is a fully qualified version string or a list."
     (setq version (tla--name-mask version t
                                   t t t t)))
   (let* ((bookmark (tla-bookmarks-find-bookmark version))
-	 (partners (cdr (assoc 'partners bookmark))))
+         (partners (cdr (assoc 'partners bookmark))))
     (mapcar 'tla--name-split partners)))
 
 ;;
@@ -4970,7 +4974,7 @@ VERSION is a fully qualified version string or a list."
   (dvc-switch-to-buffer (dvc-get-buffer-create tla-arch-branch 'archives))
   (tla--archive-tree-build-archives)
   (let ((a-list (reverse tla--archive-tree))
-                (inhibit-read-only t)
+        (inhibit-read-only t)
         (my-default-archive (tla-my-default-archive))
         defaultp
         archive-name
@@ -4980,7 +4984,7 @@ VERSION is a fully qualified version string or a list."
     (tla-archive-list-mode)
     (set (make-local-variable 'tla-archives-list-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
-		       #'tla-archives-list-printer)))
+                       #'tla-archives-list-printer)))
     (erase-buffer)
     (while a-list
       (setq archive-name (caar a-list)
@@ -5024,7 +5028,7 @@ archive."
 (defun tla-archives-goto-archive-by-name (name)
   "Jump to the archive named NAME."
   (unless (eq (current-buffer) (dvc-get-buffer tla-arch-branch
-                                                'archives))
+                                               'archives))
     (error "`tla-archives-goto-archive-by-name' can only be called in *{tla|baz}-archives* buffer"))
   (goto-char (point-min))
   (search-forward name)
@@ -5096,7 +5100,7 @@ When called interactively, with no argument: Show the name of the default archiv
      "news\\(post\\)?:\\|mailto:\\|file:" ; no host ok
      "\\|"
      "\\(s?ftp\\|https?\\|telnet\\|gopher\\|www\\|wais\\)://" ; needs host
-     "\\)."                               ; require one more character
+     "\\)."                             ; require one more character
      ))
   "If ffap-url-regexp doesn't match sftp URL, use another value that
 matches it.")
@@ -5126,7 +5130,7 @@ The following forms are supported:
       (tla-archives)
       (tla-archives-goto-archive-by-name
        (progn
-         (message tla-response) ; inform the user about the response from tla
+         (message tla-response)  ; inform the user about the response from tla
          (if (string-match ".+: \\(.+\\)" tla-response)
              (match-string-no-properties 1 tla-response)
            archive)))
@@ -5165,8 +5169,8 @@ The return value is a list.
                          (if (eq status 2) ;; already registered
                              (setq archive-registered 'already)
                            (dvc-default-error-function output error
-                                                        status
-                                                        arguments))))
+                                                       status
+                                                       arguments))))
     (list archive-registered archive location tla-response)))
 
 (defun tla--unregister-archive (archive ask-for-confirmation)
@@ -5200,23 +5204,23 @@ When ASK-FOR-CONFIRMATION is non nil, ask the user for confirmation."
 
 (defun tla--make-archive-read-location ()
   (let ((path-ok nil)
-               location)
-           (while (not path-ok)
-             (setq location (tla--read-location "Location: "))
-             (setq path-ok t)
-             (when (eq 'local (tla--location-type location))
-               (setq location (expand-file-name location))
-               (when (file-directory-p location)
-                 (message "directory already exists: %s" location)
-                 (setq path-ok nil)
-                 (sit-for 1))
-               (when (not (file-directory-p
-                           (file-name-directory location)))
-                 (message "parent directory doesn't exists for %s"
-                          location)
-                 (setq path-ok nil)
-                 (sit-for 1))))
-           location))
+        location)
+    (while (not path-ok)
+      (setq location (tla--read-location "Location: "))
+      (setq path-ok t)
+      (when (eq 'local (tla--location-type location))
+        (setq location (expand-file-name location))
+        (when (file-directory-p location)
+          (message "directory already exists: %s" location)
+          (setq path-ok nil)
+          (sit-for 1))
+        (when (not (file-directory-p
+                    (file-name-directory location)))
+          (message "parent directory doesn't exists for %s"
+                   location)
+          (setq path-ok nil)
+          (sit-for 1))))
+    location))
 
 (defun tla--make-archive (name location &optional signed listing)
   "Create a new arch archive.
@@ -5351,8 +5355,8 @@ Sets the archive location to LOCATION."
     (error "Location for `%s' is unknown" archive))
   (when (eq 'source (tla--archive-type archive))
     (error "%s is already source" archive))
-;  (unless (eq 'http (tla--location-type location))
-;    (error "Read only archive is supported in xtla: " location))
+  ;; (unless (eq 'http (tla--location-type location))
+  ;;   (error "Read only archive is supported in xtla: " location))
   (tla--unregister-archive archive nil)
   (tla--register-archive location (concat archive "-SOURCE")))
 
@@ -5412,8 +5416,8 @@ Sets the archive location to LOCATION."
                        (tla--name-category l))))
   (tla--archive-tree-build-branches archive category)
   (dvc-switch-to-buffer (dvc-get-buffer-create tla-arch-branch
-                         'branches (tla--name-construct
-                                    archive category)))
+                                               'branches (tla--name-construct
+                                                          archive category)))
   (let ((list (cdr (tla--archive-tree-get-category archive category)))
         alength
         clength
@@ -5433,8 +5437,8 @@ Sets the archive location to LOCATION."
               start-pos (point)
               list (cdr list))
         (insert "   " (dvc-face-add (if (string= branch "")
-                                         "<empty>" branch)
-                                     'tla-branch-name))
+                                        "<empty>" branch)
+                                    'tla-branch-name))
         (newline)
         (setq overlay (make-overlay start-pos (point)))
         (overlay-put overlay 'category 'tla-default-button)
@@ -5450,7 +5454,7 @@ Sets the archive location to LOCATION."
 (defun tla-make-branch (archive category branch)
   "Make a new branch in ARCHIVE/CATEGORY called BRANCH."
   (interactive (let ((l (tla-name-read "New Branch: "
-                                        'prompt 'prompt 'prompt)))
+                                       'prompt 'prompt 'prompt)))
                  (list (tla--name-archive l)
                        (tla--name-category l)
                        (tla--name-branch l))))
@@ -5467,14 +5471,14 @@ Sets the archive location to LOCATION."
 (defun tla-versions (archive category branch)
   "Display the versions of ARCHIVE/CATEGORY in BRANCH."
   (interactive (let ((l (tla-name-read nil
-                                        'prompt 'prompt 'prompt)))
+                                       'prompt 'prompt 'prompt)))
                  (list (tla--name-archive l)
                        (tla--name-category l)
                        (tla--name-branch l))))
   (tla--archive-tree-build-versions archive category branch)
   (dvc-switch-to-buffer (dvc-get-buffer-create tla-arch-branch
-                         'versions (tla--name-construct archive
-                                                        category branch)))
+                                               'versions (tla--name-construct archive
+                                                                              category branch)))
   (let ((list (cdr (tla--archive-tree-get-branch
                     archive category branch)))
         alength
@@ -5512,7 +5516,7 @@ Sets the archive location to LOCATION."
 (defun tla-make-version (archive category branch version)
   "In ARCHIVE/CATEGORY, add a version to BRANCH called VERSION."
   (interactive (let ((l (tla-name-read "Version: "
-                                        'prompt 'prompt 'prompt 'prompt)))
+                                       'prompt 'prompt 'prompt 'prompt)))
                  (list (tla--name-archive l)
                        (tla--name-category l)
                        (tla--name-branch l)
@@ -5583,7 +5587,7 @@ Sets the archive location to LOCATION."
                       "Revisions for tree: ")))
   (let* ((default-directory root)
          (buffer (dvc-get-buffer tla-arch-branch 'revisions
-                                  (tla-tree-version))))
+                                 (tla-tree-version))))
     (if buffer
         (dvc-switch-to-buffer buffer)
       (tla-tree-revisions root))))
@@ -5613,9 +5617,9 @@ UNUSED is left here to keep the position of FROM-REVLIB"
                   (tla--name-version l))))
   (let ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
         (output-buf (dvc-get-buffer-create tla-arch-branch
-                     'revisions
-                     (tla--name-construct
-                      archive category branch version)))
+                                           'revisions
+                                           (tla--name-construct
+                                            archive category branch version)))
         separator)
     (with-current-buffer output-buf
       (tla-revision-list-mode)
@@ -5831,7 +5835,7 @@ If SYNCHRONOUSLY is non-nil, run the process synchronously.
 Else, run the process asynchronously."
   ;; run-dired-p => t, nil, ask
   (interactive (let* ((l (tla-name-read "Get: "
-                                         'prompt 'prompt 'prompt 'maybe 'maybe))
+                                        'prompt 'prompt 'prompt 'maybe 'maybe))
                       (name (tla--name-construct l))
                       (d (dvc-read-directory-name (format "Store \"%s\" to: " name))))
                  (cons d (cons 'ask l))))
@@ -5847,16 +5851,16 @@ Else, run the process asynchronously."
                      (and revision (stringp revision)))
                     (list archive category branch version revision)
                   (tla-name-read "Version--Revision for Get(if necessary): "
-                                  archive category branch
-                                  (if version version 'maybe)
-                                  'maybe)))))
+                                 archive category branch
+                                 (if version version 'maybe)
+                                 'maybe)))))
     (funcall (if synchronously 'tla--run-tla-sync 'tla--run-tla-async)
              (list "get" name directory)
              :finished (dvc-capturing-lambda (output error status arguments)
-                          (let ((i (dvc-status-handler output error status arguments)))
-                            (when (zerop i)
-                              (tla--get-do-bookmark (capture directory) (capture archive) (capture category) (capture branch) (capture version))
-                              (tla--do-dired (capture directory) (capture run-dired-p))))))))
+                         (let ((i (dvc-status-handler output error status arguments)))
+                           (when (zerop i)
+                             (tla--get-do-bookmark (capture directory) (capture archive) (capture category) (capture branch) (capture version))
+                             (tla--do-dired (capture directory) (capture run-dired-p))))))))
 
 (defun tla--get-do-bookmark (directory archive category branch version)
   "Add DIRECTORY to the bookmark for ARCHIVE/CATEGORY--BRANCH--VERSION."
@@ -5888,7 +5892,7 @@ Otherwise, run dired."
 (defun tla-cache-revision (archive category branch version revision)
   "Cache the revision named by ARCHIVE/CATEGORY--BRANCH--VERSION--REVISION."
   (interactive (tla-name-read "Revision to cache: "
-                               'prompt 'prompt 'prompt 'prompt 'prompt))
+                              'prompt 'prompt 'prompt 'prompt 'prompt))
   (let ((result (tla--run-tla-async (list "cacherev"
                                           (tla--name-construct
                                            archive category branch version revision)))))
@@ -5977,13 +5981,13 @@ If ONLY-ID is non-nil, move only the ID file."
     (tla--run-tla-sync (list cmd from to)
                        :finished
                        (dvc-capturing-lambda (output error status arguments)
-                          (let ((buf (find-buffer-visiting (capture from))))
-                            (when buf
-                              (with-current-buffer buf
-                                (rename-buffer (file-name-nondirectory
-                                                (capture to)))
-                                (set-visited-file-name (capture to)))))
-                          status))))
+                         (let ((buf (find-buffer-visiting (capture from))))
+                           (when buf
+                             (with-current-buffer buf
+                               (rename-buffer (file-name-nondirectory
+                                               (capture to)))
+                               (set-visited-file-name (capture to)))))
+                         status))))
 
 (defalias 'tla-mv 'tla-move)
 
@@ -6012,7 +6016,7 @@ configuration.  If LOCAL-TREE is not managed by arch, return nil."
     (let* ((partner-file
             (cond ((not default-directory) nil)
                   ((file-exists-p (concat (tla-tree-root)
-                                           tla-partner-file-precious))
+                                          tla-partner-file-precious))
                    (concat (tla-tree-root) tla-partner-file-precious))
                   (t (concat (tla-tree-root)
                              tla-partner-file-source))))
@@ -6078,7 +6082,7 @@ this function returns a symbol, `self'.  If the user answers `n' as the
 question, this function runs as the same as if INCLUDING-SELF is nil."
   (unless prompt (setq prompt "Enter Xtla Partner: "))
   (if (and including-self
-             (y-or-n-p "Select `self' as partner? "))
+           (y-or-n-p "Select `self' as partner? "))
       'self
     (let ((version (tla--name-construct
                     (tla-name-read
@@ -6097,15 +6101,15 @@ question, this function runs as the same as if INCLUDING-SELF is nil."
      easy-menu-create-menu prompt
      (mapcar
       (lambda (item)
-	(let ((v (make-vector 3 nil)))
-	  (aset v 0 item)		; name
-	  (aset v 1 `(,action ,item))
-	  (aset v 2 t)			; enable
-	  ;;(aset v 3 :style)
-	  ;;(aset v 4 'radio)
-	  ;;(aset v 5 :selected)
-	  ;;(aset v 6 (if ...))
-	  v))
+        (let ((v (make-vector 3 nil)))
+          (aset v 0 item)               ; name
+          (aset v 1 `(,action ,item))
+          (aset v 2 t)                  ; enable
+          ;;(aset v 3 :style)
+          ;;(aset v 4 'radio)
+          ;;(aset v 5 :selected)
+          ;;(aset v 6 (if ...))
+          v))
       list))))
 
 ;; ----------------------------------------------------------------------------
@@ -6206,7 +6210,7 @@ If ID-ONLY is nil, remove the files as well."
                          (format "Remove %d MARKED file%s from archive? "
                                  (length dvc-buffer-marked-file-list)
                                  (if (< (length dvc-buffer-marked-file-list) 2)
-                                        "" "s")))
+                                     "" "s")))
                   (error "Not removing any file"))
                 dvc-buffer-marked-file-list)
             (list (let ((file (dvc-get-file-info-at-point)))
@@ -6341,7 +6345,7 @@ This function restores the saved changes from `tla-inventory-undo'."
     (cond
      ((not file)
       (error "No file at point"))
-     ((eq t (car (file-attributes file)))      ; file is a directory
+     ((eq t (car (file-attributes file))) ; file is a directory
       (tla-inventory (expand-file-name file)))
      (t
       (find-file file)))))
@@ -6455,7 +6459,7 @@ With a prefix argument REVERSE, reverse the changeset."
                        "Changeset directory: "  changeset-dir changeset-dir)))))
     (tla-show-changeset changeset nil)
     (when (yes-or-no-p (format "Apply the changeset%s? "
-                            (if reverse " in REVERSE" "")))
+                               (if reverse " in REVERSE" "")))
       (tla-apply-changeset changeset target reverse)
       (with-current-buffer inventory-buffer
         (dvc-generic-refresh)))))
@@ -6657,7 +6661,7 @@ If EXT-ONLY is non-nil, add only the file extension."
                              (replace-regexp-in-string
                               "^.*\\." "."
                               (file-name-nondirectory file))
-                             (file-name-nondirectory file)))
+                           (file-name-nondirectory file)))
                ext-only)
               (save-buffer)) files))
     ;; Keep the position
@@ -6704,18 +6708,18 @@ Commands:
        nil)
   (set (make-local-variable 'tla-current-revision)
        (save-excursion
-	 (concat
-	  (progn
-	    (goto-char (point-min))
-	    (re-search-forward "^Archive: ")
-	    (buffer-substring-no-properties (point)
-					    (line-end-position)))
-	  "/"
-	  (progn
-	    (goto-char (point-min))
-	    (re-search-forward "^Revision: ")
-	    (buffer-substring-no-properties (point)
-					    (line-end-position))))))
+         (concat
+          (progn
+            (goto-char (point-min))
+            (re-search-forward "^Archive: ")
+            (buffer-substring-no-properties (point)
+                                            (line-end-position)))
+          "/"
+          (progn
+            (goto-char (point-min))
+            (re-search-forward "^Revision: ")
+            (buffer-substring-no-properties (point)
+                                            (line-end-position))))))
   (setq major-mode 'tla-revlog-mode)
   (setq mode-name "tla-revlog")
   (toggle-read-only 1)
@@ -6789,12 +6793,12 @@ Commands:
 (defun tla-button-entry ()
   "Return the first entry in `tla-button-alist' matching this place."
   (let ((alist tla-button-alist)
-	(entry nil))
+        (entry nil))
     (while alist
       (setq entry (pop alist))
       (if (looking-at (eval (car entry)))
-	  (setq alist nil)
-	(setq entry nil)))
+          (setq alist nil)
+        (setq entry nil)))
     entry))
 
 (defun tla-button-in-region-p (b e prop)
@@ -6810,63 +6814,63 @@ specified by `tla-button-alist'."
   (with-current-buffer (or buffer (current-buffer))
     (let ((inhibit-read-only t)o
           (inhibit-point-motion-hooks t)
-	  (case-fold-search t)
-	  (alist tla-button-alist)
-	  beg entry regexp)
+          (case-fold-search t)
+          (alist tla-button-alist)
+          beg entry regexp)
       ;; Remove all old markers.
       (let (marker entry new-list)
-	(while (setq marker (pop tla-button-marker-list))
-	  (if (or (< marker (point-min)) (>= marker (point-max)))
-	      (push marker new-list)
-	    (goto-char marker)
-	    (when (setq entry (tla-button-entry))
-	      (put-text-property (match-beginning (nth 1 entry))
-				 (match-end (nth 1 entry))
-				 'tla-callback nil))
-	    (set-marker marker nil)))
-	(setq tla-button-marker-list new-list))
+        (while (setq marker (pop tla-button-marker-list))
+          (if (or (< marker (point-min)) (>= marker (point-max)))
+              (push marker new-list)
+            (goto-char marker)
+            (when (setq entry (tla-button-entry))
+              (put-text-property (match-beginning (nth 1 entry))
+                                 (match-end (nth 1 entry))
+                                 'tla-callback nil))
+            (set-marker marker nil)))
+        (setq tla-button-marker-list new-list))
       ;; We skip the headers.
       (goto-char (point-min))
       (setq beg (point))
       (while (setq entry (pop alist))
-	(setq regexp (eval (car entry)))
-	(goto-char beg)
-	(while (re-search-forward regexp nil t)
-	  (let* ((start (and entry (match-beginning (nth 1 entry))))
-		 (end (and entry (match-end (nth 1 entry))))
-		 (from (match-beginning 0)))
-	    (when (and (or (eq t (nth 2 entry))
-			   (eval (nth 2 entry)))
-		       (not (tla-button-in-region-p
-			     start end 'tla-callback)))
-	      ;; That optional form returned non-nil, so we add the
-	      ;; button.
-	      (tla-add-button
-	       start end 'tla-button-push
-	       (car (push (set-marker (make-marker) from)
-			  tla-button-marker-list))))))))))
+        (setq regexp (eval (car entry)))
+        (goto-char beg)
+        (while (re-search-forward regexp nil t)
+          (let* ((start (and entry (match-beginning (nth 1 entry))))
+                 (end (and entry (match-end (nth 1 entry))))
+                 (from (match-beginning 0)))
+            (when (and (or (eq t (nth 2 entry))
+                           (eval (nth 2 entry)))
+                       (not (tla-button-in-region-p
+                             start end 'tla-callback)))
+              ;; That optional form returned non-nil, so we add the
+              ;; button.
+              (tla-add-button
+               start end 'tla-button-push
+               (car (push (set-marker (make-marker) from)
+                          tla-button-marker-list))))))))))
 
 (defun tla-button-push (marker)
   ;; Push button starting at MARKER.
   (save-excursion
     (goto-char marker)
     (let* ((entry (tla-button-entry))
-	   (inhibit-point-motion-hooks t)
-	   (fun (nth 3 entry))
-	   (args (mapcar (lambda (group)
-			   (let ((string (match-string group)))
-			     (set-text-properties
-			      0 (length string) nil string)
-			     string))
-			 (nthcdr 4 entry))))
+           (inhibit-point-motion-hooks t)
+           (fun (nth 3 entry))
+           (args (mapcar (lambda (group)
+                           (let ((string (match-string group)))
+                             (set-text-properties
+                              0 (length string) nil string)
+                             string))
+                         (nthcdr 4 entry))))
       (cond
        ((fboundp fun)
-	(apply fun args))
+        (apply fun args))
        ((and (boundp fun)
-	     (fboundp (symbol-value fun)))
-	(apply (symbol-value fun) args))
+             (fboundp (symbol-value fun)))
+        (apply (symbol-value fun) args))
        (t
-	(message "You must define `%S' to use this button"
+        (message "You must define `%S' to use this button"
                  (cons fun args)))))))
 
 (defun tla-add-button (from to fun &optional data)
@@ -6877,11 +6881,11 @@ specified by `tla-button-alist'."
   (dvc-add-text-properties
    from to
    (nconc (and dvc-mouse-face
-	       (list dvc-mouse-face-prop dvc-mouse-face))
-	  (list 'tla-callback fun)
-	  (and data (list 'tla-data data))))
+               (list dvc-mouse-face-prop dvc-mouse-face))
+          (list 'tla-callback fun)
+          (and data (list 'tla-data data))))
   (widget-convert-button 'link from to :action 'tla-widget-press-button
-			 :button-keymap nil))
+                         :button-keymap nil))
 
 (defun tla-widget-press-button (elems el)
   (goto-char (widget-get elems :from))
@@ -6894,23 +6898,23 @@ call it with the value of the `tla-data' text property."
   (interactive "e")
   (unless event (error "Event is nil"))
   (let ((buffer
-	 (or (let ((window (dvc-funcall-if-exists
-			    posn-window (dvc-funcall-if-exists
-					 event-start event))))
+         (or (let ((window (dvc-funcall-if-exists
+                            posn-window (dvc-funcall-if-exists
+                                         event-start event))))
                ;; XEmacs
-	       (and window (window-buffer window)))
+               (and window (window-buffer window)))
              ;; GNU Emacs
-	     (dvc-funcall-if-exists event-buffer event))))
+             (dvc-funcall-if-exists event-buffer event))))
     (pop-to-buffer buffer)
     (set-buffer buffer)
     (let* ((pos (or (dvc-funcall-if-exists posn-point (event-start event))
-		    (dvc-funcall-if-exists event-point event)
-		    (error "No way to determine point")))
-	   (data (get-text-property pos 'tla-data))
-	   (fun (get-text-property pos 'tla-callback)))
+                    (dvc-funcall-if-exists event-point event)
+                    (error "No way to determine point")))
+           (data (get-text-property pos 'tla-data))
+           (fun (get-text-property pos 'tla-callback)))
       (when pos (goto-char pos))
       (when fun
-	(funcall fun data)))))
+        (funcall fun data)))))
 
 (defun tla-press-button ()
   "Check text at point for a callback function.
@@ -6918,7 +6922,7 @@ If the text at point has a `tla-callback' property,
 call it with the value of the `tla-data' text property."
   (interactive)
   (let ((data (get-text-property (point) 'tla-data))
-	(fun (get-text-property (point) 'tla-callback)))
+        (fun (get-text-property (point) 'tla-callback)))
     (when fun
       (funcall fun data))))
 
@@ -7029,10 +7033,10 @@ Call the function ASYNC-HANDLER in the created buffer, with arguments
          :finished handler
          ;; revlog failed: cat-archive-log is needed
          :error (dvc-capturing-lambda (output error status arguments)
-                     (funcall (capture run-mode)
-                              (list "cat-archive-log"
-                                    (capture rev-str))
-                              :finished (capture handler))))))))
+                  (funcall (capture run-mode)
+                           (list "cat-archive-log"
+                                 (capture rev-str))
+                           :finished (capture handler))))))))
 
 (defun tla-log-get-changeset ()
   "Get and show the changeset whose log is being displayed."
@@ -7165,7 +7169,7 @@ Commands:
     (let ((default-directory dir))
       (tla-commit
        (dvc-capturing-lambda (output error status args)
-          (kill-buffer (capture log-buffer)))
+         (kill-buffer (capture log-buffer)))
        version-flag))))
 
 (defun tla-archive-maintainer-name (version)
@@ -7426,7 +7430,7 @@ When called with a prefix argument ARG, delete all current keywords."
           current-keywords
           tla-log-edit-keywords-cookie
           (ewoc-create (dvc-ewoc-create-api-select
-			#'tla-log-edit-keywords-printer)
+                        #'tla-log-edit-keywords-printer)
                        "List of keywords from `tla-log-edit-keywords':\n"
                        (format "type C-c C-c to insert the marked keywords to the buffer\n%s"
                                (buffer-name log-buffer))))
@@ -7625,10 +7629,10 @@ the new location."
       (error "No archive under the point"))))
 
 (dvc-make-move-fn ewoc-next tla-archive-next
-                  tla-archives-list-cookie)
+  tla-archives-list-cookie)
 
 (dvc-make-move-fn ewoc-prev tla-archive-previous
-                  tla-archives-list-cookie)
+  tla-archives-list-cookie)
 
 (defun tla-save-archive-to-kill-ring ()
   "Save the name of the current archive to the kill ring."
@@ -8140,8 +8144,8 @@ revision list."
 The revision is named by ARCHIVE/CATEGORY--BRANCH--VERSION--REVISION."
   (interactive
    (let* ((elem (ewoc-data (ewoc-locate dvc-revlist-cookie)))
-         (full (tla--revision-revision
-                (dvc-revlist-entry-patch-struct (nth 1 elem))))
+          (full (tla--revision-revision
+                 (dvc-revlist-entry-patch-struct (nth 1 elem))))
           (revision (tla--name-revision full))
           (archive (tla--name-archive full))
           (category (tla--name-category full))
@@ -8254,7 +8258,7 @@ if these values should now be displayed, run the refresh function."
     (let ((buffer (dvc-get-buffer
                    tla-arch-branch 'changeset revision)))
       (dvc-trace "buffer=%S revision=%S tla-arch-branch=%S" buffer
-                  revision tla-arch-branch)
+                 revision tla-arch-branch)
       (unless (dvc-scroll-maybe buffer up-or-down)
         (tla-revision-changeset)))))
 
@@ -8282,7 +8286,7 @@ If used with a prefix arg ARG, don't include the diffs from the output."
     (tla-get-changeset revision t nil arg)
 
     (setq dvc-partner-buffer
-         (dvc-get-buffer-create tla-arch-branch
+          (dvc-get-buffer-create tla-arch-branch
                                  'changeset revision))
     (dvc-trace "before with. dvc-partner-buffer=%S" dvc-partner-buffer)
     (with-current-buffer dvc-partner-buffer
@@ -8292,7 +8296,7 @@ If used with a prefix arg ARG, don't include the diffs from the output."
                 window-conf ;; we use window-conf only to get rid of warnings
                 )
               (dvc-do-in-gnu-emacs (compare-window-configurations
-                                     (current-window-configuration) window-conf)))
+                                    (current-window-configuration) window-conf)))
       (dvc-scroll-maybe dvc-partner-buffer 'scroll-up))))
 
 (defun tla-revision-store-delta (across-versions)
@@ -8425,7 +8429,7 @@ With prefix argument ARG, merge all missing revisions from this version."
                (eq (car (cddr (ewoc-data current))) 'bookmark))
       (setq local-tree (cadddr (ewoc-data current))))
     (let ((to-tree (dvc-read-directory-name "Merge to tree: "
-                                             local-tree local-tree t)))
+                                            local-tree local-tree t)))
       (let* ((elem (ewoc-data (ewoc-locate
                                dvc-revlist-cookie)))
              (full (tla--revision-revision
@@ -8540,7 +8544,7 @@ to set ARG `reversely'. If no prefix argument is given, ARG is set to `nil'."
                                             (if (eq (length marked) 1) "" "s"))
                                   " a revision under the point"))))
                     local-tree
-                            )))
+                    )))
       (if marked
           (let ((revisions (mapcar 'tla--revision-revision marked)))
             (tla-replay (sort (mapcar (lambda (revision)
@@ -8584,7 +8588,7 @@ to set ARG `reversely'. If no prefix argument is given, ARG is set to `nil'."
 (defun tla--revision-tag-internal (from-fq)
   "Tag from FROM-FQ to some destination."
   (let* ((to (tla-name-read "Tag to: "
-                             'prompt 'prompt 'prompt 'prompt))
+                            'prompt 'prompt 'prompt 'prompt))
          (to-fq (tla--name-construct to)))
     (tla--version-tag-internal from-fq to-fq)))
 
@@ -8598,7 +8602,7 @@ to set ARG `reversely'. If no prefix argument is given, ARG is set to `nil'."
          (cur-buf (current-buffer))
          (log-buf (tla--revlog-any full))
          (display-buf (dvc-get-buffer-create tla-arch-branch 'revlog
-                                              (tla--name-construct full))))
+                                             (tla--name-construct full))))
     (dvc-switch-to-buffer display-buf)
     (let ((inhibit-read-only t))
       (erase-buffer)
@@ -8642,10 +8646,10 @@ to set ARG `reversely'. If no prefix argument is given, ARG is set to `nil'."
       (setq local-tree (cadddr (ewoc-data current))))
     (let ((buffer (current-buffer)))
       (tla-update (dvc-read-directory-name "Update tree: "
-                                            local-tree)
+                                           local-tree)
                   (dvc-capturing-lambda ()
-                     (pop-to-buffer (capture buffer))
-                     (dvc-generic-refresh))))))
+                    (pop-to-buffer (capture buffer))
+                    (dvc-generic-refresh))))))
 
 (defun tla-revision-send-comments (revision &optional email)
   "Sends comments to the author of REVISION.
@@ -9088,7 +9092,7 @@ IN-COMMENT-P indicates whether we are currently inside a comment."
     ;; In current GNU Emacs's autoconf-mode implementation,
     ;; next line is never executed.
     (error "Comment prefix \"dnl\" is not suitable for gnuarch"))
-  (let ((header "m4_if(dnl	Do not change this comment\n")
+  (let ((header "m4_if(dnl      Do not change this comment\n")
         (footer "\n)dnl\n"))
     (insert (concat header "    " tla--arch-tag-string uuid footer))))
 
@@ -9142,7 +9146,7 @@ Commands:
           (lambda () (interactive) (tla-tree-lint default-directory))))
   (set (make-local-variable 'tla--tree-lint-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
-		     #'tla--tree-lint-printer)))
+                     #'tla--tree-lint-printer)))
   (set (make-local-variable 'dvc-get-file-info-at-point-function)
        'tla-tree-lint-get-file-at-point)
   (set (make-local-variable 'dvc-buffer-marked-file-list)
@@ -9202,33 +9206,33 @@ been eliminated."
      :related-buffer buffer
      :finished
      (dvc-capturing-lambda (output error status arguments)
-        (if (> (buffer-size output) 0)
-            (progn
-              (save-excursion
-                (tla--tree-lint-parse-buffer output (capture buffer)))
-              (with-current-buffer (capture buffer)
-                (tla--tree-lint-cursor-goto
-                 (ewoc-nth tla--tree-lint-cookie 0))))
-          (message "No tree-lint warnings for %s." (capture default-directory))
-          (with-current-buffer (capture buffer)
-            (let ((inhibit-read-only t))
-              (erase-buffer)
-              (ewoc-enter-last
-               tla--tree-lint-cookie
-               (list 'message (format "No tree-lint warnings for %s."
-                                      (capture default-directory))))))
-          (set-window-configuration
-           tla-pre-tree-lint-window-configuration)
-          (when tla--tree-lint-nowarning-fn
-            (funcall tla--tree-lint-nowarning-fn)
-            (setq tla--tree-lint-nowarning-fn nil))))
+       (if (> (buffer-size output) 0)
+           (progn
+             (save-excursion
+               (tla--tree-lint-parse-buffer output (capture buffer)))
+             (with-current-buffer (capture buffer)
+               (tla--tree-lint-cursor-goto
+                (ewoc-nth tla--tree-lint-cookie 0))))
+         (message "No tree-lint warnings for %s." (capture default-directory))
+         (with-current-buffer (capture buffer)
+           (let ((inhibit-read-only t))
+             (erase-buffer)
+             (ewoc-enter-last
+              tla--tree-lint-cookie
+              (list 'message (format "No tree-lint warnings for %s."
+                                     (capture default-directory))))))
+         (set-window-configuration
+          tla-pre-tree-lint-window-configuration)
+         (when tla--tree-lint-nowarning-fn
+           (funcall tla--tree-lint-nowarning-fn)
+           (setq tla--tree-lint-nowarning-fn nil))))
      :error
      (dvc-capturing-lambda (output error status arguments)
        (if (equal status 2)
            (with-current-buffer (capture buffer)
              (set 'tla--tree-lint-cookie
-                   (ewoc-create (dvc-ewoc-create-api-select
-				 #'tla--tree-lint-printer)))
+                  (ewoc-create (dvc-ewoc-create-api-select
+                                #'tla--tree-lint-printer)))
              (let ((inhibit-read-only t))
                (erase-buffer))
              (ewoc-enter-last
@@ -9275,11 +9279,11 @@ Show in in the tree-lint-mode buffer OUTPUT-BUFFER."
     (let ((inhibit-read-only t))
       (erase-buffer)
       (insert (dvc-face-add (format "Tree lint warnings in %s\n"
-                                     default-directory)
-                             'dvc-messages)))
+                                    default-directory)
+                            'dvc-messages)))
     (setq tla--tree-lint-cookie
           (ewoc-create (dvc-ewoc-create-api-select
-			#'tla--tree-lint-printer))))
+                        #'tla--tree-lint-printer))))
   (with-current-buffer buffer
     (goto-char (point-min))
     (let ((cookie (with-current-buffer output-buffer
@@ -9339,33 +9343,33 @@ Displays ELEM."
              (setq tla--tree-lint-printer-first-duplicate t))
     (missing-file (insert
                    (dvc-face-add (cadr elem) 'dvc-to-add
-                                  'tla-tree-lint-file-map
-                                  tla-tree-lint-file-menu)))
+                                 'tla-tree-lint-file-map
+                                 tla-tree-lint-file-menu)))
     (id-without-file (insert
                       (dvc-face-add (cadr elem) 'dvc-to-add
-                                     'tla-tree-lint-file-map
-                                     tla-tree-lint-file-menu)))
-    (unrecognized (insert
-                   (dvc-face-add (cadr elem)
-                                  'dvc-unrecognized
-                                  'tla-tree-lint-file-map
-                                  tla-tree-lint-file-menu)))
-    (broken-link (insert (dvc-face-add (cadr elem)
-                                        'dvc-broken-link
-                                        'tla-tree-lint-file-map
-                                        tla-tree-lint-file-menu)))
-    (unknown (insert (dvc-face-add (cadr elem)
-                                    'dvc-unrecognized
                                     'tla-tree-lint-file-map
                                     tla-tree-lint-file-menu)))
+    (unrecognized (insert
+                   (dvc-face-add (cadr elem)
+                                 'dvc-unrecognized
+                                 'tla-tree-lint-file-map
+                                 tla-tree-lint-file-menu)))
+    (broken-link (insert (dvc-face-add (cadr elem)
+                                       'dvc-broken-link
+                                       'tla-tree-lint-file-map
+                                       tla-tree-lint-file-menu)))
+    (unknown (insert (dvc-face-add (cadr elem)
+                                   'dvc-unrecognized
+                                   'tla-tree-lint-file-map
+                                   tla-tree-lint-file-menu)))
     (duplicate-id
      (insert (dvc-face-add (cadr elem)
-                            'dvc-duplicate
-                            'tla-tree-lint-file-map
-                            tla-tree-lint-file-menu))
+                           'dvc-duplicate
+                           'tla-tree-lint-file-map
+                           tla-tree-lint-file-menu))
      (when (nth 3 elem) (insert "\t"
                                 (dvc-face-add (car (cddr elem))
-                                               'dvc-id)))
+                                              'dvc-id)))
      (when (nth 4 elem) (insert "\n")))
     (t (error "Unimplemented type of tree-lint error")))
   )

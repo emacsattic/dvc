@@ -103,7 +103,7 @@
                      ;; make the generated code harder to understand
                      ;; when debugging expansions.
                      (if (or
-                          (not (xmtn-match--contains-match-variable-p 
+                          (not (xmtn-match--contains-match-variable-p
                                 subsubpattern var-name-prefix-char))
                           (etypecase subsubpattern
                             (cons nil)
@@ -197,6 +197,7 @@ Variables may only occur in conses and arrays except strings and
 bool-vectors.
 
 \(fn EXPR \(PATTERN BODY...\)...\)"
+  (declare (indent 1) (debug (form &rest (sexp body))))
   ;; It would be interesting (very interesting, in fact, but also
   ;; fairly complex) to generate an expansion here that walks the
   ;; object only /once/ at run-time, not once for every clause as the
