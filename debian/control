@@ -8,7 +8,7 @@ Homepage: http://download.gna.org/dvc/
 
 Package: dvc
 Architecture: all
-Depends: tla | bazaar | bzr | git | mercurial | darcs | monotone, emacs21 | xemacs21 | emacs-snapshot
+Depends: tla | bazaar | bzr | git | mercurial | darcs | monotone, emacs22 | emacs21 | xemacs21 | emacs-snapshot
 Conflicts: xtla
 Replaces: xtla
 Description: Emacs front-end to distributed version control systems
