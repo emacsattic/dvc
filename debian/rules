@@ -4,7 +4,7 @@
 export DH_VERBOSE=0
 
 PREFIX       := /usr
-LISPDIR      := /usr/share/emacs/site-lisp
+LISPDIR      := /usr/share/emacs/site-lisp/dvc
 
 include /usr/share/cdbs/1/rules/debhelper.mk
 
@@ -17,8 +17,8 @@ configure/dvc::
 	$(MAKE) info
 
 install/dvc::
-	install -m 744 config.status $(DEB_DESTDIR)$(LISPDIR)/dvc/
-	install -m 644 Makefile* $(DEB_DESTDIR)$(LISPDIR)/dvc/
-	install -m 644 lisp/Makefile* $(DEB_DESTDIR)$(LISPDIR)/dvc/lisp/
-	install -m 644 lisp/Makefile* lisp/*.el lisp/dvc-site.el.in $(DEB_DESTDIR)$(LISPDIR)/dvc/lisp/
-	install -m 644 lisp/contrib/*.el $(DEB_DESTDIR)$(LISPDIR)/dvc/lisp/contrib/
+	install -m 744 config.status $(DEB_DESTDIR)$(LISPDIR)
+	install -m 644 Makefile* $(DEB_DESTDIR)$(LISPDIR)
+	install -m 644 lisp/Makefile* $(DEB_DESTDIR)$(LISPDIR)/lisp/
+	install -m 644 lisp/Makefile* lisp/*.el lisp/dvc-site.el.in $(DEB_DESTDIR)$(LISPDIR)/lisp/
+	install -m 644 lisp/contrib/*.el $(DEB_DESTDIR)$(LISPDIR)/lisp/contrib/
