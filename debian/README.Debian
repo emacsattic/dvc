@@ -1,8 +1,6 @@
-This package is based on the upstream packaging by
-Matthieu Moy <Matthieu.Moy@imag.fr>.  Its purpose is to allow inclusion of the
-package into Debian through an official Debian maintainer.
+This package is a rework of Milan Zamazal's packaging based on
+Matthieu Moy <Matthieu.Moy@imag.fr>.
 
-The original upstream tarball was repackaged.  The debian/files and debian/docs
-files were removed.
+This package use cdbs.
 
- -- Milan Zamazal <pdm@debian.org>, Wed, 15 Jun 2005 10:51:53 +0200
+ -- Daniel Dehennin <dad@hati.baby-gnu.org>, Fri, 22 Aug 2008 07:04:29 +0200
