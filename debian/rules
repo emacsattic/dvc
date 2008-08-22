@@ -14,7 +14,6 @@ clean::
 configure/dvc::
 	autoconf -f -i
 	./configure --prefix=$(PREFIX) --with-lispdir=$(LISPDIR)
-	$(MAKE) prefix=$(DEB_DESTDIR) generated-files
 	$(MAKE) info
 
 install/dvc::
