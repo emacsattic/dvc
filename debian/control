@@ -2,7 +2,7 @@ Source: dvc
 Section: devel
 Priority: optional
 Maintainer: Daniel Dehennin <daniel.dehennin@baby-gnu.org>
-Build-Depends-Indep: cdbs (>= 0.4.50), autoconf, emacsen, texinfo
+Build-Depends-Indep: cdbs (>= 0.4.50), debhelper, autoconf, emacsen, texinfo
 Standards-Version: 3.8.0.1
 Homepage: http://download.gna.org/dvc/
 
