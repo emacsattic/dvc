@@ -1,6 +1,6 @@
 ;;; dvc-build.el --- compile-time helper.
 
-;; Copyright (C) 2004-2007 by all contributors
+;; Copyright (C) 2004-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;;      Thien-Thi Nguyen <ttn@gnuvola.org>
