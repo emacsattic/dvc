@@ -5,27 +5,32 @@ Milan Zamazal <pdm@debian.org> and Daniel Dehennin
 
 It was downloaded from http://download.gna.org/dvc.
 
-Upstream authors:
 
-Alan Shutko
-Andrea Russo
-Andre Kuehne
-Christian Ohler
-Daniel Dehennin
-Mark Triggs
+Copyright (C) 2004-2007 Robert Widhopf-Fenk <hack@robf.de> and the DVC team
+
+Contributors:
+
+Alan Shutko <ats@acm.org>
+Andrea Russo <rastandy@inventati.org>
+Andre Kuehne <andre.kuehne@gmx.net>
+Bojan Nikolic <bojan@bnikolic.co.uk>
+Chris Gray <christopher.grayb@mail.mcgill.ca>
+Christian Ohler <ohler+mtn@fastmail.net>
+Daniel Dehennin <daniel.dehennin@baby-gnu.org>
+Mark Triggs <mark@dishevelled.net>
 Martin Brett Pool
-Masatake YAMATO
-Matthieu MOY
-Michael Olson
-Milan Zamazal
-Miles Bader
-Robert Widhopf-Fenk
-Sam Steingold
-Sascha Wilde
-Stefan Reichoer
-Stephen Leake
-Steve Youngs
-Takuzo O'hara
+Masatake YAMATO <jet@gyve.org>
+Matthieu MOY <matthieu.moy@imag.fr>
+Michael Olson <mwolson@gnu.org>
+Milan Zamazal <pdm@zamazal.org>
+Miles Bader <miles@gnu.org>
+Robert Widhopf-Fenk <hack@robf.de>
+Sam Steingold <sds@gnu.org>
+Sascha Wilde <wilde@sha-bang.de>
+Stefan Reichoer <stefan@xsteve.at>
+Stephen Leake <stephen_leake@stephe-leake.org>
+Steve Youngs <steve@sxemacs.org>
+Takuzo O'hara <takuzo.ohara@gmail.com>
 Vincent LADEUIL
 
 License:
