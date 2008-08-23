@@ -79,7 +79,7 @@ maintainer-clean:
 dvc-version.texinfo: $(top_srcdir)/configure
 	@echo Creating $@
 	@( echo @set VERSION $(PACKAGE_VERSION) ; \
-	   date +'@set UPDATED %F' -r $< ) > $@
+	   date '+@set UPDATED %F' -r $< ) > $@
 
 .PHONY: all dvi pdf html info \
 	install uninstall \
