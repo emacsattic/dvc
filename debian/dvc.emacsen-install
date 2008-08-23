@@ -68,17 +68,10 @@ case "$FLAVOR" in
 	    done
 	fi
 
-	rm -f dvc-load.el *autoloads.el custom-load.el *.elc contrib/*.elc|| true;
+	rm -f dvc-version.el *autoloads.el custom-load.el *.elc contrib/*.elc|| true;
 
 	mv -f $LOG $ELCDIR/install.log;
 	chmod 644 $ELCDIR/install.log;
-
-        # Install-info-altdir does not actually exist.
-        # Maybe somebody will write it.
-	if test -x /usr/sbin/install-info-altdir; then
-	    echo install/${PACKAGE}: install Info links for ${FLAVOR}
-	    install-info-altdir --quiet --section "" "" --dirname=${FLAVOR} /usr/info/${PACKAGE}.info.gz
-	fi
 
 	echo "done."
 	;;

@@ -1,18 +1,32 @@
 This package was debianized by Matthieu Moy <Matthieu.Moy@imag.fr> on
-Sun, 17 Oct 2004 17:15:25 +0200.  Small additional changes were made by
-Milan Zamazal <pdm@debian.org>.
+Sun, 17 Oct 2004 17:15:25 +0200. Small additional changes were made by
+Milan Zamazal <pdm@debian.org> and Daniel Dehennin
+<daniel.dehennin@baby-gnu.org> completely repackage it.
 
-It was downloaded from http://download.gna.org/xtla-el/ .
+It was downloaded from http://download.gna.org/dvc.
 
 Upstream authors:
 
-Stefan REICHOER
-Matthieu MOY
+Alan Shutko
+Andrea Russo
+Andre Kuehne
+Christian Ohler
+Daniel Dehennin
+Mark Triggs
+Martin Brett Pool
 Masatake YAMATO
-Milan ZAMAZAL
-Martin POOL
-Robert WIDHOPF-FENK
-Mark TRIGGS.
+Matthieu MOY
+Michael Olson
+Milan Zamazal
+Miles Bader
+Robert Widhopf-Fenk
+Sam Steingold
+Sascha Wilde
+Stefan Reichoer
+Stephen Leake
+Steve Youngs
+Takuzo O'hara
+Vincent LADEUIL
 
 License:
 
@@ -32,4 +46,3 @@ License:
 
 On Debian systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses/GPL'.
-

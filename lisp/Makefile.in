@@ -75,7 +75,12 @@ TAGS: $(SRCS)
          fi
 
 ##############################################################################
-dvc-version.el: $(top_srcdir)/configure
+autoloads:
+	$(ebatch) dvc-build-autoloads $(srcdir)
+
+
+##############################################################################
+dvc-version.el: $(top_srcdir)/config.status
 	@echo Creating $@
 	@( echo ';;; $@ (generated file -- do not edit!)' ; \
 	   echo '(defconst dvc-version "$(PACKAGE_VERSION)"' ; \
@@ -84,7 +89,7 @@ dvc-version.el: $(top_srcdir)/configure
 	   echo "(provide 'dvc-version)" ) \
 	 > $@
 
-dvc-site.el: ../config.status $(srcdir)/dvc-site.el.in
+dvc-site.el: $(top_srcdir)/config.status $(srcdir)/dvc-site.el.in
 	(cd .. ; ./config.status lisp/$@)
 
 .PHONY: all all-verbose install \
