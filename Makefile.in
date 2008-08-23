@@ -4,7 +4,8 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 
 # location of required programms
-TAR = @TAR@
+AUTOCONF = autoconf
+TAR = tar
 RM   = @RM@
 prefix = @prefix@
 datarootdir= @datarootdir@
@@ -26,7 +27,7 @@ dvc-load.el: config.status $(srcdir)/dvc-load.el.in
 	./config.status $@
 
 $(srcdir)/configure: $(srcdir)/configure.ac
-	cd $(srcdir) ; autoconf
+	cd $(srcdir) ; $(AUTOCONF)
 	./config.status --recheck
 
 config.status: $(srcdir)/configure
@@ -54,10 +55,10 @@ uninstall: uninstall-recursive
 	rmdir $(lispdir) || true
 
 clean: clean-recursive
-	$(RM) -f dvc-load.el dvc-load-install.el
+	rm -f dvc-load.el dvc-load-install.el
 
 distclean: clean distclean-recursive
-	$(RM) -rf configure config.status config.log autom4te.cache/ Makefile
+	rm -rf configure config.status config.log autom4te.cache/ Makefile
 
 maintainer-clean: maintainer-clean-recursive
 
@@ -77,7 +78,7 @@ extradist	=
 distfiles = $(lispfiles) $(docfiles) $(miscfiles) $(extradist)
 
 dist:
-	$(RM) -rf $(distdir) $(distdir).tar.gz
+	rm -rf $(distdir) $(distdir).tar.gz
 	mkdir $(distdir)
 	build=`pwd` ; dd=$$build/$(distdir) ; cd $(srcdir) ;	\
 	for f in $(distfiles) ; do d='.' ;			\
@@ -86,7 +87,7 @@ dist:
 	  test -d $$dd/$$e || $(MKDIR_P) $$dd/$$e ;		\
 	  cp -p $$d/$$e/$$f $$dd/$$e/$$f ; done
 	$(TAR) cf - $(distdir) | gzip --best > $(distdir).tar.gz
-	$(RM) -rf $(distdir)
+	rm -rf $(distdir)
 
 tarball:
 	$(MAKE) dist				\

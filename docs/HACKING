@@ -232,6 +232,21 @@ Release & distribution process
 The prefered way to get a development version is to use either
 Bazaar or Git to clone the latest repo.
 
+Programs for maintainers:
+ (required) autoconf, tar, gzip, makeinfo
+ (optional) texi2dvi, etags
+
+With the exception of gzip (which is invoked simply as "gzip"),
+the invocation of each of these programs is influenced by a
+makefile variable of the same name, but all upcased.  For example,
+you can choose a different tar for "make dist" using the command:
+  make dist TAR=/path/to/my/tar
+The default values for these variables is simply the program name.
+
+Historical note: We used to AC_PATH_PROG them in configure.ac, but
+that did not benefit the end user (./configure && make all install),
+so we stopped mid-2008.
+
 * Official releases
 -------------------
 
