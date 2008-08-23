@@ -37,7 +37,16 @@
 (defvar srcdir (or (getenv "srcdir")
                    (error "Env var `srcdir' not set")))
 (defvar otherdirs (or (getenv "otherdirs")
+                      ;; We used to `error' as for `srcdir' here, but on some
+                      ;; systems, if the value is "", `getenv' returns nil, so
+                      ;; we can't be too strict.  Reported by Stephen Leake.
                       ""))
+
+;; Take control of exit(3).
+(fset 'bye-bye (symbol-function 'kill-emacs))
+(defun kill-emacs (&optional arg)
+  (when (and arg (not (equal 0 arg)))
+    (bye-bye)))
 
 ;; Standard
 
@@ -76,13 +85,12 @@
 
 ;; Platform-specific filenames.
 (defvar --autoloads-filename (if (featurep 'xemacs)
-                                  "auto-autoloads.el"
-                                "dvc-autoloads.el"))
+                                 "auto-autoloads.el"
+                               "dvc-autoloads.el"))
 
-(defvar --custom-autoloads-filename (expand-file-name
-                                     (if (featurep 'xemacs)
-                                         "custom-load.el"
-                                       "cus-load.el")))
+(defvar --custom-autoloads-filename (if (featurep 'xemacs)
+                                        "custom-load.el"
+                                      "cus-load.el"))
 
 ;; List of files to compile.
 (defvar --to-compile
@@ -95,7 +103,7 @@
                                   "dvc-site.el")))
     ;; contrib libraries
     (when (string= (file-name-directory (locate-library "ewoc"))
-                   (expand-file-name (expand-file-name (srcdir/ "contrib"))))
+                   (srcdir/ "contrib/"))
       '("contrib/ewoc.el"))
     ;; $(srcdir)/*.el
     (directory-files srcdir nil "^[^=].*\\.el$"))
@@ -272,10 +280,112 @@ fixed in Emacs after 21.3."
   (if (eq (car-safe (ad-get-arg 0)) 'define-dvc-unified-command)
       (ad-set-arg 0 (macroexpand (ad-get-arg 0)))))
 
-(defun dvc-build-compile ()
+;; Teach `make-autoload' how to handle `define-derived-mode'.
+(unless (make-autoload '(define-derived-mode child parent name
+                          "docstring" body)
+                       "file")
+  (defadvice make-autoload (around handle-define-derived-mode activate)
+    "Handle `define-derived-mode'."
+    (if (eq (car-safe (ad-get-arg 0)) 'define-derived-mode)
+        (setq ad-return-value
+              (list 'autoload
+                    (list 'quote (nth 1 (ad-get-arg 0)))
+                    (ad-get-arg 1)
+                    (nth 4 (ad-get-arg 0))
+                    t nil))
+      ad-do-it))
+  (put 'define-derived-mode 'doc-string-elt 3))
+
+;; Update custom-autoloads and autoloads (merging them for GNU Emacs),
+;; and compile everything that needs compiling.
+(defun dvc-build-all ()
   (unless command-line-args-left
     (setq byte-compile-warnings --warnings))
-  (let ((changed (missing-or-old-elc)))
+  (setq command-line-args-left nil)
+
+  (let ((fake-c-l-a-l (list srcdir))
+        (changed (missing-or-old-elc)))
+
+    ;; Make `--custom-autoloads-filename'.
+    (when changed
+      (load "cus-dep")
+      (let ((cusload-base-file --custom-autoloads-filename)
+            (command-line-args-left fake-c-l-a-l))
+        (if (fboundp 'custom-make-dependencies)
+            (custom-make-dependencies)
+          (Custom-make-dependencies))
+        (when (featurep 'xemacs)
+          (message "Compiling %s..." --custom-autoloads-filename)
+          (byte-compile-file --custom-autoloads-filename))))
+
+    ;; Make `--autoloads-filename'.
+    (unless (and (file-exists-p --autoloads-filename)
+                 (null changed))
+      (let ((generated-autoload-file (expand-file-name --autoloads-filename))
+            (command-line-args-left fake-c-l-a-l)
+            (make-backup-files nil)
+            (autoload-package-name "dvc"))
+        (if (featurep 'xemacs)
+            (zonk-file generated-autoload-file)
+          (with-temp-file generated-autoload-file
+            (insert ?\014)))
+        (batch-update-autoloads)))
+
+    ;; Insert some preload forms into the autoload file.
+    (with-temp-file --autoloads-filename
+      (insert-file-contents --autoloads-filename)
+      (let ((blurb ";;; DVC PRELOAD\n"))
+        (unless (save-excursion
+                  ;; The preload forms are not guaranteed to be at beginning
+                  ;; of buffer; they might be prefixed by cus-load munging.
+                  ;; So search for them.  (Previously, we used `looking-at'.)
+                  (search-forward blurb nil t))
+          (insert blurb)
+          (dolist (form '((require 'dvc-core)
+                          (eval-when-compile
+                            (require 'dvc-unified)
+                            (require 'dvc-utils))))
+            (pp form (current-buffer))))))
+
+    ;; Merge custom load and autoloads for GNU Emacs and compile the result.
+    (let ((tail-blurb (concat "\n\n"
+                              "(provide 'dvc-autoloads)\n\n"
+                              ";;; Local Variables:\n"
+                              ";;; version-control: never\n"
+                              ";;; no-update-autoloads: t\n"
+                              ";;; End:\n"
+                              ";;; dvc-autoloads.el ends here\n")))
+      (when (or (not (file-exists-p --autoloads-filename))
+                changed)
+        (unless (featurep 'xemacs)
+          (message "Merging %s into %s ..."
+                   --custom-autoloads-filename
+                   --autoloads-filename)
+          (with-temp-file --autoloads-filename
+            (insert-file-contents --custom-autoloads-filename)
+            (delete-file --custom-autoloads-filename)
+            (search-forward ";;; Code:\n")
+            (delete-region (point-min) (point))
+            (insert ";;; dvc-autoloads.el\n\n"
+                    ";;; Code:\n")
+            (goto-char (point-max))
+            ;; ??? What do we have against this innocent var? --ttn
+            (when (search-backward "custom-versions-load-alist" nil t)
+              (forward-line -1))
+            (delete-region (point) (point-max))
+            (insert-file-contents --autoloads-filename)
+            (goto-char (point-max))
+            (when (search-backward "\n(provide " nil t)
+              (delete-region (1- (point)) (point-max)))
+            (insert tail-blurb)))
+        (message "Compiling %s..." --autoloads-filename)
+        (byte-compile-file --autoloads-filename)
+        (when (featurep 'xemacs)
+          (message (concat "Creating dummy dvc-autoloads.el..."))
+          (with-temp-file "dvc-autoloads.el"
+            (insert tail-blurb)))))
+
+    ;; Compile `--to-compile' files.
     (when changed
       (dolist (file --to-compile)
         (load (srcdir/ file) nil nil t))
@@ -292,115 +402,9 @@ fixed in Emacs after 21.3."
                           todo))
           (pushnew (pop changed) todo :test 'string=))
         (mapc 'zonk-file (mapcar 'byte-compile-dest-file todo))
-        (mapc 'byte-compile-file (mapcar 'srcdir/ todo))))))
+        (mapc 'byte-compile-file (mapcar 'srcdir/ todo)))))
 
-(defun dvc-build-autoloads ()
-  (let ((orig-k-e (symbol-function 'kill-emacs))
-        (orig-c-l-a-l command-line-args-left))
-    (fset 'kill-emacs 'ignore)
-
-    ;; Make `--custom-autoloads-filename'.
-    (if (not (missing-or-old-elc))
-        ;; Consume remaining command line args to avoid errors
-        (setq command-line-args-left nil)
-      (load "cus-dep")
-      (let ((cusload-base-file --custom-autoloads-filename))
-        (if (fboundp 'custom-make-dependencies)
-            (custom-make-dependencies)
-          (Custom-make-dependencies))
-        (when (featurep 'xemacs)
-          (message "Compiling %s..." --custom-autoloads-filename)
-          (byte-compile-file --custom-autoloads-filename))))
-    (setq command-line-args-left orig-c-l-a-l)
-
-    ;; Make `--autoloads-filename'.
-    (if (and (file-exists-p --autoloads-filename)
-             (null (missing-or-old-elc)))
-        ;; Consume remaining command line args to avoid errors
-        (setq command-line-args-left nil)
-      (require 'autoload)
-      (unless (make-autoload '(define-derived-mode child parent name
-                                "docstring" body)
-                             "file")
-        (defadvice make-autoload (around handle-define-derived-mode activate)
-          "Handle `define-derived-mode'."
-          (if (eq (car-safe (ad-get-arg 0)) 'define-derived-mode)
-              (setq ad-return-value
-                    (list 'autoload
-                          (list 'quote (nth 1 (ad-get-arg 0)))
-                          (ad-get-arg 1)
-                          (nth 4 (ad-get-arg 0))
-                          t nil))
-            ad-do-it))
-        (put 'define-derived-mode 'doc-string-elt 3))
-      (let ((generated-autoload-file (expand-file-name --autoloads-filename))
-            (make-backup-files nil)
-            (autoload-package-name "dvc"))
-        (if (featurep 'xemacs)
-            (zonk-file generated-autoload-file)
-          (with-temp-file generated-autoload-file
-            (insert ?\014)))
-        (batch-update-autoloads)))
-    (fset 'kill-emacs orig-k-e))
-  ;; Insert some preload forms into the autoload file.
-  (with-temp-file --autoloads-filename
-    (insert-file-contents --autoloads-filename)
-    (let ((blurb ";;; DVC PRELOAD\n"))
-      (unless (save-excursion
-                ;; The preload forms are not guaranteed to be at beginning
-                ;; of buffer; they might be prefixed by cus-load munging.
-                ;; So search for them.  (Previously, we used `looking-at'.)
-                (search-forward blurb nil t))
-        (insert blurb)
-        (dolist (form '((require 'dvc-core)
-                        (eval-when-compile
-                          (require 'dvc-unified)
-                          (require 'dvc-utils))))
-          (pp form (current-buffer))))))
-  ;; Merge custom load and autoloads for GNU Emacs and compile the result.
-  (let ((tail-blurb (concat "\n\n"
-                            "(provide 'dvc-autoloads)\n\n"
-                            ";;; Local Variables:\n"
-                            ";;; version-control: never\n"
-                            ";;; no-update-autoloads: t\n"
-                            ";;; End:\n"
-                            ";;; dvc-autoloads.el ends here\n")))
-    (when (or (not (file-exists-p --autoloads-filename))
-              (missing-or-old-elc))
-      (unless (featurep 'xemacs)
-        (message "Merging %s into %s (%s)..."
-                 (file-name-nondirectory --custom-autoloads-filename)
-                 (file-name-nondirectory --autoloads-filename)
-                 default-directory)
-        (with-temp-file --autoloads-filename
-          (insert-file-contents --custom-autoloads-filename)
-          (delete-file --custom-autoloads-filename)
-          (goto-char (point-min))
-          (search-forward ";;; Code:")
-          (forward-line)
-          (delete-region (point-min) (point))
-          (insert ";;; dvc-autoloads.el\n\n"
-                  ";;; Code:\n")
-          (goto-char (point-max))
-          (if (search-backward "custom-versions-load-alist" nil t)
-              (forward-line -1)
-            (forward-line -1)
-            (while (eq (char-after) ?\;)
-              (forward-line -1))
-            (forward-line))
-          (delete-region (point) (point-max))
-          (insert "\n")
-          (insert-file-contents --autoloads-filename)
-          (goto-char (point-max))
-          (when (search-backward "\n(provide " nil t)
-            (forward-line -1)
-            (delete-region (point) (point-max)))
-          (insert tail-blurb)))
-      (message "Compiling %s..." --autoloads-filename)
-      (byte-compile-file --autoloads-filename)
-      (when (featurep 'xemacs)
-        (message (concat "Creating dummy dvc-autoloads.el..."))
-        (with-temp-file "dvc-autoloads.el"
-          (insert tail-blurb))))))
+  ;; All done.  TODO: Summarize.
+  (bye-bye))
 
 ;;; dvc-build.el ends here
