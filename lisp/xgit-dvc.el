@@ -45,7 +45,12 @@
 (defalias 'xgit-dvc-delta 'xgit-delta)
 
 (defun xgit-dvc-log-edit-file-name-func ()
-  (concat (xgit-tree-root) xgit-log-edit-file-name))
+  (let ((git-dir (xgit-lookup-external-git-dir)))
+    (when git-dir
+      (setq git-dir (file-name-as-directory git-dir)))
+    (concat (or git-dir (xgit-tree-root))
+            (if git-dir "" ".git")
+            "/" xgit-log-edit-file-name)))
 
 (defun xgit-dvc-log-edit-done (&optional invert-normal)
   "Finish a commit for git, using git commit.
