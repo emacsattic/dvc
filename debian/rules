@@ -13,5 +13,5 @@ clean::
 
 configure/dvc::
 	autoconf -f -i
-	./configure --prefix=$(PREFIX) --with-lispdir=$(LISPDIR)
+	./configure PACKAGE_VERSION=$(DEB_VERSION) --prefix=$(PREFIX) --with-lispdir=$(LISPDIR)
 	$(MAKE) info
