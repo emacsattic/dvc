@@ -15,10 +15,3 @@ configure/dvc::
 	autoconf -f -i
 	./configure --prefix=$(PREFIX) --with-lispdir=$(LISPDIR)
 	$(MAKE) info
-
-install/dvc::
-	install -m 744 config.status $(DEB_DESTDIR)$(LISPDIR)
-	install -m 644 Makefile* $(DEB_DESTDIR)$(LISPDIR)
-	install -m 644 lisp/Makefile* $(DEB_DESTDIR)$(LISPDIR)/lisp/
-	install -m 644 lisp/Makefile* lisp/*.el lisp/dvc-site.el.in $(DEB_DESTDIR)$(LISPDIR)/lisp/
-	install -m 644 lisp/contrib/*.el $(DEB_DESTDIR)$(LISPDIR)/lisp/contrib/
