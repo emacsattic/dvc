@@ -80,7 +80,7 @@ autoloads:
 
 
 ##############################################################################
-dvc-version.el: $(top_srcdir)/config.status
+dvc-version.el: ../config.status
 	@echo Creating $@
 	@( echo ';;; $@ (generated file -- do not edit!)' ; \
 	   echo '(defconst dvc-version "$(PACKAGE_VERSION)"' ; \
@@ -89,7 +89,7 @@ dvc-version.el: $(top_srcdir)/config.status
 	   echo "(provide 'dvc-version)" ) \
 	 > $@
 
-dvc-site.el: $(top_srcdir)/config.status $(srcdir)/dvc-site.el.in
+dvc-site.el: ../config.status $(srcdir)/dvc-site.el.in
 	(cd .. ; ./config.status lisp/$@)
 
 .PHONY: all all-verbose install \
