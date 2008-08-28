@@ -1,7 +1,6 @@
-dvc (0.1-1) unstable; urgency=low
+dvc (0r20080828-1) unstable; urgency=low
 
   * New snapshot.
-  * Standard version to 3.8.0.1
-  * Depends on emacs22 first
+  * Standard version 3.8.0.1.
 
- -- Daniel Dehennin <daniel.dehennin@baby-gnu.org>  Fri, 22 Aug 2008 17:39:15 +0200
+ -- Daniel Dehennin <daniel.dehennin@baby-gnu.org>  Thu, 28 Aug 2008 17:12:20 +0200
