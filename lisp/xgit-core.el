@@ -54,9 +54,9 @@ git metadata directory."
   :group 'dvc-xgit)
 
 (defvar xgit-log-edit-file-name
-  "++xgit-log-edit"
-  "The filename, used to store the log message before commiting.
-Usually that file is placed in the tree-root of the working tree.")
+  "COMMIT_EDITMSG"
+  "The filename used to store the log message before commiting.
+Usually that file is placed in the .git directory of the working tree.")
 
 (defun xgit-lookup-external-git-dir (&optional location root)
   "Check to see whether the user has specified a custom git metadata
