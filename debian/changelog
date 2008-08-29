@@ -1,3 +1,9 @@
+dvc (0r20080829-1) unstable; urgency=low
+
+  * cdbs and debhelper must be in Build-Depends.
+
+ -- Daniel Dehennin <daniel.dehennin@baby-gnu.org>  Fri, 29 Aug 2008 19:11:01 +0200
+
 dvc (0r20080828-1) unstable; urgency=low
 
   * New snapshot.
