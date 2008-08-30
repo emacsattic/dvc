@@ -1,6 +1,6 @@
 ;;; xmtn-basic-io.el --- A parser for monotone's basic_io output format
 
-;; Copyright (C) 2006, 2007 Christian M. Ohler
+;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
 ;; Keywords: tools, extensions
@@ -88,6 +88,8 @@
       key)))
 
 (defsubst xmtn-basic-io--read-field ()
+  "Return a list containing the class and value of the field at point.
+Possible classes are `string', `null-id', `id', `symbol'."
   ;; Calling `xmtn--debug-mark-text-processed' from here is way too
   ;; slow.
   (let ((end (scan-sexps (point) 1)))
@@ -95,10 +97,11 @@
     (xmtn--assert-optional (> end (point)))
     (prog1
         (case (char-after (point))
-          (?\" (list 'string (xmtn-basic-io--unescape-field
+          (?\" ; a string
+           (list 'string (xmtn-basic-io--unescape-field
                               (buffer-substring-no-properties (1+ (point))
                                                               (1- end)))))
-          (t (xmtn--assert-optional (eql (char-after (point)) ?\[) t)
+          (?\[ ; an id
              (cond ((eq (1+ (point)) (1- end)) ;see (elisp) Equality Predicates
                     (list 'null-id))
                    (t
@@ -107,7 +110,9 @@
                                                             (1- end))
                             'xmtn--hash-id))
                     (list 'id (buffer-substring-no-properties (1+ (point))
-                                                              (1- end)))))))
+                                                              (1- end))))))
+          (t ; a symbol
+           (list 'symbol (buffer-substring-no-properties (point) end))))
       (goto-char end)
       (xmtn--assert-optional (member (char-after) '(?\n ?\ ))))))
 
@@ -139,7 +144,13 @@
                    collect (xmtn-basic-io--read-field)))
     (forward-char 1)))
 
-(defsubst xmtn-basic-io--next-parsed-line ()
+(defsubst xmtn-basic-io--peek ()
+  (case (char-after)
+    ((?\n) 'empty)
+    ((nil) 'eof)
+    (t t)))
+
+(defun xmtn-basic-io--next-parsed-line ()
   (case (char-after)
     ((?\n)
      (forward-char 1)
