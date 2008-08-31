@@ -468,7 +468,7 @@ file after."
          (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list))
          (ewoc-invalidate dvc-fileinfo-ewoc current)))))
 
-  (unless up (dvc-fileinfo-next nil)))
+  (unless up (dvc-fileinfo-next)))
 
 (defun dvc-diff-unmark-file-up ()
   "Unmark the file under point and move up."
