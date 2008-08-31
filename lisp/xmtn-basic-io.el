@@ -1,8 +1,10 @@
 ;;; xmtn-basic-io.el --- A parser for monotone's basic_io output format
 
-;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
+;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
+;; Maintainer: Stephen Leake stephen_leake@stephe-leake.org
 ;; Keywords: tools, extensions
 
 ;; This file is free software; you can redistribute it and/or modify
@@ -139,8 +141,9 @@ Possible classes are `string', `null-id', `id', `symbol'."
   (xmtn-basic-io--skip-white-space)
   (prog1
       (list* (xmtn-basic-io--read-key)
-             (loop while (not (eq (char-after) ?\n))
-                   do (xmtn-basic-io--skip-white-space)
+             (loop while (progn
+                      (xmtn-basic-io--skip-white-space)
+                      (not (eq (char-after) ?\n)))
                    collect (xmtn-basic-io--read-field)))
     (forward-char 1)))
 
@@ -259,6 +262,29 @@ and must not be called any more."
   (xmtn-basic-io--generate-body-for-with-parser-form
    'xmtn-basic-io--next-stanza
    stanza-parser buffer-form body))
+
+(defun xmtn-basic-io-write-id (key id)
+  "Write a basic-io line with KEY, hex ID."
+  (insert key)
+  (insert " [")
+  (insert id)
+  (insert ?\])
+  (insert ?\n))
+
+(defun xmtn-basic-io-write-str (key str)
+  "Write a basic-io line with KEY, string STR."
+  (insert key)
+  (insert " \"")
+  (insert str)
+  (insert ?\")
+  (insert ?\n))
+
+(defun xmtn-basic-io-write-sym (key sym)
+  "Write a basic-io line with KEY, symbol SYM."
+  (insert key)
+  (insert " ")
+  (insert sym)
+  (insert ?\n))
 
 (provide 'xmtn-basic-io)
 
