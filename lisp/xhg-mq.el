@@ -111,6 +111,28 @@ When called without a prefix argument run hg qinit -c, otherwise hg qinit."
                                     (output error status arguments)
                                   (message "hg qinit finished")))))
 
+(defun xhg-qnew-name-patch ()
+  "Return a default name for a new patch based on last revision number"
+  (let ((cur-patch (xhg-qtop))
+        (cur-rev (xhg-dry-tip))
+        (patch-name)
+        (patch-templ-regex "\\(patch-r[0-9]+\\)"))
+    (if cur-patch
+        (if (string-match patch-templ-regex cur-patch)
+            (setq patch-name
+                  (replace-regexp-in-string "\\([0-9]+\\)"
+                                            (int-to-string
+                                             (+ (string-to-int cur-rev) 1))
+                                            cur-patch))
+            (setq patch-name
+                  (replace-regexp-in-string "\\([0-9]+\\)"
+                                            (int-to-string
+                                             (+ (string-to-int cur-rev) 1))
+                                            "patch-r0")))
+        (setq patch-name
+              "Initial-patch"))
+    patch-name))
+
 ;;;###autoload
 (defun xhg-qnew (patch-name &optional commit-description force)
   "Run hg qnew.
@@ -118,8 +140,9 @@ Asks for the patch name and an optional commit description.
 If the commit description is not empty, run hg qnew -m \"commit description\"
 When called with a prefix argument run hg qnew -f."
   (interactive
-   (list (read-from-minibuffer "qnew patch name: ")
-         (read-from-minibuffer "qnew commit message (empty for none): ")
+   (list (read-from-minibuffer "qnew patch name: " nil nil nil nil (xhg-qnew-name-patch))
+         (read-from-minibuffer "qnew commit message (empty for none): " nil nil nil nil
+                               "New patch, edit me when done with <M-x xhg-qrefresh-header>")
          current-prefix-arg))
   (when (string= commit-description "")
     (setq commit-description nil))
