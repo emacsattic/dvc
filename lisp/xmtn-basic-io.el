@@ -194,6 +194,38 @@ Possible classes are `string', `null-id', `id', `symbol'."
                                 (,parser-fn)))))
            ,@body)))))
 
+(defmacro xmtn-basic-io-parse-line (body)
+  "Read next basic-io line at point. Error if it is `empty' or
+`eof'. Otherwise execute BODY with `symbol' bound to key (a
+string), `value' bound to list containing parsed rest of line.
+List is of form ((category value) ...)."
+  (declare (indent 1) (debug (sexp body)))
+  `(let ((line (xmtn-basic-io--next-parsed-line)))
+     (if (member line '(empty eof))
+         (error "expecting a line, found %s" line)
+       (let ((symbol (car line))
+             (value (cdr line)))
+         ,body))))
+
+(defmacro xmtn-basic-io-check-line (expected-key body)
+  "Read next basic-io line at point. Error if it is `empty' or
+`eof', or if its key is not EXPECTED-KEY (a string). Otherwise
+execute BODY with `value' bound to list containing parsed rest of
+line. List is of form ((category value) ...)."
+  (declare (indent 1) (debug (sexp body)))
+  `(let ((line (xmtn-basic-io--next-parsed-line)))
+     (if (or (member line '(empty eof))
+             (not (string= (car line) ,expected-key)))
+         (error "expecting \"%s\", found %s" ,expected-key line)
+       (let ((value (cdr line)))
+         ,body))))
+
+(defun xmtn-basic-io-check-empty ()
+  "Read next basic-io line at point. Error if it is not `empty' or `eof'."
+  (let ((line (xmtn-basic-io--next-parsed-line)))
+    (if (not (member line '(empty eof)))
+        (error "expecting an empty line, found %s" line))))
+
 (defmacro* xmtn-basic-io-with-line-parser ((line-parser buffer-form) &body body)
   "Run BODY with LINE-PARSER bound to a parser that parses BUFFER-FORM.
 

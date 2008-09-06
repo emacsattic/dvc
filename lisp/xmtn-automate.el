@@ -1,6 +1,6 @@
 ;;; xmtn-automate.el --- Interface to monotone's "automate" functionality
 
-;; Copyright (C) 2006, 2007 Christian M. Ohler
+;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
 ;; Keywords: tools
@@ -576,18 +576,18 @@ Signals an error if output contains zero lines or more than one line."
      :root (xmtn-automate--session-root session)
      :name (xmtn-automate--session-name session))))
 
-;; Maybe this should be a defsubst; I haven't profiled this code
-;; recently.
 (defun xmtn-automate--append-encoded-strings (strings)
-  "Encode STRINGS (a list of strings) in automate stdio format,
-insert into current buffer."
-  ;; Assumes that point is at the end of the buffer.
+  "Encode STRINGS (a list of strings or nil) in automate stdio format,
+insert into current buffer.  Assumes that point is at the end of
+the buffer."
   (xmtn--assert-optional (eql (point) (point-max)))
   (dolist (string strings)
-    (save-excursion (insert string))
-    (encode-coding-region (point) (point-max) 'xmtn--monotone-normal-form)
-    (insert (number-to-string (- (point-max) (point))) ":")
-    (goto-char (point-max)))
+    (if string
+        (progn
+          (save-excursion (insert string))
+          (encode-coding-region (point) (point-max) 'xmtn--monotone-normal-form)
+          (insert (number-to-string (- (point-max) (point))) ":")
+          (goto-char (point-max)))))
   nil)
 
 (defun xmtn-automate--send-command-string (session command option-plist
