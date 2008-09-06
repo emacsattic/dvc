@@ -1,6 +1,7 @@
 ;;; xmtn-automate.el --- Interface to monotone's "automate" functionality
 
-;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
+;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
 ;; Keywords: tools

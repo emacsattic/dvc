@@ -425,7 +425,6 @@ header."
 
 (add-to-list 'uniquify-list-buffers-directory-modes 'xmtn-conflicts-mode)
 
-;;;###autoload
 (defun xmtn-conflicts-1 (left right)
   "List conflicts between LEFT and RIGHT revisions (monotone revision specs).
 Allow specifying resolutions.  LEFT and RIGHT default to current
