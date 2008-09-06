@@ -320,7 +320,7 @@ header."
   (if xmtn-conflicts-current-conflict-buffer
       (error "another conflict resolution is already in progress."))
 
-  (let ((conflict (ewoc-data current)))
+  (let ((conflict (ewoc-data elem)))
     (let ((file-ancestor (concat "_MTN/ancestor/" (xmtn-conflicts-content-ancestor_name conflict)))
           (file-left (concat "_MTN/left/" (xmtn-conflicts-content-left_name conflict)))
           (file-right (concat "_MTN/right/" (xmtn-conflicts-content-right_name conflict)))
@@ -349,14 +349,14 @@ header."
       ;; conflict buffer.
       (setq xmtn-conflicts-current-conflict-buffer (current-buffer))
       (setq xmtn-conflicts-ediff-quit-info
-            (list current result-file))
+            (list elem result-file))
       (ediff-merge-files-with-ancestor file-left file-right file-ancestor nil result-file)
       )))
 
 (defun xmtn-conflicts-resolve-content-file (elem)
   "Resolve the content conflict in ewoc element ELEM, by user specified file."
-  (let ((conflict (ewoc-data elem))
-        (result-file (read-file-name "resolution file: " "_MTN/result/" nil t (xmtn-conflicts-content-ancestor_name conflict))))
+  (let* ((conflict (ewoc-data elem))
+         (result-file (read-file-name "resolution file: " "_MTN/result/" nil t (xmtn-conflicts-content-ancestor_name conflict))))
     (setf (xmtn-conflicts-content-resolution conflict) (list 'resolved_user result-file))
     (ewoc-invalidate xmtn-conflicts-ewoc elem)))
 

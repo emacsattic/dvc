@@ -251,7 +251,7 @@ are masked."
 
 ;; dvc-bookmarks-properties
 (defvar dvc-bookmarks-prop-file
-  "~/.dvc/dvc-bookmarks-properties.el")
+  (dvc-config-file-full-path "dvc-bookmarks-properties.el" t))
 
 (defvar dvc-bookmarks-cache (make-hash-table)
   "init dvc-bookmarks hash-table properties")
