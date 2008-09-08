@@ -38,7 +38,8 @@
   (when (featurep 'xemacs)
     (condition-case nil
         (require 'un-define)
-      (error nil))))
+      (error nil)))
+  (require 'xmtn-base))
 
 (define-coding-system-alias 'xmtn--monotone-normal-form 'utf-8-unix)
 

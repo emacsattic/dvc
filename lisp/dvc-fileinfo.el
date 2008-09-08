@@ -165,39 +165,38 @@ is specified by `dvc-fileinfo-printer-interface'."
 (defun dvc-fileinfo-printer-full (fileinfo)
   "Ewoc pretty-printer for dvc-fileinfo types which uses full text to
 indicate statuses."
-  (let ((inhibit-read-only t))
-    (etypecase fileinfo
-      (dvc-fileinfo-file ;; also matches dvc-fileinfo-dir
-       (let* ((line (concat
-                     (dvc-fileinfo-status-image-full
-                      (dvc-fileinfo-file-status fileinfo))
-                     " "
-                     (dvc-fileinfo-file-dir fileinfo)
-                     (dvc-fileinfo-file-file fileinfo)))
-              (face (cond
-                     ((dvc-fileinfo-file-mark fileinfo) 'dvc-marked)
-                     ((dvc-fileinfo-file-exclude fileinfo) 'dvc-excluded)
-                     (t (dvc-fileinfo-choose-face-full
-                         (dvc-fileinfo-file-status fileinfo))))))
-         (insert " ")
-         (cond
-          ((dvc-fileinfo-file-mark fileinfo) (insert dvc-mark))
-          ((dvc-fileinfo-file-exclude fileinfo) (insert dvc-exclude))
-          (t (insert " ")))
+  (etypecase fileinfo
+    (dvc-fileinfo-file ;; also matches dvc-fileinfo-dir
+     (let ((line (concat
+                  (dvc-fileinfo-status-image-full
+                   (dvc-fileinfo-file-status fileinfo))
+                  " "
+                  (dvc-fileinfo-file-dir fileinfo)
+                  (dvc-fileinfo-file-file fileinfo)))
+           (face (cond
+                  ((dvc-fileinfo-file-mark fileinfo) 'dvc-marked)
+                  ((dvc-fileinfo-file-exclude fileinfo) 'dvc-excluded)
+                  (t (dvc-fileinfo-choose-face-full
+                      (dvc-fileinfo-file-status fileinfo))))))
+       (insert " ")
+       (cond
+        ((dvc-fileinfo-file-mark fileinfo) (insert dvc-mark))
+        ((dvc-fileinfo-file-exclude fileinfo) (insert dvc-exclude))
+        (t (insert " ")))
 
-         (insert " ")
-         (insert (dvc-face-add line face))
-         (if (> (length (dvc-fileinfo-file-more-status fileinfo)) 0)
-             (progn
-               (newline)
-               (insert "      ")
-               (insert (dvc-fileinfo-file-more-status fileinfo))))))
+       (insert " ")
+       (insert (dvc-face-add line face))
+       (if (> (length (dvc-fileinfo-file-more-status fileinfo)) 0)
+           (progn
+             (newline)
+             (insert "      ")
+             (insert (dvc-fileinfo-file-more-status fileinfo))))))
 
-      (dvc-fileinfo-legacy
-       (dvc-diff-printer (dvc-fileinfo-legacy-data fileinfo)) )
+    (dvc-fileinfo-legacy
+     (dvc-diff-printer (dvc-fileinfo-legacy-data fileinfo)) )
 
-      (dvc-fileinfo-message
-       (insert (dvc-fileinfo-message-text fileinfo))))))
+    (dvc-fileinfo-message
+     (insert (dvc-fileinfo-message-text fileinfo)))))
 
 (defun dvc-fileinfo-printer-terse (fileinfo)
   "Ewoc pretty-printer for dvc-fileinfo types which uses a single letter

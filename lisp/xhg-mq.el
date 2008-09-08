@@ -122,12 +122,12 @@ When called without a prefix argument run hg qinit -c, otherwise hg qinit."
             (setq patch-name
                   (replace-regexp-in-string "\\([0-9]+\\)"
                                             (int-to-string
-                                             (+ (string-to-int cur-rev) 1))
+                                             (+ (string-to-number cur-rev) 1))
                                             cur-patch))
             (setq patch-name
                   (replace-regexp-in-string "\\([0-9]+\\)"
                                             (int-to-string
-                                             (+ (string-to-int cur-rev) 1))
+                                             (+ (string-to-number cur-rev) 1))
                                             "patch-r0")))
         (setq patch-name
               "Initial-patch"))
