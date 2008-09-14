@@ -113,5 +113,7 @@ Usually that file is placed in the tree-root of the working tree.")
 
 (defalias 'bzr-dvc-clone 'bzr-checkout)
 
+(defalias 'bzr-dvc-export-via-email 'bzr-export-via-email)
+
 (provide 'bzr-dvc)
 ;;; bzr-dvc.el ends here

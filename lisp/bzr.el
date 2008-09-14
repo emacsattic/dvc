@@ -1212,6 +1212,27 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
     (bzr-switch-checkout target))
   )
 
+(defun bzr-create-bundle (rev file-name)
+  "Call bzr send --output to create a file containing a bundle"
+  (interactive (list (bzr-read-revision "Create bundle for revision: ")
+                     (read-file-name "Name of the bzr bundle file: ")))
+  (dvc-run-dvc-sync 'bzr (list "send" "-o" (expand-file-name file-name) "-r" rev)
+                    :finished
+                    (lambda (output error status arguments)
+                      (message "Created bundle for revision %s in %s." rev file-name))))
+
+(defun bzr-export-via-email ()
+  (interactive)
+  (let* ((rev (bzr-get-revision-at-point))
+         (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
+         (base-file-name nil)
+         (summary (car (split-string log-message "\n"))))
+  (message "bzr-export-via-email %s: %s" rev summary)
+  (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") rev ".patch"))
+  (bzr-create-bundle rev file-name))
+  ;; TODO: send the created bundle via email...
+  )
+
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.
 (provide 'bzr)
