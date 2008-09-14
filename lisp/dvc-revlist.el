@@ -335,6 +335,7 @@ Function used to get the revision info at point")
     (define-key map [?N] 'dvc-revision-next-unmerged)
     (define-key map [?P] 'dvc-revision-prev-unmerged)
     (define-key map [?A] 'dvc-send-commit-notification) ;; Mnemonic: announce
+    (define-key map [?E] 'dvc-export-via-email)
     (define-key map "\C-m" 'dvc-revlist-show-item)
     (define-key map [return] 'dvc-revlist-show-item)
     (define-key map [(meta return)] 'dvc-revlist-show-item-scroll-down)

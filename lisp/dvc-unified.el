@@ -547,6 +547,11 @@ argument is given, modify the behavior of this command as
 specified by the VCS backend."
   (interactive (list current-prefix-arg)))
 
+;;;###autoload
+(define-dvc-unified-command dvc-export-via-email ()
+  "Send the changeset at point via email."
+  (interactive))
+
 (provide 'dvc-unified)
 
 ;;; dvc-unified.el ends here
