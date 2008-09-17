@@ -75,6 +75,9 @@ Usually that file is placed in the tree-root of the working tree.")
 
 (defalias 'bzr-dvc-log 'bzr-log)
 
+;;;###autoload
+(defalias 'bzr-dvc-save-diff 'bzr-save-diff)
+
 (defalias 'bzr-dvc-changelog 'bzr-changelog)
 
 (defun bzr-dvc-update ()

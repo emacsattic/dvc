@@ -1002,6 +1002,19 @@ LAST-REVISION looks like
       (message "bzr whoami: %s" whoami))
     whoami))
 
+(defun bzr-save-diff (filename)
+  "Save the current bzr diff to a file named FILENAME."
+  (interactive (list (read-file-name "Save the bzr diff to: ")))
+  (with-current-buffer
+      (find-file-noselect filename)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert (dvc-run-dvc-sync 'bzr (list "diff")
+                                ;; bzr diff has a non-zero status
+                                :error 'dvc-output-and-error-buffer-handler))
+      (save-buffer)
+      (kill-buffer (current-buffer)))))
+
 (defun bzr-nick (&optional new-nick)
   "Run bzr nick.
 When called with a prefix argument, ask for the new nick-name, otherwise
