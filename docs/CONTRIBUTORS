@@ -127,6 +127,9 @@
                  :signed in-progress
                  :contacted yes
                  :mail-addresses "bojan#bnikolic.co.uk")
+    (contributor :name "James LewisMoss"
+                 :signed tiny-change
+                 :mail-addresses "jim@lewismoss.org")
     ;;
     ;; ADD YOUR NAME HERE.
     ;;

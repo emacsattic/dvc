@@ -333,6 +333,8 @@ The current buffer must be a minibuffer."
 (unless (functionp 'diff-hunk-prev)
   (defalias 'diff-hunk-prev 'diff-prev-hunk))
 
+(defalias 'dvc-expand-file-name 'expand-file-name)
+
 ;; FIXME: move to dvc-utils?
 (defun dvc-xmas-make-temp-dir (prefix)
   "Make a temporary directory using PREFIX.

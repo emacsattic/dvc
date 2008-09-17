@@ -423,7 +423,7 @@ header."
   (buffer-disable-undo)
   (set-buffer-modified-p nil))
 
-(add-to-list 'uniquify-list-buffers-directory-modes 'xmtn-conflicts-mode)
+(dvc-add-uniquify-directory-mode 'xmtn-conflicts-mode)
 
 (defun xmtn-conflicts-1 (left right)
   "List conflicts between LEFT and RIGHT revisions (monotone revision specs).
