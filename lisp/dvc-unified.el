@@ -239,7 +239,7 @@ Use `dvc-log' for the brief log."
 ;;;###autoload
 (define-dvc-unified-command dvc-add (file)
   "Adds FILE to the repository."
-  (interactive))
+  (interactive "fFile: "))
 
 (define-dvc-unified-command dvc-revision-direct-ancestor (revision)
   "Computes the direct ancestor of a revision.")
