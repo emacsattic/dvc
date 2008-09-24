@@ -451,26 +451,30 @@ the file before saving."
          (head-revisions (xmtn--heads root branch))
          (head-count (length head-revisions)))
 
-    (with-output-to-string
-      (princ (format "Status for %s:\n" root))
-      (princ (if base-revision
-                 (format "  base revision %s\n" base-revision)
-               "  tree has no base revision\n"))
-      (princ (format "  branch %s\n" branch))
-      (princ (case head-count
-               (0 "  branch is empty\n")
-               (1 "  branch is merged\n")
-               (t (format "  branch has %s heads\n" head-count))))
-      (princ (if (member base-revision head-revisions)
-                 "  base revision is a head revision\n"
-               "  base revision is not a head revision\n")))))
+    (concat
+      (format "Status for %s:\n" root)
+      (if base-revision
+          (format "  base revision %s\n" base-revision)
+        "  tree has no base revision\n")
+      (format "  branch %s\n" branch)
+      (case head-count
+        (0 "  branch is empty\n")
+        (1 "  branch is merged\n")
+        (t (dvc-face-add (format "  branch has %s heads; need merge\n" head-count) 'dvc-conflict)))
+      (if (member base-revision head-revisions)
+          "  base revision is a head revision\n"
+        (dvc-face-add "  base revision is not a head revision; need update\n" 'dvc-conflict)))))
 
 (defun xmtn--refresh-status-header (status-buffer)
   (with-current-buffer status-buffer
-    (ewoc-set-hf
-     dvc-fileinfo-ewoc
-     (xmtn--status-header default-directory (xmtn--get-base-revision-hash-id-or-null default-directory))
-     "")))
+    ;; different modes use different names for the ewoc
+    ;; FIXME: should have a separate function for each mode
+    (let ((ewoc (or dvc-fileinfo-ewoc
+                    dvc-revlist-cookie)))
+      (ewoc-set-hf
+       ewoc
+       (xmtn--status-header default-directory (xmtn--get-base-revision-hash-id-or-null default-directory))
+       ""))))
 
 (defun xmtn--parse-diff-for-dvc (changes-buffer)
   (let ((excluded-files (dvc-default-excluded-files))
@@ -1007,9 +1011,10 @@ the file before saving."
            (file-name-extension file-name))))
 
 (defun xmtn--add-patterns-to-mtnignore (root patterns interactive-p)
-  (let ((mtnignore-file-name (xmtn--mtnignore-file-name root)))
     (save-window-excursion
-      (find-file-other-window mtnignore-file-name)
+      ;; use 'find-file-other-window' to preserve current state if
+      ;; user is already visiting the ignore file.
+      (find-file-other-window (xmtn--mtnignore-file-name root))
       (save-excursion
         (let ((modified-p nil))
           (loop for pattern in patterns
@@ -1023,13 +1028,15 @@ the file before saving."
                   (insert pattern "\n")
                   (setq modified-p t)))
           (when modified-p
+            ;; 'sort-lines' moves all markers, which defeats save-excursion. Oh well!
+            (sort-lines nil (point-min) (point-max))
             (if (and interactive-p
                      dvc-confirm-ignore)
                 (lexical-let ((buffer (current-buffer)))
                   (save-some-buffers nil (lambda ()
                                            (eql (current-buffer) buffer))))
-              (save-buffer)))))))
-  nil)
+              (save-buffer))))))
+    nil)
 
 ;;;###autoload
 (defun xmtn-dvc-ignore-files (file-names)
@@ -1116,7 +1123,8 @@ the file before saving."
    root `("drop"
           ,@(if do-not-execute `("--bookkeep-only") `())
           "--" ,@(xmtn--normalize-file-names root file-names)))
-  nil)
+  ;; return t to indicate we succeeded
+  t)
 
 ;;;###autoload
 (defun xmtn-dvc-remove-files (&rest files)
