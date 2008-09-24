@@ -29,6 +29,10 @@
   (require 'xmtn-dvc)
   (require 'xmtn-run))
 
+(eval-when-compile
+  ;; these have functions we use
+  (require 'dired))
+
 (defvar xmtn-conflicts-right-revision-spec ""
   "Buffer-local variable holding user spec of left revision.")
 (make-variable-buffer-local 'xmtn-conflicts-right-revision-spec)
@@ -777,23 +781,21 @@ LEFT and RIGHT default to current merge heads if nil."
 (defun xmtn-conflicts-clean (&optional workspace)
   "Remove conflicts resolution files from WORKSPACE (a directory; default prompt)."
   (interactive)
-  (require 'dired-a)
   (let ((default-directory
           (dvc-read-project-tree-maybe "Remove conflicts resolutions for (workspace directory): "
-                                       (when workspace (expand-file-name workspace))))
-        (dired-recursive-deletes 'always))
+                                       (when workspace (expand-file-name workspace)))))
 
     (if (file-exists-p "_MTN/conflicts")
         (delete-file "_MTN/conflicts"))
 
     (if (file-exists-p "_MTN/left")
-        (dired-delete-directory "_MTN/left"))
+        (dired-delete-file "_MTN/left" 'always))
 
     (if (file-exists-p "_MTN/right")
-        (dired-delete-directory "_MTN/right"))
+        (dired-delete-file "_MTN/right" 'always))
 
     (if (file-exists-p "_MTN/result")
-        (dired-delete-directory "_MTN/result"))
+        (dired-delete-file "_MTN/result" 'always))
     ))
 
 (provide 'xmtn-conflicts)
