@@ -350,6 +350,7 @@ arg; root. Result is of the form:
   (let ((map (make-sparse-keymap)))
     (define-key map "MH" 'xmtn-view-heads-revlist)
     (define-key map "MP" 'xmtn-propagate-from)
+    (define-key map "CC" 'xmtn-conflicts-clean)
     map))
 
 (easy-menu-define xmtn-revlist-mode-menu xmtn-revlist-mode-map
@@ -357,6 +358,7 @@ arg; root. Result is of the form:
   `("DVC-Mtn"
     ["View Heads"       xmtn-view-heads-revlist t]
     ["Propagate branch" xmtn-propagate-from t]
+    ["Clean conflicts resolutions" xmtn-conflicts-clean t]
     ))
 
 (define-derived-mode xmtn-revlist-mode dvc-revlist-mode "xmtn-revlist"

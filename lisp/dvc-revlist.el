@@ -351,6 +351,8 @@ Function used to get the revision info at point")
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
     (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
     (define-key map (dvc-prefix-merge ?u)                     'dvc-revlist-update)
+    (define-key map (dvc-prefix-merge ?U)                     'dvc-update)
+    (define-key map (dvc-prefix-merge ?m)  '(lambda () (interactive) (dvc-missing nil default-directory)))
     (define-key map (dvc-prefix-merge ?M)                     'dvc-merge)
     (define-key map dvc-keyvec-inventory 'dvc-pop-to-inventory)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
@@ -366,7 +368,9 @@ Function used to get the revision info at point")
     ["Diff single rev" dvc-revlist-diff t]
     ["Diff with workspace" dvc-revlist-diff-to-current-tree t]
     ["Update to rev at point" dvc-revlist-update t]
+    ["Update to head" dvc-update t]
     ["Merge"  dvc-merge          t]
+    ["Show missing" (lambda () (interactive) (dvc-missing nil default-directory)) t]
     ))
 
 ;; dvc-revlist-create-buffer will use "<back-end>-revlist-mode", if
