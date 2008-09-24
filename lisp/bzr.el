@@ -366,7 +366,7 @@ TODO: DONT-SWITCH is currently ignored."
   "Run bzr diff -r BASE..MODIFIED.
 
 TODO: dont-switch is currently ignored."
-  (dvc-trace "base, modified=%S, %S; dir=%S" base modified default-directory)
+  (dvc-trace "bzr-delta: base=%S, modified=%S; dir=%S" base modified default-directory)
   (let* ((base-str (bzr-revision-id-to-string base))
          (modified-str (bzr-revision-id-to-string modified))
          (extra-string (if extra-arg (format ", %s" extra-arg) ""))

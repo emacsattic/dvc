@@ -667,9 +667,16 @@ and quit"
 (defun dvc-bookmarks-diff ()
   "Run `dvc-diff' for bookmark at point."
   (interactive)
-  (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
+  (let ((local-tree (dvc-bookmarks-current-value 'local-tree))
+        (partner (dvc-bookmark-get-hidden-url-at-point)))
     (if local-tree
-        (dvc-diff nil local-tree)
+        (if partner
+            (progn (message "Running dvc diff for %s, against %s"
+                            (dvc-bookmark-name (dvc-bookmarks-current-bookmark))
+                            partner)
+                   (let ((default-directory local-tree))
+                     (dvc-diff-against-url partner)))
+          (dvc-diff nil local-tree))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-log-edit ()
