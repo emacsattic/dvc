@@ -86,15 +86,28 @@ outstanding uncommitted changes."
     (find-file patch-file-name)
     (setq import-dir (dvc-read-directory-name "Import hg patch to: " nil nil t import-dir))
     (when import-dir
-      (let ((default-directory import-dir))
-        (xhg-import patch-file-name xhg-gnus-import-patch-force)))
+      (let ((default-directory import-dir)
+            (current-dvc))
+        (setq current-dvc (dvc-current-active-dvc))
+        (case current-dvc
+          ('xhg (xhg-import patch-file-name xhg-gnus-import-patch-force))
+          ('xgit (xgit-apply-patch patch-file-name))
+          ;; TODO Add here new backend
+          (t (error "Unknow backend")))))
     (delete-file patch-file-name)
     (kill-buffer (current-buffer)) ;; the patch file
     (set-window-configuration window-conf)
-    (when (and import-dir (y-or-n-p "Run hg log in patched directory? "))
-      (let ((default-directory import-dir))
-        (xhg-log "tip" "-10")
-        (delete-other-windows)))))
+    (let ((default-directory import-dir)
+          (current-dvc))
+      (setq current-dvc (dvc-current-active-dvc))
+      (case current-dvc
+        ;; TODO Add here new backend
+        ('xhg (when (and import-dir (y-or-n-p "Run hg log in patched directory? "))
+                (xhg-log "tip" "-10")
+                (delete-other-windows)))
+        ('xgit (when (and import-dir (y-or-n-p "Run xgit-status?"))
+                 (xgit-status)))))))
+
 
 (defvar xhg-gnus-status-window-configuration nil)
 (defun xhg-gnus-article-view-status-for-import-patch (n)

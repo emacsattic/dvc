@@ -94,7 +94,7 @@ Commands:
        (list 'xhg-log-font-lock-keywords t nil nil))
   (set (make-local-variable 'xhg-log-review-current-diff-revision) nil))
 
-(defconst xhg-log-start-regexp "^changeset: +\\([0-9]+:[0-9a-f]+\\)")
+(defconst xhg-log-start-regexp "^ *changeset: +\\([0-9]+:[0-9a-f]+\\)")
 (defun xhg-log-next (n)
   "Move to the next changeset header of the next diff hunk"
   (interactive "p")

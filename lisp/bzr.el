@@ -1002,6 +1002,19 @@ LAST-REVISION looks like
       (message "bzr whoami: %s" whoami))
     whoami))
 
+(defun bzr-save-diff (filename)
+  "Save the current bzr diff to a file named FILENAME."
+  (interactive (list (read-file-name "Save the bzr diff to: ")))
+  (with-current-buffer
+      (find-file-noselect filename)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert (dvc-run-dvc-sync 'bzr (list "diff")
+                                ;; bzr diff has a non-zero status
+                                :error 'dvc-output-and-error-buffer-handler))
+      (save-buffer)
+      (kill-buffer (current-buffer)))))
+
 (defun bzr-nick (&optional new-nick)
   "Run bzr nick.
 When called with a prefix argument, ask for the new nick-name, otherwise
@@ -1210,6 +1223,28 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   (interactive "DBranch to switch to: ")
   (let ((target (expand-file-name target)))
     (bzr-switch-checkout target))
+  )
+
+(defun bzr-create-bundle (rev file-name)
+  "Call bzr send --output to create a file containing a bundle"
+  (interactive (list (bzr-read-revision "Create bundle for revision: ")
+                     (read-file-name "Name of the bzr bundle file: ")))
+  (dvc-run-dvc-sync 'bzr (list "send" "-o" (expand-file-name file-name) "-r" rev)
+                    :finished
+                    (lambda (output error status arguments)
+                      (message "Created bundle for revision %s in %s." rev file-name))))
+
+(defun bzr-export-via-email ()
+  (interactive)
+  (let* ((rev (bzr-get-revision-at-point))
+         (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
+         (base-file-name nil)
+         (summary (car (split-string log-message "\n")))
+         file-name)
+  (message "bzr-export-via-email %s: %s" rev summary)
+  (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") rev ".patch"))
+  (bzr-create-bundle rev file-name))
+  ;; TODO: send the created bundle via email...
   )
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup

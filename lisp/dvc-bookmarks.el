@@ -101,10 +101,9 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "a"      'dvc-bookmarks-add)
     (define-key map "At"     'dvc-bookmarks-add-empty-tree)
     (define-key map "e"      'dvc-bookmarks-edit)
-    (define-key map "\C-y"   'dvc-bookmarks-yank)
-    (define-key map "\C-c\C-y" 'dvc-bookmarks-really-yank)
+    (define-key map "\C-y" 'dvc-bookmarks-really-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
-    (define-key map "\C-c\C-k" 'dvc-bookmarks-delete)
+    (define-key map "D" 'dvc-bookmarks-delete)
     (define-key map "H" 'dvc-bookmarks-show-or-hide-subtree)
     (define-key map "S" 'dvc-bookmarks-set-tree-properties)
     (define-key map "s"      'dvc-bookmarks-status)
@@ -1070,19 +1069,6 @@ show subtree when called with prefix argument (C-u)"
                                             (if (not (member parent dvc-bookmarks-hidden-subtree))
                                                 t
                                               nil))))))
-
-
-(defun dvc-bookmarks-yank ()
-  "non destructive yank function"
-  (interactive)
-  (let ((indent (save-excursion (if (eq (line-beginning-position) (line-end-position))
-                                    0
-                                  (forward-line 1)
-                                  (dvc-bookmark-indent (dvc-bookmarks-current-bookmark))))))
-    (dvc-bookmarks-add-to-cookie
-     (cons (dvc-bookmark-name dvc-bookmarks-tmp-yank-item)
-           (dvc-bookmark-properties dvc-bookmarks-tmp-yank-item))
-     indent)))
 
 (defvar dvc-bookmarks-tmp-yank-item '("hg" (local-tree "~/work/hg/hg")))
 

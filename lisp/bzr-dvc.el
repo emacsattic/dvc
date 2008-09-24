@@ -75,6 +75,9 @@ Usually that file is placed in the tree-root of the working tree.")
 
 (defalias 'bzr-dvc-log 'bzr-log)
 
+;;;###autoload
+(defalias 'bzr-dvc-save-diff 'bzr-save-diff)
+
 (defalias 'bzr-dvc-changelog 'bzr-changelog)
 
 (defun bzr-dvc-update ()
@@ -112,6 +115,8 @@ Usually that file is placed in the tree-root of the working tree.")
 (defalias 'bzr-dvc-annotate-time 'bzr-annotate-time)
 
 (defalias 'bzr-dvc-clone 'bzr-checkout)
+
+(defalias 'bzr-dvc-export-via-email 'bzr-export-via-email)
 
 (provide 'bzr-dvc)
 ;;; bzr-dvc.el ends here
