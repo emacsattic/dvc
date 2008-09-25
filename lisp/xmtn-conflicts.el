@@ -744,8 +744,8 @@ Allow specifying resolutions.  LEFT-WORK and RIGHT-WORK are strings giving
 workspace directories; prompted if nil. Review is done in RIGHT-WORK
 workspace."
   (interactive "i\ni")
-  (setq left-work (dvc-read-project-tree-maybe "Left (workspace directory): " left-work))
-  (setq right-work (dvc-read-project-tree-maybe "Right (workspace directory): " right-work))
+  (setq left-work (dvc-read-project-tree-maybe "Propagate from (workspace directory): " left-work))
+  (setq right-work (dvc-read-project-tree-maybe "to (workspace directory): " right-work))
 
   (xmtn-check-workspace-for-propagate left-work)
   (xmtn-check-workspace-for-propagate right-work)
@@ -757,7 +757,7 @@ workspace."
 ;;;###autoload
 (defun xmtn-conflicts-merge (left right)
   "List conflicts between LEFT and RIGHT revisions, allow specifying resolutions.
-LEFT and RIGHT default to current merge heads if nil."
+LEFT and RIGHT default to current merge heads."
   (interactive "MLeft revision (monotone revision spec): \nMRight revision (monotone revision spec): ")
   (let ((default-directory
           (dvc-read-project-tree-maybe "Review conflicts in (workspace directory): ")))

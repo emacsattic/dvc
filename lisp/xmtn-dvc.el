@@ -931,7 +931,7 @@ the file before saving."
                        (when (not (ewoc-locate dvc-fileinfo-ewoc))
                          (ewoc-enter-last dvc-fileinfo-ewoc
                                           (make-dvc-fileinfo-message
-                                           :text (concat " no changes")))
+                                           :text (concat " no changes in workspace")))
                          (ewoc-refresh dvc-fileinfo-ewoc)))))
        :error (lambda (output error status arguments)
                 (dvc-diff-error-in-process
@@ -1335,14 +1335,16 @@ finished."
       ((root (dvc-tree-root))
        (local-branch (xmtn--tree-default-branch root))
        (resolve-conflicts
-        (if (file-exists-p (concat root "_MTN/conflicts"))
+        (if (file-exists-p (concat root "/_MTN/conflicts"))
             ;; just use relative path
-            (concat "--resolve-conflicts-file=_MTN/conflicts")))
+            "--resolve-conflicts-file=_MTN/conflicts"))
        (cmd (list "propagate" other local-branch resolve-conflicts))
        (prompt
         (if resolve-conflicts
             (concat "Propagate from " other " to " local-branch " resolving conflicts? ")
           (concat "Propagate from " other " to " local-branch "? "))))
+
+    (save-some-buffers t); conflicts file may be open.
 
     (if (not (yes-or-no-p prompt))
         (error "user abort"))
