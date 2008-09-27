@@ -176,6 +176,13 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it."
     (dvc-save-some-buffers default-directory)
     (dvc-call "dvc-diff" base-rev default-directory dont-switch)))
 
+;;;###autoload
+(defun dvc-diff-against-url (path)
+  "Show the diff from the current tree against a remote url"
+  (interactive)
+  (dvc-save-some-buffers default-directory)
+  (dvc-call "dvc-diff-against-url" path))
+
 (defun dvc-dvc-last-revision (path)
   (list (dvc-current-active-dvc)
         (list 'last-revision path 1)))
