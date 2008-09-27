@@ -349,14 +349,19 @@ arg; root. Result is of the form:
 (defvar xmtn-revlist-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map "MH" 'xmtn-view-heads-revlist)
+    (define-key map "MC" 'xmtn-conflicts-propagate)
+    (define-key map "MR" 'xmtn-conflicts-review)
     (define-key map "MP" 'xmtn-propagate-from)
-    (define-key map "CC" 'xmtn-conflicts-clean)
+    (define-key map "Mx" 'xmtn-conflicts-clean)
     map))
 
+;; items added here should probably also be added to xmtn-diff-mode-menu, -map in xmtn-dvc.el
 (easy-menu-define xmtn-revlist-mode-menu xmtn-revlist-mode-map
   "Mtn specific revlist menu."
   `("DVC-Mtn"
     ["View Heads"       xmtn-view-heads-revlist t]
+    ["Show propagate conflicts" xmtn-conflicts-propagate t]
+    ["Review conflicts" xmtn-conflicts-review t]
     ["Propagate branch" xmtn-propagate-from t]
     ["Clean conflicts resolutions" xmtn-conflicts-clean t]
     ))
