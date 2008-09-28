@@ -577,17 +577,6 @@ and quit"
 (defun dvc-bookmarks-current-key-value (key)
   (dvc-bookmark-key-value (dvc-bookmarks-current-bookmark) key))
 
-;; (defun dvc-bookmarks-marked-bookmark ()
-;;   (when dvc-bookmarks-marked-entry
-;;     (save-excursion
-;;       (dvc-bookmark-goto-name dvc-bookmarks-marked-entry)
-;;       (dvc-bookmarks-current-bookmark))))
-
-;; (defun dvc-bookmarks-marked-value (key)
-;;   (let ((marked-bookmark (dvc-bookmarks-marked-bookmark)))
-;;     (when marked-bookmark
-;;       (dvc-bookmark-value marked-bookmark key))))
-
 (defun dvc-bookmarks-add (bookmark-name bookmark-local-dir)
   "Add a DVC bookmark named BOOKMARK-NAME, directory BOOKMARK-LOCAL-DIR."
   (interactive
@@ -602,6 +591,24 @@ and quit"
     (dvc-bookmarks)
     (add-to-list 'dvc-bookmark-alist elem t)
     (ewoc-enter-last dvc-bookmarks-cookie data)))
+
+(defun dvc-bookmarks-dired-add-project ()
+  "Add a DVC bookmark from dired"
+  (interactive)
+  (let ((bname-list (dired-get-marked-files)))
+    (if (yes-or-no-p (format "Add %s bookmarks to DVC-BOOKMARKS?"
+                             (length bname-list)))
+        (save-excursion
+          (dvc-bookmarks)
+          (dolist (i bname-list)
+            (let ((bname (file-name-nondirectory i)))
+              (when (file-directory-p i)
+                (dvc-bookmarks-add bname i))))
+          (dvc-bookmarks-save)
+          (dvc-bookmark-goto-name (file-name-nondirectory (car (last bname-list)))))
+        (message "Operation aborted"))))
+          
+          
 
 (defun dvc-bookmarks-edit (bookmark-name bookmark-local-dir bmk-time-stamp)
   "Change the current DVC bookmark's BOOKMARK-NAME and/or LOCAL-DIR."
@@ -1092,13 +1099,13 @@ show subtree when called with prefix argument (C-u)"
 
 (defvar dvc-bookmarks-tmp-yank-item '("hg" (local-tree "~/work/hg/hg")))
 
-(defun dvc-bookmarks-delete ()
+(defun dvc-bookmarks-delete-at-point ()
   "Destructive kill and delete function
 do not use it to kill/yank, use dvc-bookmarks-kill instead"
   (interactive)
   (let ((init-place (point))
         (current-bookmark))
-    (dvc-bookmarks-kill)
+    (dvc-bookmarks-kill-at-point)
     (setq current-bookmark (dvc-bookmark-name dvc-bookmarks-tmp-yank-item))
     (if (assoc (dvc-bookmark-name dvc-bookmarks-tmp-yank-item) dvc-bookmark-alist)
         (progn
@@ -1146,6 +1153,18 @@ do not use it to kill/yank, use dvc-bookmarks-kill instead"
       (dvc-bookmarks-kill-all-marked)
       (dvc-bookmarks-kill-at-point)))
 
+(defun dvc-bookmarks-delete ()
+  "Choose to delete marked entry or entry at point"
+  (interactive)
+  (if dvc-bookmarks-marked-entry-list
+      (if (yes-or-no-p (format "Really delete %s bookmarks?"
+                               (length dvc-bookmarks-marked-entry-list)))
+          (dvc-bookmarks-delete-all-marked)
+          (message "Action aborted"))
+      (if (yes-or-no-p "Really delete this bookmarks?")
+          (dvc-bookmarks-delete-at-point)
+          (message "Action aborted"))))
+  
 (defun dvc-bookmarks-add-empty-tree (name)
   "Add a new family to your bookmarks"
   (interactive "sName: ")
@@ -1192,6 +1211,7 @@ And add it to the `dvc-bookmarks-marked-entry-list'"
       (dvc-bookmarks))))
 
 (defun dvc-bookmarks-unmark-all ()
+  "Unmark all bookmarks."
   (interactive)
   (setq dvc-bookmarks-marked-entry-list nil)
   (message "Unmarking all")
@@ -1210,6 +1230,11 @@ And add it to the `dvc-bookmarks-marked-entry-list'"
   (dolist (i dvc-bookmarks-marked-entry-list)
     (dvc-bookmark-goto-name i)
     (funcall fn)))
+
+(defun dvc-bookmarks-delete-all-marked ()
+  (interactive)
+  (dvc-bookmarks-apply-func-on-marked 'dvc-bookmarks-delete-at-point)
+  (setq dvc-bookmarks-marked-entry-list nil))
 
 (defvar dvc-bookmarks-kill-ring nil)
 (defun dvc-bookmarks-kill-all-marked ()
@@ -1241,6 +1266,8 @@ and reinit `dvc-bookmarks-kill-ring'"
       (dvc-bookmark-goto-name name)
       (dvc-bookmarks-current-bookmark))))
 
+;; TODO adapt to new code
+;;;;;;;;Obsoletes;;;;;;;;;;;;;;;;;;;;;;;
 (defun dvc-bookmarks-marked-bookmark ()
   (when dvc-bookmarks-marked-entry
     (save-excursion
@@ -1251,6 +1278,8 @@ and reinit `dvc-bookmarks-kill-ring'"
   (let ((marked-bookmark (dvc-bookmarks-marked-bookmark)))
     (when marked-bookmark
       (dvc-bookmark-value marked-bookmark key))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun dvc-bookmarks-save ()
   "Save `dvc-bookmark-alist' to the file `dvc-bookmarks-file-name'."
