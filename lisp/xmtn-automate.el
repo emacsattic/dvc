@@ -972,6 +972,10 @@ Each element of the list is a list; key, signature, name, value, trust."
     (setq accu (nreverse accu))
     accu))
 
+(defun xmtn--heads (root branch)
+  (xmtn-automate-simple-command-output-lines root `("heads" ,branch)))
+
+
 (provide 'xmtn-automate)
 
 ;;; xmtn-automate.el ends here

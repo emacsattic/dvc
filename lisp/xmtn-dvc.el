@@ -1102,10 +1102,6 @@ the file before saving."
   ;; doesn't provide a function for that.
   )
 
-(defun xmtn--heads (root branch)
-  (xmtn-automate-simple-command-output-lines root `("heads" ,branch)))
-
-
 (defun xmtn--insert-hint-into-process-buffer (string)
   (let ((inhibit-read-only t)
         deactivate-mark)
