@@ -922,6 +922,56 @@ car COMMAND is options, cdr is command."
       ;;)
       )))
 
+(defun xmtn--map-parsed-certs (xmtn--root xmtn--revision-hash-id xmtn--thunk)
+  (lexical-let ((root xmtn--root)
+                (revision-hash-id xmtn--revision-hash-id)
+                (thunk xmtn--thunk))
+    (xmtn--with-automate-command-output-basic-io-parser
+        (xmtn--next-stanza root `("certs" ,revision-hash-id))
+      (loop
+       for xmtn--stanza = (funcall xmtn--next-stanza)
+       while xmtn--stanza
+       do (xmtn-match xmtn--stanza
+            ((("key" (string $xmtn--key))
+              ("signature" (string $xmtn--signature))
+              ("name" (string $xmtn--name))
+              ("value" (string $xmtn--value))
+              ("trust" (string $xmtn--trust)))
+             (setq xmtn--signature (xmtn-match xmtn--signature
+                                     ("ok" 'ok)
+                                     ("bad" 'bad)
+                                     ("unknown" 'unknown)))
+             (let ((xmtn--trusted (xmtn-match xmtn--trust
+                                    ("trusted" t)
+                                    ("untrusted" nil))))
+               (macrolet ((decodef (var)
+                            `(setq ,var (decode-coding-string
+                                         ,var 'xmtn--monotone-normal-form))))
+                 (decodef xmtn--key)
+                 (decodef xmtn--name)
+                 ;; I'm not sure this is correct.  The documentation
+                 ;; mentions a cert_is_binary hook, but it doesn't
+                 ;; exist; and even if it did, we would have no way of
+                 ;; calling it from here.  But, since cert values are
+                 ;; always passed on the command line, and command
+                 ;; line arguments are converted to utf-8, I suspect
+                 ;; certs will also always be in utf-8.
+                 (decodef xmtn--value))
+               (funcall thunk
+                        xmtn--key xmtn--signature xmtn--name xmtn--value
+                        xmtn--trusted))))))))
+
+(defun xmtn--list-parsed-certs (root revision-hash-id)
+  "Return a list of the contents of each cert attached to REVISION-HASH-ID.
+Each element of the list is a list; key, signature, name, value, trust."
+  (lexical-let ((accu '()))
+    (xmtn--map-parsed-certs root revision-hash-id
+                            (lambda (key signature name value trusted)
+                              (push (list key signature name value trusted)
+                                    accu)))
+    (setq accu (nreverse accu))
+    accu))
+
 (provide 'xmtn-automate)
 
 ;;; xmtn-automate.el ends here

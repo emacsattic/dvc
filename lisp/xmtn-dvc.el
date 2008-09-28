@@ -39,6 +39,7 @@
   (require 'xmtn-base)
   (require 'xmtn-run)
   (require 'xmtn-automate)
+  (require 'xmtn-conflicts)
   (require 'xmtn-ids)
   (require 'xmtn-match)
   (require 'xmtn-minimal)
@@ -113,56 +114,6 @@
   (xmtn-automate-simple-command-output-lines root
                                              `("toposort"
                                                ,@revision-hash-ids)))
-
-(defun xmtn--map-parsed-certs (xmtn--root xmtn--revision-hash-id xmtn--thunk)
-  (lexical-let ((root xmtn--root)
-                (revision-hash-id xmtn--revision-hash-id)
-                (thunk xmtn--thunk))
-    (xmtn--with-automate-command-output-basic-io-parser
-        (xmtn--next-stanza root `("certs" ,revision-hash-id))
-      (loop
-       for xmtn--stanza = (funcall xmtn--next-stanza)
-       while xmtn--stanza
-       do (xmtn-match xmtn--stanza
-            ((("key" (string $xmtn--key))
-              ("signature" (string $xmtn--signature))
-              ("name" (string $xmtn--name))
-              ("value" (string $xmtn--value))
-              ("trust" (string $xmtn--trust)))
-             (setq xmtn--signature (xmtn-match xmtn--signature
-                                     ("ok" 'ok)
-                                     ("bad" 'bad)
-                                     ("unknown" 'unknown)))
-             (let ((xmtn--trusted (xmtn-match xmtn--trust
-                                    ("trusted" t)
-                                    ("untrusted" nil))))
-               (macrolet ((decodef (var)
-                            `(setq ,var (decode-coding-string
-                                         ,var 'xmtn--monotone-normal-form))))
-                 (decodef xmtn--key)
-                 (decodef xmtn--name)
-                 ;; I'm not sure this is correct.  The documentation
-                 ;; mentions a cert_is_binary hook, but it doesn't
-                 ;; exist; and even if it did, we would have no way of
-                 ;; calling it from here.  But, since cert values are
-                 ;; always passed on the command line, and command
-                 ;; line arguments are converted to utf-8, I suspect
-                 ;; certs will also always be in utf-8.
-                 (decodef xmtn--value))
-               (funcall thunk
-                        xmtn--key xmtn--signature xmtn--name xmtn--value
-                        xmtn--trusted))))))))
-
-(defun xmtn--list-parsed-certs (root revision-hash-id)
-  "Return a list of the contents of each cert attached to REVISION-HASH-ID.
-Each element of the list is a list; key, signature, name, value, trust."
-  (lexical-let ((accu '()))
-    (xmtn--map-parsed-certs root revision-hash-id
-                            (lambda (key signature name value trusted)
-                              (push (list key signature name value trusted)
-                                    accu)))
-    (setq accu (nreverse accu))
-    accu))
 
 (defun xmtn--insert-log-edit-hints (root branch buffer prefix normalized-files)
   (with-current-buffer buffer
@@ -469,10 +420,9 @@ the file before saving."
   (with-current-buffer status-buffer
     ;; different modes use different names for the ewoc
     ;; FIXME: should have a separate function for each mode
-    (let ((ewoc (or dvc-fileinfo-ewoc
-                    dvc-revlist-cookie)))
+    (if dvc-fileinfo-ewoc
       (ewoc-set-hf
-       ewoc
+       dvc-fileinfo-ewoc
        (xmtn--status-header default-directory (xmtn--get-base-revision-hash-id-or-null default-directory))
        ""))))
 
@@ -577,15 +527,22 @@ the file before saving."
 
 (defvar xmtn-diff-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "MP" 'xmtn-propagate-from)
     (define-key map "MH" 'xmtn-view-heads-revlist)
+    (define-key map "MC" 'xmtn-conflicts-propagate)
+    (define-key map "MR" 'xmtn-conflicts-review)
+    (define-key map "MP" 'xmtn-propagate-from)
+    (define-key map "Mx" 'xmtn-conflicts-clean)
     map))
 
+;; items added here should probably also be added to xmtn-revlist-mode-menu, -map in xmtn-revlist.el
 (easy-menu-define xmtn-diff-mode-menu xmtn-diff-mode-map
   "Mtn specific diff menu."
   `("DVC-Mtn"
-    ["Propagate branch" xmtn-propagate-from t]
     ["View Heads" xmtn-view-heads-revlist t]
+    ["Show propagate conflicts" xmtn-conflicts-propagate t]
+    ["Review conflicts" xmtn-conflicts-review t]
+    ["Propagate branch" xmtn-propagate-from t]
+    ["Clean conflicts resolutions" xmtn-conflicts-clean t]
     ))
 
 (define-derived-mode xmtn-diff-mode dvc-diff-mode "xmtn-diff"
@@ -931,7 +888,7 @@ the file before saving."
                        (when (not (ewoc-locate dvc-fileinfo-ewoc))
                          (ewoc-enter-last dvc-fileinfo-ewoc
                                           (make-dvc-fileinfo-message
-                                           :text (concat " no changes")))
+                                           :text (concat " no changes in workspace")))
                          (ewoc-refresh dvc-fileinfo-ewoc)))))
        :error (lambda (output error status arguments)
                 (dvc-diff-error-in-process
@@ -1335,14 +1292,17 @@ finished."
       ((root (dvc-tree-root))
        (local-branch (xmtn--tree-default-branch root))
        (resolve-conflicts
-        (if (file-exists-p (concat root "_MTN/conflicts"))
-            ;; just use relative path
-            (concat "--resolve-conflicts-file=_MTN/conflicts")))
+        (if (file-exists-p (concat root "/_MTN/conflicts"))
+            (progn
+              (xmtn-conflicts-check-mtn-version)
+              "--resolve-conflicts-file=_MTN/conflicts")))
        (cmd (list "propagate" other local-branch resolve-conflicts))
        (prompt
         (if resolve-conflicts
             (concat "Propagate from " other " to " local-branch " resolving conflicts? ")
           (concat "Propagate from " other " to " local-branch "? "))))
+
+    (save-some-buffers t); conflicts file may be open.
 
     (if (not (yes-or-no-p prompt))
         (error "user abort"))

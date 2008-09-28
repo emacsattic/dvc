@@ -230,8 +230,7 @@ Signals an error if more (or fewer) than one line is output."
              arguments))
     (first lines)))
 
-(defun xmtn--minimum-required-command-version ()
-  '(0 37))
+(defconst xmtn--minimum-required-command-version '(0 37))
 
 (defun xmtn--have-no-ignore ()
   "Non-nil if mtn automate inventory supports --no-ignore, --no-unknown, --no-unchanged options."
@@ -265,7 +264,7 @@ id."
         ;; Cache a fake version number to avoid infinite mutual
         ;; recursion.
         (xmtn--*cached-command-version*
-         (append (xmtn--minimum-required-command-version)
+         (append xmtn--minimum-required-command-version
                  '("xmtn-dummy" "xmtn-dummy")))
         (xmtn--*command-version-cached-for-executable* executable)
         (xmtn-executable executable))
@@ -283,7 +282,7 @@ id."
         (list major minor revision string)))))
 
 (defun xmtn--check-cached-command-version ()
-  (let ((minimum-version (xmtn--minimum-required-command-version)))
+  (let ((minimum-version xmtn--minimum-required-command-version))
     (destructuring-bind (major minor revision string)
         (xmtn--cached-command-version)
       (unless (or (> major (car minimum-version))

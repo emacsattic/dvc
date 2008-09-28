@@ -26,20 +26,12 @@
   (require 'dvc-utils)
   (require 'xmtn-automate)
   (require 'xmtn-basic-io)
-  (require 'xmtn-dvc)
+  (require 'xmtn-ids)
   (require 'xmtn-run))
 
 (eval-when-compile
   ;; these have functions we use
   (require 'dired))
-
-(defvar xmtn-conflicts-right-revision-spec ""
-  "Buffer-local variable holding user spec of left revision.")
-(make-variable-buffer-local 'xmtn-conflicts-right-revision-spec)
-
-(defvar xmtn-conflicts-left-revision-spec ""
-  "Buffer-local variable holding user spec of right revision.")
-(make-variable-buffer-local 'xmtn-conflicts-left-revision-spec)
 
 (defvar xmtn-conflicts-left-revision ""
   "Buffer-local variable holding left revision id.")
@@ -141,6 +133,11 @@
 All xmtn-conflicts functions operate on this ewoc.
 The elements must all be of class xmtn-conflicts.")
 (make-variable-buffer-local 'xmtn-conflicts-ewoc)
+
+(defun xmtn-conflicts-check-mtn-version()
+  "Error if mtn version does not support conflict resolution."
+  (let ((xmtn--minimum-required-command-version '(0 42)))
+    (xmtn--check-cached-command-version)))
 
 (defun xmtn-conflicts-parse-header ()
   "Fill `xmtn-conflicts-left-revision',
@@ -294,11 +291,6 @@ header."
   (goto-char (point-max))
   (let ((text-end (point)))
     (xmtn-conflicts-mode)
-
-    ;; FIXME: save these in an associated file
-    (setq xmtn-conflicts-left-revision-spec "")
-    (setq xmtn-conflicts-right-revision-spec "")
-
     (xmtn-conflicts-read (point-min) text-end))
 
   (set-buffer-modified-p nil)
@@ -641,6 +633,33 @@ header."
     map)
   "Keyboard menu keymap used to resolve conflicts.")
 
+(defun xmtn-conflicts-dtrt ()
+  "Do the right thing for the current conflict."
+  (interactive)
+  ;; xmtn-conflicts-resolve-map is usually the right thing. But when
+  ;; it's only going to show one option, this shortcuts directly to
+  ;; that.
+  (cond
+   ((xmtn-conflicts-content-resolvep)
+    (xmtn-conflicts-resolve-content-ediff))
+   (t
+    (condition-case nil
+        (x-popup-menu t xmtn-conflicts-resolve-map)
+      (error
+       ;; no appropriate actions; resolution is already specified
+       (if (y-or-n-p "resolution already specified; clear? ")
+           (xmtn-conflicts-clear-resolution)))))))
+
+(defun xmtn-conflicts-do-merge ()
+  "Perform merge or propagate on revisions in current conflict buffer."
+  (interactive)
+  (let ((left-branch (xmtn--branch-of default-directory xmtn-conflicts-left-revision))
+        (right-branch (xmtn--branch-of default-directory xmtn-conflicts-right-revision)))
+    (if (string= left-branch right-branch)
+        (xmtn-dvc-merge)
+    ;; right is current workspace
+    (xmtn-propagate-from left-branch))))
+
 (defvar xmtn-conflicts-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?C]  'xmtn-conflicts-clean)
@@ -651,7 +670,9 @@ header."
     (define-key map [?P]  'xmtn-conflicts-prev-unresolved)
     (define-key map [?q]  'dvc-buffer-quit)
     (define-key map [?r]  xmtn-conflicts-resolve-map)
-    (define-key map "M-d"  xmtn-conflicts-resolve-map)
+    (define-key map "\M-d"  'xmtn-conflicts-dtrt)
+    (define-key map "MM" 'xmtn-conflicts-do-merge)
+    (define-key map "MP" 'xmtn-conflicts-do-merge)
     map)
   "Keymap used in `xmtn-conflict-mode'.")
 
@@ -659,6 +680,10 @@ header."
   "`xmtn-conflicts' menu"
   `("Mtn-conflicts"
     ["Resolve conflict"     xmtn-conflicts-resolve-conflict t]
+    ["Do the Right Thing"   xmtn-conflicts-dtrt t]
+    ["Propagate branch"     xmtn-conflicts-do-propagate t]
+    ["Merge"                xmtn-merge t]
+    ["Clean"                xmtn-conflicts-clean t]
     ))
 
 (define-derived-mode xmtn-conflicts-mode fundamental-mode "xmtn-conflicts"
@@ -685,18 +710,18 @@ header."
   "List conflicts between LEFT and RIGHT revisions (monotone revision specs).
 Allow specifying resolutions.  LEFT and RIGHT default to current
 merge heads if nil.  `default-directory must be a workspace."
-    (xmtn--check-cached-command-version)
-    (dvc-run-dvc-async
-     'xmtn
-     (list "automate" "show_conflicts" left right)
-     :finished (dvc-capturing-lambda (output error status arguments)
-                 (let ((conflict-file (concat default-directory "_MTN/conflicts")))
-                   (with-current-buffer output (write-file conflict-file))
-                   (xmtn-conflicts-review conflict-file)))
+  (xmtn-conflicts-check-mtn-version)
+  (dvc-run-dvc-async
+   'xmtn
+   (list "automate" "show_conflicts" left right)
+   :finished (dvc-capturing-lambda (output error status arguments)
+               (let ((conflict-file (concat default-directory "_MTN/conflicts")))
+                 (with-current-buffer output (write-file conflict-file))
+                 (xmtn-conflicts-review conflict-file)))
 
-     :error (lambda (output error status arguments)
-              (pop-to-buffer error))
-     ))
+   :error (lambda (output error status arguments)
+            (pop-to-buffer error))
+   ))
 
 (defun xmtn-check-workspace-for-propagate (work)
   "Check that workspace WORK is ready for propagate.
@@ -744,8 +769,8 @@ Allow specifying resolutions.  LEFT-WORK and RIGHT-WORK are strings giving
 workspace directories; prompted if nil. Review is done in RIGHT-WORK
 workspace."
   (interactive "i\ni")
-  (setq left-work (dvc-read-project-tree-maybe "Left (workspace directory): " left-work))
-  (setq right-work (dvc-read-project-tree-maybe "Right (workspace directory): " right-work))
+  (setq left-work (dvc-read-project-tree-maybe "Propagate from (workspace directory): " left-work))
+  (setq right-work (dvc-read-project-tree-maybe "to (workspace directory): " right-work))
 
   (xmtn-check-workspace-for-propagate left-work)
   (xmtn-check-workspace-for-propagate right-work)
@@ -757,7 +782,7 @@ workspace."
 ;;;###autoload
 (defun xmtn-conflicts-merge (left right)
   "List conflicts between LEFT and RIGHT revisions, allow specifying resolutions.
-LEFT and RIGHT default to current merge heads if nil."
+LEFT and RIGHT default to current merge heads."
   (interactive "MLeft revision (monotone revision spec): \nMRight revision (monotone revision spec): ")
   (let ((default-directory
           (dvc-read-project-tree-maybe "Review conflicts in (workspace directory): ")))
