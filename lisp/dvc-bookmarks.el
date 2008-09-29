@@ -2,7 +2,8 @@
 
 ;; Copyright (C) 2006-2008 by all contributors
 
-;; Author: Stefan Reichoer, <stefan@xsteve.at>
+;; Authors: Stefan Reichoer, <stefan@xsteve.at>
+;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -607,20 +608,24 @@ and quit"
           (dvc-bookmarks-save)
           (dvc-bookmark-goto-name (file-name-nondirectory (car (last bname-list)))))
         (message "Operation aborted"))))
-          
-          
 
-(defun dvc-bookmarks-edit (bookmark-name bookmark-local-dir bmk-time-stamp)
+
+
+(defun dvc-bookmarks-edit (bookmark-name bookmark-local-dir &optional bmk-time-stamp)
   "Change the current DVC bookmark's BOOKMARK-NAME and/or LOCAL-DIR."
   (interactive
    (let* ((old-name (dvc-bookmark-name (dvc-bookmarks-current-bookmark)))
+          (cur-data (dvc-bookmarks-current-bookmark))
           (old-local-tree (dvc-bookmarks-current-value 'local-tree))
           (old-date (dvc-bookmarks-current-value 'time-stamp))
+          (is-child (equal (first (split-string (aref cur-data 1) "-"))
+                           "child"))
           (bmk-name (read-string "DVC bookmark name: " old-name))
           (bmk-loc (dvc-read-directory-name
                     (format "DVC bookmark %s directory: " bmk-name)
                     old-local-tree))
-          (bmk-tmstp (read-string "DVC bookmark time-stamp: " old-date)))
+          (bmk-tmstp (unless is-child
+                       (read-string "DVC bookmark time-stamp: " old-date))))
      (list bmk-name bmk-loc bmk-tmstp)))
   (if (assoc (aref (dvc-bookmarks-current-bookmark) 1) dvc-bookmark-alist)
       (error "Tree edition is not implemented yet! Sorry!")
@@ -1164,7 +1169,7 @@ do not use it to kill/yank, use dvc-bookmarks-kill instead"
       (if (yes-or-no-p "Really delete this bookmarks?")
           (dvc-bookmarks-delete-at-point)
           (message "Action aborted"))))
-  
+
 (defun dvc-bookmarks-add-empty-tree (name)
   "Add a new family to your bookmarks"
   (interactive "sName: ")
@@ -1207,15 +1212,33 @@ And add it to the `dvc-bookmarks-marked-entry-list'"
                   (remove bmk-name dvc-bookmarks-marked-entry-list)))
           (message "Marking bookmark entry %s" bmk-name)
           (push bmk-name dvc-bookmarks-marked-entry-list))
-      (ewoc-goto-next dvc-bookmarks-cookie 1)
-      (dvc-bookmarks))))
+      (dvc-bookmarks-goto-next)
+      (dvc-bookmarks-reload))))
+
+(defun dvc-bookmarks-reload ()
+  "Remember the last position and reload dvc-bookmarks"
+  (let ((last-pos (dvc-bookmark-name (dvc-bookmarks-current-bookmark))))
+    (dvc-bookmarks)
+    (dvc-bookmark-goto-name last-pos)))
+
+(defun dvc-bookmarks-goto-next ()
+  "Go to next bookmark even if there is
+closed tree(s) behind; in this case jump over
+partners will not be performed"
+  (let (flag-fwdl)
+    (save-excursion
+      (when (re-search-backward "closed" nil t)
+            (setq flag-fwdl t)))
+    (if flag-fwdl
+        (forward-line 1)
+        (ewoc-goto-next dvc-bookmarks-cookie 1))))
 
 (defun dvc-bookmarks-unmark-all ()
   "Unmark all bookmarks."
   (interactive)
   (setq dvc-bookmarks-marked-entry-list nil)
   (message "Unmarking all")
-  (dvc-bookmarks))
+  (dvc-bookmarks-reload))
 
 (defun dvc-bookmarks-marked-p ()
   (let* ((cur-data (dvc-bookmarks-current-bookmark))
@@ -1268,16 +1291,16 @@ and reinit `dvc-bookmarks-kill-ring'"
 
 ;; TODO adapt to new code
 ;;;;;;;;Obsoletes;;;;;;;;;;;;;;;;;;;;;;;
-(defun dvc-bookmarks-marked-bookmark ()
-  (when dvc-bookmarks-marked-entry
-    (save-excursion
-      (dvc-bookmark-goto-name dvc-bookmarks-marked-entry)
-      (dvc-bookmarks-current-bookmark))))
+;; (defun dvc-bookmarks-marked-bookmark ()
+;;   (when dvc-bookmarks-marked-entry
+;;     (save-excursion
+;;       (dvc-bookmark-goto-name dvc-bookmarks-marked-entry)
+;;       (dvc-bookmarks-current-bookmark))))
 
-(defun dvc-bookmarks-marked-value (key)
-  (let ((marked-bookmark (dvc-bookmarks-marked-bookmark)))
-    (when marked-bookmark
-      (dvc-bookmark-value marked-bookmark key))))
+;; (defun dvc-bookmarks-marked-value (key)
+;;   (let ((marked-bookmark (dvc-bookmarks-marked-bookmark)))
+;;     (when marked-bookmark
+;;       (dvc-bookmark-value marked-bookmark key))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
