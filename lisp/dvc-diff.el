@@ -211,7 +211,8 @@ Pretty-print ELEM."
     ["Log (single file)"              dvc-diff-log-single     t]
     "--"
     ["Delete File"                    dvc-remove-files        t]
-    ["Revert File"                    dvc-revert-files        t]
+    ["Delete File"                    dvc-remove-files        t]
+    ["Add File"                       dvc-add-files           t]
     )
   "Used both in the global and the context menu of `dvc-diff-mode'.")
 
