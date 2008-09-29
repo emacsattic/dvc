@@ -103,7 +103,7 @@ Backends supported:
 @c ============================================================================
 @menu
 * Installation::
-* DVC Tour::
+* DVC Tla Tour::
 * Use cases::
 * Trouble Shooting::
 * Customization::
@@ -118,7 +118,7 @@ Backends supported:
 * Variable Index::
 @end menu
 
-@node Installation, DVC Tour, Top, Top
+@node Installation, DVC Tla Tour, Top, Top
 @section Installation
 @cindex Installation
 @cindex Makefile
@@ -228,7 +228,7 @@ executable, not a DOS batch file or other script. The Emacs variable
 @cindex Hooking into GNU Emacs
 
 (There is nothing to do for XEmacs users here, just start using
-@b{DVC}, i.e. goto @pxref{DVC Tour})
+@b{DVC}, i.e. goto @pxref{DVC Tla Tour})
 
 If you are reading this document the installation of files and setting
 up the @code{load-path} and @code{Info-directory-list} was already
@@ -255,8 +255,8 @@ manually with
 This will set up @b{DVC}.
 
 @c ============================================================================
-@node DVC Tour, Use cases, Installation, Top
-@section DVC Tour
+@node DVC Tla Tour, Use cases, Installation, Top
+@section DVC Tla Tour
 
 This section discusses the basics of @b{DVC} - an overview of the
 available commands.
@@ -264,7 +264,7 @@ available commands.
 @menu
 * A tutorial guide to DVC::
 * First contact::               DVC is self documented
-* Archive Browsing::            The basics of browsing
+* Tla Archive Browsing::        The basics of tla archive browsing
 * Editing Files::               Inserting tags, adding change logs
 * Committing Files::            How to commit your changes
 * Using Bookmarks::             Working in a team
@@ -274,7 +274,7 @@ available commands.
 
 @c ----------------------------------------------------------------------------
 
-@node A tutorial guide to DVC, First contact, DVC Tour, DVC Tour
+@node A tutorial guide to DVC, First contact, DVC Tla Tour, DVC Tla Tour
 @subsection A tutorial guide to DVC
 
 The following sections present a step-by-step tutorial guide to using
@@ -287,15 +287,15 @@ For the purposes of this tutorial, we will use the DVC project as an
 example of a project you might like to track (humour me).
 
 @menu
-* Register an archive::
+* Register an tla archive::
 * Bookmarking a project::
 * Creating a branch of a project and getting a project tree::
 * Finding and merging missing patches::
 * Reviewing and committing your changes::
 @end menu
 
-@node Register an archive, Bookmarking a project, A tutorial guide to DVC, A tutorial guide to DVC
-@subsubsection Register an archive
+@node Register an tla archive, Bookmarking a project, A tutorial guide to DVC, A tutorial guide to DVC
+@subsubsection Register an tla archive
 
 The first step in tracking a project's development is to register its
 archive in your archive list.  You can do this by starting the archive
@@ -313,7 +313,7 @@ now see the newly-registered archive listed.
 @end ifset
 @end ifhtml
 
-@node Bookmarking a project, Creating a branch of a project and getting a project tree, Register an archive, A tutorial guide to DVC
+@node Bookmarking a project, Creating a branch of a project and getting a project tree, Register an tla archive, A tutorial guide to DVC
 @subsubsection Bookmarking a project
 
 The normal usage of DVC is to create a bookmark for each version of a
@@ -435,7 +435,7 @@ a} from the project tree file you are currently visiting.
 To commit your changes, type @kbd{C-c C-c} from your log buffer.
 
 
-@node First contact, Archive Browsing, A tutorial guide to DVC, DVC Tour
+@node First contact, Tla Archive Browsing, A tutorial guide to DVC, DVC Tla Tour
 @subsection First contact
 
 @b{DVC} is self documented, so this manual will be very short. We suppose
@@ -466,8 +466,8 @@ To check your id, call the same command without a prefix argument:
 @kbd{M-x tla-my-id}
 
 @c ----------------------------------------------------------------------------
-@node Archive Browsing, Editing Files, First contact, DVC Tour
-@subsection Archive Browsing
+@node Tla Archive Browsing, Editing Files, First contact, DVC Tla Tour
+@subsection Tla Archive Browsing
 
 It is pretty intuitive, just type @kbd{C-x T A} and investigate the
 menu bar (Hmm, many people usually deactivate the menu bar, but please,
@@ -478,7 +478,7 @@ If you have no archives registered yet, type @kbd{a r} and provide the
 location of an archive.
 
 @c ----------------------------------------------------------------------------
-@node Editing Files, Committing Files, Archive Browsing, DVC Tour
+@node Editing Files, Committing Files, Tla Archive Browsing, DVC Tla Tour
 @subsection Editing Files
 
 Adding new files can be done in two ways:
@@ -499,7 +499,7 @@ You are encouraged to add log entries while you are editing.  Type
 @kbd{C-x T a} add your notes.
 
 @c ----------------------------------------------------------------------------
-@node Committing Files, Using Bookmarks, Editing Files, DVC Tour
+@node Committing Files, Using Bookmarks, Editing Files, DVC Tla Tour
 @subsection Committing Files
 
 @enumerate
@@ -533,7 +533,7 @@ commit. So, if you change your mind, you can go back and select/unselect
 some files before committing.
 
 @c ----------------------------------------------------------------------------
-@node Using Bookmarks, Transmit patches via email, Committing Files, DVC Tour
+@node Using Bookmarks, Transmit patches via email, Committing Files, DVC Tla Tour
 @subsection Using Bookmarks
 
 @cindex Working in a project
@@ -621,7 +621,7 @@ the missing patches for my projects. @kbd{* g dvc RET M} will tell me if my
 partners for @code{dvc} are up-to-date with my archive.
 
 @c ----------------------------------------------------------------------------
-@node Transmit patches via email,  , Using Bookmarks, DVC Tour
+@node Transmit patches via email,  , Using Bookmarks, DVC Tla Tour
 @subsection Transmit patches via email
 
 This section discusses a way to send/receive patches via email. That way
@@ -692,7 +692,7 @@ from the received mail:
 @end enumerate
 
 
-@node Use cases, Trouble Shooting, DVC Tour, Top
+@node Use cases, Trouble Shooting, DVC Tla Tour, Top
 @comment  node-name,  next,  previous,  up
 @section How to use DVC depending on your role
 
@@ -899,41 +899,10 @@ in the DVC distribution.
 @section The Latest Version
 
 @noindent
-Tarballs of @b{DVC} can be found at the following URL:
 
-@url{http://download.gna.org/dvc-el/}
+Get the bzr repository for @b{DVC}:
 
-@noindent
-Development versions of @b{DVC} can be obtained from a public archive
-of one of the developers, e.g. from the initiator of @b{DVC}:
-
-@table @url
-@item @b{Location}
-@b{Owner}
-
-@item http://arch.xsteve.at/2005
-Stefan REICHOER: The project initiator. Author of the xhg backend.
-
-@item http://www-verimag.imag.fr/~moy/arch/public/
-Matthieu MOY: The "central" development archive. Author of the bzr backend.
-
-@item http://mani.sourceforge.jp/arch/dvc
-Masatake YAMATO: Master of @code{xtla-browse.el}, integration into GNU Emacs ...
-
-@item http://www.robf.de/Hacking/arch/2005
-Robert WIDHOPF-FENK: maintainer of XEmacs compatibility
-
-@item  http://members.iinet.net.au/~striggs/arch-2005/
-Mark TRIGGS
-
-@c the following developers have no active 1.1 archive
-@c @item http://www.zamazal.org/Arch/
-@c Milan ZAMAZAL
-@c
-@c @item http://sourcefrog.net/arch/mbp@@sourcefrog.net--2004
-@c Martin POOL
-
-@end table
+@code{# bzr get http://bzr.xsteve.at/dvc}
 
 Users of development versions of @b{DVC} @b{should subscribe} to the
 @code{dvc-el-dev} mailing list.  @xref{Mailing Lists}.
