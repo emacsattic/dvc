@@ -632,6 +632,17 @@ merged by another revision in the same list."
                         'ewoc-next) ,cookie next)))
        (when next (goto-char (ewoc-location next))))))
 
+(defun dvc-ewoc-maybe-scroll (ewoc node)
+  "If display of NODE goes off the bottom of the window, recenter."
+  (let* ((next-node (ewoc-next ewoc node))
+         (next-loc (if next-node
+                       (ewoc-location next-node)
+                     (ewoc-location (ewoc--footer ewoc)))))
+    (if (> next-loc (window-end))
+        ;; we tried scroll-up here, but it screws up sometimes
+        (recenter))
+  ))
+
 (defmacro dvc-make-ewoc-next (function-name ewoc)
   "Declare a function FUNCTION-NAME to move to the next EWOC entry."
   (declare (indent 2) (debug (&define functionp function-name symbolp)))
@@ -647,7 +658,8 @@ element. If optional NO-DING, don't ding if there is no next."
        (cond
         ((> cur-location (point))
          ;; not exactly at an element; move there
-         (goto-char cur-location))
+         (goto-char cur-location)
+         (dvc-ewoc-maybe-scroll ,ewoc current))
 
         (next
          (if filter
@@ -658,7 +670,8 @@ element. If optional NO-DING, don't ding if there is no next."
                (if next
                    (goto-char (ewoc-location next))
                  (unless no-ding (ding))))
-           (goto-char (ewoc-location next))))
+           (goto-char (ewoc-location next))
+           (dvc-ewoc-maybe-scroll ,ewoc next)))
 
         (t
          ;; at last element
