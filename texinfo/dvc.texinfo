@@ -299,7 +299,7 @@ example of a project you might like to track (humour me).
 
 The first step in tracking a project's development is to register its
 archive in your archive list.  You can do this by starting the archive
-browser (@kbd{C-x T A}) and typing @kbd{a r} to register a new archive.
+browser (@kbd{C-x V A}) and typing @kbd{a r} to register a new archive.
 DVC's archive location is currently
 @url{http://www-verimag.imag.fr/~moy/arch/public/}, and the default
 value for the archive name will be fine.  Having done this, you should
@@ -323,7 +323,7 @@ the primary entry points for DVC.
 
 To track DVC's development, you will most likely want to add a bookmark
 for its main development line.  You can do this by entering the
-bookmarks buffer (@kbd{C-x T b}) and adding a new bookmark with (@kbd{a
+bookmarks buffer (@kbd{C-x V b}) and adding a new bookmark with (@kbd{a
 b}, or ``add bookmark'').  You should be prompted for a version name,
 and you can use tab completion to enter
 @code{Matthieu.Moy@@imag.fr--public/dvc--main--0}.  You can give your
@@ -338,7 +338,7 @@ list for that version.  You can use this list to browse archive logs
 @subsubsection Creating a branch of a project and getting a project tree
 
 Having created a bookmark for the DVC project, you are ready to create
-your own branch.  Again from the bookmarks buffer (@kbd{C-x T b}), move
+your own branch.  Again from the bookmarks buffer (@kbd{C-x V b}), move
 the point to your bookmark for DVC and hit @kbd{M T}.  You will be
 prompted for the tag version to be created for your new branch.  Put the
 branch somewhere in your default archive (I put mine in
@@ -375,7 +375,7 @@ Before you start making changes, it is a good idea to see if any new
 patches have been added to the mainline since you last checked.  DVC is
 particularly good at doing this.
 
-Start by entering the bookmarks buffer (@kbd{C-x T b}), move your point
+Start by entering the bookmarks buffer (@kbd{C-x V b}), move your point
 to the bookmark of your DVC branch and hit @kbd{M m}.  A
 @code{*tla-missing*} buffer should appear, and show any patches that are
 in the mainline but not in your tree.
@@ -403,10 +403,10 @@ star-merge all missing patches up to the patch under the point.
 @subsubsection Reviewing and committing your changes
 
 After making changes to your project tree, you are ready to commit.  You
-can review your changes by typing @kbd{C-x T =} from within your project
+can review your changes by typing @kbd{C-x V =} from within your project
 tree, and a @code{*tla-changes*} buffer should appear with diff output.
 Before committing, you might also like to tree-lint your local tree by
-hitting @kbd{C-x T l} (but this is done automatically if @code{tla
+hitting @kbd{C-x V l} (but this is done automatically if @code{tla
 changes} fails and suggests a @code{tree-lint}).
 
 @ifhtml
@@ -418,10 +418,10 @@ changes} fails and suggests a @code{tree-lint}).
 @end ifhtml
 
 Once you are satisfied with your changes, you can create a log file by
-hitting @kbd{C-x T c} (or simply @kbd{c} from your @code{*tla-changes*}
+hitting @kbd{C-x V c} (or simply @kbd{c} from your @code{*tla-changes*}
 buffer).  Many users prefer to write their log file incrementally, and
-you can always save this file and hit @kbd{C-x T c} to return to it
-later.  You can also add a ChangeLog-style entry by hitting @kbd{C-x T
+you can always save this file and hit @kbd{C-x V c} to return to it
+later.  You can also add a ChangeLog-style entry by hitting @kbd{C-x V
 a} from the project tree file you are currently visiting.
 
 @ifhtml
@@ -446,11 +446,11 @@ point, and an "Tla-..." menu in most @b{DVC}-related modes. Once you
 have learnt the keyboard shortcuts, you will not need the menus anymore.
 
 The most important commands have global keybindings. The prefix is
-@kbd{C-x T} by default. Type @kbd{C-x T C-h} for a list. In each
+@kbd{C-x V} by default. Type @kbd{C-x V C-h} for a list. In each
 @b{DVC} specific buffer, other (shorter) keyboard shortcuts are
 available. @kbd{C-h m} will give you a list.
 
-To get help about a tla command, @kbd{C-x T h command RET} will show
+To get help about a tla command, @kbd{C-x V h command RET} will show
 you the output of @code{tla command -H}. Since DVC is nothing more
 than a wrapper around tla, this is a very good way to get help !
 
@@ -469,7 +469,7 @@ To check your id, call the same command without a prefix argument:
 @node Tla Archive Browsing, Editing Files, First contact, DVC Tla Tour
 @subsection Tla Archive Browsing
 
-It is pretty intuitive, just type @kbd{C-x T A} and investigate the
+It is pretty intuitive, just type @kbd{C-x V A} and investigate the
 menu bar (Hmm, many people usually deactivate the menu bar, but please,
 enable it while learning DVC ;-) You'll remove it afterwards) and the
 mode help by @kbd{C-h m}.
@@ -485,25 +485,25 @@ Adding new files can be done in two ways:
 
 @enumerate
 
-@item Add an arch-tag to the file, by typing @kbd{C-x T t}. Attention,
+@item Add an arch-tag to the file, by typing @kbd{C-x V t}. Attention,
 files used as templates (@code{Makefile.in}) should be added explicitly
 instead of using arch-tag lines.
 
-@item Explicitly add it from the inventory view. Type @kbd{C-x T i},
+@item Explicitly add it from the inventory view. Type @kbd{C-x V i},
 mark the new files by typing @code{m} and finally add them by typing
 @kbd{a}.
 
 @end enumerate
 
 You are encouraged to add log entries while you are editing.  Type
-@kbd{C-x T a} add your notes.
+@kbd{C-x V a} add your notes.
 
 @c ----------------------------------------------------------------------------
 @node Committing Files, Using Bookmarks, Editing Files, DVC Tla Tour
 @subsection Committing Files
 
 @enumerate
-@item First review your changes by typing @kbd{C-x T =}.
+@item First review your changes by typing @kbd{C-x V =}.
 
 If your tree contains nested trees, then DVC will display the list of
 nested trees at the top of the changes buffer. They are marked with a
@@ -549,7 +549,7 @@ some files before committing.
 @subsubsection Bookmarks basics
 
 Bookmarks are primarily used to keep a list of the most visited arch
-locations. Type @kbd{C-x T b} will show you the bookmarks
+locations. Type @kbd{C-x V b} will show you the bookmarks
 buffer. It should be empty for now, but you can add some by typing @kbd{a}.
 
 Ah, it's a pain, you have to type the full location, like
