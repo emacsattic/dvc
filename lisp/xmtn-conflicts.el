@@ -335,9 +335,10 @@ header."
   (set-syntax-table xmtn-basic-io--*syntax-table*)
   (goto-char begin)
   (xmtn-conflicts-parse-header)
-  (if (not xmtn-conflicts-ancestor-revision)
-      (error "no merge needed"))
-  (xmtn-conflicts-parse-conflicts (1- end)); off-by-one somewhere.
+  (if xmtn-conflicts-ancestor-revision
+      (xmtn-conflicts-parse-conflicts (1- end)); off-by-one somewhere.
+    ;; else no conflicts
+    )
   (let ((inhibit-read-only t)) (delete-region begin (1- end)))
   (xmtn-conflicts-set-hf)
   (set-buffer-modified-p nil)
@@ -533,7 +534,7 @@ header."
           (xmtn-conflicts-content
            (setf (xmtn-conflicts-content-resolution conflict) (list 'resolved_user result-file)))
           (xmtn-conflicts-duplicate_name
-           (ecase (nth 2 xmtn-conflicts-ediff-quit-info); side
+           (ecase (nth 3 xmtn-conflicts-ediff-quit-info); side
              ('left
               (setf (xmtn-conflicts-duplicate_name-left_resolution conflict) (list 'resolved_user result-file)))
              ('right
@@ -552,6 +553,18 @@ header."
       (make-directory dir t))
     (xmtn--get-file-by-id default-directory file-id file)
     file))
+
+(defun xmtn-conflicts-resolve-content-file ()
+  "Resolve the content conflict in current ewoc element, by user specified file."
+  (interactive)
+  ;; Right is the target workspace in a propagate, and also the current
+  ;; workspace in a merge. So default to right_name.
+  (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
+         (conflict (ewoc-data elem))
+         (result-file (read-file-name "resolution file: " "./" nil t
+                                      (xmtn-conflicts-content-right_name conflict))))
+    (setf (xmtn-conflicts-content-resolution conflict) (list 'resolved_user result-file))
+    (ewoc-invalidate xmtn-conflicts-ewoc elem)))
 
 (defun xmtn-conflicts-resolve-content-ediff ()
   "Resolve the content conflict in current ewoc element, via ediff."
@@ -647,7 +660,7 @@ header."
     ;; conflict buffer, in order to find the quit-info.
     (setq xmtn-conflicts-current-conflict-buffer (current-buffer))
     (setq xmtn-conflicts-ediff-quit-info
-          (list elem result-file side))
+          (list elem result-file (current-window-configuration) side))
     (ediff-merge-files file-left file-right nil result-file)
     ))
 
@@ -668,6 +681,9 @@ header."
 
 (defvar xmtn-conflicts-resolve-map
   (let ((map (make-sparse-keymap "resolution")))
+    (define-key map [?8]  '(menu-item "8) clear resolution"
+                                      'xmtn-conflicts-clear-resolution))
+
     ;; duplicate_name resolutions
     (define-key map [?7]  '(menu-item "7) right file"
                                       (lambda ()
@@ -702,6 +718,10 @@ header."
                                       :visible (xmtn-conflicts-duplicate_name-resolve-leftp)))
 
     ;; content resolutions
+    (define-key map [?1]  '(menu-item "1) file"
+                                      xmtn-conflicts-resolve-content-file
+                                      :visible (xmtn-conflicts-content-resolvep)))
+
     (define-key map [?0]  '(menu-item "0) ediff"
                                       xmtn-conflicts-resolve-content-ediff
                                       :visible (xmtn-conflicts-content-resolvep)))
@@ -719,6 +739,8 @@ header."
     (xmtn-conflicts-resolve-content-ediff))
    (t
     (condition-case nil
+        ;; FIXME: this does not invoke a keyboard menu; it pops up a
+        ;; menu, which then doesn't work!
         (x-popup-menu t xmtn-conflicts-resolve-map)
       (error
        ;; no appropriate actions; resolution is already specified
@@ -743,7 +765,7 @@ header."
     (define-key map [?P]  'xmtn-conflicts-prev-unresolved)
     (define-key map [?q]  'dvc-buffer-quit)
     (define-key map [?r]  xmtn-conflicts-resolve-map)
-    (define-key map "\M-d"  'xmtn-conflicts-dtrt)
+    (define-key map "\M-d"  xmtn-conflicts-resolve-map);; dtrt broken
     (define-key map "MM" 'xmtn-conflicts-do-merge)
     (define-key map "MP" 'xmtn-conflicts-do-merge)
     (define-key map "MU" 'dvc-update)
@@ -784,15 +806,13 @@ header."
 (defun xmtn-conflicts-1 (left right)
   "List conflicts between LEFT and RIGHT revisions (monotone revision specs).
 Allow specifying resolutions.  LEFT and RIGHT default to current
-merge heads if nil.  `default-directory must be a workspace."
+merge heads if nil.  `default-directory' must be a workspace."
   (xmtn-conflicts-check-mtn-version)
   (dvc-run-dvc-async
    'xmtn
-   (list "automate" "show_conflicts" left right)
-   :finished (dvc-capturing-lambda (output error status arguments)
-               (let ((conflict-file (concat default-directory "_MTN/conflicts")))
-                 (with-current-buffer output (write-file conflict-file))
-                 (xmtn-conflicts-review conflict-file)))
+   (list "conflicts" "store" left right)
+   :finished (lambda (output error status arguments)
+                 (xmtn-conflicts-review default-directory))
 
    :error (lambda (output error status arguments)
             (pop-to-buffer error))
