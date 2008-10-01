@@ -42,6 +42,11 @@
 ;;;###autoload
 (defalias 'xhg-dvc-merge 'xhg-merge)
 
+;;;###autoload
+(defun xhg-dvc-export-via-email ()
+  (interactive)
+  (call-interactively 'xhg-export-via-mail))
+
 (defvar xhg-dvc-commit-extra-parameters nil "A list of extra parameters for the next hg commit.")
 
 (defvar xhg-commit-done-hook '()

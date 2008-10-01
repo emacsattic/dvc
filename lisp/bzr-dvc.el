@@ -75,6 +75,9 @@ Usually that file is placed in the tree-root of the working tree.")
 
 (defalias 'bzr-dvc-log 'bzr-log)
 
+;;;###autoload
+(defalias 'bzr-dvc-save-diff 'bzr-save-diff)
+
 (defalias 'bzr-dvc-changelog 'bzr-changelog)
 
 (defun bzr-dvc-update ()
@@ -112,6 +115,21 @@ Usually that file is placed in the tree-root of the working tree.")
 (defalias 'bzr-dvc-annotate-time 'bzr-annotate-time)
 
 (defalias 'bzr-dvc-clone 'bzr-checkout)
+
+(defalias 'bzr-dvc-export-via-email 'bzr-export-via-email)
+
+(defun bzr-dvc-diff-against-url (path)
+  (let ((buffer (dvc-prepare-changes-buffer
+                 nil
+                 path
+                 'diff default-directory 'bzr)))
+    (dvc-switch-to-buffer-maybe buffer)
+    (message "Running bzr merge --preview %s" path)
+    (dvc-run-dvc-async 'bzr (list "merge" "--preview" "--force" path)
+                       :finished
+                       (dvc-capturing-lambda (output error status arguments)
+                         (dvc-show-changes-buffer output 'bzr-parse-diff
+                                                  (capture buffer))))))
 
 (provide 'bzr-dvc)
 ;;; bzr-dvc.el ends here

@@ -176,6 +176,13 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it."
     (dvc-save-some-buffers default-directory)
     (dvc-call "dvc-diff" base-rev default-directory dont-switch)))
 
+;;;###autoload
+(defun dvc-diff-against-url (path)
+  "Show the diff from the current tree against a remote url"
+  (interactive)
+  (dvc-save-some-buffers default-directory)
+  (dvc-call "dvc-diff-against-url" path))
+
 (defun dvc-dvc-last-revision (path)
   (list (dvc-current-active-dvc)
         (list 'last-revision path 1)))
@@ -239,7 +246,7 @@ Use `dvc-log' for the brief log."
 ;;;###autoload
 (define-dvc-unified-command dvc-add (file)
   "Adds FILE to the repository."
-  (interactive))
+  (interactive "fFile: "))
 
 (define-dvc-unified-command dvc-revision-direct-ancestor (revision)
   "Computes the direct ancestor of a revision.")
@@ -546,6 +553,11 @@ If TO is provided, send it to that email address.  If a prefix
 argument is given, modify the behavior of this command as
 specified by the VCS backend."
   (interactive (list current-prefix-arg)))
+
+;;;###autoload
+(define-dvc-unified-command dvc-export-via-email ()
+  "Send the changeset at point via email."
+  (interactive))
 
 (provide 'dvc-unified)
 

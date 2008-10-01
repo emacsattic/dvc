@@ -926,7 +926,6 @@ hg cat --rev <num revision> -o outputfile inputfile"
 (defun xhg-save-diff (filename)
   "Save the current hg diff to a file named FILENAME."
   (interactive (list (read-file-name "Save the hg diff to: ")))
-  (dvc-trace "xhg-save-diff %s" filename)
   (with-current-buffer
       (find-file-noselect filename)
     (let ((inhibit-read-only t))

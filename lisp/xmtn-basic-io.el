@@ -1,8 +1,10 @@
 ;;; xmtn-basic-io.el --- A parser for monotone's basic_io output format
 
+;; Copyright (C) 2008 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
+;; Maintainer: Stephen Leake stephen_leake@stephe-leake.org
 ;; Keywords: tools, extensions
 
 ;; This file is free software; you can redistribute it and/or modify
@@ -88,6 +90,8 @@
       key)))
 
 (defsubst xmtn-basic-io--read-field ()
+  "Return a list containing the class and value of the field at point.
+Possible classes are `string', `null-id', `id', `symbol'."
   ;; Calling `xmtn--debug-mark-text-processed' from here is way too
   ;; slow.
   (let ((end (scan-sexps (point) 1)))
@@ -95,10 +99,11 @@
     (xmtn--assert-optional (> end (point)))
     (prog1
         (case (char-after (point))
-          (?\" (list 'string (xmtn-basic-io--unescape-field
+          (?\" ; a string
+           (list 'string (xmtn-basic-io--unescape-field
                               (buffer-substring-no-properties (1+ (point))
                                                               (1- end)))))
-          (t (xmtn--assert-optional (eql (char-after (point)) ?\[) t)
+          (?\[ ; an id
              (cond ((eq (1+ (point)) (1- end)) ;see (elisp) Equality Predicates
                     (list 'null-id))
                    (t
@@ -107,7 +112,9 @@
                                                             (1- end))
                             'xmtn--hash-id))
                     (list 'id (buffer-substring-no-properties (1+ (point))
-                                                              (1- end)))))))
+                                                              (1- end))))))
+          (t ; a symbol
+           (list 'symbol (buffer-substring-no-properties (point) end))))
       (goto-char end)
       (xmtn--assert-optional (member (char-after) '(?\n ?\ ))))))
 
@@ -134,12 +141,19 @@
   (xmtn-basic-io--skip-white-space)
   (prog1
       (list* (xmtn-basic-io--read-key)
-             (loop while (not (eq (char-after) ?\n))
-                   do (xmtn-basic-io--skip-white-space)
+             (loop while (progn
+                      (xmtn-basic-io--skip-white-space)
+                      (not (eq (char-after) ?\n)))
                    collect (xmtn-basic-io--read-field)))
     (forward-char 1)))
 
-(defsubst xmtn-basic-io--next-parsed-line ()
+(defsubst xmtn-basic-io--peek ()
+  (case (char-after)
+    ((?\n) 'empty)
+    ((nil) 'eof)
+    (t t)))
+
+(defun xmtn-basic-io--next-parsed-line ()
   (case (char-after)
     ((?\n)
      (forward-char 1)
@@ -179,6 +193,53 @@
                               (with-current-buffer ,buffer
                                 (,parser-fn)))))
            ,@body)))))
+
+(defmacro xmtn-basic-io-parse-line (body)
+  "Read next basic-io line at point. Error if it is `empty' or
+`eof'. Otherwise execute BODY with `symbol' bound to key (a
+string), `value' bound to list containing parsed rest of line.
+List is of form ((category value) ...)."
+  (declare (indent 1) (debug (sexp body)))
+  `(let ((line (xmtn-basic-io--next-parsed-line)))
+     (if (member line '(empty eof))
+         (error "expecting a line, found %s" line)
+       (let ((symbol (car line))
+             (value (cdr line)))
+         ,body))))
+
+(defmacro xmtn-basic-io-optional-line (expected-key body-present body-absent)
+  "Read next basic-io line at point. If its key is
+EXPECTED-KEY (a string), execute BODY-PRESENT with `value' bound to list
+containing parsed rest of line. List is of form ((category value)
+...). Else execute BODY-ABSENT, with `value' bound to nil."
+  (declare (indent 1) (debug (sexp body)))
+  `(let ((line (xmtn-basic-io--next-parsed-line)))
+     (if (and (not (member line '(empty eof)))
+              (string= (car line) ,expected-key))
+         (let ((value (cdr line)))
+           ,body-present)
+       (let ((value nil))
+         ,body-absent)
+       )))
+
+(defmacro xmtn-basic-io-check-line (expected-key body)
+  "Read next basic-io line at point. Error if it is `empty' or
+`eof', or if its key is not EXPECTED-KEY (a string). Otherwise
+execute BODY with `value' bound to list containing parsed rest of
+line. List is of form ((category value) ...)."
+  (declare (indent 1) (debug (sexp body)))
+  `(let ((line (xmtn-basic-io--next-parsed-line)))
+     (if (or (member line '(empty eof))
+             (not (string= (car line) ,expected-key)))
+         (error "expecting \"%s\", found %s" ,expected-key line)
+       (let ((value (cdr line)))
+         ,body))))
+
+(defun xmtn-basic-io-check-empty ()
+  "Read next basic-io line at point. Error if it is not `empty' or `eof'."
+  (let ((line (xmtn-basic-io--next-parsed-line)))
+    (if (not (member line '(empty eof)))
+        (error "expecting an empty line, found %s" line))))
 
 (defmacro* xmtn-basic-io-with-line-parser ((line-parser buffer-form) &body body)
   "Run BODY with LINE-PARSER bound to a parser that parses BUFFER-FORM.
@@ -248,6 +309,29 @@ and must not be called any more."
   (xmtn-basic-io--generate-body-for-with-parser-form
    'xmtn-basic-io--next-stanza
    stanza-parser buffer-form body))
+
+(defun xmtn-basic-io-write-id (key id)
+  "Write a basic-io line with KEY, hex ID."
+  (insert key)
+  (insert " [")
+  (insert id)
+  (insert ?\])
+  (insert ?\n))
+
+(defun xmtn-basic-io-write-str (key str)
+  "Write a basic-io line with KEY, string STR."
+  (insert key)
+  (insert " \"")
+  (insert str)
+  (insert ?\")
+  (insert ?\n))
+
+(defun xmtn-basic-io-write-sym (key sym)
+  "Write a basic-io line with KEY, symbol SYM."
+  (insert key)
+  (insert " ")
+  (insert sym)
+  (insert ?\n))
 
 (provide 'xmtn-basic-io)
 

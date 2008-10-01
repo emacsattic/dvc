@@ -1,6 +1,6 @@
 ;;; bzr-core.el --- Core of support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -89,6 +89,10 @@ Does anyone know of a better way to get this info?"
 (defun bzr-default-global-argument ()
   "Disable aliases."
   '("--no-aliases"))
+
+(defun bzr-read-revision (prompt)
+  "Read a revision for the actual bzr working copy."
+  (read-string prompt (bzr-get-revision-at-point)))
 
 (provide 'bzr-core)
 ;;; bzr-core.el ends here
