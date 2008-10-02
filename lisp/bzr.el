@@ -1225,27 +1225,68 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
     (bzr-switch-checkout target))
   )
 
-(defun bzr-create-bundle (rev file-name)
+(defun bzr-create-bundle (rev file-name &optional extra-parameter-list)
   "Call bzr send --output to create a file containing a bundle"
   (interactive (list (bzr-read-revision "Create bundle for revision: ")
-                     (read-file-name "Name of the bzr bundle file: ")))
-  (dvc-run-dvc-sync 'bzr (list "send" "-o" (expand-file-name file-name) "-r" rev)
-                    :finished
-                    (lambda (output error status arguments)
-                      (message "Created bundle for revision %s in %s." rev file-name))))
+                     (read-file-name "Name of the bzr bundle file: ")
+                     (read-string "Extra parameters: ")))
+  (let ((arg-list (list "send" "-o" (expand-file-name file-name) "-r" rev)))
+    (when extra-parameter-list
+      (setq arg-list (append arg-list extra-parameter-list)))
+    (dvc-run-dvc-sync 'bzr arg-list
+                      :finished
+                      (lambda (output error status arguments)
+                        (message "Created bundle for revision %s in %s." rev file-name)))))
+
+(defvar bzr-export-via-email-parameters nil)
+;;(add-to-list 'bzr-export-via-email-parameters '("~/work/myprg/dvc" ("joe@host.com" "dvc-el")))
+;; or:
+;;(add-to-list 'bzr-export-via-email-parameters
+;; '("~/work/myprg/dvc" ("joe@host.com" "dvc-el" ("--no-bundle" "." "../dvc-bundle-base"))))
 
 (defun bzr-export-via-email ()
+  "Export the revision at point via email.
+`bzr-export-via-email-parameters' can be used to customize the behaviour of this function."
   (interactive)
   (let* ((rev (bzr-get-revision-at-point))
          (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
          (base-file-name nil)
          (summary (car (split-string log-message "\n")))
-         file-name)
-  (message "bzr-export-via-email %s: %s" rev summary)
-  (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") rev ".patch"))
-  (bzr-create-bundle rev file-name))
-  ;; TODO: send the created bundle via email...
-  )
+         (file-name nil)
+         (description nil)
+         (destination-email "")
+         (extra-parameter-list nil))
+    (dolist (m bzr-export-via-email-parameters)
+      (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (bzr-tree-root)))
+        ;;(message "%S" (cadr m))
+        (setq destination-email (car (cadr m)))
+        (setq base-file-name (nth 1 (cadr m)))
+        (setq extra-parameter-list (nth 2 (cadr m)))))
+    (message "bzr-export-via-email %s: %s to %s" rev summary destination-email)
+    (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") rev ".patch"))
+    (bzr-create-bundle rev file-name extra-parameter-list)
+
+    (setq description
+          (dvc-run-dvc-sync 'bzr (list "log" "-r" rev)
+                            :finished 'dvc-output-buffer-handler))
+
+    (require 'reporter)
+    (delete-other-windows)
+    (reporter-submit-bug-report
+     destination-email
+     nil
+     nil
+     nil
+     nil
+     description)
+
+    ;; delete emacs version - its not needed here
+    (delete-region (point) (point-max))
+
+    (mml-attach-file file-name "text/x-patch")
+    (goto-char (point-min))
+    (mail-position-on-field "Subject")
+    (insert (concat "[PATCH] " summary))))
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.

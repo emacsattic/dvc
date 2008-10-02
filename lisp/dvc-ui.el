@@ -332,13 +332,14 @@
     (define-key map (dvc-prefix-file ?R) 'dvc-revert-files)
     (define-key map (dvc-prefix-file ?M) 'dvc-rename)
     (define-key map (dvc-prefix-file ?X) 'dvc-purge-files)
+    (define-key map (dvc-prefix-file ?=) 'dvc-file-diff)
 
     (define-key map (dvc-prefix-view-buffer
                      ?p)                     'dvc-show-process-buffer)
     (define-key map (dvc-prefix-view-buffer
                      ?e)                     'dvc-show-last-error-buffer)
     (define-key map (dvc-prefix-view-buffer
-                     ?p)                     'dvc-show-process-buffer)
+                     ?l)                     'dvc-open-internal-log-buffer)
     (define-key map (dvc-prefix-view-buffer
                      dvc-key-diff)           'tla-changes-goto)
     (define-key map (dvc-prefix-view-buffer
@@ -346,7 +347,7 @@
     (define-key map (dvc-prefix-view-buffer
                      dvc-key-inventory)      'tla-inventory-goto)
     (define-key map (dvc-prefix-view-buffer
-                     dvc-key-tree-lint)      'tla-tree-lint-goto)
+                     ?L)                     'tla-tree-lint-goto)
     (define-key map (dvc-prefix-view-buffer ?r)   'tla-tree-revisions-goto)
 
     (define-key map (dvc-prefix-kill-ring ?a) 'tla-save-archive-to-kill-ring)
@@ -429,8 +430,11 @@ If you wish to disable the prefix key, set this variable to nil."
    ["Edit Commit Log" dvc-log-edit t]
    "---"
    "File Commands:"
-   ;; ["Insert Arch Tag" tla-tag-insert t]
+   ["Add Files"  dvc-add-files t]
+   ["Revert Files"  dvc-revert-files t]
+   ["Remove Files"  dvc-remove-files t]
    ["Add Log Entry"  dvc-add-log-entry t]
+   ;; ["Insert Arch Tag" tla-tag-insert t]
    ;; ["View File Diff" tla-file-diff t]
    ;; ["View File Ediff" tla-file-ediff t]
    ;; ["View Original" tla-file-view-original t]
