@@ -305,11 +305,13 @@ key here must be a symbol and not a string"
     (setq str-day-date
           (concat (int-to-string year)
                   "."
-                  (substring (int-to-string (/ (float month) 100)) 2)
+                  (if (< (length (substring (int-to-string (/ (float month) 100)) 2)) 2)
+                      (concat (substring (int-to-string (/ (float month) 100)) 2) "0")
+                      (substring (int-to-string (/ (float month) 100)) 2))
                   "."
                   (if (< (length (substring (int-to-string (/ (float day) 100)) 2)) 2)
                       (concat (substring (int-to-string (/ (float day) 100)) 2) "0")
-                    (substring (int-to-string (/ (float day) 100)) 2))))
+                      (substring (int-to-string (/ (float day) 100)) 2))))
     str-day-date))
 
 (defvar dvc-table-face '("dvc-id"
