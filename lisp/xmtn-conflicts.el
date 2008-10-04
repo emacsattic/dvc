@@ -179,8 +179,26 @@ header."
     (setq xmtn-conflicts-ancestor-revision (cadar value))
     (setq xmtn-conflicts-ancestor-revision nil))
   (xmtn-basic-io-check-empty)
-  (setq xmtn-conflicts-left-branch (xmtn--branch-of default-directory xmtn-conflicts-left-revision))
-  (setq xmtn-conflicts-right-branch (xmtn--branch-of default-directory xmtn-conflicts-right-revision))
+
+  ;; There may be multiple branches on a revision. right branch should
+  ;; match default-directory branch. If left has more than one branch,
+  ;; it must be the source of a propagate; pick the branch that isn't
+  ;; the right branch.
+  (setq xmtn-conflicts-left-branch (xmtn--branches-of xmtn-conflicts-left-revision))
+  (setq xmtn-conflicts-right-branch (xmtn--tree-default-branch default-directory))
+
+  (cond
+   ((= (length xmtn-conflicts-left-branch) 1)
+    (setq xmtn-conflicts-left-branch (car xmtn-conflicts-left-branch)))
+
+   ((= (length xmtn-conflicts-left-branch) 2)
+    (if (string= (car xmtn-conflicts-left-branch) xmtn-conflicts-right-branch)
+        (setq xmtn-conflicts-left-branch (cadr xmtn-conflicts-left-branch))
+      (setq xmtn-conflicts-left-branch (car xmtn-conflicts-left-branch))))
+
+   (t
+      (error "too many branch labels on left %s" xmtn-conflicts-left-branch)))
+
   (if (string= xmtn-conflicts-left-branch xmtn-conflicts-right-branch)
       (progn
         (setq xmtn-conflicts-left-root "_MTN/resolutions/left")
@@ -897,7 +915,6 @@ LEFT and RIGHT default to current merge heads."
     (let ((conflicts-buffer (dvc-get-buffer-create 'xmtn 'conflicts default-directory)))
       (dvc-kill-process-maybe conflicts-buffer)
       (pop-to-buffer conflicts-buffer)
-      ;; Arrange for `insert-file-conflicts' to finish the job
       (set (make-local-variable 'after-insert-file-functions) '(xmtn-conflicts-after-insert-file))
       (insert-file-contents "_MTN/conflicts" t))))
 

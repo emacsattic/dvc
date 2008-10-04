@@ -527,11 +527,12 @@ the file before saving."
 
 (defvar xmtn-diff-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map "CM" 'xmtn-conflicts-merge)
+    (define-key map "CP" 'xmtn-conflicts-propagate)
+    (define-key map "CR" 'xmtn-conflicts-review)
+    (define-key map "CC" 'xmtn-conflicts-clean)
     (define-key map "MH" 'xmtn-view-heads-revlist)
-    (define-key map "MC" 'xmtn-conflicts-propagate)
-    (define-key map "MR" 'xmtn-conflicts-review)
     (define-key map "MP" 'xmtn-propagate-from)
-    (define-key map "Mx" 'xmtn-conflicts-clean)
     map))
 
 ;; items added here should probably also be added to xmtn-revlist-mode-menu, -map in xmtn-revlist.el
@@ -1304,11 +1305,14 @@ finished."
         (error "user abort"))
 
     (lexical-let
-        ((display-buffer (current-buffer)))
-      (message "%s..." (mapconcat (lambda (item) item) cmd " "))
+        ((display-buffer (current-buffer))
+         (msg (mapconcat (lambda (item) item) cmd " ")))
+      (message "%s..." msg)
       (xmtn--run-command-that-might-invoke-merger
        root cmd
-       (lambda () (xmtn--refresh-status-header display-buffer))))))
+       (lambda ()
+         (xmtn--refresh-status-header display-buffer)
+         (message "%s... done" msg))))))
 
 ;;;###autoload
 (defun xmtn-dvc-merge (&optional other)
