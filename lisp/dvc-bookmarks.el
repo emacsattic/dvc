@@ -595,23 +595,37 @@ and quit"
     (add-to-list 'dvc-bookmark-alist elem t)
     (ewoc-enter-last dvc-bookmarks-cookie data)))
 
+(defun dvc-bookmarks-member-p (elm)
+  "Predicate to test if `elm' is member
+of dvc-bookmark-alist
+`elm' is a string"
+  (catch 'break
+    (dolist (x dvc-bookmark-alist)
+      (dolist (i (cdadr x))
+        (when (string= elm (car i))
+          (throw 'break t))))))
+
+;;;###autoload
 (defun dvc-bookmarks-dired-add-project ()
   "Add a DVC bookmark from dired"
   (interactive)
-  (let ((bname-list (dired-get-marked-files)))
-    (if (yes-or-no-p (format "Add %s bookmarks to DVC-BOOKMARKS?"
+  (let ((ori-list (dired-get-marked-files))
+        (bname-list))
+    (save-excursion
+      (dvc-bookmarks)
+      (dolist (i ori-list)
+        (if (not (dvc-bookmarks-member-p (file-name-nondirectory i)))
+            (push i bname-list)))
+    (if (yes-or-no-p (format "Add %s bookmarks to DVC-BOOKMARKS? "
                              (length bname-list)))
-        (save-excursion
-          (dvc-bookmarks)
+        (progn
           (dolist (i bname-list)
             (let ((bname (file-name-nondirectory i)))
               (when (file-directory-p i)
                 (dvc-bookmarks-add bname i))))
           (dvc-bookmarks-save)
           (dvc-bookmark-goto-name (file-name-nondirectory (car (last bname-list)))))
-        (message "Operation aborted"))))
-
-
+        (message "Operation aborted")))))
 
 (defun dvc-bookmarks-edit (bookmark-name bookmark-local-dir &optional bmk-time-stamp)
   "Change the current DVC bookmark's BOOKMARK-NAME and/or LOCAL-DIR."
