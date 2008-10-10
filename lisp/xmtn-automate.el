@@ -978,6 +978,9 @@ Each element of the list is a list; key, signature, name, value, trust."
 (defun xmtn--heads (root branch)
   (xmtn-automate-simple-command-output-lines root `("heads" ,branch)))
 
+(defun xmtn--tree-default-branch (root)
+  (xmtn-automate-simple-command-output-line root `("get_option" "branch")))
+
 
 (provide 'xmtn-automate)
 

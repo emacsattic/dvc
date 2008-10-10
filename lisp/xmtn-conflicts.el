@@ -41,21 +41,35 @@
   "Buffer-local variable holding right revision id.")
 (make-variable-buffer-local 'xmtn-conflicts-right-revision)
 
+(defvar xmtn-conflicts-left-work ""
+  "Buffer-local variable holding left workspace root.")
+(make-variable-buffer-local 'xmtn-conflicts-left-work)
+(put 'xmtn-conflicts-left-work 'permanent-local t)
+
+(defvar xmtn-conflicts-right-work ""
+  "Buffer-local variable holding right workspace root.")
+(make-variable-buffer-local 'xmtn-conflicts-right-work)
+(put 'xmtn-conflicts-right-work 'permanent-local t)
+
 (defvar xmtn-conflicts-left-root ""
-  "Buffer-local variable holding left resolution root directory name.")
+  "Buffer-local variable holding left resolution root directory
+  name; relative to workspace root.")
 (make-variable-buffer-local 'xmtn-conflicts-left-root)
 
 (defvar xmtn-conflicts-right-root ""
-  "Buffer-local variable holding right resolution root directory name.")
+  "Buffer-local variable holding right resolution root directory
+  name; relative to workspace root.")
 (make-variable-buffer-local 'xmtn-conflicts-right-root)
 
 (defvar xmtn-conflicts-left-branch ""
   "Buffer-local variable holding left resolution branch.")
 (make-variable-buffer-local 'xmtn-conflicts-left-branch)
+(put 'xmtn-conflicts-left-branch 'permanent-local t)
 
 (defvar xmtn-conflicts-right-branch ""
   "Buffer-local variable holding right resolution branch.")
 (make-variable-buffer-local 'xmtn-conflicts-right-branch)
+(put 'xmtn-conflicts-right-branch 'permanent-local t)
 
 (defvar xmtn-conflicts-ancestor-revision ""
   "Buffer-local variable holding ancestor revision id.")
@@ -180,24 +194,7 @@ header."
     (setq xmtn-conflicts-ancestor-revision nil))
   (xmtn-basic-io-check-empty)
 
-  ;; There may be multiple branches on a revision. right branch should
-  ;; match default-directory branch. If left has more than one branch,
-  ;; it must be the source of a propagate; pick the branch that isn't
-  ;; the right branch.
-  (setq xmtn-conflicts-left-branch (xmtn--branches-of xmtn-conflicts-left-revision))
-  (setq xmtn-conflicts-right-branch (xmtn--tree-default-branch default-directory))
-
-  (cond
-   ((= (length xmtn-conflicts-left-branch) 1)
-    (setq xmtn-conflicts-left-branch (car xmtn-conflicts-left-branch)))
-
-   ((= (length xmtn-conflicts-left-branch) 2)
-    (if (string= (car xmtn-conflicts-left-branch) xmtn-conflicts-right-branch)
-        (setq xmtn-conflicts-left-branch (cadr xmtn-conflicts-left-branch))
-      (setq xmtn-conflicts-left-branch (car xmtn-conflicts-left-branch))))
-
-   (t
-      (error "too many branch labels on left %s" xmtn-conflicts-left-branch)))
+  ;; xmtn-conflicts-left-branch xmtn-conflicts-right-branch set by xmtn-conflicts-load-opts
 
   (if (string= xmtn-conflicts-left-branch xmtn-conflicts-right-branch)
       (progn
@@ -821,14 +818,42 @@ header."
 
 (dvc-add-uniquify-directory-mode 'xmtn-conflicts-mode)
 
-(defun xmtn-conflicts-1 (left right)
-  "List conflicts between LEFT and RIGHT revisions (monotone revision specs).
-Allow specifying resolutions.  LEFT and RIGHT default to current
-merge heads if nil.  `default-directory' must be a workspace."
+(defconst xmtn-conflicts-opts-file "_MTN/dvc-conflicts-opts")
+
+(defun xmtn-conflicts-save-opts (left-work right-work)
+  "Store LEFT-WORK, RIGHT-WORK in `xmtn-conflicts-opts-file', for
+retrieval by `xmtn-conflicts-load-opts'."
+  (let ((xmtn-conflicts-left-work left-work)
+        (xmtn-conflicts-right-work right-work)
+        (xmtn-conflicts-left-branch (xmtn--tree-default-branch left-work))
+        (xmtn-conflicts-right-branch (xmtn--tree-default-branch right-work)))
+
+  (dvc-save-state (list 'xmtn-conflicts-left-work
+                        'xmtn-conflicts-left-branch
+                        'xmtn-conflicts-right-work
+                        'xmtn-conflicts-right-branch)
+                  (concat (file-name-as-directory right-work) xmtn-conflicts-opts-file))
+  ))
+
+(defun xmtn-conflicts-load-opts ()
+  "Load options saved by
+`xmtn-conflicts-save-opts'. `default-directory' must be workspace
+root where options file is stored."
+  (let ((opts-file (concat default-directory xmtn-conflicts-opts-file)))
+    (if (file-exists-p opts-file)
+        (load opts-file)
+      (error "%s options file not found" opts-file))))
+
+(defun xmtn-conflicts-1 (left-work left-rev right-work right-rev)
+  "List conflicts between LEFT-REV and RIGHT-REV
+revisions (monotone revision specs; may be nil) in LEFT-WORK and
+RIGHT-WORK workspaces (strings).  Allow specifying
+resolutions. Stores conflict file in LEFT-WORK/_MTN."
   (xmtn-conflicts-check-mtn-version)
+  (xmtn-conflicts-save-opts left-work right-work)
   (dvc-run-dvc-async
    'xmtn
-   (list "conflicts" "store" left right)
+   (list "conflicts" "store" left-rev right-rev)
    :finished (lambda (output error status arguments)
                  (xmtn-conflicts-review default-directory))
 
@@ -889,17 +914,18 @@ workspace."
   (xmtn-check-workspace-for-propagate right-work)
 
   (let ((default-directory right-work))
-    (xmtn-conflicts-1 (xmtn--get-base-revision-hash-id left-work)
+    (xmtn-conflicts-1 left-work
+                      (xmtn--get-base-revision-hash-id left-work)
+                      right-work
                       (xmtn--get-base-revision-hash-id right-work))))
 
 ;;;###autoload
-(defun xmtn-conflicts-merge (left right)
-  "List conflicts between LEFT and RIGHT revisions, allow specifying resolutions.
-LEFT and RIGHT default to current merge heads."
-  (interactive "MLeft revision (monotone revision spec): \nMRight revision (monotone revision spec): ")
+(defun xmtn-conflicts-merge ()
+  "List conflicts between current head revisions."
+  (interactive)
   (let ((default-directory
           (dvc-read-project-tree-maybe "Review conflicts in (workspace directory): ")))
-    (xmtn-conflicts-1 left right)))
+    (xmtn-conflicts-1 default-directory nil default-directory nil)))
 
 ;;;###autoload
 (defun xmtn-conflicts-review (&optional workspace)
@@ -913,8 +939,8 @@ LEFT and RIGHT default to current merge heads."
         (error "conflicts file not found"))
 
     (let ((conflicts-buffer (dvc-get-buffer-create 'xmtn 'conflicts default-directory)))
-      (dvc-kill-process-maybe conflicts-buffer)
       (pop-to-buffer conflicts-buffer)
+      (xmtn-conflicts-load-opts)
       (set (make-local-variable 'after-insert-file-functions) '(xmtn-conflicts-after-insert-file))
       (insert-file-contents "_MTN/conflicts" t))))
 

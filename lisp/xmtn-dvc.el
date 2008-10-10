@@ -98,9 +98,6 @@
   (concat (file-name-as-directory (or root (dvc-tree-root)))
           "_MTN/log"))
 
-(defun xmtn--tree-default-branch (root)
-  (xmtn-automate-simple-command-output-line root `("get_option" "branch")))
-
 (defun xmtn--tree-has-changes-p-future (root)
   (lexical-let ((future
                  (xmtn--command-output-lines-future
@@ -1319,7 +1316,12 @@ finished."
   (if other
       (xmtn-propagate-from other)
     ;; else merge heads
-    (let ((root (dvc-tree-root)))
+    (let* ((root (dvc-tree-root))
+           (resolve-conflicts
+            (if (file-exists-p (concat root "/_MTN/conflicts"))
+                (progn
+                  (xmtn-conflicts-check-mtn-version)
+                  "--resolve-conflicts-file=_MTN/conflicts"))))
       (lexical-let
           ((display-buffer (current-buffer)))
         (xmtn-automate-with-session
@@ -1333,7 +1335,7 @@ finished."
               (t
                (xmtn--run-command-that-might-invoke-merger
                 root
-                '("merge")
+                (list "merge" resolve-conflicts)
                 (lambda () (xmtn--refresh-status-header display-buffer))))))))))
   nil)
 
