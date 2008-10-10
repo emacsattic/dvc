@@ -99,6 +99,7 @@ PATH :: string
 
 NUM :: number
 
+REV-STRING :: string
 
 For Xtla (tla and baz):
 
@@ -109,7 +110,7 @@ For bzr:
 
 BACK-END-REVISION :: (local "path" NUM)
                    | (remote "url" NUM)
-
+                   | (tag REV-STRING)
 
 For xhg:
 
