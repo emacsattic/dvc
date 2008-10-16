@@ -941,6 +941,8 @@ In practice, check for the existance of \"FILE.BASE\"."
      (let* ((data (dvc-revision-get-data rev-id))
             (num (nth 1 data)))
        (concat "last:" (int-to-string num))))
+    (tag
+     (car (dvc-revision-get-data rev-id)))
     (otherwise (error "TODO: not implemented: %S" rev-id))))
 
 

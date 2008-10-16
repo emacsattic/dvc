@@ -109,6 +109,11 @@ Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
           (message "Extracted the patch log message from '%s'" dvc-memorized-log-header)))))
   (gnus-article-show-summary))
 
+(defvar dvc-gnus-article-apply-patch-deciders nil
+  "A list of functions that can be used to determine the patch type in a given mail.
+The function is called when the article buffer is active. It should return nil if
+the patch type could not be determined, otherwise one of the following:
+'tla, 'xhg, 'bzr-merge-or-pull-url, 'bzr-merge-bundle, 'xgit")
 (defvar dvc-gnus-override-window-config nil)
 (defun dvc-gnus-article-apply-patch (n)
   "Apply MIME part N, as patchset.
@@ -130,31 +135,37 @@ Otherwise `dvc-gnus-apply-patch' is called."
   (unless current-prefix-arg
     (setq n 2))
   (let ((patch-type)
-        (bzr-merge-or-pull-url))
+        (bzr-merge-or-pull-url)
+        (patch-decider-list dvc-gnus-article-apply-patch-deciders))
     (save-window-excursion
       (gnus-summary-select-article-buffer)
       (goto-char (point-min))
-      (cond ((re-search-forward (concat "\\[VERSION\\] "
-                                        (tla-make-name-regexp 4 t t))
-                                nil t)
-             (setq patch-type 'tla))
-            ((progn (goto-char (point-min))
-                    (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t))
-             (setq patch-type 'xhg))
-            ((progn (goto-char (point-min))
-                    (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
-                        (re-search-forward
-                         "^Committed revision [0-9]+ to \\(.+\\)$" nil t)))
-             (setq patch-type 'bzr-merge-or-pull
-                   bzr-merge-or-pull-url (match-string-no-properties 1)))
-            ((progn (goto-char (point-min))
-                    (re-search-forward "^# Bazaar merge directive format" nil t))
-             (setq patch-type 'bzr-merge-bundle))
-            ((progn (goto-char (point-min))
-                    (and (re-search-forward "^---$" nil t)
-                         (re-search-forward "^diff --git" nil t)))
-             (setq patch-type 'xgit))
-            (t (setq patch-type 'dvc))))
+      (while (and (not patch-type) patch-decider-list)
+        (setq patch-type (funcall (car patch-decider-list)))
+        (setq patch-decider-list (cdr patch-decider-list)))
+      (unless patch-type
+        (cond ((re-search-forward (concat "\\[VERSION\\] "
+                                          (tla-make-name-regexp 4 t t))
+                                  nil t)
+               (setq patch-type 'tla))
+              ((progn (goto-char (point-min))
+                      (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t))
+               (setq patch-type 'xhg))
+              ((progn (goto-char (point-min))
+                      (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
+                          (re-search-forward
+                           "^Committed revision [0-9]+ to \\(.+\\)$" nil t)))
+               (setq patch-type 'bzr-merge-or-pull
+                     bzr-merge-or-pull-url (match-string-no-properties 1)))
+              ((progn (goto-char (point-min))
+                      (re-search-forward "^# Bazaar merge directive format" nil t))
+               (setq patch-type 'bzr-merge-bundle))
+              ((progn (goto-char (point-min))
+                      (and (re-search-forward "^---$" nil t)
+                           (re-search-forward "^diff --git" nil t)))
+               (setq patch-type 'xgit))
+              (t (setq patch-type 'dvc)))))
+    (message "patch-type: %S" patch-type)
     (cond ((eq patch-type 'tla)
            (tla-gnus-article-apply-patch n))
           ((eq patch-type 'xhg)
@@ -165,11 +176,15 @@ Otherwise `dvc-gnus-apply-patch' is called."
            (bzr-merge-or-pull-from-url bzr-merge-or-pull-url))
           ((eq patch-type 'bzr-merge-bundle)
            (bzr-gnus-article-merge-bundle n))
-          (t
+          ((eq patch-type 'bzr-pull-bundle-in-branch)
+           (bzr-gnus-article-pull-bundle-in-branch n))
+          ((eq patch-type nil)
            (let ((dvc-gnus-override-window-config))
              (gnus-article-part-wrapper n 'dvc-gnus-apply-patch)
              (when dvc-gnus-override-window-config
-               (set-window-configuration dvc-gnus-override-window-config)))))))
+               (set-window-configuration dvc-gnus-override-window-config))))
+          (t
+           (error "Unknown patch type %S" patch-type)))))
 
 (defvar dvc-gnus-select-patch-dir-function nil)
 (defun dvc-gnus-article-apply-patch-with-selected-destination (n)

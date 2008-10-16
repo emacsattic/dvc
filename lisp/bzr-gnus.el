@@ -133,6 +133,25 @@ Example setting: '((\"dvc-dev@gna.org\" \"~/work/bzr/dvc\"))"
         (bzr-status)
         (delete-other-windows)))))
 
+(defun bzr-gnus-article-pull-bundle-in-branch (n)
+  "Merge MIME part N, as bzr merge bundle."
+  (interactive "p")
+  (unless current-prefix-arg
+    (setq n 2))
+  (gnus-article-part-wrapper n 'bzr-gnus-pull-bundle-in-branch))
+
+(defun bzr-gnus-pull-bundle-in-branch (handle)
+  "Merge a bzr merge bundle via gnus.  HANDLE should be the handle of the part."
+  (let ((patch-file-name (concat (dvc-make-temp-name "gnus-bzr-pull-bundle-") ".patch"))
+        (window-conf (current-window-configuration))
+        (to-addr (message-fetch-field "To"))
+        (import-dir))
+    (gnus-summary-select-article-buffer)
+    (dvc-gnus-article-extract-log-message)
+    (mm-save-part-to-file handle patch-file-name)
+    (message "bzr-gnus-pull-bundle-in-branch: implementation not finished (saved patch to %s)" patch-file-name)))
+
+
 (provide 'bzr-gnus)
 ;;; bzr-gnus.el ends here
 
