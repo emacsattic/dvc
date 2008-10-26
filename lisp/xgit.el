@@ -597,7 +597,7 @@ git-show or nil for all files."
 
 (defun xgit-changed-files (dir rev)
   "Returns list of files changed in given revision"
-  (let* ((repo (xgit-git-dir dir))
+  (let* ((repo (xgit-git-dir-option dir))
          (cmd "diff-tree")
          (args (list repo cmd "--numstat" rev))
          (result (dvc-run-dvc-sync
@@ -651,7 +651,7 @@ If there is no tag return nil,
 if revision is a tag, return tag in a string,
 else returns list of '(tag offset all-described-string)."
   (interactive (list default-directory (read-string "Revision: ")))
-  (let* ((repo (xgit-git-dir dir))
+  (let* ((repo (xgit-git-dir-option dir))
          (cmd "describe")
          (args (list repo cmd rev))
          (info (dvc-run-dvc-sync 'xgit args
@@ -671,7 +671,7 @@ else returns list of '(tag offset all-described-string)."
 DIR is a directory controlled by Git.
 FILE is filename in the repository at DIR."
   (let* ((buffer (dvc-get-buffer-create 'xgit 'annotate))
-         (repo (xgit-git-dir dir))
+         (repo (xgit-git-dir-option dir))
          (cmd "blame")
          (fname (file-relative-name file (xgit-tree-root dir)))
          (args (list repo cmd "--" fname)))
@@ -834,6 +834,12 @@ Use git index?
 
 \(y/n/a/e/c/?)? "))))
            answer))))
+
+(defun xgit-get-root-exclude-file (&optional root)
+  "returns exclude file for ROOT"
+  (concat (file-name-as-directory (xgit-git-dir root))
+	  "info/"
+	  "exclude"))
 
 (provide 'xgit)
 ;;; xgit.el ends here
