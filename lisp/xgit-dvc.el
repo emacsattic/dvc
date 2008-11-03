@@ -124,6 +124,8 @@ ARG is passed as prefix argument"
 
 (defalias 'xgit-dvc-clone 'xgit-clone)
 
+(defalias 'xgit-dvc-branch 'xgit-branch)
+
 (defalias 'xgit-dvc-send-commit-notification 'xgit-gnus-send-commit-notification)
 
 ;;;###autoload
@@ -131,18 +133,18 @@ ARG is passed as prefix argument"
 
 (defun xgit-dvc-edit-ignore-files ()
   "Edit git's ignore file.
-TODO: Support per directory ignore file. 
+TODO: Support per directory ignore file.
 	  This only supports exclude file now."
   (interactive)
   (find-file-other-window (xgit-get-root-exclude-file)))
 
 (defun xgit-dvc-ignore-files (file-list)
   "Added FILE-LIST to git's ignore file.
-TODO: Support per directory ignore file. 
+TODO: Support per directory ignore file.
 	  This only supports exclude file now."
   (interactive (list (dvc-current-file-list)))
-  
-  (when (y-or-n-p (format "Ignore %S for %s? " 
+
+  (when (y-or-n-p (format "Ignore %S for %s? "
 			  file-list
 			  (xgit-git-dir)))
 	(with-current-buffer

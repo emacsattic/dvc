@@ -714,6 +714,11 @@ When ALL is given, show all branches, using \"git branch -a\"."
     (dvc-run-dvc-sync 'xgit (list "branch" (when all "-a"))
                       :finished 'dvc-output-buffer-split-handler)))
 
+(defun xgit-branch (branch-name)
+  "Run \"git branch BRANCH-NAME\" to create a new branch."
+  (interactive "sCreate new git branch: ")
+  (dvc-run-dvc-sync 'xgit (list "branch" branch-name)))
+
 ;;;###autoload
 (defun xgit-apply-patch (file)
   "Run \"git apply\" to apply the contents of FILE as a patch."

@@ -318,6 +318,7 @@
     (define-key map [(meta ?l)] 'tla-tree-lint)
     (define-key map [?I]                     'dvc-init)
     (define-key map [?C]                     'dvc-clone)
+    (define-key map [?B]                     'dvc-branch)
     (define-key map [?F]                     'dvc-pull)
     (define-key map [?P]                     'dvc-push)
     (define-key map dvc-keyvec-update        'dvc-update)

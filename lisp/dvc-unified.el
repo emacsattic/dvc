@@ -158,6 +158,12 @@ not &rest."
       (funcall (dvc-function dvc "dvc-clone") source-path dest-path))))
 
 ;;;###autoload
+(defun dvc-branch (&optional branch-name)
+  "Display the status in optional PATH tree."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-branch")))
+
+;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
   "Display the changes from BASE-REV to the local tree in PATH.
 BASE-REV (a revision-id) defaults to base revision of the
