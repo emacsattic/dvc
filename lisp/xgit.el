@@ -719,6 +719,12 @@ When ALL is given, show all branches, using \"git branch -a\"."
   (interactive "sCreate new git branch: ")
   (dvc-run-dvc-sync 'xgit (list "branch" branch-name)))
 
+(defun xgit-checkout (branch-name)
+  "Run \"git checout BRANCH-NAME\" to checkout an existing branch."
+  (interactive (list (substring (dvc-completing-read "Checkout git branch: " (xgit-branch-list t)) 2)))
+  (dvc-run-dvc-sync 'xgit (list "checkout" branch-name))
+  (message "git checkout %s done." branch-name))
+
 ;;;###autoload
 (defun xgit-apply-patch (file)
   "Run \"git apply\" to apply the contents of FILE as a patch."
