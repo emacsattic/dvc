@@ -132,14 +132,13 @@ current buffer."
                  (const :tag "Terse" terse)
                  (symbol :tag "Other")))
 
-(defcustom dvc-completing-read-function (if (and (boundp 'ido-mode)
-                                                 ido-mode)
-                                            'ido-completing-read
-                                          'completing-read)
+(defcustom dvc-completing-read-function 'auto
   "Function to call when prompting user to choose between a list of options.
 This should take the same arguments as `completing-read'.
 Possible values are `completing-read' and `ido-completing-read'.
-Note that you must set `ido-mode' if using`ido-completing-read'."
+Note that you must set `ido-mode' if using`ido-completing-read'.
+When set to 'auto, use `ido-completing-read' when ido-mode is enabled,
+otherwise `completing-read'."
   :type 'function
   :group 'dvc)
 
