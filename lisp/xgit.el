@@ -707,12 +707,22 @@ FILE is filename in the repository at DIR."
 
 (defun xgit-branch-list (&optional all)
   "Run \"git branch\" and list all known branches.
-When ALL is given, show all branches, using \"git branch -a\"."
+When ALL is given, show all branches, using \"git branch -a\".
+When called via lisp, return the list of branches. The currently selected branch is
+returned as first entry."
   (interactive "P")
   (if (interactive-p)
       (dvc-run-dvc-display-as-info 'xgit (list "branch" (when all "-a")))
-    (dvc-run-dvc-sync 'xgit (list "branch" (when all "-a"))
-                      :finished 'dvc-output-buffer-split-handler)))
+    (let ((branch-list-raw
+           (dvc-run-dvc-sync 'xgit (list "branch" (when all "-a"))
+                             :finished 'dvc-output-buffer-split-handler))
+          (branch-list))
+      (dolist (branch-entry branch-list-raw)
+        (cond ((string= (substring branch-entry 0 2) "* ")
+               (add-to-list 'branch-list (substring branch-entry 2)))
+              ((string= (substring branch-entry 0 2) "  ")
+               (add-to-list 'branch-list (substring branch-entry 2) t))))
+      branch-list)))
 
 (defun xgit-branch (branch-name)
   "Run \"git branch BRANCH-NAME\" to create a new branch."
@@ -721,7 +731,7 @@ When ALL is given, show all branches, using \"git branch -a\"."
 
 (defun xgit-checkout (branch-name)
   "Run \"git checout BRANCH-NAME\" to checkout an existing branch."
-  (interactive (list (substring (dvc-completing-read "Checkout git branch: " (xgit-branch-list t)) 2)))
+  (interactive (list (dvc-completing-read "Checkout git branch: " (xgit-branch-list t))))
   (dvc-run-dvc-sync 'xgit (list "checkout" branch-name))
   (message "git checkout %s done." branch-name))
 
