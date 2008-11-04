@@ -158,12 +158,6 @@ not &rest."
       (funcall (dvc-function dvc "dvc-clone") source-path dest-path))))
 
 ;;;###autoload
-(defun dvc-branch (&optional branch-name)
-  "Display the status in optional PATH tree."
-  (interactive)
-  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-branch")))
-
-;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
   "Display the changes from BASE-REV to the local tree in PATH.
 BASE-REV (a revision-id) defaults to base revision of the
@@ -564,6 +558,25 @@ specified by the VCS backend."
 (define-dvc-unified-command dvc-export-via-email ()
   "Send the changeset at point via email."
   (interactive))
+
+;;;###autoload
+(defun dvc-create-branch ()
+  "Create a new branch."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-create-branch")))
+
+;;;###autoload
+(defun dvc-select-branch ()
+  "Select a branch."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-select-branch")))
+
+;;;###autoload
+(defun dvc-list-branches ()
+  "List available branches."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-list-branches")))
+
 
 (provide 'dvc-unified)
 
