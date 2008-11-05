@@ -741,6 +741,8 @@ containing (symbol description)."
 Set `dvc-completing-read-function' to determine which function to use.
 
 See `completing-read' for a description of ARGS."
+  ;; Initialize dvc-completing-read-function on the first invocation of dvc-completing-read
+  ;; This allows to enable ido-mode after loading DVC
   (when (eq dvc-completing-read-function 'auto)
     (setq dvc-completing-read-function (if (and (boundp 'ido-mode) ido-mode)
                                            'ido-completing-read
