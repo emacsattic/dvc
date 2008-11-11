@@ -4,6 +4,7 @@ THE VERY QUICK INSTALLATION GUIDE
 Since nobody reads long documentation, here's a very short
 installation guide:
 
+$ autoconf                          # only needed when the configure script is not present
 $ cd dvc/
 $ mkdir ++build/
 $ cd ++build/

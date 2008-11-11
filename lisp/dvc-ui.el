@@ -155,6 +155,7 @@
 
 ;;;###autoload
 (defvar dvc-key-file-prefix ?f)         ; file specific functions
+(defvar dvc-key-branch-prefix ?o)       ; branch specific functions
 (defvar dvc-key-merge-prefix ?M)
 (defvar dvc-key-tag ?T)
 (defvar dvc-key-revert ?U)
@@ -197,6 +198,11 @@
 (progn
   (defun dvc-prefix-file (&rest keys)
     (dvc-key-group dvc-key-file-prefix keys)))
+
+;;;###autoload
+(progn
+  (defun dvc-prefix-branch (&rest keys)
+    (dvc-key-group dvc-key-branch-prefix keys)))
 
 ;;;###autoload
 (progn
@@ -300,22 +306,22 @@
   (let ((map (make-sparse-keymap)))
     (define-key map [?U]                     'tla-undo)
     (define-key map [?R]                     'tla-redo)
+    (define-key map [?t]                     'tla-tag-insert)
+    (define-key map [?r]                     'tla-tree-revisions)
+    (define-key map [(meta ?l)]              'tla-tree-lint)
+    ;;(define-key map [(meta ?o)]            'tla-file-view-original)
     (define-key map [?p]                     'dvc-submit-patch)
     (define-key map dvc-keyvec-log-entry     'dvc-add-log-entry)
     (define-key map [?A] 'tla-archives)
     (define-key map dvc-keyvec-file-diff     'dvc-file-diff)
     (define-key map dvc-keyvec-ediff         'dvc-file-ediff)
-    (define-key map [?o]                     'tla-file-view-original)
     (define-key map dvc-keyvec-diff          'dvc-diff)
     (define-key map dvc-keyvec-status        'dvc-status)
     (define-key map dvc-keyvec-commit        'dvc-log-edit)
-    (define-key map [?t]                     'tla-tag-insert)
     (define-key map dvc-keyvec-inventory     'dvc-inventory)
-    (define-key map [?r]                     'tla-tree-revisions)
     (define-key map dvc-keyvec-logs          'dvc-log)
     ;; dvc: l runs changelog, M-l runs tree-lint for Arch
-    (define-key map [?l] 'dvc-changelog)
-    (define-key map [(meta ?l)] 'tla-tree-lint)
+    (define-key map [?l]                     'dvc-changelog)
     (define-key map [?I]                     'dvc-init)
     (define-key map [?C]                     'dvc-clone)
     (define-key map [?F]                     'dvc-pull)
@@ -325,6 +331,11 @@
     (define-key map [?M]                     'dvc-merge)
     (define-key map dvc-keyvec-show-bookmark 'dvc-bookmarks)
     (define-key map dvc-keyvec-help          'tla-help)
+
+    ;; branch handling
+    (define-key map (dvc-prefix-branch ?c)   'dvc-create-branch)
+    (define-key map (dvc-prefix-branch ?s)   'dvc-select-branch)
+    (define-key map (dvc-prefix-branch ?l)   'dvc-list-branches)
 
     ;; file specific functionality
     (define-key map (dvc-prefix-file ?a) 'dvc-add-files)
