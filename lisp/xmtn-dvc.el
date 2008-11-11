@@ -98,9 +98,6 @@
   (concat (file-name-as-directory (or root (dvc-tree-root)))
           "_MTN/log"))
 
-(defun xmtn--tree-default-branch (root)
-  (xmtn-automate-simple-command-output-line root `("get_option" "branch")))
-
 (defun xmtn--tree-has-changes-p-future (root)
   (lexical-let ((future
                  (xmtn--command-output-lines-future
@@ -290,6 +287,19 @@ the file before saving."
       (add-to-list 'buffer-file-format 'xmtn--log-file) ;; FIXME: generalize to dvc--log-file
       )))
 
+(defun xmtn-dvc-log-message ()
+  "Copy _MTN/log to temp file, return --message-file argument string."
+  ;; Monotone's rule that _MTN/log must not exist when committing
+  ;; non-interactively is really a pain to deal with.
+  (let
+      ((log-edit-file )
+       (commit-message-file
+        (xmtn--make-temp-file
+         (concat (expand-file-name "./_MTN/log") "-xmtn")
+         nil ".tmp")))
+    (rename-file log-edit-file commit-message-file t)
+    (concat "--message-file=" commit-message-file)))
+
 ;;;###autoload
 (defun xmtn-dvc-log-edit-done ()
   (let* ((root default-directory)
@@ -326,19 +336,10 @@ the file before saving."
                            (t
                             (format "Committing %s files in %s"
                                     (length normalized-files)
-                                    root))))))
-                   (log-edit-buffer (current-buffer))
-                   (log-edit-file (buffer-file-name))
-                   (commit-message-file
-                    (xmtn--make-temp-file
-                     (concat (expand-file-name log-edit-file) "-xmtn")
-                     nil ".tmp")))
-      ;; Monotone's rule that _MTN/log must not exist when committing
-      ;; non-interactively is really a pain to deal with.
-      (rename-file log-edit-file commit-message-file t)
+                                    root)))))))
       (xmtn--run-command-async
        root
-       `("commit" ,(concat "--message-file=" commit-message-file)
+       `("commit" ,(xmtn-dvc-log-message)
          ,(concat "--branch=" branch)
          ,@(case normalized-files
              (all
@@ -372,9 +373,9 @@ the file before saving."
                                            (xmtn--status-header
                                             default-directory
                                             (xmtn--get-base-revision-hash-id-or-null default-directory)))))
-      ;; Show message _after_ spawning command to override DVC's
-      ;; debugging message.
-      (message "%s... " progress-message))
+       ;; Show message _after_ spawning command to override DVC's
+       ;; debugging message.
+       (message "%s... " progress-message))
     (set-window-configuration dvc-pre-commit-window-configuration)))
 
 ;; The term "normalization" here has nothing to do with Unicode
@@ -527,11 +528,12 @@ the file before saving."
 
 (defvar xmtn-diff-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map "CM" 'xmtn-conflicts-merge)
+    (define-key map "CP" 'xmtn-conflicts-propagate)
+    (define-key map "CR" 'xmtn-conflicts-review)
+    (define-key map "CC" 'xmtn-conflicts-clean)
     (define-key map "MH" 'xmtn-view-heads-revlist)
-    (define-key map "MC" 'xmtn-conflicts-propagate)
-    (define-key map "MR" 'xmtn-conflicts-review)
     (define-key map "MP" 'xmtn-propagate-from)
-    (define-key map "Mx" 'xmtn-conflicts-clean)
     map))
 
 ;; items added here should probably also be added to xmtn-revlist-mode-menu, -map in xmtn-revlist.el
@@ -1292,7 +1294,8 @@ finished."
             (progn
               (xmtn-conflicts-check-mtn-version)
               "--resolve-conflicts-file=_MTN/conflicts")))
-       (cmd (list "propagate" other local-branch resolve-conflicts))
+       (cmd (list "propagate" other local-branch resolve-conflicts
+                  (xmtn-dvc-log-message)))
        (prompt
         (if resolve-conflicts
             (concat "Propagate from " other " to " local-branch " resolving conflicts? ")
@@ -1304,18 +1307,26 @@ finished."
         (error "user abort"))
 
     (lexical-let
-        ((display-buffer (current-buffer)))
-      (message "%s..." (mapconcat (lambda (item) item) cmd " "))
+        ((display-buffer (current-buffer))
+         (msg (mapconcat (lambda (item) item) cmd " ")))
+      (message "%s..." msg)
       (xmtn--run-command-that-might-invoke-merger
        root cmd
-       (lambda () (xmtn--refresh-status-header display-buffer))))))
+       (lambda ()
+         (xmtn--refresh-status-header display-buffer)
+         (message "%s... done" msg))))))
 
 ;;;###autoload
 (defun xmtn-dvc-merge (&optional other)
   (if other
       (xmtn-propagate-from other)
     ;; else merge heads
-    (let ((root (dvc-tree-root)))
+    (let* ((root (dvc-tree-root))
+           (resolve-conflicts
+            (if (file-exists-p (concat root "/_MTN/conflicts"))
+                (progn
+                  (xmtn-conflicts-check-mtn-version)
+                  "--resolve-conflicts-file=_MTN/conflicts"))))
       (lexical-let
           ((display-buffer (current-buffer)))
         (xmtn-automate-with-session
@@ -1329,7 +1340,7 @@ finished."
               (t
                (xmtn--run-command-that-might-invoke-merger
                 root
-                '("merge")
+                (list "merge" resolve-conflicts (xmtn-dvc-log-message))
                 (lambda () (xmtn--refresh-status-header display-buffer))))))))))
   nil)
 

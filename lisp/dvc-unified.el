@@ -405,7 +405,7 @@ reused. `default-directory' must be the tree root."
                 default-directory))))))
 
 (defvar dvc-back-end-wrappers
-  '(("add-log-entry" ())
+  '(("add-log-entry" (&optional other-frame))
     ("add-files" (&rest files))
     ("diff" (&optional base-rev path dont-switch))
     ("ignore-file-extensions" (file-list))

@@ -250,6 +250,13 @@ from the ediff control buffer."
     (set-buffer ediff-buffer-B)         ; DVC puts workspace version here
     (dvc-add-log-entry-internal other-frame)))
 
+(defun dvc-ediff-setup ()
+  (define-key 'ediff-mode-map "t" 'dvc-ediff-add-log-entry)) ; matches dvc-diff-mode-map
+
+;; ediff hooks that run after ediff-mode-map is created:
+;; ediff-prepare-buffer-hook, ediff-startup-hook
+(add-hook 'ediff-startup-hook 'dvc-ediff-setup)
+
 (defun dvc-add-log-entry-internal (other-frame)
   "Similar to `add-change-log-entry'.
 
