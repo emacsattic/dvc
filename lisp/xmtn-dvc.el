@@ -292,13 +292,17 @@ the file before saving."
   ;; Monotone's rule that _MTN/log must not exist when committing
   ;; non-interactively is really a pain to deal with.
   (let
-      ((log-edit-file )
+      ((log-edit-file (expand-file-name "./_MTN/log"))
        (commit-message-file
         (xmtn--make-temp-file
          (concat (expand-file-name "./_MTN/log") "-xmtn")
          nil ".tmp")))
-    (rename-file log-edit-file commit-message-file t)
-    (concat "--message-file=" commit-message-file)))
+    (if (file-exists-p log-edit-file)
+        (progn
+          (rename-file log-edit-file commit-message-file t)
+          (concat "--message-file=" commit-message-file))
+      ;; no message file
+      nil)))
 
 ;;;###autoload
 (defun xmtn-dvc-log-edit-done ()

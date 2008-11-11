@@ -363,7 +363,8 @@ reused. `default-directory' must be the tree root."
        ;; to find dired-mode buffers, so we ignore those.
        (let ((diff-status-buffers
               (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
-                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)))
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'conflicts default-directory)))
              (activated-from-bookmark-buffer (eq major-mode 'dvc-bookmarks-mode)))
          (case (length diff-status-buffers)
            (0 (if (not activated-from-bookmark-buffer)
