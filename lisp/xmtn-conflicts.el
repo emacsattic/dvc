@@ -997,6 +997,9 @@ workspace."
     (if (file-exists-p "_MTN/conflicts")
         (delete-file "_MTN/conflicts"))
 
+    (if (file-exists-p xmtn-conflicts-opts-file)
+        (delete-file xmtn-conflicts-opts-file))
+
     (if (file-exists-p "_MTN/resolutions")
         (dired-delete-file "_MTN/resolutions" 'always))
     ))

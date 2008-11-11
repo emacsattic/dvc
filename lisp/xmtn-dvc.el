@@ -304,6 +304,13 @@ the file before saving."
       ;; no message file
       nil)))
 
+(defun xmtn-dvc-log-clean ()
+  "Delete main and temporary xmtn log files."
+  (let ((files (file-expand-wildcards "_MTN/log*")))
+    (while files
+      (delete-file (car files))
+      (setq files (cdr files)))))
+
 ;;;###autoload
 (defun xmtn-dvc-log-edit-done ()
   (let* ((root default-directory)
@@ -357,20 +364,19 @@ the file before saving."
                  "--depth=0"
                  "--" normalized-files))))
        :error (lambda (output error status arguments)
-                (rename-file commit-message-file log-edit-file)
+                (xmtn-dvc-log-clean)
                 (dvc-default-error-function output error
                                             status arguments))
        :killed (lambda (output error status arguments)
-                 (rename-file commit-message-file log-edit-file)
+                 (xmtn-dvc-log-clean)
                  (dvc-default-killed-function output error
                                               status arguments))
        :finished (lambda (output error status arguments)
+                   (xmtn-dvc-log-clean)
                    (message "%s... done" progress-message)
                    ;; Monotone creates an empty log file when the
                    ;; commit was successful.  Let's not interfere with
                    ;; that.  (Calling `dvc-log-close' would.)
-                   (delete-file commit-message-file)
-                   (kill-buffer log-edit-buffer)
                    (dvc-diff-clear-buffers 'xmtn
                                            default-directory
                                            "* Just committed! Please refresh buffer"
