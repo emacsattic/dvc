@@ -372,11 +372,11 @@ the file before saving."
                  (dvc-default-killed-function output error
                                               status arguments))
        :finished (lambda (output error status arguments)
-                   (xmtn-dvc-log-clean)
                    (message "%s... done" progress-message)
                    ;; Monotone creates an empty log file when the
                    ;; commit was successful.  Let's not interfere with
                    ;; that.  (Calling `dvc-log-close' would.)
+                   (xmtn-dvc-log-clean)
                    (dvc-diff-clear-buffers 'xmtn
                                            default-directory
                                            "* Just committed! Please refresh buffer"

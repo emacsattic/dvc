@@ -897,9 +897,11 @@ conflict file in LEFT-WORK/_MTN."
    'xmtn
    (list "conflicts" "store" left-rev right-rev)
    :finished (lambda (output error status arguments)
-                 (xmtn-conflicts-review default-directory))
+               (xmtn-dvc-log-clean)
+               (xmtn-conflicts-review default-directory))
 
    :error (lambda (output error status arguments)
+            (xmtn-dvc-log-clean)
             (pop-to-buffer error))
    ))
 
@@ -957,9 +959,9 @@ workspace."
 
   (let ((default-directory right-work))
     (xmtn-conflicts-1 left-work
-                      (xmtn--heads left-work nil)
+                      (car (xmtn--heads left-work nil))
                       right-work
-                      (xmtn--heads right-work nil))))
+                      (car (xmtn--heads right-work nil)))))
 
 ;;;###autoload
 (defun xmtn-conflicts-merge ()
