@@ -748,6 +748,34 @@ When called with prefix-arg run hg update -C (clean)"
                         (dvc-default-finish-function output error status arguments)
                         (message "hg %s complete for %s" opt-string default-directory)))))
 
+(defun xhg-convert (source target)
+  "Convert a foreign SCM repository to a Mercurial one.
+
+    Accepted source formats:
+    - Mercurial
+    - CVS
+    - Darcs
+    - git
+    - Subversion
+    - Monotone
+    - GNU Arch
+
+Be sure to add to your hgrc:
+\[extensions\]
+hgext.convert =
+
+Read also: hg help convert
+"
+  (interactive "DSource: \nsTarget: ")
+  (message "Started hg conversion of [%s] to [%s] ..." source target)
+  (dvc-run-dvc-async 'xhg (list "convert"
+                                (expand-file-name source)
+                                (expand-file-name target))
+                     :finished (dvc-capturing-lambda (output error status arguments)
+                                  (let ((default-directory (capture target))
+                                        (xhg-update)))
+                                  (message "hg: [%s] successfully converted to [%s]" (capture source) (capture target)))))
+
 ;; --------------------------------------------------------------------------------
 ;; hg serve functionality
 ;; --------------------------------------------------------------------------------
