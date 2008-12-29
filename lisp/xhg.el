@@ -158,6 +158,21 @@ Only when called with a prefix argument, add the files."
   (dvc-run-dvc-sync 'xhg (list "add" (unless arg "-n"))))
 
 ;;;###autoload
+(defun xhg-log-toggle-verbose ()
+  (interactive)
+  (if xhg-log-verbose
+      (progn
+        (setq xhg-log-verbose nil)
+        (apply #'xhg-log
+               xhg-log-remember-func-args))
+      (setq xhg-log-verbose t)
+      (apply #'xhg-log
+             xhg-log-remember-func-args)))
+
+(defvar xhg-log-verbose nil)
+(defvar xhg-log-remember-last-args nil)
+(defvar xhg-log-remember-func-args nil)
+;;;###autoload
 (defun xhg-log (&optional r1 r2 show-patch file)
   "Run hg log.
 When run interactively, the prefix argument decides, which parameters are queried from the user.
@@ -196,6 +211,13 @@ negative : Don't show patches, limit to n revisions."
                           (list "-l" (number-to-string (abs r1-num)))))))))
     (when show-patch
       (setq command-list (append command-list (list "-p"))))
+    ;; be verbose or not
+    (setq xhg-log-remember-last-args command-list)
+    (setq xhg-log-remember-func-args (list r1 r2 show-patch file))
+    (if (and xhg-log-remember-last-args
+             xhg-log-verbose)
+        (setq command-list (append '("-v") xhg-log-remember-last-args))
+        (setq command-list xhg-log-remember-last-args))
     (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
