@@ -563,6 +563,25 @@ specified by the VCS backend."
   "Send the changeset at point via email."
   (interactive))
 
+;;;###autoload
+(defun dvc-create-branch ()
+  "Create a new branch."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-create-branch")))
+
+;;;###autoload
+(defun dvc-select-branch ()
+  "Select a branch."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-select-branch")))
+
+;;;###autoload
+(defun dvc-list-branches ()
+  "List available branches."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-list-branches")))
+
+
 (provide 'dvc-unified)
 
 ;;; dvc-unified.el ends here

@@ -597,7 +597,7 @@ git-show or nil for all files."
 
 (defun xgit-changed-files (dir rev)
   "Returns list of files changed in given revision"
-  (let* ((repo (xgit-git-dir dir))
+  (let* ((repo (xgit-git-dir-option dir))
          (cmd "diff-tree")
          (args (list repo cmd "--numstat" rev))
          (result (dvc-run-dvc-sync
@@ -651,7 +651,7 @@ If there is no tag return nil,
 if revision is a tag, return tag in a string,
 else returns list of '(tag offset all-described-string)."
   (interactive (list default-directory (read-string "Revision: ")))
-  (let* ((repo (xgit-git-dir dir))
+  (let* ((repo (xgit-git-dir-option dir))
          (cmd "describe")
          (args (list repo cmd rev))
          (info (dvc-run-dvc-sync 'xgit args
@@ -671,7 +671,7 @@ else returns list of '(tag offset all-described-string)."
 DIR is a directory controlled by Git.
 FILE is filename in the repository at DIR."
   (let* ((buffer (dvc-get-buffer-create 'xgit 'annotate))
-         (repo (xgit-git-dir dir))
+         (repo (xgit-git-dir-option dir))
          (cmd "blame")
          (fname (file-relative-name file (xgit-tree-root dir)))
          (args (list repo cmd "--" fname)))
@@ -707,12 +707,33 @@ FILE is filename in the repository at DIR."
 
 (defun xgit-branch-list (&optional all)
   "Run \"git branch\" and list all known branches.
-When ALL is given, show all branches, using \"git branch -a\"."
+When ALL is given, show all branches, using \"git branch -a\".
+When called via lisp, return the list of branches. The currently selected branch is
+returned as first entry."
   (interactive "P")
   (if (interactive-p)
       (dvc-run-dvc-display-as-info 'xgit (list "branch" (when all "-a")))
-    (dvc-run-dvc-sync 'xgit (list "branch" (when all "-a"))
-                      :finished 'dvc-output-buffer-split-handler)))
+    (let ((branch-list-raw
+           (dvc-run-dvc-sync 'xgit (list "branch" (when all "-a"))
+                             :finished 'dvc-output-buffer-split-handler))
+          (branch-list))
+      (dolist (branch-entry branch-list-raw)
+        (cond ((string= (substring branch-entry 0 2) "* ")
+               (add-to-list 'branch-list (substring branch-entry 2)))
+              ((string= (substring branch-entry 0 2) "  ")
+               (add-to-list 'branch-list (substring branch-entry 2) t))))
+      branch-list)))
+
+(defun xgit-branch (branch-name)
+  "Run \"git branch BRANCH-NAME\" to create a new branch."
+  (interactive "sCreate new git branch: ")
+  (dvc-run-dvc-sync 'xgit (list "branch" branch-name)))
+
+(defun xgit-checkout (branch-name)
+  "Run \"git checout BRANCH-NAME\" to checkout an existing branch."
+  (interactive (list (dvc-completing-read "Checkout git branch: " (xgit-branch-list t))))
+  (dvc-run-dvc-sync 'xgit (list "checkout" branch-name))
+  (message "git checkout %s done." branch-name))
 
 ;;;###autoload
 (defun xgit-apply-patch (file)
@@ -834,6 +855,12 @@ Use git index?
 
 \(y/n/a/e/c/?)? "))))
            answer))))
+
+(defun xgit-get-root-exclude-file (&optional root)
+  "returns exclude file for ROOT"
+  (concat (file-name-as-directory (xgit-git-dir root))
+	  "info/"
+	  "exclude"))
 
 (provide 'xgit)
 ;;; xgit.el ends here

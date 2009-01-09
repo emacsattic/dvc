@@ -45,12 +45,8 @@
 (defalias 'xgit-dvc-delta 'xgit-delta)
 
 (defun xgit-dvc-log-edit-file-name-func ()
-  (let ((git-dir (xgit-lookup-external-git-dir)))
-    (when git-dir
-      (setq git-dir (file-name-as-directory git-dir)))
-    (concat (or git-dir (xgit-tree-root))
-            (if git-dir "" ".git")
-            "/" xgit-log-edit-file-name)))
+  (concat (file-name-as-directory (xgit-git-dir))
+	  xgit-log-edit-file-name))
 
 (defun xgit-dvc-log-edit-done (&optional invert-normal)
   "Finish a commit for git, using git commit.
@@ -128,10 +124,37 @@ ARG is passed as prefix argument"
 
 (defalias 'xgit-dvc-clone 'xgit-clone)
 
+(defalias 'xgit-dvc-create-branch 'xgit-branch)
+(defalias 'xgit-dvc-select-branch 'xgit-checkout)
+(defalias 'xgit-dvc-list-branches 'xgit-branch-list)
+
 (defalias 'xgit-dvc-send-commit-notification 'xgit-gnus-send-commit-notification)
 
 ;;;###autoload
 (defalias 'xgit-dvc-add 'xgit-add)
+
+(defun xgit-dvc-edit-ignore-files ()
+  "Edit git's ignore file.
+TODO: Support per directory ignore file.
+	  This only supports exclude file now."
+  (interactive)
+  (find-file-other-window (xgit-get-root-exclude-file)))
+
+(defun xgit-dvc-ignore-files (file-list)
+  "Added FILE-LIST to git's ignore file.
+TODO: Support per directory ignore file.
+	  This only supports exclude file now."
+  (interactive (list (dvc-current-file-list)))
+
+  (when (y-or-n-p (format "Ignore %S for %s? "
+			  file-list
+			  (xgit-git-dir)))
+	(with-current-buffer
+		(find-file-noselect (xgit-get-root-exclude-file))
+	  (goto-char (point-max))
+	  (dolist (f-name file-list)
+		(insert (format "%s\n" f-name)))
+	  (save-buffer))))
 
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here

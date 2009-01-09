@@ -158,6 +158,21 @@ Only when called with a prefix argument, add the files."
   (dvc-run-dvc-sync 'xhg (list "add" (unless arg "-n"))))
 
 ;;;###autoload
+(defun xhg-log-toggle-verbose ()
+  (interactive)
+  (if xhg-log-verbose
+      (progn
+        (setq xhg-log-verbose nil)
+        (apply #'xhg-log
+               xhg-log-remember-func-args))
+      (setq xhg-log-verbose t)
+      (apply #'xhg-log
+             xhg-log-remember-func-args)))
+
+(defvar xhg-log-verbose nil)
+(defvar xhg-log-remember-last-args nil)
+(defvar xhg-log-remember-func-args nil)
+;;;###autoload
 (defun xhg-log (&optional r1 r2 show-patch file)
   "Run hg log.
 When run interactively, the prefix argument decides, which parameters are queried from the user.
@@ -196,6 +211,13 @@ negative : Don't show patches, limit to n revisions."
                           (list "-l" (number-to-string (abs r1-num)))))))))
     (when show-patch
       (setq command-list (append command-list (list "-p"))))
+    ;; be verbose or not
+    (setq xhg-log-remember-last-args command-list)
+    (setq xhg-log-remember-func-args (list r1 r2 show-patch file))
+    (if (and xhg-log-remember-last-args
+             xhg-log-verbose)
+        (setq command-list (append '("-v") xhg-log-remember-last-args))
+        (setq command-list xhg-log-remember-last-args))
     (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
@@ -747,6 +769,34 @@ When called with prefix-arg run hg update -C (clean)"
                       (lambda (output error status arguments)
                         (dvc-default-finish-function output error status arguments)
                         (message "hg %s complete for %s" opt-string default-directory)))))
+
+(defun xhg-convert (source target)
+  "Convert a foreign SCM repository to a Mercurial one.
+
+    Accepted source formats:
+    - Mercurial
+    - CVS
+    - Darcs
+    - git
+    - Subversion
+    - Monotone
+    - GNU Arch
+
+Be sure to add to your hgrc:
+\[extensions\]
+hgext.convert =
+
+Read also: hg help convert
+"
+  (interactive "DSource: \nsTarget: ")
+  (message "Started hg conversion of [%s] to [%s] ..." source target)
+  (dvc-run-dvc-async 'xhg (list "convert"
+                                (expand-file-name source)
+                                (expand-file-name target))
+                     :finished (dvc-capturing-lambda (output error status arguments)
+                                  (let ((default-directory (capture target))
+                                        (xhg-update)))
+                                  (message "hg: [%s] successfully converted to [%s]" (capture source) (capture target)))))
 
 ;; --------------------------------------------------------------------------------
 ;; hg serve functionality

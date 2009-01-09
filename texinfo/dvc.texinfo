@@ -879,11 +879,7 @@ feature requests.
 
 A wiki for DVC can be found at
 
-@url{http://wiki.gnuarch.org/dvc}.
-
-This site is also the location of the GNU Arch wiki
-
-@url{http://wiki.gnuarch.org/FrontPage}
+@url{http://www.emacswiki.org/emacs/DistributedVersionControl}.
 
 @c ============================================================================
 @node Changes, The Latest Version, Wiki, Top
