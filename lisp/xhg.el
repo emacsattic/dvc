@@ -601,6 +601,12 @@ display the current one."
         (setq new-name (read-string (format "Change branch from '%s' to: " branch) nil nil branch)))
       (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
 
+;;;###autoload
+(defun xhg-branches ()
+  "run xhg-branches"
+  (interactive)
+  (dvc-run-dvc-display-as-info 'xhg '("branches")))
+
 ;;todo: add support to specify a rev
 (defun xhg-manifest ()
   "Run hg manifest."
@@ -756,19 +762,26 @@ otherwise: Return a list of two element sublists containing alias, path"
       (message "xhg: No undo information available."))))
 
 ;;;###autoload
-(defun xhg-update (&optional clean)
+(defun xhg-update ()
   "Run hg update.
-When called with prefix-arg run hg update -C (clean)"
-  (interactive "P")
-  (let* ((opt-list (if current-prefix-arg
-                       (list "update" "-C")
-                     (list "update")))
+When called with one prefix-arg run hg update -C (clean).
+Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
+  (interactive)
+  (let* ((opt-list (cond  ((equal current-prefix-arg '(4))
+                           (list "update" "-C"))
+                          ((equal current-prefix-arg '(16))
+                           (xhg-branches)
+                           (list "update" "-C" (read-string "BranchName: ")))
+                          (t
+                           (list "update"))))
          (opt-string (mapconcat 'identity opt-list " ")))
     (dvc-run-dvc-sync 'xhg opt-list
                       :finished
                       (lambda (output error status arguments)
                         (dvc-default-finish-function output error status arguments)
-                        (message "hg %s complete for %s" opt-string default-directory)))))
+                        (message "hg %s complete for %s" opt-string default-directory)
+                        (if (bufferp (get-buffer "*xhg-info*"))
+                            (kill-buffer "*xhg-info*"))))))
 
 (defun xhg-convert (source target)
   "Convert a foreign SCM repository to a Mercurial one.
