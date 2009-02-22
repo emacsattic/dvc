@@ -110,6 +110,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "s"      'dvc-bookmarks-status)
     (define-key map "d"      'dvc-bookmarks-diff)
     (define-key map "c"      'dvc-bookmarks-log-edit)
+    (define-key map "C"      'dvc-bookmarks-hg-convert-from-marked)
     (define-key map "l"      'dvc-bookmarks-changelog)
     (define-key map "L"      'dvc-bookmarks-log)
     (define-key map "Mm"     'dvc-bookmarks-missing)
@@ -1300,25 +1301,43 @@ and reinit `dvc-bookmarks-kill-ring'"
       (message "Did you forget to kill? (C-k)")))
 
 (defun dvc-bookmarks-get-marked-with-name (name)
-  (when dvc-bookmarks-marked-entry-list
+  (when (and dvc-bookmarks-marked-entry-list
+             (member name dvc-bookmarks-marked-entry-list))
     (save-excursion
       (dvc-bookmark-goto-name name)
       (dvc-bookmarks-current-bookmark))))
 
-;; TODO adapt to new code
-;;;;;;;;Obsoletes;;;;;;;;;;;;;;;;;;;;;;;
-;; (defun dvc-bookmarks-marked-bookmark ()
-;;   (when dvc-bookmarks-marked-entry
-;;     (save-excursion
-;;       (dvc-bookmark-goto-name dvc-bookmarks-marked-entry)
-;;       (dvc-bookmarks-current-bookmark))))
+(defun dvc-bookmarks-marked-value (key name)
+  "Get the value of a marked bookmark for key."
+  (let ((marked-bookmark (dvc-bookmarks-get-marked-with-name name)))
+    (when marked-bookmark
+      (dvc-bookmark-value marked-bookmark key))))
 
-;; (defun dvc-bookmarks-marked-value (key)
-;;   (let ((marked-bookmark (dvc-bookmarks-marked-bookmark)))
-;;     (when marked-bookmark
-;;       (dvc-bookmark-value marked-bookmark key))))
+(defun dvc-bookmarks-hg-convert-from-marked ()
+  "Call `xhg-convert' with current dvc-bookmark as target and
+marked dvc-bookmark as source."
+  (interactive)
+  (let* ((target (dvc-bookmarks-current-value 'local-tree))
+         (cur-dvc (dvc-bookmarks-active-dvc-at-point))
+         (marked (car dvc-bookmarks-marked-entry-list))
+         (source (dvc-bookmarks-marked-value 'local-tree marked)))
+    (when (eq cur-dvc 'xhg)
+      (if (= (length dvc-bookmarks-marked-entry-list) 1)
+          (if (y-or-n-p (format "Convert <%s> to <%s>?"
+                                source
+                                (propertize target
+                                            'face 'dvc-id)))
+              (xhg-convert source target))
+          (message "Please mark ONE source to convert from!")))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun dvc-bookmarks-active-dvc-at-point ()
+  (let ((path (dvc-bookmarks-current-value 'local-tree))
+        (current-dvc))
+    (save-excursion
+      (find-file path)
+      (setq current-dvc (dvc-current-active-dvc))
+      (kill-buffer (current-buffer)))
+    current-dvc))
 
 (defun dvc-bookmarks-save ()
   "Save `dvc-bookmark-alist' to the file `dvc-bookmarks-file-name'."

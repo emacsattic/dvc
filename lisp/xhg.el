@@ -158,6 +158,21 @@ Only when called with a prefix argument, add the files."
   (dvc-run-dvc-sync 'xhg (list "add" (unless arg "-n"))))
 
 ;;;###autoload
+(defun xhg-log-toggle-verbose ()
+  (interactive)
+  (if xhg-log-verbose
+      (progn
+        (setq xhg-log-verbose nil)
+        (apply #'xhg-log
+               xhg-log-remember-func-args))
+      (setq xhg-log-verbose t)
+      (apply #'xhg-log
+             xhg-log-remember-func-args)))
+
+(defvar xhg-log-verbose nil)
+(defvar xhg-log-remember-last-args nil)
+(defvar xhg-log-remember-func-args nil)
+;;;###autoload
 (defun xhg-log (&optional r1 r2 show-patch file)
   "Run hg log.
 When run interactively, the prefix argument decides, which parameters are queried from the user.
@@ -196,6 +211,13 @@ negative : Don't show patches, limit to n revisions."
                           (list "-l" (number-to-string (abs r1-num)))))))))
     (when show-patch
       (setq command-list (append command-list (list "-p"))))
+    ;; be verbose or not
+    (setq xhg-log-remember-last-args command-list)
+    (setq xhg-log-remember-func-args (list r1 r2 show-patch file))
+    (if (and xhg-log-remember-last-args
+             xhg-log-verbose)
+        (setq command-list (append '("-v") xhg-log-remember-last-args))
+        (setq command-list xhg-log-remember-last-args))
     (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
@@ -579,6 +601,12 @@ display the current one."
         (setq new-name (read-string (format "Change branch from '%s' to: " branch) nil nil branch)))
       (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
 
+;;;###autoload
+(defun xhg-branches ()
+  "run xhg-branches"
+  (interactive)
+  (dvc-run-dvc-display-as-info 'xhg '("branches")))
+
 ;;todo: add support to specify a rev
 (defun xhg-manifest ()
   "Run hg manifest."
@@ -734,37 +762,45 @@ otherwise: Return a list of two element sublists containing alias, path"
       (message "xhg: No undo information available."))))
 
 ;;;###autoload
-(defun xhg-update (&optional clean)
+(defun xhg-update ()
   "Run hg update.
-When called with prefix-arg run hg update -C (clean)"
-  (interactive "P")
-  (let* ((opt-list (if current-prefix-arg
-                       (list "update" "-C")
-                     (list "update")))
+When called with one prefix-arg run hg update -C (clean).
+Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
+  (interactive)
+  (let* ((opt-list (cond  ((equal current-prefix-arg '(4))
+                           (list "update" "-C"))
+                          ((equal current-prefix-arg '(16))
+                           (xhg-branches)
+                           (list "update" "-C" (read-string "BranchName: ")))
+                          (t
+                           (list "update"))))
          (opt-string (mapconcat 'identity opt-list " ")))
     (dvc-run-dvc-sync 'xhg opt-list
                       :finished
                       (lambda (output error status arguments)
                         (dvc-default-finish-function output error status arguments)
-                        (message "hg %s complete for %s" opt-string default-directory)))))
+                        (message "hg %s complete for %s" opt-string default-directory)
+                        (if (bufferp (get-buffer "*xhg-info*"))
+                            (kill-buffer "*xhg-info*"))))))
 
 (defun xhg-convert (source target)
   "Convert a foreign SCM repository to a Mercurial one.
 
-    Accepted source formats:
-    - Mercurial
-    - CVS
-    - Darcs
-    - git
-    - Subversion
-    - Monotone
-    - GNU Arch
+   Accepted source formats [identifiers]:(Mercurial-1.1.2)
+    - Mercurial [hg]
+    - CVS [cvs]
+    - Darcs [darcs]
+    - git [git]
+    - Subversion [svn]
+    - Monotone [mtn]
+    - GNU Arch [gnuarch]
+    - Bazaar [bzr]
 
 Be sure to add to your hgrc:
 \[extensions\]
 hgext.convert =
 
-Read also: hg help convert
+Read also: hg help convert.
 "
   (interactive "DSource: \nsTarget: ")
   (message "Started hg conversion of [%s] to [%s] ..." source target)
@@ -772,8 +808,8 @@ Read also: hg help convert
                                 (expand-file-name source)
                                 (expand-file-name target))
                      :finished (dvc-capturing-lambda (output error status arguments)
-                                  (let ((default-directory (capture target))
-                                        (xhg-update)))
+                                  (let ((default-directory (capture target)))
+                                    (xhg-update))
                                   (message "hg: [%s] successfully converted to [%s]" (capture source) (capture target)))))
 
 ;; --------------------------------------------------------------------------------
