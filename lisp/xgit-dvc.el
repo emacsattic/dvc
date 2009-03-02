@@ -1,6 +1,6 @@
 ;;; xgit-dvc.el --- The dvc layer for git
 
-;; Copyright (C) 2006-2008 by all contributors
+;; Copyright (C) 2006-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -121,6 +121,12 @@ ARG is passed as prefix argument"
   "Run 'git pull origin'"
   (interactive)
   (xgit-pull "origin"))
+
+(defun* xgit-dvc-push (url &optional (branch "master"))
+  "Run 'git push url'.
+with prefix arg ask for branch, default to master."
+  (interactive "sGit push to: ")
+  (xgit-push url branch))
 
 (defalias 'xgit-dvc-clone 'xgit-clone)
 

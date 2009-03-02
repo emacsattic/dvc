@@ -1,6 +1,6 @@
 ;;; xgit.el --- git interface for dvc
 
-;; Copyright (C) 2006-2008 by all contributors
+;; Copyright (C) 2006-2009 by all contributors
 
 ;; Author: Stefan Reichoer <stefan@xsteve.at>
 ;; Contributions from:
@@ -485,6 +485,21 @@ When called with a prefix argument, ask for the fetch source."
     (when current-prefix-arg
       (setq repository (read-string "Git fetch from: "))))
   (dvc-run-dvc-async 'xgit (list "fetch" repository)))
+
+(defun* xgit-push (url &optional (branch "master"))
+    "Run 'git push url'.
+with prefix arg ask for branch, default to master."
+  (interactive "sGit push to: ")
+  (lexical-let ((branch-name (if current-prefix-arg
+                             (read-string "Which Branch?: ")
+                             branch))
+                (to url))
+    (dvc-run-dvc-async 'xgit (list "push" url branch-name)
+                       :finished
+                       (dvc-capturing-lambda (output error status arguments)
+                         (if (eq status 0)
+                             (message "xgit-push <%s> to <%s> finished" branch-name to)
+                             (dvc-switch-to-buffer error))))))
 
 ;;;###autoload
 (defun xgit-pull (&optional repository)
