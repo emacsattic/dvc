@@ -1231,7 +1231,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   "Call bzr send --output to create a file containing a bundle"
   (interactive (list (bzr-read-revision "Create bundle for revision: ")
                      (read-file-name "Name of the bzr bundle file: ")
-                     (read-string "Extra parameters: ")))
+                     (split-string (read-string "Extra parameters: "))))
   (let ((arg-list (list "send" "-o" (expand-file-name file-name) "-r" rev)))
     (when extra-parameter-list
       (setq arg-list (append arg-list extra-parameter-list)))
