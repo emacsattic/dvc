@@ -48,6 +48,7 @@ Otherwise, return ARG2. ARG1 must be a variable."
 (unless (fboundp 'executable-find)
   (autoload 'executable-find "executable"))
 
+;;;###autoload
 (defvar dvc-registered-backends nil "The list of registered dvc backends.")
 
 (defgroup dvc nil
