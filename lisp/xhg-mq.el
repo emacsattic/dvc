@@ -395,14 +395,17 @@ Called with prefix-arg, do not prompt for confirmation"
   (concat (xhg-tree-root) "/.hg/patches/" patch))
 
 ;;;###autoload
-(defun xhg-qsingle (file)
-  "Merge all applied patches in a single patch"
+(defun* xhg-qsingle (file &optional (start-from "qbase"))
+  "Merge applied patches in a single patch satrting from \"qbase\".
+If prefix arg, merge applied patches starting from revision number or patch-name."
   (interactive "FPatchName: ")
+  (when current-prefix-arg
+    (setq start-from (read-string "PatchName or RevisionNumber: ")))
   (let* ((base (with-temp-buffer
                  (apply #'call-process "hg" nil t nil
-                        '("parents"
+                        `("parents"
                           "-r"
-                          "qbase"
+                          ,start-from
                           "--template"
                           "#rev#"))
                  (buffer-string)))
@@ -418,14 +421,23 @@ Called with prefix-arg, do not prompt for confirmation"
          (applied (split-string
                    (with-temp-buffer
                      (apply #'call-process "hg" nil t nil
-                            (list "qapplied"))
+                            (list "qapplied" "-s"))
                      (buffer-string)) "\n")))
+    (when (not (equal start-from "qbase"))
+      (let (pos elm)
+        (catch 'break
+          (dolist (i applied)
+            (when (string-match start-from i)
+              (throw 'break
+                (setq elm i)))))
+        (setq pos (position elm applied))
+        (setq applied (subseq applied pos))))
     (find-file file)
     (goto-char (point-min))
     (erase-buffer)
     (insert (format "## Merge of all patchs applied from revision %s\n" base))
     (mapc #'(lambda (x)
-              (insert (concat "## " x "\n")))
+                  (insert (concat "## " x "\n")))
           applied)
     (insert patch)
     (save-buffer)

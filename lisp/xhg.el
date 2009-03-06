@@ -34,6 +34,7 @@
 (require 'xhg-core)
 (require 'xhg-log)
 (require 'xhg-mq)
+(require 'xhg-annotate)
 
 (defvar xhg-export-git-style-patches t "Run hg export --git.")
 
@@ -711,11 +712,11 @@ otherwise: Return a list of two element sublists containing alias, path"
 ;; -u --user       show user
 ;; -n --number     show revision number
 ;; -c --changeset  show changeset
-;;;###autoload
-(defun xhg-annotate ()
-  "Run hg annotate."
-  (interactive)
-  (dvc-run-dvc-display-as-info 'xhg (append '("annotate") (dvc-current-file-list))))
+
+;; (defun xhg-annotate ()
+;;   "Run hg annotate."
+;;   (interactive)
+;;   (dvc-run-dvc-display-as-info 'xhg (append '("annotate") (dvc-current-file-list))))
 
 ;;;###autoload
 (defun xhg-view ()
