@@ -1252,6 +1252,9 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   "Export the revision at point via email.
 `bzr-export-via-email-parameters' can be used to customize the behaviour of this function."
   (interactive)
+
+  (require 'mml)
+
   (let* ((rev (bzr-get-revision-at-point))
          (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
          (base-file-name nil)
