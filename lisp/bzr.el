@@ -1240,7 +1240,9 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
                       (lambda (output error status arguments)
                         (message "Created bundle for revision %s in %s." rev file-name)))))
 
-(defvar bzr-export-via-email-parameters nil)
+;;; FIXME: this should probably be a defcustom
+(defvar bzr-export-via-email-parameters nil
+  "list of (PATH (EMAIL BRANCH-NICK (EXTRA-ARG ...)))")
 ;;(add-to-list 'bzr-export-via-email-parameters '("~/work/myprg/dvc" ("joe@host.com" "dvc-el")))
 ;; or:
 ;;(add-to-list 'bzr-export-via-email-parameters
