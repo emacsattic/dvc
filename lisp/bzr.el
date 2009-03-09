@@ -1288,6 +1288,10 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
      nil
      description)
 
+    ;; we need MML converted to MIME or the attachment isn't attached!
+    (when (eq mail-user-agent 'sendmail-user-agent)
+      (add-hook 'mail-send-hook 'mml-to-mime nil t))
+
     ;; delete emacs version - its not needed here
     (delete-region (point) (point-max))
 
