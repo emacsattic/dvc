@@ -1253,6 +1253,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
 `bzr-export-via-email-parameters' can be used to customize the behaviour of this function."
   (interactive)
 
+  (require 'message)
   (require 'mml)
 
   (let* ((rev (bzr-get-revision-at-point))
