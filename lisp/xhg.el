@@ -23,6 +23,102 @@
 
 ;; The mercurial interface for dvc
 
+;;; Commands:
+;;
+;; Below are complete command list:
+;;
+;;  `xhg-init'
+;;    Run hg init.
+;;  `xhg-rollback'
+;;    Run hg rollback.
+;;  `xhg-addremove'
+;;    Run hg addremove.
+;;  `xhg-dvc-rename'
+;;    Run hg rename.
+;;  `xhg-forget'
+;;    Run hg forget.
+;;  `xhg-add-all-files'
+;;    Run 'hg add' to add all files to mercurial.
+;;  `xhg-log'
+;;    Run hg log.
+;;  `xhg-diff-1'
+;;    Run hg diff.
+;;  `xhg-dvc-diff'
+;;    Run hg diff.
+;;  `xhg-pull'
+;;    Run hg pull.
+;;  `xhg-push'
+;;    Run hg push.
+;;  `xhg-clone'
+;;    Run hg clone.
+;;  `xhg-incoming'
+;;    Run hg incoming.
+;;  `xhg-outgoing'
+;;    Run hg outgoing.
+;;  `xhg-merge'
+;;    Run hg merge.
+;;  `xhg-resolve'
+;;    Run hg resolve.
+;;  `xhg-resolve-list'
+;;    Run hg resolve --list.
+;;  `xhg-command-version'
+;;    Run hg version.
+;;  `xhg-branch'
+;;    Run hg branch.
+;;  `xhg-branches'
+;;    run xhg-branches
+;;  `xhg-manifest'
+;;    Run hg manifest.
+;;  `xhg-tip'
+;;    Run hg tip.
+;;  `xhg-heads'
+;;    Run hg heads.
+;;  `xhg-parents'
+;;    Run hg parents.
+;;  `xhg-identify'
+;;    Run hg identify.
+;;  `xhg-verify'
+;;    Run hg verify.
+;;  `xhg-showconfig'
+;;    Run hg showconfig.
+;;  `xhg-paths'
+;;    Run hg paths.
+;;  `xhg-tags'
+;;    Run hg tags.
+;;  `xhg-view'
+;;    Run hg view.
+;;  `xhg-export'
+;;    Run hg export.
+;;  `xhg-import'
+;;    Run hg import.
+;;  `xhg-undo'
+;;    Run hg undo.
+;;  `xhg-update'
+;;    Run hg update.
+;;  `xhg-convert'
+;;    Convert a foreign SCM repository to a Mercurial one.
+;;  `xhg-serve'
+;;    Run hg serve --daemon.
+;;  `xhg-serve-kill'
+;;    Kill a hg serve process started with `xhg-serve'.
+;;  `xhg-revision-get-last-or-num-revision'
+;;    Run the command:
+;;  `xhg-missing-1'
+;;    Shows the logs of the new arrived changesets after a pull and before an update.
+;;  `xhg-save-diff'
+;;    Save the current hg diff to a file named FILENAME.
+;;  `xhg-hgrc-edit-repository-hgrc'
+;;    Edit the .hg/hgrc file for the current working copy
+;;  `xhg-hgrc-edit-global-hgrc'
+;;    Edit the ~/.hgrc file
+;;  `hgrc-mode-help'
+;;    Show the manual for the hgrc configuration file.
+;;
+;;; Customizable Options:
+;;
+;; Below are customizable option list:
+;;
+
 ;;; History:
 
 ;;
@@ -518,63 +614,109 @@ If DONT-SWITCH, don't switch to the diff buffer"
       nil)))
 
 ;;;###autoload
-(defun xhg-merge (&optional xhg-use-imerge)
-  "Run hg merge. called with prefix argument (C-u)
-use extension hg imerge.
-Be sure to enable it in .hgrc:
-,----
-| [extensions]
-| imerge =
-`----
-To merge from specific revision, choose it in completion.
-If `auto' is choose use default revision (last)"
-  (interactive "P")
-  (let* ((xhg-use-imerge (if current-prefix-arg
-                             t
-                           nil))
-         (haschange (xhg-changep))
+(defun xhg-merge ()
+  "Run hg merge.
+To merge from specific revision, choose it in completion with tab.
+If `auto' is choose use default revision (last) unless there is ONLY
+one more head.
+See \(hg help merge.\)"
+  (interactive)
+  (let* ((haschange (xhg-changep))
          (collection (xhg-get-all-heads-list))
          (revision (dvc-completing-read "Merge from hg revision: "
                                         collection nil t))
-         (arg)
-         (command (if xhg-use-imerge
-                      'dvc-run-dvc-sync
-                    'dvc-run-dvc-async)))
-
+         (arg))
     (when (or (string= revision "")
               (string= revision "auto"))
       (setq revision nil))
-    (setq arg (if xhg-use-imerge
-                  (if revision
-                      '("imerge" "--rev")
-                    '("imerge"))
-                (if revision
-                    '("merge" "--rev")
-                  '("merge"))))
+    (when (and (> (length collection) 2)
+               (not revision))
+      (error "Abort: branch 'default' has more than 2 heads - please merge with an explicit rev."))
+    (when (and (> (length collection) 2)
+               (equal revision (xhg-dry-tip)))
+      (error "Abort:can't merge with ancestor."))
+    (setq arg (if revision
+                  '("merge" "--rev")
+                  '("merge")))
     (if (and (not haschange)
              (> (length collection) 2))
-        (funcall command 'xhg `(,@arg ,revision)
-                 :finished
-                 (dvc-capturing-lambda (output error status arguments)
-                   (message "hg %s %s %s finished => %s"
-                            (nth 0 arg)
-                            (if revision
-                                (nth 1 arg)
-                              "")
-                            (if revision
-                                revision
-                              "")
-                            (concat (dvc-buffer-content error)
-                                    (dvc-buffer-content output))))
-                 :error
-                 ;; avoid dvc-error buffer to appear in ediff
-                 (lambda (output error status arguments)
-                   nil))
-      (when haschange
-        (error "abort: outstanding uncommitted merges, Please commit before merging"))
-      (when (<= (length collection) 2)
-        (error "There is nothing to merge here")))))
+        (dvc-run-dvc-async 'xhg `(,@arg ,revision)
+                           :finished
+                           (dvc-capturing-lambda (output error status arguments)
+                             (message "hg %s %s %s finished => %s"
+                                      (nth 0 arg)
+                                      (if revision
+                                          (nth 1 arg)
+                                          "")
+                                      (if revision
+                                          revision
+                                          "")
+                                      (concat (dvc-buffer-content error)
+                                              (dvc-buffer-content output))))
+                           :error
+                           ;; avoid dvc-error buffer to appear in ediff
+                           (lambda (output error status arguments)
+                             nil))
+        (when haschange
+          (error "abort: outstanding uncommitted merges, Please commit before merging"))
+        (when (<= (length collection) 2)
+          (error "There is nothing to merge here")))))
 
+;;;###autoload
+(defun xhg-resolve (&optional file)
+  "Run hg resolve --all or <spec file>.
+With current prefix arg, take a file as argument.
+You should run xhg-merge before this.
+This command will cleanly retry unresolved file merges
+using file revisions preserved from the last update or merge.
+If file is given resolve this file else resolve all files."
+  (interactive)
+  (let ((unresolved-files
+         (loop for i in (xhg-resolve-list t)
+              if (equal (car i) "U")
+              collect (cadr i))))
+    (when current-prefix-arg
+      (setq file
+            (file-name-nondirectory (read-file-name "File: "))))
+    (if file
+        (if (member file unresolved-files)
+            (dvc-run-dvc-sync 'xhg (list "resolve" file)
+                              :finished
+                              (dvc-capturing-lambda (output error status arguments)
+                                (message "ok finished with status %s" status)
+                                (xhg-resolve-list)))
+            (message "%s have been already resolved" file))
+        (dvc-run-dvc-sync 'xhg (list "resolve" "--all")
+                          :finished
+                          (dvc-capturing-lambda (output error status arguments)
+                            (message "ok finished with status %s" status)
+                            (xhg-resolve-list))))))
+
+;;;###autoload
+(defun xhg-resolve-list (&optional quiet)
+  "Run hg resolve --list.
+Call interactively, show buffer with info.
+Non interactively, return an alist with
+string keys as:
+U = unresolved
+R = resolved"
+  (interactive)
+  (let ((resolve-alist nil)) 
+    (if quiet
+        (progn
+          (save-window-excursion
+            (dvc-run-dvc-display-as-info 'xhg (list "resolve" "--list"))
+            (with-current-buffer "*xhg-info*"
+              (setq resolve-alist
+                    (mapcar #'split-string
+                            (split-string (buffer-substring-no-properties
+                                           (point-min)
+                                           (point-max))
+                                          "\n"))))
+            (kill-buffer "*xhg-info*")
+            resolve-alist))
+        (dvc-run-dvc-display-as-info 'xhg (list "resolve" "--list")))))
+    
 
 (defun xhg-command-version ()
   "Run hg version."
