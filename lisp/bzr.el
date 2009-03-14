@@ -1241,6 +1241,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
                         (message "Created bundle for revision %s in %s." rev file-name)))))
 
 ;;; FIXME: this should probably be a defcustom
+;;;###autoload
 (defvar bzr-export-via-email-parameters nil
   "list of (PATH (EMAIL BRANCH-NICK (EXTRA-ARG ...)))")
 ;;(add-to-list 'bzr-export-via-email-parameters '("~/work/myprg/dvc" ("joe@host.com" "dvc-el")))
@@ -1250,7 +1251,8 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
 
 (defun bzr-export-via-email ()
   "Export the revision at point via email.
-`bzr-export-via-email-parameters' can be used to customize the behaviour of this function."
+`bzr-export-via-email-parameters' can be used to customize the behaviour of
+this function."
   (interactive)
 
   (require 'message)
@@ -1263,7 +1265,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
          (file-name nil)
          (description nil)
          (destination-email "")
-         (extra-export-parameter-list nil))
+         (extra-parameter-list nil))
     (dolist (m bzr-export-via-email-parameters)
       (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (bzr-tree-root)))
         ;;(message "%S" (cadr m))
@@ -1271,7 +1273,8 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
         (setq base-file-name (nth 1 (cadr m)))
         (setq extra-parameter-list (nth 2 (cadr m)))))
     (message "bzr-export-via-email %s: %s to %s" rev summary destination-email)
-    (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") rev ".patch"))
+    (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory)
+			    (or base-file-name "") rev ".patch"))
     (bzr-create-bundle rev file-name extra-parameter-list)
 
     (setq description
@@ -1287,6 +1290,10 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
      nil
      nil
      description)
+
+    ;; we need MML converted to MIME or the attachment isn't attached!
+    (when (eq mail-user-agent 'sendmail-user-agent)
+      (add-hook 'mail-send-hook 'mml-to-mime nil t))
 
     ;; delete emacs version - its not needed here
     (delete-region (point) (point-max))
