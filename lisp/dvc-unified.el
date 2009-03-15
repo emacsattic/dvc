@@ -43,7 +43,7 @@
 ;;;###autoload
 (defun dvc-init ()
   "Initialize a new repository.
-It currently supports the initialization for bzr, xhg, tla.
+It currently supports the initialization for bzr, xhg, xgit, tla.
 Note: this function is only useful when called interactively."
   (interactive)
   (when (interactive-p)
@@ -51,7 +51,9 @@ Note: this function is only useful when called interactively."
           (working-dir (dvc-uniquify-file-name default-directory))
           (dvc))
       ;; hide backends that don't provide an init function
-      (mapcar '(lambda (elem) (setq supported-variants (delete elem supported-variants))) '("xdarcs" "xmtn" "xgit" "baz"))
+      (mapcar '(lambda (elem)
+                (setq supported-variants (delete elem supported-variants)))
+              '("xdarcs" "xmtn" "baz"))
       (add-to-list 'supported-variants "bzr-repo")
       (setq dvc (intern (dvc-completing-read
                          (format "Init a repository for '%s', using dvc: " working-dir)
@@ -110,7 +112,9 @@ in SPEC if they are nil, returning the result."
 (defmacro define-dvc-unified-command (name args comment &optional interactive)
   "Define a DVC unified command.  &optional arguments are permitted, but
 not &rest."
-  (declare (indent 2) (debug (&define name sexp stringp sexp)))
+  (declare (indent 2)
+	   (debug (&define name lambda-list stringp
+			   [&optional interactive])))
   `(defun ,name ,args
      ,comment
      ,@(when interactive (list interactive))
