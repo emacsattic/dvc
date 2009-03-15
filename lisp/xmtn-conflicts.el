@@ -697,7 +697,7 @@ header."
 (defvar xmtn-conflicts-resolve-map
   (let ((map (make-sparse-keymap "resolution")))
     (define-key map [?8]  '(menu-item "8) clear resolution"
-                                      'xmtn-conflicts-clear-resolution))
+                                      xmtn-conflicts-clear-resolution))
 
     ;; duplicate_name resolutions
     (define-key map [?7]  '(menu-item "7) right file"
@@ -783,7 +783,7 @@ entry, as a string."
      (xmtn-conflicts-duplicate_name-right_name conflict))
     ))
 
-(defun xmtn-add-log-entry (&optional other-frame)
+(defun xmtn-conflicts-add-log-entry (&optional other-frame)
   "Add an entry in the current log-edit buffer for the current file.
 If OTHER-FRAME (default prefix) xor `dvc-log-edit-other-frame' is
 non-nil, show log-edit buffer in other frame."
@@ -801,11 +801,13 @@ non-nil, show log-edit buffer in other frame."
 (defun xmtn-conflicts-do-propagate ()
   "Perform propagate on revisions in current conflict buffer."
   (interactive)
+  (save-some-buffers t); log buffer
   (xmtn-propagate-from xmtn-conflicts-left-branch))
 
 (defun xmtn-conflicts-do-merge ()
   "Perform merge on revisions in current conflict buffer."
   (interactive)
+  (save-some-buffers t); log buffer
   (xmtn-dvc-merge))
 
 (defvar xmtn-conflicts-mode-map
@@ -821,7 +823,7 @@ non-nil, show log-edit buffer in other frame."
     (define-key map [?t]  'xmtn-conflicts-add-log-entry)
     (define-key map "\M-d"  xmtn-conflicts-resolve-map);; dtrt broken
     (define-key map "MM" 'xmtn-conflicts-do-merge)
-    (define-key map "MP" 'xmtn-conflicts-do-merge)
+    (define-key map "MP" 'xmtn-conflicts-do-propagate)
     (define-key map "MU" 'dvc-update)
     map)
   "Keymap used in `xmtn-conflict-mode'.")
@@ -895,9 +897,11 @@ conflict file in LEFT-WORK/_MTN."
    'xmtn
    (list "conflicts" "store" left-rev right-rev)
    :finished (lambda (output error status arguments)
-                 (xmtn-conflicts-review default-directory))
+               (xmtn-dvc-log-clean)
+               (xmtn-conflicts-review default-directory))
 
    :error (lambda (output error status arguments)
+            (xmtn-dvc-log-clean)
             (pop-to-buffer error))
    ))
 
@@ -955,9 +959,9 @@ workspace."
 
   (let ((default-directory right-work))
     (xmtn-conflicts-1 left-work
-                      (xmtn--heads left-work nil)
+                      (car (xmtn--heads left-work nil))
                       right-work
-                      (xmtn--heads right-work nil))))
+                      (car (xmtn--heads right-work nil)))))
 
 ;;;###autoload
 (defun xmtn-conflicts-merge ()
@@ -994,6 +998,9 @@ workspace."
 
     (if (file-exists-p "_MTN/conflicts")
         (delete-file "_MTN/conflicts"))
+
+    (if (file-exists-p xmtn-conflicts-opts-file)
+        (delete-file xmtn-conflicts-opts-file))
 
     (if (file-exists-p "_MTN/resolutions")
         (dired-delete-file "_MTN/resolutions" 'always))
