@@ -55,10 +55,12 @@
 ;;    Run hg incoming.
 ;;  `xhg-outgoing'
 ;;    Run hg outgoing.
+;;  `xhg-strip'
+;;    Run hg strip.
 ;;  `xhg-merge'
 ;;    Run hg merge.
 ;;  `xhg-resolve'
-;;    Run hg resolve.
+;;    Run hg resolve --all or <spec file>.
 ;;  `xhg-resolve-list'
 ;;    Run hg resolve --list.
 ;;  `xhg-command-version'
@@ -614,6 +616,13 @@ If DONT-SWITCH, don't switch to the diff buffer"
       nil)))
 
 ;;;###autoload
+(defun xhg-strip (rev)
+  "Run hg strip."
+  (interactive (list (dvc-completing-read "Remove head: "
+                                          (xhg-get-all-heads-list))))
+  (dvc-run-dvc-sync 'xhg (list "strip" rev)))
+
+;;;###autoload
 (defun xhg-merge ()
   "Run hg merge.
 To merge from specific revision, choose it in completion with tab.
@@ -629,38 +638,37 @@ See \(hg help merge.\)"
     (when (or (string= revision "")
               (string= revision "auto"))
       (setq revision nil))
-    (when (and (> (length collection) 2)
-               (not revision))
-      (error "Abort: branch 'default' has more than 2 heads - please merge with an explicit rev."))
-    (when (and (> (length collection) 2)
-               (equal revision (xhg-dry-tip)))
-      (error "Abort:can't merge with ancestor."))
     (setq arg (if revision
                   '("merge" "--rev")
                   '("merge")))
-    (if (and (not haschange)
-             (> (length collection) 2))
-        (dvc-run-dvc-async 'xhg `(,@arg ,revision)
-                           :finished
-                           (dvc-capturing-lambda (output error status arguments)
-                             (message "hg %s %s %s finished => %s"
-                                      (nth 0 arg)
-                                      (if revision
-                                          (nth 1 arg)
-                                          "")
-                                      (if revision
-                                          revision
-                                          "")
-                                      (concat (dvc-buffer-content error)
-                                              (dvc-buffer-content output))))
-                           :error
-                           ;; avoid dvc-error buffer to appear in ediff
-                           (lambda (output error status arguments)
-                             nil))
-        (when haschange
-          (error "abort: outstanding uncommitted merges, Please commit before merging"))
-        (when (<= (length collection) 2)
-          (error "There is nothing to merge here")))))
+    (cond ((and (> (length collection) 3)
+                (not revision))
+           (error "Abort: branch 'default' has more than 2 heads - please merge with an explicit rev."))
+          ((equal revision (xhg-dry-tip))
+           (error "Abort:can't merge with ancestor."))
+          ((and (not haschange)
+                (> (length collection) 2))
+           (dvc-run-dvc-async 'xhg `(,@arg ,revision)
+                              :finished
+                              (dvc-capturing-lambda (output error status arguments)
+                                (message "hg %s %s %s finished => %s"
+                                         (nth 0 arg)
+                                         (if revision
+                                             (nth 1 arg)
+                                             "")
+                                         (if revision
+                                             revision
+                                             "")
+                                         (concat (dvc-buffer-content error)
+                                                 (dvc-buffer-content output))))
+                              :error
+                              ;; avoid dvc-error buffer to appear in ediff
+                              (lambda (output error status arguments)
+                                nil)))
+          (haschange
+           (error "abort: outstanding uncommitted merges, Please commit before merging"))
+          ((< (length collection) 3)
+           (error "There is nothing to merge here")))))
 
 ;;;###autoload
 (defun xhg-resolve (&optional file)
