@@ -1,6 +1,6 @@
 ;;; xmtn-run.el --- Functions for runnning monotone commands
 
-;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2008 - 2009 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -38,7 +38,8 @@
   (when (featurep 'xemacs)
     (condition-case nil
         (require 'un-define)
-      (error nil))))
+      (error nil)))
+  (require 'xmtn-base))
 
 (define-coding-system-alias 'xmtn--monotone-normal-form 'utf-8-unix)
 
@@ -50,6 +51,7 @@
     (funcall xmtn--thunk)))
 
 (defmacro* xmtn--with-environment-for-subprocess (() &body body)
+  (declare (indent 1) (debug (sexp body)))
   `(xmtn--call-with-environment-for-subprocess (lambda () ,@body)))
 
 (defun* xmtn--run-command-sync (root arguments &rest dvc-run-keys &key)
@@ -228,8 +230,7 @@ Signals an error if more (or fewer) than one line is output."
              arguments))
     (first lines)))
 
-(defun xmtn--minimum-required-command-version ()
-  '(0 37))
+(defconst xmtn--minimum-required-command-version '(0 37))
 
 (defun xmtn--have-no-ignore ()
   "Non-nil if mtn automate inventory supports --no-ignore, --no-unknown, --no-unchanged options."
@@ -263,13 +264,13 @@ id."
         ;; Cache a fake version number to avoid infinite mutual
         ;; recursion.
         (xmtn--*cached-command-version*
-         (append (xmtn--minimum-required-command-version)
+         (append xmtn--minimum-required-command-version
                  '("xmtn-dummy" "xmtn-dummy")))
         (xmtn--*command-version-cached-for-executable* executable)
         (xmtn-executable executable))
     (let ((string (xmtn--command-output-line nil '("--version"))))
       (unless (string-match
-               (concat "\\`monotone \\([0-9]+\\)\\.\\([0-9]+\\)"
+               (concat "\\`monotone \\([0-9]+\\)\\.\\([0-9]+\\)\\(dev\\)?"
                        " (base revision: \\(unknown\\|\\([0-9a-f]\\{40\\}\\)\\))\\'")
                string)
         (error (concat "Version output from monotone --version"
@@ -277,11 +278,11 @@ id."
                string))
       (let ((major (parse-integer string (match-beginning 1) (match-end 1)))
             (minor (parse-integer string (match-beginning 2) (match-end 2)))
-            (revision (match-string 3 string)))
+            (revision (match-string 4 string)))
         (list major minor revision string)))))
 
 (defun xmtn--check-cached-command-version ()
-  (let ((minimum-version (xmtn--minimum-required-command-version)))
+  (let ((minimum-version xmtn--minimum-required-command-version))
     (destructuring-bind (major minor revision string)
         (xmtn--cached-command-version)
       (unless (or (> major (car minimum-version))
@@ -310,11 +311,11 @@ This command resets xmtn's command version cache."
            (latest-major (first latest))
            (latest-minor (second latest)))
       (if (eval `(xmtn--version-case
-                   ((and (= ,latest-major latest-minor)
-                         (mainline> latest-major latest-minor))
-                    t)
-                   (t
-                    nil)))
+                  ((and (= ,latest-major latest-minor)
+                        (mainline> latest-major latest-minor))
+                   t)
+                  (t
+                   nil)))
           (message "%s (xmtn considers this version newer than %s.%s)"
                    version-string major minor)
         (message "%s" version-string))))

@@ -54,9 +54,9 @@ git metadata directory."
   :group 'dvc-xgit)
 
 (defvar xgit-log-edit-file-name
-  "++xgit-log-edit"
-  "The filename, used to store the log message before commiting.
-Usually that file is placed in the tree-root of the working tree.")
+  "DVC_EDITMSG"
+  "The filename used to store the log message before commiting.
+Usually that file is placed in the .git directory of the working tree.")
 
 (defun xgit-lookup-external-git-dir (&optional location root)
   "Check to see whether the user has specified a custom git metadata
@@ -98,15 +98,18 @@ It will be nil before the initial commit."
   (file-readable-p (concat (xgit-tree-root) ".git/HEAD")))
 
 (defun xgit-git-dir (&optional location)
-  "Utility function to add --git-dir option to git command."
-  ;; git barfs when "~/" is in the --git-dir argument, so we cannot
-  ;; just concat the result of xgit-tree-root as-is
+  "Return directory name name for .git git metadata directory for LOCATION."
   (let ((git-dir (xgit-lookup-external-git-dir location)))
-    (concat "--git-dir="
-            (file-relative-name
+    (concat (file-relative-name
              (or git-dir (xgit-tree-root location))
              (file-name-as-directory (or location default-directory)))
             (if git-dir "" ".git"))))
+
+(defun xgit-git-dir-option (&optional location)
+  "Utility function to add --git-dir option to git command."
+  ;; git barfs when "~/" is in the --git-dir argument, so we cannot
+  ;; just concat the result of xgit-tree-root as-is
+  (concat "--git-dir=" (xgit-git-dir location)))
 
 (defconst xgit-hash-regexp "[0-9a-f]\\{40\\}")
 

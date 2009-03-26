@@ -50,7 +50,7 @@ Example setting: '((\"dvc-dev-bzr\" \"~/work/bzr/dvc\"))"
 
 (defcustom bzr-submit-patch-mapping
   '(("dvc-dev-bzr" ("dvc-dev@gna.org" "dvc")))
-"*Email addresses that should be used to send patches.
+  "*Email addresses that should be used to send patches.
 
 An alist of rules to map branch nicknames to target email
 addresses and the base name to use in the attached patch.
@@ -174,8 +174,8 @@ root is ROOT-DIR."
           (error nil))))))
 
 ;;;###autoload
-(defun bzr-prepare-patch-submission (bzr-tree-root patch-base-name email
-                                     version-string
+(defun bzr-prepare-patch-submission (bzr-tree-root
+                                     patch-base-name email version-string
                                      &optional description subject
                                      prompt-files)
   "Submit a patch to a bzr working copy (at BZR-TREE-ROOT) via email.

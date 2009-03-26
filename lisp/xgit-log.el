@@ -1,6 +1,6 @@
 ;;; xgit-log.el --- git interface for dvc: mode for git log style output
 
-;; Copyright (C) 2006-2008 by all contributors
+;; Copyright (C) 2006-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -50,7 +50,7 @@
   (goto-char (point-min))
   (let ((root location)
         (intro-string)) ;; not used currently, but who knows
-    (when missing ;; skip the first status output
+    (when missing       ;; skip the first status output
       (re-search-forward (concat "^commit " xgit-hash-regexp "\n"))
       (beginning-of-line)
       (setq intro-string (buffer-substring-no-properties (point-min) (point)))
@@ -150,13 +150,13 @@
                ;; to leave room for mark.
                (or (xgit-revision-st-message struct) "?")))
       (newline)
-    ))
+      ))
   )
 
 (defun xgit-revlog-get-revision (rev-id)
   (let ((rev (car (dvc-revision-get-data rev-id))))
     (dvc-run-dvc-sync 'xgit `("show" ,rev)
-     :finished 'dvc-output-buffer-handler)))
+                      :finished 'dvc-output-buffer-handler)))
 
 (defun xgit-revlog-mode ()
   (interactive)
@@ -211,7 +211,7 @@ See also `xgit-log-max-count'."
 
 ;; copied and adapted from bzr-log
 ;;;###autoload
-(defun* xgit-log (dir cnt &key log-regexp diff-match rev file since)
+(defun* xgit-log (dir &optional cnt &key log-regexp diff-match rev file since)
   "Run git log for DIR.
 DIR is a directory controlled by Git/Cogito.
 CNT is max number of log to print.  If not specified, uses xgit-log-max-count.
@@ -258,7 +258,7 @@ FILE is filename in repostory to filter logs by matching filename."
 
     ;; the merge group
     (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
-    (define-key map (dvc-prefix-merge ?m) 'dvc-missing)
+    (define-key map (dvc-prefix-merge ?m) '(lambda () (interactive) (dvc-missing nil default-directory)))
     map)
   "Keymap used in `xgit-changelog-mode'.")
 
@@ -271,6 +271,7 @@ FILE is filename in repostory to filter logs by matching filename."
 (defvar xgit-changelog-font-lock-keywords
   (append
    '(("^commit " . font-lock-function-name-face)
+     ("^Merge:" . font-lock-function-name-face)
      ("^Author:" . font-lock-function-name-face)
      ("^Date:" . font-lock-function-name-face))
    diff-font-lock-keywords)
@@ -311,7 +312,7 @@ negative : Don't show patches, limit to n revisions."
       (setq r1 (read-string "git log, R1:"))
       (setq r2 (read-string "git log, R2:"))))
   (let ((buffer (dvc-get-buffer-create 'xgit 'log))
-        (command-list '("log"))
+        (command-list '("log" "--reverse"))
         (cur-dir default-directory))
     (when r1
       (when (numberp r1)
@@ -335,16 +336,16 @@ negative : Don't show patches, limit to n revisions."
       (erase-buffer))
     (xgit-changelog-mode)
     (dvc-run-dvc-sync 'xgit command-list
-                         :finished
-                         (dvc-capturing-lambda (output error status arguments)
-                           (progn
-                             (with-current-buffer (capture buffer)
-                               (let ((inhibit-read-only t))
-                                 (erase-buffer)
-                                 (insert-buffer-substring output)
-                                 (goto-char (point-min))
-                                 (insert (format "xgit log for %s\n\n" default-directory))
-                                 (toggle-read-only 1))))))))
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (progn
+                          (with-current-buffer (capture buffer)
+                            (let ((inhibit-read-only t))
+                              (erase-buffer)
+                              (insert-buffer-substring output)
+                              (goto-char (point-min))
+                              (insert (format "xgit log for %s\n\n" default-directory))
+                              (toggle-read-only 1))))))))
 
 (defconst xgit-changelog-start-regexp "^commit \\([0-9a-f]+\\)$")
 (defun xgit-changelog-next (n)
@@ -360,7 +361,10 @@ negative : Don't show patches, limit to n revisions."
   "Move to the previous changeset header of the previous diff hunk"
   (interactive "p")
   (end-of-line)
-  (re-search-backward xgit-changelog-start-regexp)
+  (when (save-excursion
+          (beginning-of-line)
+          (looking-at xgit-changelog-start-regexp))
+    (re-search-backward xgit-changelog-start-regexp))
   (re-search-backward xgit-changelog-start-regexp nil t n)
   (when xgit-changelog-review-recenter-position-on-next-diff
     (recenter xgit-changelog-review-recenter-position-on-next-diff)))

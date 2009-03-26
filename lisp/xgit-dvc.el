@@ -1,6 +1,6 @@
 ;;; xgit-dvc.el --- The dvc layer for git
 
-;; Copyright (C) 2006-2008 by all contributors
+;; Copyright (C) 2006-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -45,7 +45,8 @@
 (defalias 'xgit-dvc-delta 'xgit-delta)
 
 (defun xgit-dvc-log-edit-file-name-func ()
-  (concat (xgit-tree-root) xgit-log-edit-file-name))
+  (concat (file-name-as-directory (xgit-git-dir))
+	  xgit-log-edit-file-name))
 
 (defun xgit-dvc-log-edit-done (&optional invert-normal)
   "Finish a commit for git, using git commit.
@@ -121,9 +122,46 @@ ARG is passed as prefix argument"
   (interactive)
   (xgit-pull "origin"))
 
+(defun* xgit-dvc-push (url &optional (branch "master"))
+  "Run 'git push url'.
+with prefix arg ask for branch, default to master."
+  (interactive "sGit push to: ")
+  (xgit-push url branch))
+
 (defalias 'xgit-dvc-clone 'xgit-clone)
 
+(defalias 'xgit-dvc-create-branch 'xgit-branch)
+(defalias 'xgit-dvc-select-branch 'xgit-checkout)
+(defalias 'xgit-dvc-list-branches 'xgit-branch-list)
+
 (defalias 'xgit-dvc-send-commit-notification 'xgit-gnus-send-commit-notification)
+(defalias 'xgit-dvc-init 'xgit-init)
+
+;;;###autoload
+(defalias 'xgit-dvc-add 'xgit-add)
+
+(defun xgit-dvc-edit-ignore-files ()
+  "Edit git's ignore file.
+TODO: Support per directory ignore file.
+	  This only supports exclude file now."
+  (interactive)
+  (find-file-other-window (xgit-get-root-exclude-file)))
+
+(defun xgit-dvc-ignore-files (file-list)
+  "Added FILE-LIST to git's ignore file.
+TODO: Support per directory ignore file.
+	  This only supports exclude file now."
+  (interactive (list (dvc-current-file-list)))
+
+  (when (y-or-n-p (format "Ignore %S for %s? "
+			  file-list
+			  (xgit-git-dir)))
+	(with-current-buffer
+		(find-file-noselect (xgit-get-root-exclude-file))
+	  (goto-char (point-max))
+	  (dolist (f-name file-list)
+		(insert (format "%s\n" f-name)))
+	  (save-buffer))))
 
 (provide 'xgit-dvc)
 ;;; xgit-dvc.el ends here

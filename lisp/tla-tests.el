@@ -174,6 +174,7 @@ Log messages are written to the tests log buffer."
 
 (defmacro tla-write-to-file (filename &rest forms)
   "In buffer visiting FILENAME, evaluate FORMS, save and kill the buffer."
+  (declare (indent 1) (debug (form body)))
   (let ((buf (dvc-gensym)))
     `(let ((,buf (find-file-noselect ,filename)))
        (unwind-protect
@@ -181,7 +182,6 @@ Log messages are written to the tests log buffer."
              ,@forms
              (save-buffer))
          (kill-buffer ,buf)))))
-(put 'tla-write-to-file 'lisp-indent-function 1)
 
 (defun tla-tests-make-dummy-project ()
   "Create a dummy project, import and commit it to the archive."
@@ -520,16 +520,16 @@ a difference."
 (defun tla-test--digit-char-p ()
   "Test `dvc-digit-char-p'."
   (when (member nil
-          (list
-           (dvc-digit-char-p ?5)
-           (dvc-digit-char-p ?9)
-           (dvc-digit-char-p ?0)
-           (dvc-digit-char-p ?1)
+                (list
+                 (dvc-digit-char-p ?5)
+                 (dvc-digit-char-p ?9)
+                 (dvc-digit-char-p ?0)
+                 (dvc-digit-char-p ?1)
 
-           (not (dvc-digit-char-p ?a))
-           (not (dvc-digit-char-p ?A))
-           (not (dvc-digit-char-p ?!))
-           (not (dvc-digit-char-p ?Y))))
+                 (not (dvc-digit-char-p ?a))
+                 (not (dvc-digit-char-p ?A))
+                 (not (dvc-digit-char-p ?!))
+                 (not (dvc-digit-char-p ?Y))))
     (error "Failed")))
 
 

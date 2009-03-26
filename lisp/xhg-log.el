@@ -1,6 +1,6 @@
 ;;; xhg-log.el --- Mercurial interface for dvc: mode for hg log style output
 
-;; Copyright (C) 2005-2007 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -35,6 +35,8 @@
   (let ((map (copy-keymap diff-mode-shared-map)))
     (define-key map dvc-keyvec-help 'describe-mode)
     (define-key map [?g] 'xhg-log)
+    (define-key map [?R] 'xhg-rollback)
+    (define-key map [?T] 'xhg-log-toggle-verbose)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
     (define-key map [?e] 'xhg-export)
     (define-key map [?E] 'xhg-export-via-mail)
@@ -50,7 +52,7 @@
     ;; the merge group
     (define-key map (dvc-prefix-merge ?u) 'dvc-update)
     (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
-    (define-key map (dvc-prefix-merge ?m) 'dvc-missing)
+    (define-key map (dvc-prefix-merge ?m) '(lambda () (interactive) (dvc-missing nil default-directory)))
     map)
   "Keymap used in `xhg-log-mode'.")
 
@@ -93,7 +95,7 @@ Commands:
        (list 'xhg-log-font-lock-keywords t nil nil))
   (set (make-local-variable 'xhg-log-review-current-diff-revision) nil))
 
-(defconst xhg-log-start-regexp "^changeset: +\\([0-9]+:[0-9a-f]+\\)")
+(defconst xhg-log-start-regexp "^ *changeset: +\\([0-9]+:[0-9a-f]+\\)")
 (defun xhg-log-next (n)
   "Move to the next changeset header of the next diff hunk"
   (interactive "p")
@@ -108,7 +110,10 @@ Commands:
   "Move to the previous changeset header of the previous diff hunk"
   (interactive "p")
   (end-of-line)
-  (re-search-backward xhg-log-start-regexp)
+  (when (save-excursion
+          (beginning-of-line)
+          (looking-at xhg-log-start-regexp))
+    (re-search-backward xhg-log-start-regexp))
   (re-search-backward xhg-log-start-regexp nil t n)
   (when xhg-log-review-recenter-position-on-next-diff
     (recenter xhg-log-review-recenter-position-on-next-diff)))

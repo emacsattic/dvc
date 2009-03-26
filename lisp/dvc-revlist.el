@@ -84,11 +84,11 @@
                       "revision-list-entry-patch-printer" t) (nth 1 elem)))
       (entry-change (insert  (cadr elem)))
       (message (insert (dvc-face-add (cadr elem)
-                                      'dvc-messages)))
+                                     'dvc-messages)))
       (separator
        (case (car (cddr elem))
          (partner (insert "\n" (dvc-face-add (cadr elem)
-                                              'dvc-separator)))
+                                             'dvc-separator)))
          (bookmark (insert "\n" (dvc-face-add
                                  (concat "*** "
                                          (cadr elem)
@@ -96,20 +96,20 @@
                                  'dvc-separator) "\n")))))))
 
 (dvc-make-move-fn ewoc-next dvc-revision-next
-                  dvc-revlist-cookie)
+  dvc-revlist-cookie)
 
 (dvc-make-move-fn ewoc-prev dvc-revision-prev
-                  dvc-revlist-cookie)
+  dvc-revlist-cookie)
 
 (dvc-make-move-fn ewoc-next dvc-revision-next-unmerged
-                  dvc-revlist-cookie t)
+  dvc-revlist-cookie t)
 
 (dvc-make-move-fn ewoc-prev dvc-revision-prev-unmerged
-                  dvc-revlist-cookie t)
+  dvc-revlist-cookie t)
 
 (defun dvc-revlist-current-patch ()
   "Get the dvc-revlist-entry-patch at point."
-   (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie))))
+  (nth 1 (ewoc-data (ewoc-locate dvc-revlist-cookie))))
 
 (defun dvc-revlist-current-patch-struct ()
   "Get the dvc-revlist-entry-patch-struct at point."
@@ -121,7 +121,7 @@
   (let* ((pos (point))
          (current (ewoc-locate
                    dvc-revlist-cookie))
-        (data (ewoc-data current)))
+         (data (ewoc-data current)))
     (setf (dvc-revlist-entry-patch-marked (nth 1 data)) t)
     (ewoc-invalidate dvc-revlist-cookie current)
     (goto-char pos)
@@ -335,6 +335,7 @@ Function used to get the revision info at point")
     (define-key map [?N] 'dvc-revision-next-unmerged)
     (define-key map [?P] 'dvc-revision-prev-unmerged)
     (define-key map [?A] 'dvc-send-commit-notification) ;; Mnemonic: announce
+    (define-key map [?E] 'dvc-export-via-email)
     (define-key map "\C-m" 'dvc-revlist-show-item)
     (define-key map [return] 'dvc-revlist-show-item)
     (define-key map [(meta return)] 'dvc-revlist-show-item-scroll-down)
@@ -351,6 +352,8 @@ Function used to get the revision info at point")
     (define-key map (dvc-prefix-buffer ?L) 'dvc-open-internal-log-buffer)
     (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
     (define-key map (dvc-prefix-merge ?u)                     'dvc-revlist-update)
+    (define-key map (dvc-prefix-merge ?U)                     'dvc-update)
+    (define-key map (dvc-prefix-merge ?m)  '(lambda () (interactive) (dvc-missing nil default-directory)))
     (define-key map (dvc-prefix-merge ?M)                     'dvc-merge)
     (define-key map dvc-keyvec-inventory 'dvc-pop-to-inventory)
     (define-key map [?h] 'dvc-buffer-pop-to-partner-buffer)
@@ -363,8 +366,12 @@ Function used to get the revision info at point")
 (easy-menu-define dvc-revlist-mode-menu dvc-revlist-mode-map
   "`dvc-revlist' menu"
   '("DVC-Revlist"
-    ["Update" dvc-revlist-update t]
+    ["Diff single rev" dvc-revlist-diff t]
+    ["Diff with workspace" dvc-revlist-diff-to-current-tree t]
+    ["Update to rev at point" dvc-revlist-update t]
+    ["Update to head" dvc-update t]
     ["Merge"  dvc-merge          t]
+    ["Show missing" (lambda () (interactive) (dvc-missing nil default-directory)) t]
     ))
 
 ;; dvc-revlist-create-buffer will use "<back-end>-revlist-mode", if
@@ -389,7 +396,7 @@ Commands are:
     (erase-buffer))
   (set (make-local-variable 'dvc-revlist-cookie)
        (ewoc-create (dvc-ewoc-create-api-select
-		     #'dvc-revlist-printer)))
+                     #'dvc-revlist-printer)))
   (toggle-read-only 1)
   (buffer-disable-undo)
   (setq truncate-lines t)
@@ -458,7 +465,7 @@ refresh the revision list buffer.  It must take no arguments."
   "Save the log message for the actual patch."
   (interactive)
   (kill-new (dvc-revision-log-message-at-point)))
-  ;; TODO: (message "Copied log message for %s" (tla-changelog-revision-at-point)))
+;; TODO: (message "Copied log message for %s" (tla-changelog-revision-at-point)))
 
 (defun dvc-revlist-update ()
   "Update current workspace to revision at point"

@@ -28,3 +28,6 @@ patches/
 ./.mtn-ignore
 ./_MTN
 ./lisp/tests/bzr-tests-one.el
+./debian/*debhelper*
+./debian/files
+./debian/dvc

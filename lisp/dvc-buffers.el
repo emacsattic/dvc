@@ -47,40 +47,42 @@ Must be of the form
 Used to keep track of all the dvc related buffers.")
 
 (defvar dvc-buffer-type-alist
-  '((diff      "diff*"      root)
-    (revision-diff "diff(%s)*" string)
-    (status    "status*"    root)
-    (inventory "inventory*" path)
-    (commit    "commit*"    root)
-    (tla-missing "missing*" single)
-    (missing   "missing*"   root)
-    (bookmark  "bookmarks*" single)
-    (tips      "tips*"      single)
-    (revlog    "revlog(%s)*" string-multiple)
-    (file-diff "file-diff*" path)
-    (changelog "changelog*" root)
-    (tree-lint "tree-lint*" root)
-    (log       "log*"       root)
+  '(
+    (alog       "log*"      path)
     ;; alog for "absolute log", i.e., assume path supplied is already
     ;; the root path
-    (alog       "log*"      path)
-    (remote-log "log(%s)*"  string)
-    (log-edit  "log-edit*"  root)
-    (errors    "error*"     multiple)
-    (generic   "process*"   multiple)
-    (browse    "browse*"    single)
     (annotate  "annotate*"  path)
-    (changeset "changeset(%s)*" string)
     (archives  "archives*"  single)
-    (categories "categories(%s)*" string)
+    (bookmark  "bookmarks*" single)
     (branches  "branches(%s)*" string)
-    (versions  "versions(%s)*" string)
-    (revisions "revisions(%s)*" string)
-    (manifest  "manifest*"  root)
-    (unknowns  "unknowns*"  root)
+    (browse    "browse*"    single)
+    (categories "categories(%s)*" string)
+    (changelog "changelog*" root)
+    (changeset "changeset(%s)*" string)
+    (commit    "commit*"    root)
+    (conflicts "conflicts*" root)
+    (diff      "diff*"      root)
+    (errors    "error*"     multiple)
+    (file-diff "file-diff*" path)
+    (generic   "process*"   multiple)
     (info      "info*"  root)
-    (pull      "pull*"  root)
+    (inventory "inventory*" path)
+    (log       "log*"       root)
+    (log-edit  "log-edit*"  root)
+    (manifest  "manifest*"  root)
+    (missing   "missing*"   root)
     (patch-queue "patch-queue*"  root)
+    (pull      "pull*"  root)
+    (remote-log "log(%s)*"  string)
+    (revision-diff "diff(%s)*" string)
+    (revisions "revisions(%s)*" string)
+    (revlog    "revlog(%s)*" string-multiple)
+    (status    "status*"    root)
+    (tips      "tips*"      single)
+    (tla-missing "missing*" single)
+    (tree-lint "tree-lint*" root)
+    (unknowns  "unknowns*"  root)
+    (versions  "versions(%s)*" string)
     )
   "List of (type name mode) used to generate a name for a buffer.
 
@@ -544,7 +546,7 @@ New buffer has type TYPE (default 'errors), mode MODE (default
                          ,submenu
                          :enable t))
            )))
-       dvc-buffers-tree)
+     dvc-buffers-tree)
     (define-key menu [list-separator]
       '(menu-item "--"))
     (define-key menu [process-buffer]
@@ -680,11 +682,11 @@ To be run after an update or a merge."
                     (tree-exp (dvc-uniquify-file-name
                                (expand-file-name tree))))
                 (when (and (string= root tree-exp)
-                           ;; buffer is modified and in the tree TREE.
+                           ;; buffer is not modified and in the tree TREE.
                            dvc-automatically-revert-buffers)
                   ;; Keep the buffer if the file doesn't exist
                   (if (file-exists-p file)
-                      (revert-buffer t t)))))))))))
+                      (revert-buffer t t t)))))))))))
 
 (defun dvc-buffer-visible-p (buffer)
   "Return non-nil if BUFFER is visible in frame."
@@ -695,7 +697,7 @@ To be run after an update or a merge."
       (pop-to-buffer buf)
       (dvc-do-in-xemacs
         (and (setq window-conf (get-buffer-window buffer))
-             window-conf;; we use window-conf only to get rid of warnings
+             window-conf ;; we use window-conf only to get rid of warnings
              (equal (window-frame (get-buffer-window buffer))
                     (selected-frame))))
       (dvc-do-in-gnu-emacs
@@ -718,8 +720,8 @@ if DOWN is non-nil, scroll down, otherwise, scroll up."
                     (scroll-up 2)
                   (message "end of buffer"))))
           (error (message "Can't scroll anymore."))
-        ))
-  (dvc-switch-to-buffer buffer)))
+          ))
+    (dvc-switch-to-buffer buffer)))
 
 (provide 'dvc-buffers)
 ;;; dvc-buffers.el ends here

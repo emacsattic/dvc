@@ -11,10 +11,15 @@ mkdir -p tmp
 
 echo "Executing $0 on $(date)."
 
-make tarball
+rm -f dvc-snapshot.tar.gz
+make MKDIR_P='mkdir -p' tarball || rm -f dvc-snapshot.tar.gz
+if [ ! -f dvc-snapshot.tar.gz ]; then
+    echo "Error creating tarball"
+    exit 1
+fi
 mkdir -p www/download/
 cp dvc-snapshot.tar.gz www/download/
-make -C texinfo dvc.html
+make MKDIR_P='mkdir -p' -C texinfo dvc.html
 mkdir -p www/docs/
 cp texinfo/dvc.html www/docs/dvc-snapshot.html
 

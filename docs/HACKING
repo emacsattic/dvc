@@ -10,9 +10,7 @@ only patches whose author agrees to sign to FSF.
 CONTRIBUTORS file is for tracking the contributors
 and their copyright assignments.
 
-CONTRIBUTORS file is mainly maintained by me (Masatake
-YAMATO). However, I'm always looking for people who
-will help me to interact with FSF.
+CONTRIBUTORS file is maintained by Michael Olson.
 
 GNU Emacs, XEmacs and its version
 =================================
@@ -115,6 +113,29 @@ in your ~/.emacs:
 
 (add-hook 'find-file-hooks 'rf-dvc-find-file-hook)
 
+Non-trivial macros should include the form:
+  (declare (indent INDENT-SPEC) (debug DEBUG-SPEC))
+The INDENT-SPEC tells Emacs' indentation commands how to indent the form,
+whereas DEBUG-SPEC tells Edebug how to instrument the form for debugging.
+See: (info "(elisp) Indenting Macros") and
+     (info "(elisp) Edebug and Macros") for more info.
+
+Indentation is not (completely) arbitrary.  There are three steps,
+the first of which need be done only once per editing session.
+
+ - Make sure you evaluate *all* `defmacro' forms so that Emacs knows
+   about each form's indentation spec (if any).
+
+ - Use C-M-q at top-level open-paren to canonicalize indentation.
+
+ - Apply stylistic exceptions (manual override).  Common cases:
+   - `flet', `labels', `macrolet' -- Emacs does a poor job here, indenting
+     too much, so overriding it is almost a requirement (many examples);
+   - deliberate flush-left (to column 0) so that C-M-x "continues to work"
+     on an inner form (eg: dvc-capturing-lambda);
+   - end-of-line ";;"-comment alignment (eg: defstruct dvc-fileinfo-file).
+
+
 Process management
 ==================
 
@@ -208,17 +229,23 @@ Release & distribution process
 * Development version
 ---------------------
 
-The prefered way to get a development version is to use arch itself to
-get the latest development version. However, xtla's configuration and
-build system provides a way to distribute development tarballs:
+The prefered way to get a development version is to use either
+Bazaar or Git to clone the latest repo.
 
-make tarball
+Programs for maintainers:
+ (required) autoconf, tar, gzip, makeinfo
+ (optional) texi2dvi, etags
 
-Will generate xtla-snapshot.tar.gz. This snapshot is put online every
-nights on http://download.gna.org/xtla-el/xtla-snapshot.tar.gz
+With the exception of gzip (which is invoked simply as "gzip"),
+the invocation of each of these programs is influenced by a
+makefile variable of the same name, but all upcased.  For example,
+you can choose a different tar for "make dist" using the command:
+  make dist TAR=/path/to/my/tar
+The default values for these variables is simply the program name.
 
-The documentation is made available separately on
-http://download.gna.org/xtla-el/docs/xtla-snapshot.html
+Historical note: We used to AC_PATH_PROG them in configure.ac, but
+that did not benefit the end user (./configure && make all install),
+so we stopped mid-2008.
 
 * Official releases
 -------------------
@@ -226,35 +253,11 @@ http://download.gna.org/xtla-el/docs/xtla-snapshot.html
 Official releases will be made by the release manager, after
 discussion on the mailing list.
 
-The release manager will for example type the commands
+The release manager will modify configure.ac to set the second
+arg of AC_INIT to 1.1, for example, and then type the commands
 
-  make RELEASE_ID=1.1 tarball
+  autoreconf
+  ./configure (or ./config.status --recheck)
+  make
+  make dist
 
-to generate xtla-1.1.tar.gz, that will be put online on
-http://download.gna.org/xtla-el/xtla-1.1.tar.gz
-
-This is the command I (Matthieu Moy) use to upload the tarball to
-gna.org.
-
-  scp -i ~/.ssh/gna_org xtla-1.1.tar.gz \
-          moy@download.gna.org:/upload/xtla-el
-
-The documentation is made available separately on
-http://download.gna.org/xtla-el/docs/xtla-1.1.html
-
-This is the command I use to generate and upload the documentation:
-
-  make -C texinfo xtla.html
-  scp -i ~/.ssh/gna_org texinfo/xtla.html \
-         moy@download.gna.org:/upload/xtla-el/docs/xtla-snapshot.html
-
-
-* Helper script
----------------
-
-During the pre-1.0 phase, nightly snapshot tarballs and documentation
-were made by Matthieu MOY. The scripts scripts/xtla-cron.sh was
-actually doing the job, ran by cron every nights.
-
-A future maintainer could reuse this script and adapt it to his
-configuration.

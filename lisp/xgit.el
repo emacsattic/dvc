@@ -1,6 +1,6 @@
 ;;; xgit.el --- git interface for dvc
 
-;; Copyright (C) 2006-2008 by all contributors
+;; Copyright (C) 2006-2009 by all contributors
 
 ;; Author: Stefan Reichoer <stefan@xsteve.at>
 ;; Contributions from:
@@ -45,8 +45,8 @@
   "Run git init."
   (interactive
    (list (expand-file-name (dvc-read-directory-name "Directory for git init: "
-                                                     (or default-directory
-                                                         (getenv "HOME"))))))
+                                                    (or default-directory
+                                                        (getenv "HOME"))))))
   (let ((default-directory (or dir default-directory)))
     (dvc-run-dvc-sync 'xgit (list "init-db")
                       :finished (dvc-capturing-lambda
@@ -164,8 +164,9 @@ new file.")
 
 (defun xgit-parse-status-sort (status-list)
   "Sort STATUS-LIST according to :status in the order
-added, modified, renamed, copied, deleted, unknown."
-  (let ((order '((added . 1) (modified . 2)
+conflict, added, modified, renamed, copied, deleted, unknown."
+  (let ((order '((conflict . 0)
+                 (added . 1) (modified . 2)
                  (rename-source . 3) (rename-target . 3)
                  (copy-source . 4) (copy-target . 4)
                  (deleted . 5) (unknown . 6)))
@@ -253,6 +254,8 @@ added, modified, renamed, copied, deleted, unknown."
                                 (cons (list :file orig :dir nil
                                             :status 'copy-source :indexed t)
                                       status-list))))))
+                    ((string= status-string "unmerged")
+                     (setq status 'conflict))
                     (t
                      (setq status nil)))
               (when status
@@ -345,7 +348,7 @@ This reset the index to HEAD, but doesn't touch files."
     (while (re-search-forward
             "^diff --git [^ ]+ b/\\(.*\\)$" nil t)
       (let* ((name (match-string-no-properties 1))
-              ;; added, removed are not yet working
+             ;; added, removed are not yet working
              (added (progn (forward-line 1)
                            (looking-at "^new file")))
              (removed (looking-at "^deleted file")))
@@ -360,8 +363,8 @@ This reset the index to HEAD, but doesn't touch files."
                               (t " "))
                         (cond ((or added removed) " ")
                               (t "M"))
-                        " " ; dir. directories are not
-                            ; tracked in git
+                        " "             ; dir. directories are not
+                                        ; tracked in git
                         nil))))))))
 
 (defun xgit-diff-1 (against-rev path dont-switch base-rev)
@@ -386,7 +389,7 @@ This reset the index to HEAD, but doesn't touch files."
                   'diff root 'xgit))
          (command-list (if (equal against-rev '(xgit (index)))
                            (if (equal base-rev local-tree)
-                             '("diff" "-M")
+                               '("diff" "-M")
                              (message "%S != %S" base-rev local-tree)
                              `("diff" "-M" "--cached" ,against))
                          `("diff" "-M" ,base ,against))))
@@ -394,21 +397,25 @@ This reset the index to HEAD, but doesn't touch files."
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
     (dvc-run-dvc-sync 'xgit command-list
-                       :finished
-                       (dvc-capturing-lambda (output error status arguments)
-                         (dvc-show-changes-buffer output
-                                                  'xgit-parse-diff
-                                                  (capture buffer)
-                                                  nil nil
-                                                  (mapconcat
-                                                   (lambda (x) x)
-                                                   (cons "git" command-list)
-                                                   " "))))))
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (dvc-show-changes-buffer output
+                                                 'xgit-parse-diff
+                                                 (capture buffer)
+                                                 nil nil
+                                                 (mapconcat
+                                                  (lambda (x) x)
+                                                  (cons "git" command-list)
+                                                  " "))))))
 
 (defun xgit-last-revision (path)
   (if (xgit-use-index-p)
       '(xgit (index))
     `(xgit (last-revision ,path 1))))
+
+;; TODO offer completion here, e.g. xgit-tag-list
+(defun xgit-read-revision-name (prompt)
+  (read-string prompt))
 
 ;;;###autoload
 (defun xgit-dvc-diff (&optional against-rev path dont-switch)
@@ -439,6 +446,18 @@ This reset the index to HEAD, but doesn't touch files."
                path dont-switch
                `(xgit (last-revision ,path 1))))
 
+;;;###autoload
+(defun xgit-diff2 (base-rev against-rev &optional path dont-switch)
+  "Call \"git diff BASE-REV AGAINST-REV\"."
+  (interactive (list
+                (xgit-read-revision-name "Base Revision: ")
+                (xgit-read-revision-name "Against Revision: ")
+                nil
+                current-prefix-arg))
+  (xgit-diff-1 `(xgit (revision ,against-rev))
+               path dont-switch
+               `(xgit (revision ,base-rev))))
+
 (defvar xgit-prev-format-string "%s~%s"
   "This is a format string which is used by `dvc-revision-to-string'
 when encountering a (previous ...) component of a revision indicator.
@@ -467,6 +486,21 @@ When called with a prefix argument, ask for the fetch source."
       (setq repository (read-string "Git fetch from: "))))
   (dvc-run-dvc-async 'xgit (list "fetch" repository)))
 
+(defun* xgit-push (url &optional (branch "master"))
+    "Run 'git push url'.
+with prefix arg ask for branch, default to master."
+  (interactive "sGit push to: ")
+  (lexical-let ((branch-name (if current-prefix-arg
+                             (read-string "Which Branch?: ")
+                             branch))
+                (to url))
+    (dvc-run-dvc-async 'xgit (list "push" url branch-name)
+                       :finished
+                       (dvc-capturing-lambda (output error status arguments)
+                         (if (eq status 0)
+                             (message "xgit-push <%s> to <%s> finished" branch-name to)
+                             (dvc-switch-to-buffer error))))))
+
 ;;;###autoload
 (defun xgit-pull (&optional repository)
   "Call git pull.
@@ -475,7 +509,33 @@ When called with a prefix argument, ask for the pull source."
   (when (interactive-p)
     (when current-prefix-arg
       (setq repository (read-string "Git pull from: "))))
-  (dvc-run-dvc-async 'xgit (list "pull" repository)))
+  (dvc-run-dvc-async 'xgit (list "pull" repository)
+                     :finished
+                     (dvc-capturing-lambda (output error status arguments)
+                       (with-current-buffer output
+                         (xgit-parse-pull-result t))
+                       (when xgit-pull-result
+                         (dvc-switch-to-buffer output)
+                         (when (y-or-n-p "Run xgit-whats-new? ")
+                           (xgit-whats-new))))))
+
+(defvar xgit-pull-result nil)
+(defun xgit-parse-pull-result (reset-parameters)
+  "Parse the output of git pull."
+  (when reset-parameters
+    (setq xgit-pull-result nil))
+  (goto-char (point-min))
+  (cond ((looking-at "Updating \\([0-9a-z]+\\)\.\.\\([0-9a-z]+\\)")
+         (setq xgit-pull-result (list (match-string 1) (match-string 2)))
+         (message "Execute M-x xgit-whats-new to see the arrived changes."))
+        ((looking-at "Already up-to-date.")
+         (message "Already up-to-date."))))
+
+(defun xgit-whats-new ()
+  "Show the changes since the last git pull."
+  (interactive)
+  (when xgit-pull-result
+    (xgit-changelog (car xgit-pull-result) (cadr xgit-pull-result) t)))
 
 (defun xgit-split-out-added-files (files)
   "Remove any files that have been newly added to git from FILES.
@@ -552,7 +612,7 @@ git-show or nil for all files."
 
 (defun xgit-changed-files (dir rev)
   "Returns list of files changed in given revision"
-  (let* ((repo (xgit-git-dir dir))
+  (let* ((repo (xgit-git-dir-option dir))
          (cmd "diff-tree")
          (args (list repo cmd "--numstat" rev))
          (result (dvc-run-dvc-sync
@@ -606,7 +666,7 @@ If there is no tag return nil,
 if revision is a tag, return tag in a string,
 else returns list of '(tag offset all-described-string)."
   (interactive (list default-directory (read-string "Revision: ")))
-  (let* ((repo (xgit-git-dir dir))
+  (let* ((repo (xgit-git-dir-option dir))
          (cmd "describe")
          (args (list repo cmd rev))
          (info (dvc-run-dvc-sync 'xgit args
@@ -626,7 +686,7 @@ else returns list of '(tag offset all-described-string)."
 DIR is a directory controlled by Git.
 FILE is filename in the repository at DIR."
   (let* ((buffer (dvc-get-buffer-create 'xgit 'annotate))
-         (repo (xgit-git-dir dir))
+         (repo (xgit-git-dir-option dir))
          (cmd "blame")
          (fname (file-relative-name file (xgit-tree-root dir)))
          (args (list repo cmd "--" fname)))
@@ -652,9 +712,64 @@ FILE is filename in the repository at DIR."
     (xgit-do-annotate default-directory filename)
     (goto-line line)))
 
+(defun xgit-tag-list ()
+  "Run \"git tag\" and list all defined tags"
+  (interactive)
+  (if (interactive-p)
+      (dvc-run-dvc-display-as-info 'xgit (list "tag"))
+    (dvc-run-dvc-sync 'xgit (list "tag")
+                      :finished 'dvc-output-buffer-split-handler)))
+
+(defun xgit-branch-list (&optional all)
+  "Run \"git branch\" and list all known branches.
+When ALL is given, show all branches, using \"git branch -a\".
+When called via lisp, return the list of branches. The currently selected branch is
+returned as first entry."
+  (interactive "P")
+  (if (interactive-p)
+      (dvc-run-dvc-display-as-info 'xgit (list "branch" (when all "-a")))
+    (let ((branch-list-raw
+           (dvc-run-dvc-sync 'xgit (list "branch" (when all "-a"))
+                             :finished 'dvc-output-buffer-split-handler))
+          (branch-list))
+      (dolist (branch-entry branch-list-raw)
+        (cond ((string= (substring branch-entry 0 2) "* ")
+               (add-to-list 'branch-list (substring branch-entry 2)))
+              ((string= (substring branch-entry 0 2) "  ")
+               (add-to-list 'branch-list (substring branch-entry 2) t))))
+      branch-list)))
+
+(defun xgit-branch (branch-name)
+  "Run \"git branch BRANCH-NAME\" to create a new branch."
+  (interactive "sCreate new git branch: ")
+  (dvc-run-dvc-sync 'xgit (list "branch" branch-name)))
+
+(defun xgit-checkout (branch-name)
+  "Run \"git checout BRANCH-NAME\" to checkout an existing branch."
+  (interactive (list (dvc-completing-read "Checkout git branch: " (xgit-branch-list t))))
+  (dvc-run-dvc-sync 'xgit (list "checkout" branch-name))
+  (message "git checkout %s done." branch-name))
+
+;;;###autoload
+(defun xgit-apply-patch (file)
+  "Run \"git apply\" to apply the contents of FILE as a patch."
+  (interactive (list (dvc-confirm-read-file-name
+                      "Apply file containing patch: " t)))
+  (dvc-run-dvc-sync 'xgit
+                    (list "apply" (expand-file-name file))
+                    :finished
+                    (lambda (output error status arguments)
+                      (message "Imported git patch from %s" file))
+                    :error
+                    (lambda (output error status arguments)
+                      (dvc-show-error-buffer error)
+                      (error "Error occurred while applying patch(es)"))))
+
 ;;;###autoload
 (defun xgit-apply-mbox (mbox &optional force)
-  "Run git am to apply the contents of MBOX as one or more patches."
+  "Run \"git am\" to apply the contents of MBOX as one or more patches.
+If this command succeeds, it will result in a new commit being added to
+the current git repository."
   (interactive (list (dvc-confirm-read-file-name
                       "Apply mbox containing patch(es): " t)))
   (dvc-run-dvc-sync 'xgit
@@ -741,7 +856,7 @@ The value is determined based on `xgit-use-index'."
                 (customize-variable 'xgit-use-index)
                 (message "Use git index (y/n/a/e/c/?)? "))
                (help (message
-"\"Use the index\" (aka staging area) means add file content
+                      "\"Use the index\" (aka staging area) means add file content
 explicitly before commiting. Concretely, this means run commit
 without -a, and run diff without options.
 
@@ -755,6 +870,12 @@ Use git index?
 
 \(y/n/a/e/c/?)? "))))
            answer))))
+
+(defun xgit-get-root-exclude-file (&optional root)
+  "returns exclude file for ROOT"
+  (concat (file-name-as-directory (xgit-git-dir root))
+	  "info/"
+	  "exclude"))
 
 (provide 'xgit)
 ;;; xgit.el ends here

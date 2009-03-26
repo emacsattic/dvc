@@ -55,6 +55,7 @@
 
 Checks if the command CMDNAME exists (appear in the output of the
 \"help\" command."
+  (declare (debug (stringp)))
   (let ((var (intern (concat "tla--autoconf-has-" cmd "-command")))
         (fun (intern (concat "tla-has-"  cmd "-command"))))
     `(progn
@@ -90,7 +91,7 @@ the result in `tla--autoconf-has-%s-command'." cmd cmd cmd cmd)
                  (if answer 'yes 'no))
            answer)))))
 
-(tla--has-foo-command "escape") ; support for spaces in filename
+(tla--has-foo-command "escape")         ; support for spaces in filename
 (tla--has-foo-command "diff")
 (tla--has-foo-command "file-diff")
 (tla--has-foo-command "tree-id")
@@ -112,6 +113,7 @@ Checks if the command CMDNAME accepts the option OPTION. CMD may be a
 lisp expression that returns the actual command to execute (usefull
 for commands whose name is not the same for baz and tla. HELPSTRING is
 the string to search for in the output of CMD --help."
+  (declare (debug (stringp form stringp stringp)))
   (let ((var (intern (concat "tla--autoconf-" cmdname "-has-" option "-option")))
         (fun (intern (concat "tla-" cmdname "-has-" option "-option"))))
     `(progn

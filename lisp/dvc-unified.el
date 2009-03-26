@@ -1,6 +1,6 @@
 ;;; dvc-unified.el --- The unification layer for dvc
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -43,7 +43,7 @@
 ;;;###autoload
 (defun dvc-init ()
   "Initialize a new repository.
-It currently supports the initialization for bzr, xhg, tla.
+It currently supports the initialization for bzr, xhg, xgit, tla.
 Note: this function is only useful when called interactively."
   (interactive)
   (when (interactive-p)
@@ -51,7 +51,9 @@ Note: this function is only useful when called interactively."
           (working-dir (dvc-uniquify-file-name default-directory))
           (dvc))
       ;; hide backends that don't provide an init function
-      (mapcar '(lambda (elem) (setq supported-variants (delete elem supported-variants))) '("xdarcs" "xmtn" "xgit" "baz"))
+      (mapcar '(lambda (elem)
+                (setq supported-variants (delete elem supported-variants)))
+              '("xdarcs" "xmtn" "baz"))
       (add-to-list 'supported-variants "bzr-repo")
       (setq dvc (intern (dvc-completing-read
                          (format "Init a repository for '%s', using dvc: " working-dir)
@@ -110,6 +112,9 @@ in SPEC if they are nil, returning the result."
 (defmacro define-dvc-unified-command (name args comment &optional interactive)
   "Define a DVC unified command.  &optional arguments are permitted, but
 not &rest."
+  (declare (indent 2)
+	   (debug (&define name lambda-list stringp
+			   [&optional interactive])))
   `(defun ,name ,args
      ,comment
      ,@(when interactive (list interactive))
@@ -118,15 +123,15 @@ not &rest."
                                           ,@(remove '&optional args)))))
 
 ;;;###autoload
-(defun dvc-clone (&optional dvc source-path dest-path)
+(defun dvc-clone (&optional dvc source-path dest-path rev)
   "Ask for the DVC to use and clone SOURCE-PATH."
-  (interactive)
+  (interactive "P")
   (when (interactive-p)
     (let* ((ffap-url-regexp
             (concat
              "\\`\\("
              "\\(ftp\\|https?\\|git\\|www\\)://" ; needs host
-             "\\)."				; require one more character
+             "\\)."                              ; require one more character
              ))
            (url-at-point (ffap-url-at-point))
            (all-candidates (map t 'symbol-name dvc-registered-backends))
@@ -144,11 +149,17 @@ not &rest."
       (setq source-path (read-string (format "%S-clone from path: " dvc) url-at-point))
       (setq dest-path (expand-file-name (dvc-read-directory-name
                                          (format "Destination Directory for %S-clone: " dvc)
-                                         nil nil nil "<default>")))))
+                                         nil nil nil "<default>")))
+      (if current-prefix-arg
+          (unless (not (eq dvc 'xhg))
+            (setq rev (read-string "FromRevision: ")))
+        nil)))
   (let ((default-directory (or (file-name-directory dest-path) default-directory)))
     (when (string= (file-name-nondirectory dest-path) "<default>")
       (setq dest-path nil))
-    (funcall (dvc-function dvc "dvc-clone") source-path dest-path)))
+    (if rev
+        (funcall (dvc-function dvc "dvc-clone") source-path dest-path rev)
+      (funcall (dvc-function dvc "dvc-clone") source-path dest-path))))
 
 ;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
@@ -169,17 +180,27 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it."
     (dvc-save-some-buffers default-directory)
     (dvc-call "dvc-diff" base-rev default-directory dont-switch)))
 
+;;;###autoload
+(defun dvc-diff-against-url (path)
+  "Show the diff from the current tree against a remote url"
+  (interactive)
+  (dvc-save-some-buffers default-directory)
+  (dvc-call "dvc-diff-against-url" path))
+
 (defun dvc-dvc-last-revision (path)
   (list (dvc-current-active-dvc)
         (list 'last-revision path 1)))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-delta (base modified &optional dont-switch)
-  "Display from revision BASE to MODIFIED.
+  "Display diff from revision BASE to MODIFIED.
 
-BASE and MODIFIED must be revision ID.
+BASE and MODIFIED must be full revision IDs, or strings. If
+strings, the meaning is back-end specific; it should be some sort
+of revision specifier.
 
-The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
+The new buffer is always displayed; if DONT-SWITCH is nil, select it."
+  (interactive "Mbase revision: \nMmodified revision: "))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-file-diff (file &optional base modified dont-switch)
@@ -232,7 +253,7 @@ Use `dvc-log' for the brief log."
 ;;;###autoload
 (define-dvc-unified-command dvc-add (file)
   "Adds FILE to the repository."
-  (interactive))
+  (interactive "fFile: "))
 
 (define-dvc-unified-command dvc-revision-direct-ancestor (revision)
   "Computes the direct ancestor of a revision.")
@@ -252,11 +273,11 @@ but to-file-name does, just record the rename in the back-end"
   ;; If bookkeep-only nil, rename file in filesystem and back-end
   ;; If non-nil, rename file in back-end only.
   (interactive
-    (let* ((from-name (dvc-confirm-read-file-name "Rename: " t))
-           (to-name (dvc-confirm-read-file-name
-                     (format "Rename %s to: " from-name)
-                     nil "" from-name)))
-      (list from-name to-name)))
+   (let* ((from-name (dvc-confirm-read-file-name "Rename: " t))
+          (to-name (dvc-confirm-read-file-name
+                    (format "Rename %s to: " from-name)
+                    nil "" from-name)))
+     (list from-name to-name)))
 
   (if (file-exists-p from-name)
       (progn
@@ -269,13 +290,13 @@ but to-file-name does, just record the rename in the back-end"
         (dvc-call "dvc-rename" from-name to-name nil))
 
     ;; rename the file in the back-end only
-      (progn
-        ;; rename the file in the filesystem and back-end
-        (if (not (file-exists-p to-name))
-            (error "%s does not exist" to-name))
-        (when (file-directory-p to-name)
-          (setq to-name (file-name-as-directory to-name)))
-        (dvc-call "dvc-rename" from-name to-name t))))
+    (progn
+      ;; rename the file in the filesystem and back-end
+      (if (not (file-exists-p to-name))
+          (error "%s does not exist" to-name))
+      (when (file-directory-p to-name)
+        (setq to-name (file-name-as-directory to-name)))
+      (dvc-call "dvc-rename" from-name to-name t))))
 
 (defvar dvc-command-version nil)
 ;;;###autoload
@@ -343,13 +364,14 @@ reused. `default-directory' must be the tree root."
   (let ((log-edit-buffers (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'log-edit default-directory)))
     (case (length log-edit-buffers)
       (0 ;; Need to create a new log-edit buffer. In the log-edit
-         ;; buffer, dvc-partner-buffer must be set to a buffer with a
-         ;; mode that dvc-current-file-list supports. That is
-         ;; currently dvc-diff-mode or dired-mode; we don't have a way
-         ;; to find dired-mode buffers, so we ignore those.
+       ;; buffer, dvc-partner-buffer must be set to a buffer with a
+       ;; mode that dvc-current-file-list supports. That is
+       ;; currently dvc-diff-mode or dired-mode; we don't have a way
+       ;; to find dired-mode buffers, so we ignore those.
        (let ((diff-status-buffers
               (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
-                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)))
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'conflicts default-directory)))
              (activated-from-bookmark-buffer (eq major-mode 'dvc-bookmarks-mode)))
          (case (length diff-status-buffers)
            (0 (if (not activated-from-bookmark-buffer)
@@ -373,12 +395,12 @@ reused. `default-directory' must be the tree root."
                        default-directory)))))))
 
       (1 ;; Just reuse the buffer. In this call, we can't use
-         ;; dvc-buffer-current-active-dvc from the current buffer,
-         ;; because it might be nil (if we are in a source buffer). We
-         ;; want to use dvc-buffer-current-active-dvc from that buffer
-         ;; for this dvc-call, but we can't switch to it first,
-         ;; because dvc-log-edit needs the current buffer to set
-         ;; dvc-partner-buffer.
+       ;; dvc-buffer-current-active-dvc from the current buffer,
+       ;; because it might be nil (if we are in a source buffer). We
+       ;; want to use dvc-buffer-current-active-dvc from that buffer
+       ;; for this dvc-call, but we can't switch to it first,
+       ;; because dvc-log-edit needs the current buffer to set
+       ;; dvc-partner-buffer.
        (let ((dvc-temp-current-active-dvc
               (with-current-buffer (nth 1 (car log-edit-buffers)) dvc-buffer-current-active-dvc)))
          (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame no-init)))
@@ -386,12 +408,12 @@ reused. `default-directory' must be the tree root."
       (t ;; multiple matching buffers
        (if dvc-buffer-current-active-dvc
            (error "More than one log-edit buffer for %s in %s; can't tell which to use. Please close some."
-              dvc-buffer-current-active-dvc default-directory)
+                  dvc-buffer-current-active-dvc default-directory)
          (error "More than one log-edit buffer for %s; can't tell which to use. Please close some."
                 default-directory))))))
 
 (defvar dvc-back-end-wrappers
-  '(("add-log-entry" ())
+  '(("add-log-entry" (&optional other-frame))
     ("add-files" (&rest files))
     ("diff" (&optional base-rev path dont-switch))
     ("ignore-file-extensions" (file-list))
@@ -463,21 +485,21 @@ directories containing the files, and recursively below them."
       (if (not dir)
           (error "A file with no directory selected")))
     (when (y-or-n-p (format "Ignore %s? " msg))
-          (dvc-call "dvc-backend-ignore-file-extensions-in-dir" file-list))))
+      (dvc-call "dvc-backend-ignore-file-extensions-in-dir" file-list))))
 
 ;;;###autoload
-(defun dvc-missing (&optional other path force-prompt)
-  "Show revisions missing from PATH (default the local workspace),
+(defun dvc-missing (&optional other path use-current)
+  "Show revisions missing from PATH (default prompt),
 relative to OTHER. OTHER defaults to the head revision of the
 current branch; for some back-ends, it may also be a remote
 repository.
 
-If FORCE-PROMPT non-nil (default user prefix arg), prompt for PATH."
+If USE-CURRENT non-nil (default user prefix arg), PATH defaults to current tree."
   (interactive `(nil nil ,current-prefix-arg))
   (let ((default-directory
           (dvc-read-project-tree-maybe "DVC missing (directory): "
                                        (when path (expand-file-name path))
-                                       (not force-prompt))))
+                                       use-current)))
     ;; Since we have bound default-directory, we don't need to pass
     ;; `path' to the back-end.
     (dvc-save-some-buffers default-directory)
@@ -539,6 +561,30 @@ If TO is provided, send it to that email address.  If a prefix
 argument is given, modify the behavior of this command as
 specified by the VCS backend."
   (interactive (list current-prefix-arg)))
+
+;;;###autoload
+(define-dvc-unified-command dvc-export-via-email ()
+  "Send the changeset at point via email."
+  (interactive))
+
+;;;###autoload
+(defun dvc-create-branch ()
+  "Create a new branch."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-create-branch")))
+
+;;;###autoload
+(defun dvc-select-branch ()
+  "Select a branch."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-select-branch")))
+
+;;;###autoload
+(defun dvc-list-branches ()
+  "List available branches."
+  (interactive)
+  (call-interactively (dvc-function (dvc-current-active-dvc) "dvc-list-branches")))
+
 
 (provide 'dvc-unified)
 

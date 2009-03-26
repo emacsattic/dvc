@@ -87,7 +87,7 @@
     ([(meta ^)]    . tla-name-read-insert-ancestor)
     ([(control h)] . tla-name-read-help)
     ([(meta \?)]    . tla-name-read-inline-help))
-    "Key definitions table for `tla--name-read-minibuf-map'.
+  "Key definitions table for `tla--name-read-minibuf-map'.
 The reason these definitions are defined separately from
 `tla--name-read-minibuf-map' is that to reuse these definitions
 in `tla-name-read-help'. Don't forget to evalute
@@ -725,7 +725,7 @@ The function must take a string as argument."
     (define-key map (dvc-prefix-merge dvc-key-missing) 'tla-missing-show-all-revisions)
     (define-key map (dvc-prefix-diff dvc-key-diff) 'tla-revision-delta)
     (define-key map (dvc-prefix-diff dvc-key-get)
-    'tla-revision-store-delta)
+      'tla-revision-store-delta)
     ;; Moved to DVC now.
     ;;    (define-key map [?=] 'tla-revision-changeset)
     ;; (define-key map [(meta ?=)] 'tla-revision-scroll-up-or-show-changeset)
@@ -737,8 +737,8 @@ The function must take a string as argument."
   revision ;; The revision, as a list
   summary creator date
   merges ;; List of patches merged by this revision
-  body ;; Body of the log file (after headers)
-  log ;; full log (redundant with other fields)
+  body   ;; Body of the log file (after headers)
+  log    ;; full log (redundant with other fields)
   )
 
 (defvar tla-revision-revision-map
@@ -901,8 +901,8 @@ The function must take a string as argument."
                                     (tla-changelog x)))))
     "--"
     ("Replay" :filter (lambda (x)
-                            (tla--partner-create-menu
-                             'tla-inventory-replay)))
+                        (tla--partner-create-menu
+                         'tla-inventory-replay)))
     ("Star-merge" :filter (lambda (x)
                             (tla--partner-create-menu
                              'tla-inventory-star-merge)))))
@@ -1123,37 +1123,37 @@ The function must take a string as argument."
      ["Creator" dvc-revlist-toggle-creator
       :style toggle :selected dvc-revisions-shows-creator]
      ["Summary" dvc-revlist-toggle-summary
-     :style toggle :selected dvc-revisions-shows-summary]
+      :style toggle :selected dvc-revisions-shows-summary]
      ["Presence in Revlib" tla-revision-toggle-library
-     :style toggle :selected tla-revisions-shows-library]
+      :style toggle :selected tla-revisions-shows-library]
      ["Merged Patches"   tla-revision-toggle-merges
-     :style toggle :selected tla-revisions-shows-merges]
+      :style toggle :selected tla-revisions-shows-merges]
      ["Patches Merging ..." tla-revision-toggle-merged-by
       :style toggle :selected tla-revisions-shows-merged-by])))
 
 (easy-menu-define tla-revision-revision-menu nil
   "Menu used on a revision item in `tla-revision-list-mode' buffer"
   '("Revision"
-     ["Show Log"        tla-revision-revlog t]
-     ["Unify Patch Logs with This Revision" tla-revision-sync-tree t]
-     ["View changeset"  tla-revision-changeset t]
-     ["Set Bookmark"    tla-revision-bookmarks-add t]
-     ("Mark"
-      ["Mark Revision"   dvc-revision-mark-revision t]
-      ["Unmark Revision"   dvc-revision-unmark-revision t])
-     ("Delta"
-      ["In This Version"                     tla-revision-delta t]
-      ["With Revision in Another Archive"    tla-revision-store-delta t])
-     ("Merge"
-      ["Star-Merge"       tla-revision-star-merge t]
-      ["Replay"           tla-revision-replay t]
-      ["Replay Reversely" (tla-revision-replay 'reversely) t])
-     ("Get"
-      ["Get a Local Copy" tla-revision-get-revision t]
-      ["Make Cache"       tla-revision-cache-revision t]
-      ["Add to Library"   tla-revision-add-to-library t])
-     ["Send comment to author" tla-revision-send-comments t]
-     ["Tag from Here"      tla-revision-tag-from-here]))
+    ["Show Log"        tla-revision-revlog t]
+    ["Unify Patch Logs with This Revision" tla-revision-sync-tree t]
+    ["View changeset"  tla-revision-changeset t]
+    ["Set Bookmark"    tla-revision-bookmarks-add t]
+    ("Mark"
+     ["Mark Revision"   dvc-revision-mark-revision t]
+     ["Unmark Revision"   dvc-revision-unmark-revision t])
+    ("Delta"
+     ["In This Version"                     tla-revision-delta t]
+     ["With Revision in Another Archive"    tla-revision-store-delta t])
+    ("Merge"
+     ["Star-Merge"       tla-revision-star-merge t]
+     ["Replay"           tla-revision-replay t]
+     ["Replay Reversely" (tla-revision-replay 'reversely) t])
+    ("Get"
+     ["Get a Local Copy" tla-revision-get-revision t]
+     ["Make Cache"       tla-revision-cache-revision t]
+     ["Add to Library"   tla-revision-add-to-library t])
+    ["Send comment to author" tla-revision-send-comments t]
+    ["Tag from Here"      tla-revision-tag-from-here]))
 
 ;;
 ;; Lint mode
@@ -1227,26 +1227,26 @@ The function must take a string as argument."
   :group 'dvc-faces)
 
 (defcustom tla-executable (dvc-first-set
-                           dvc-site-tla-executable
-                           "tla")
+                              dvc-site-tla-executable
+                            "tla")
   "*The name of the tla executable."
   :type 'string
   :group 'xtla)
 
 (defcustom baz-executable (dvc-first-set
-                               dvc-site-baz-executable
-                               "baz")
+                              dvc-site-baz-executable
+                            "baz")
   "*The name of the baz executable.
 baz is the command name for bazaar, a branch of tla."
   :type 'string
   :group 'xtla)
 
 (defcustom tla-arch-branch (dvc-first-set
-                            dvc-site-arch-branch
-                            (if (executable-find
-                                 baz-executable)
-                                'baz
-                              'tla))
+                               dvc-site-arch-branch
+                             (if (executable-find
+                                  baz-executable)
+                                 'baz
+                               'tla))
   "*Branch of GNU Arch to use.
 Currently supported are 'tla and 'baz."
   :type '(choice (const baz)
@@ -1687,7 +1687,7 @@ Example setting: '(((nil \"xtla\" nil nil nil) \"~/work/tla/xtla\")))"
 
 (defcustom tla-submit-patch-mapping
   '(((nil "xtla" nil  nil nil) ("xtla-el-dev@gna.org" "xtla")))
-"*Email addresses that should be used to send patches
+  "*Email addresses that should be used to send patches
 
 An alist of rules to map fully qualified revision names to target
 email addresses and the base name to use in the attached patch.
@@ -1705,9 +1705,9 @@ This is used by the `tla-submit-patch' function."
                                      (regexp :tag "Version"))
                              (choice (const :tag "Any revision" nil)
                                      (string :tag "Revision")))
-                (list :tag "Target"
-                      (string :tag "Email address")
-                      (string :tag "Base name of tarball"))))
+                       (list :tag "Target"
+                             (string :tag "Email address")
+                             (string :tag "Base name of tarball"))))
   :group 'xtla)
 
 (defcustom tla-patch-sent-action 'keep-tarball
@@ -1723,7 +1723,7 @@ The possible values are 'keep-tarball, 'keep-changes, 'keep-both, 'keep-none."
 ;;(setq tla-mail-notification-destination
 ;;      '(((nil "xtla" nil  nil nil) ("[commit][xtla 1.2] " "xtla-el-dev@gna.org"))))
 (defcustom tla-mail-notification-destination nil
-"*Preset some useful values for commit emails.
+  "*Preset some useful values for commit emails.
 
 An alist of rules to map fully qualified revision names to target
 email addresses and the prefix string for the subject line.
@@ -1741,9 +1741,9 @@ This is used by the `tla-send-commit-notification' function."
                                      (regexp :tag "Version"))
                              (choice (const :tag "Any revision" nil)
                                      (string :tag "Revision")))
-                (list :tag "Target"
-                      (string :tag "Email subject prefix")
-                      (string :tag "Email address"))))
+                       (list :tag "Target"
+                             (string :tag "Email subject prefix")
+                             (string :tag "Email address"))))
   :group 'xtla)
 
 (defgroup tla-merge nil

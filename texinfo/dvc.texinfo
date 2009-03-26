@@ -16,6 +16,8 @@
 Copyright (c) 2004-2005, 2007, 2008 The DVC Development Team
 @end ifinfo
 
+@include dvc-version.texinfo
+
 @titlepage
 @title DVC User Manual
 @subtitle The Emacs interface to Distributed Version Control Systems
@@ -25,9 +27,8 @@ Copyright (c) 2004-2005, 2007, 2008 The DVC Development Team
 Copyright @copyright{} 2004-2005 The DVC Development Team
 
 @sp 2
-This is edition
-@include dvc-version.texinfo
-of the User Manual for @cite{DVC}
+This is the @value{UPDATED} edition
+of the User Manual for @cite{DVC} @value{VERSION}.
 
 @sp 2
 
@@ -102,7 +103,7 @@ Backends supported:
 @c ============================================================================
 @menu
 * Installation::
-* DVC Tour::
+* DVC Tla Tour::
 * Use cases::
 * Trouble Shooting::
 * Customization::
@@ -117,7 +118,7 @@ Backends supported:
 * Variable Index::
 @end menu
 
-@node Installation, DVC Tour, Top, Top
+@node Installation, DVC Tla Tour, Top, Top
 @section Installation
 @cindex Installation
 @cindex Makefile
@@ -227,7 +228,7 @@ executable, not a DOS batch file or other script. The Emacs variable
 @cindex Hooking into GNU Emacs
 
 (There is nothing to do for XEmacs users here, just start using
-@b{DVC}, i.e. goto @pxref{DVC Tour})
+@b{DVC}, i.e. goto @pxref{DVC Tla Tour})
 
 If you are reading this document the installation of files and setting
 up the @code{load-path} and @code{Info-directory-list} was already
@@ -254,8 +255,8 @@ manually with
 This will set up @b{DVC}.
 
 @c ============================================================================
-@node DVC Tour, Use cases, Installation, Top
-@section DVC Tour
+@node DVC Tla Tour, Use cases, Installation, Top
+@section DVC Tla Tour
 
 This section discusses the basics of @b{DVC} - an overview of the
 available commands.
@@ -263,7 +264,7 @@ available commands.
 @menu
 * A tutorial guide to DVC::
 * First contact::               DVC is self documented
-* Archive Browsing::            The basics of browsing
+* Tla Archive Browsing::        The basics of tla archive browsing
 * Editing Files::               Inserting tags, adding change logs
 * Committing Files::            How to commit your changes
 * Using Bookmarks::             Working in a team
@@ -273,7 +274,7 @@ available commands.
 
 @c ----------------------------------------------------------------------------
 
-@node A tutorial guide to DVC, First contact, DVC Tour, DVC Tour
+@node A tutorial guide to DVC, First contact, DVC Tla Tour, DVC Tla Tour
 @subsection A tutorial guide to DVC
 
 The following sections present a step-by-step tutorial guide to using
@@ -286,19 +287,19 @@ For the purposes of this tutorial, we will use the DVC project as an
 example of a project you might like to track (humour me).
 
 @menu
-* Register an archive::
+* Register an tla archive::
 * Bookmarking a project::
 * Creating a branch of a project and getting a project tree::
 * Finding and merging missing patches::
 * Reviewing and committing your changes::
 @end menu
 
-@node Register an archive, Bookmarking a project, A tutorial guide to DVC, A tutorial guide to DVC
-@subsubsection Register an archive
+@node Register an tla archive, Bookmarking a project, A tutorial guide to DVC, A tutorial guide to DVC
+@subsubsection Register an tla archive
 
 The first step in tracking a project's development is to register its
 archive in your archive list.  You can do this by starting the archive
-browser (@kbd{C-x T A}) and typing @kbd{a r} to register a new archive.
+browser (@kbd{C-x V A}) and typing @kbd{a r} to register a new archive.
 DVC's archive location is currently
 @url{http://www-verimag.imag.fr/~moy/arch/public/}, and the default
 value for the archive name will be fine.  Having done this, you should
@@ -312,7 +313,7 @@ now see the newly-registered archive listed.
 @end ifset
 @end ifhtml
 
-@node Bookmarking a project, Creating a branch of a project and getting a project tree, Register an archive, A tutorial guide to DVC
+@node Bookmarking a project, Creating a branch of a project and getting a project tree, Register an tla archive, A tutorial guide to DVC
 @subsubsection Bookmarking a project
 
 The normal usage of DVC is to create a bookmark for each version of a
@@ -322,7 +323,7 @@ the primary entry points for DVC.
 
 To track DVC's development, you will most likely want to add a bookmark
 for its main development line.  You can do this by entering the
-bookmarks buffer (@kbd{C-x T b}) and adding a new bookmark with (@kbd{a
+bookmarks buffer (@kbd{C-x V b}) and adding a new bookmark with (@kbd{a
 b}, or ``add bookmark'').  You should be prompted for a version name,
 and you can use tab completion to enter
 @code{Matthieu.Moy@@imag.fr--public/dvc--main--0}.  You can give your
@@ -337,7 +338,7 @@ list for that version.  You can use this list to browse archive logs
 @subsubsection Creating a branch of a project and getting a project tree
 
 Having created a bookmark for the DVC project, you are ready to create
-your own branch.  Again from the bookmarks buffer (@kbd{C-x T b}), move
+your own branch.  Again from the bookmarks buffer (@kbd{C-x V b}), move
 the point to your bookmark for DVC and hit @kbd{M T}.  You will be
 prompted for the tag version to be created for your new branch.  Put the
 branch somewhere in your default archive (I put mine in
@@ -374,7 +375,7 @@ Before you start making changes, it is a good idea to see if any new
 patches have been added to the mainline since you last checked.  DVC is
 particularly good at doing this.
 
-Start by entering the bookmarks buffer (@kbd{C-x T b}), move your point
+Start by entering the bookmarks buffer (@kbd{C-x V b}), move your point
 to the bookmark of your DVC branch and hit @kbd{M m}.  A
 @code{*tla-missing*} buffer should appear, and show any patches that are
 in the mainline but not in your tree.
@@ -402,10 +403,10 @@ star-merge all missing patches up to the patch under the point.
 @subsubsection Reviewing and committing your changes
 
 After making changes to your project tree, you are ready to commit.  You
-can review your changes by typing @kbd{C-x T =} from within your project
+can review your changes by typing @kbd{C-x V =} from within your project
 tree, and a @code{*tla-changes*} buffer should appear with diff output.
 Before committing, you might also like to tree-lint your local tree by
-hitting @kbd{C-x T l} (but this is done automatically if @code{tla
+hitting @kbd{C-x V l} (but this is done automatically if @code{tla
 changes} fails and suggests a @code{tree-lint}).
 
 @ifhtml
@@ -417,10 +418,10 @@ changes} fails and suggests a @code{tree-lint}).
 @end ifhtml
 
 Once you are satisfied with your changes, you can create a log file by
-hitting @kbd{C-x T c} (or simply @kbd{c} from your @code{*tla-changes*}
+hitting @kbd{C-x V c} (or simply @kbd{c} from your @code{*tla-changes*}
 buffer).  Many users prefer to write their log file incrementally, and
-you can always save this file and hit @kbd{C-x T c} to return to it
-later.  You can also add a ChangeLog-style entry by hitting @kbd{C-x T
+you can always save this file and hit @kbd{C-x V c} to return to it
+later.  You can also add a ChangeLog-style entry by hitting @kbd{C-x V
 a} from the project tree file you are currently visiting.
 
 @ifhtml
@@ -434,7 +435,7 @@ a} from the project tree file you are currently visiting.
 To commit your changes, type @kbd{C-c C-c} from your log buffer.
 
 
-@node First contact, Archive Browsing, A tutorial guide to DVC, DVC Tour
+@node First contact, Tla Archive Browsing, A tutorial guide to DVC, DVC Tla Tour
 @subsection First contact
 
 @b{DVC} is self documented, so this manual will be very short. We suppose
@@ -445,11 +446,11 @@ point, and an "Tla-..." menu in most @b{DVC}-related modes. Once you
 have learnt the keyboard shortcuts, you will not need the menus anymore.
 
 The most important commands have global keybindings. The prefix is
-@kbd{C-x T} by default. Type @kbd{C-x T C-h} for a list. In each
+@kbd{C-x V} by default. Type @kbd{C-x V C-h} for a list. In each
 @b{DVC} specific buffer, other (shorter) keyboard shortcuts are
 available. @kbd{C-h m} will give you a list.
 
-To get help about a tla command, @kbd{C-x T h command RET} will show
+To get help about a tla command, @kbd{C-x V h command RET} will show
 you the output of @code{tla command -H}. Since DVC is nothing more
 than a wrapper around tla, this is a very good way to get help !
 
@@ -465,10 +466,10 @@ To check your id, call the same command without a prefix argument:
 @kbd{M-x tla-my-id}
 
 @c ----------------------------------------------------------------------------
-@node Archive Browsing, Editing Files, First contact, DVC Tour
-@subsection Archive Browsing
+@node Tla Archive Browsing, Editing Files, First contact, DVC Tla Tour
+@subsection Tla Archive Browsing
 
-It is pretty intuitive, just type @kbd{C-x T A} and investigate the
+It is pretty intuitive, just type @kbd{C-x V A} and investigate the
 menu bar (Hmm, many people usually deactivate the menu bar, but please,
 enable it while learning DVC ;-) You'll remove it afterwards) and the
 mode help by @kbd{C-h m}.
@@ -477,32 +478,32 @@ If you have no archives registered yet, type @kbd{a r} and provide the
 location of an archive.
 
 @c ----------------------------------------------------------------------------
-@node Editing Files, Committing Files, Archive Browsing, DVC Tour
+@node Editing Files, Committing Files, Tla Archive Browsing, DVC Tla Tour
 @subsection Editing Files
 
 Adding new files can be done in two ways:
 
 @enumerate
 
-@item Add an arch-tag to the file, by typing @kbd{C-x T t}. Attention,
+@item Add an arch-tag to the file, by typing @kbd{C-x V t}. Attention,
 files used as templates (@code{Makefile.in}) should be added explicitly
 instead of using arch-tag lines.
 
-@item Explicitly add it from the inventory view. Type @kbd{C-x T i},
+@item Explicitly add it from the inventory view. Type @kbd{C-x V i},
 mark the new files by typing @code{m} and finally add them by typing
 @kbd{a}.
 
 @end enumerate
 
 You are encouraged to add log entries while you are editing.  Type
-@kbd{C-x T a} add your notes.
+@kbd{C-x V a} add your notes.
 
 @c ----------------------------------------------------------------------------
-@node Committing Files, Using Bookmarks, Editing Files, DVC Tour
+@node Committing Files, Using Bookmarks, Editing Files, DVC Tla Tour
 @subsection Committing Files
 
 @enumerate
-@item First review your changes by typing @kbd{C-x T =}.
+@item First review your changes by typing @kbd{C-x V =}.
 
 If your tree contains nested trees, then DVC will display the list of
 nested trees at the top of the changes buffer. They are marked with a
@@ -532,7 +533,7 @@ commit. So, if you change your mind, you can go back and select/unselect
 some files before committing.
 
 @c ----------------------------------------------------------------------------
-@node Using Bookmarks, Transmit patches via email, Committing Files, DVC Tour
+@node Using Bookmarks, Transmit patches via email, Committing Files, DVC Tla Tour
 @subsection Using Bookmarks
 
 @cindex Working in a project
@@ -548,7 +549,7 @@ some files before committing.
 @subsubsection Bookmarks basics
 
 Bookmarks are primarily used to keep a list of the most visited arch
-locations. Type @kbd{C-x T b} will show you the bookmarks
+locations. Type @kbd{C-x V b} will show you the bookmarks
 buffer. It should be empty for now, but you can add some by typing @kbd{a}.
 
 Ah, it's a pain, you have to type the full location, like
@@ -620,7 +621,7 @@ the missing patches for my projects. @kbd{* g dvc RET M} will tell me if my
 partners for @code{dvc} are up-to-date with my archive.
 
 @c ----------------------------------------------------------------------------
-@node Transmit patches via email,  , Using Bookmarks, DVC Tour
+@node Transmit patches via email,  , Using Bookmarks, DVC Tla Tour
 @subsection Transmit patches via email
 
 This section discusses a way to send/receive patches via email. That way
@@ -691,7 +692,7 @@ from the received mail:
 @end enumerate
 
 
-@node Use cases, Trouble Shooting, DVC Tour, Top
+@node Use cases, Trouble Shooting, DVC Tla Tour, Top
 @comment  node-name,  next,  previous,  up
 @section How to use DVC depending on your role
 
@@ -865,7 +866,7 @@ containing information for developers.
 
 There is one mailing list for @b{DVC}.
 
-@code{dvc-el-dev@@gna.org} intended for the discussion of development
+@code{dvc-dev@@gna.org} intended for the discussion of development
 versions of @b{DVC}.  Users of development versions of @b{DVC} should
 subscribe to this list.  Bugs should also be reported to this list.
 
@@ -878,11 +879,7 @@ feature requests.
 
 A wiki for DVC can be found at
 
-@url{http://wiki.gnuarch.org/dvc}.
-
-This site is also the location of the GNU Arch wiki
-
-@url{http://wiki.gnuarch.org/FrontPage}
+@url{http://www.emacswiki.org/emacs/DistributedVersionControl}.
 
 @c ============================================================================
 @node Changes, The Latest Version, Wiki, Top
@@ -898,41 +895,10 @@ in the DVC distribution.
 @section The Latest Version
 
 @noindent
-Tarballs of @b{DVC} can be found at the following URL:
 
-@url{http://download.gna.org/dvc-el/}
+Get the bzr repository for @b{DVC}:
 
-@noindent
-Development versions of @b{DVC} can be obtained from a public archive
-of one of the developers, e.g. from the initiator of @b{DVC}:
-
-@table @url
-@item @b{Location}
-@b{Owner}
-
-@item http://arch.xsteve.at/2005
-Stefan REICHOER: The project initiator. Author of the xhg backend.
-
-@item http://www-verimag.imag.fr/~moy/arch/public/
-Matthieu MOY: The "central" development archive. Author of the bzr backend.
-
-@item http://mani.sourceforge.jp/arch/dvc
-Masatake YAMATO: Master of @code{xtla-browse.el}, integration into GNU Emacs ...
-
-@item http://www.robf.de/Hacking/arch/2005
-Robert WIDHOPF-FENK: maintainer of XEmacs compatibility
-
-@item  http://members.iinet.net.au/~striggs/arch-2005/
-Mark TRIGGS
-
-@c the following developers have no active 1.1 archive
-@c @item http://www.zamazal.org/Arch/
-@c Milan ZAMAZAL
-@c
-@c @item http://sourcefrog.net/arch/mbp@@sourcefrog.net--2004
-@c Martin POOL
-
-@end table
+@code{# bzr get http://bzr.xsteve.at/dvc}
 
 Users of development versions of @b{DVC} @b{should subscribe} to the
 @code{dvc-el-dev} mailing list.  @xref{Mailing Lists}.

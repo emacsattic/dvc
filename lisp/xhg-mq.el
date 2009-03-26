@@ -80,7 +80,7 @@
     (define-key map [?R] 'xhg-qrefresh)
     (define-key map [?M] 'xhg-qrename)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
-    (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
+    (define-key map [?p] 'xhg-qpop)  ;; mnemonic: stack gets smaller
     (define-key map [?t] 'xhg-qtop)
     (define-key map [?+] 'xhg-qnext)
     (define-key map [?-] 'xhg-qprev)
@@ -111,6 +111,28 @@ When called without a prefix argument run hg qinit -c, otherwise hg qinit."
                                     (output error status arguments)
                                   (message "hg qinit finished")))))
 
+(defun xhg-qnew-name-patch ()
+  "Return a default name for a new patch based on last revision number"
+  (let ((cur-patch (xhg-qtop))
+        (cur-rev (xhg-dry-tip))
+        (patch-name)
+        (patch-templ-regex "\\(patch-r[0-9]+\\)"))
+    (if cur-patch
+        (if (string-match patch-templ-regex cur-patch)
+            (setq patch-name
+                  (replace-regexp-in-string "\\([0-9]+\\)"
+                                            (int-to-string
+                                             (+ (string-to-number cur-rev) 1))
+                                            cur-patch))
+            (setq patch-name
+                  (replace-regexp-in-string "\\([0-9]+\\)"
+                                            (int-to-string
+                                             (+ (string-to-number cur-rev) 1))
+                                            "patch-r0")))
+        (setq patch-name
+              "Initial-patch"))
+    patch-name))
+
 ;;;###autoload
 (defun xhg-qnew (patch-name &optional commit-description force)
   "Run hg qnew.
@@ -118,8 +140,9 @@ Asks for the patch name and an optional commit description.
 If the commit description is not empty, run hg qnew -m \"commit description\"
 When called with a prefix argument run hg qnew -f."
   (interactive
-   (list (read-from-minibuffer "qnew patch name: ")
-         (read-from-minibuffer "qnew commit message (empty for none): ")
+   (list (read-from-minibuffer "qnew patch name: " nil nil nil nil (xhg-qnew-name-patch))
+         (read-from-minibuffer "qnew commit message (empty for none): " nil nil nil nil
+                               "New patch, edit me when done with <M-x xhg-qrefresh-header>")
          current-prefix-arg))
   (when (string= commit-description "")
     (setq commit-description nil))
@@ -162,11 +185,11 @@ When called with a prefix argument run hg qnew -f."
       (setq message-buf (current-buffer))
       (insert new-message)
       (save-buffer))
-  (dvc-run-dvc-sync 'xhg (list "qrefresh" "--logfile" logfile-name))
-  (kill-buffer message-buf)
-  (delete-file logfile-name)
-  (let ((dvc-buffer-quit-mode 'kill))
-    (dvc-buffer-quit))))
+    (dvc-run-dvc-sync 'xhg (list "qrefresh" "--logfile" logfile-name))
+    (kill-buffer message-buf)
+    (delete-file logfile-name)
+    (let ((dvc-buffer-quit-mode 'kill))
+      (dvc-buffer-quit))))
 
 (defvar xhg-qrefresh-edit-message-mode-map
   (let ((map (make-sparse-keymap)))
@@ -293,9 +316,9 @@ Run the command hg qdelete -r qbase:qtip
 Called with prefix-arg, do not prompt for confirmation"
   (interactive)
   (let ((tip (with-temp-buffer
-              (apply #'call-process "hg" nil t nil
-                     (list "tip" "--template" "#rev#"))
-              (buffer-string)))
+               (apply #'call-process "hg" nil t nil
+                      (list "tip" "--template" "#rev#"))
+               (buffer-string)))
         (confirm))
     (if current-prefix-arg
         (progn
@@ -327,9 +350,9 @@ Called with prefix-arg, do not prompt for confirmation"
   "Run hg qtop."
   (interactive)
   (let ((top (dvc-run-dvc-sync 'xhg '("qtop")
-                                   :finished 'dvc-output-buffer-handler
-                                   :error (lambda (output error status arguments)
-                                            nil))))
+                               :finished 'dvc-output-buffer-handler
+                               :error (lambda (output error status arguments)
+                                        nil))))
     (when (interactive-p)
       (if top
           (message "Mercurial qtop: %s" top)
@@ -341,7 +364,7 @@ Called with prefix-arg, do not prompt for confirmation"
   "Run hg qnext."
   (interactive)
   (let ((next (dvc-run-dvc-sync 'xhg '("qnext")
-                                   :finished 'dvc-output-buffer-handler)))
+                                :finished 'dvc-output-buffer-handler)))
     (when (interactive-p)
       (message "Mercurial qnext: %s" next))
     next))
@@ -351,7 +374,7 @@ Called with prefix-arg, do not prompt for confirmation"
   "Run hg qprev."
   (interactive)
   (let ((prev (dvc-run-dvc-sync 'xhg '("qprev")
-                                   :finished 'dvc-output-buffer-handler)))
+                                :finished 'dvc-output-buffer-handler)))
     (when (interactive-p)
       (message "Mercurial qprev: %s" prev))
     prev))
@@ -372,17 +395,20 @@ Called with prefix-arg, do not prompt for confirmation"
   (concat (xhg-tree-root) "/.hg/patches/" patch))
 
 ;;;###autoload
-(defun xhg-qsingle (file)
-  "Merge all applied patches in a single patch"
+(defun* xhg-qsingle (file &optional (start-from "qbase"))
+  "Merge applied patches in a single patch satrting from \"qbase\".
+If prefix arg, merge applied patches starting from revision number or patch-name."
   (interactive "FPatchName: ")
+  (when current-prefix-arg
+    (setq start-from (read-string "PatchName or RevisionNumber: ")))
   (let* ((base (with-temp-buffer
-                (apply #'call-process "hg" nil t nil
-                       '("parents"
-                         "-r"
-                         "qbase"
-                         "--template"
-                         "#rev#"))
-                (buffer-string)))
+                 (apply #'call-process "hg" nil t nil
+                        `("parents"
+                          "-r"
+                          ,start-from
+                          "--template"
+                          "#rev#"))
+                 (buffer-string)))
          (patch (with-temp-buffer
                   (apply #'call-process "hg" nil t nil
                          (list "diff"
@@ -395,14 +421,23 @@ Called with prefix-arg, do not prompt for confirmation"
          (applied (split-string
                    (with-temp-buffer
                      (apply #'call-process "hg" nil t nil
-                            (list "qapplied"))
+                            (list "qapplied" "-s"))
                      (buffer-string)) "\n")))
+    (when (not (equal start-from "qbase"))
+      (let (pos elm)
+        (catch 'break
+          (dolist (i applied)
+            (when (string-match start-from i)
+              (throw 'break
+                (setq elm i)))))
+        (setq pos (position elm applied))
+        (setq applied (subseq applied pos))))
     (find-file file)
     (goto-char (point-min))
     (erase-buffer)
     (insert (format "## Merge of all patchs applied from revision %s\n" base))
     (mapc #'(lambda (x)
-              (insert (concat "## " x "\n")))
+                  (insert (concat "## " x "\n")))
           applied)
     (insert patch)
     (save-buffer)
@@ -412,18 +447,18 @@ Called with prefix-arg, do not prompt for confirmation"
 ;;;###autoload
 (defun xhg-qimport (patch &optional push)
   "Run hg qimport"
-    (interactive (list (read-file-name "Import hg qpatch: "
-                                       nil
-                                       nil
-                                       t
-                                       (when
-                                           (eq major-mode 'dired-mode)
-                                         (file-name-nondirectory (dired-get-filename))))))
+  (interactive (list (read-file-name "Import hg qpatch: "
+                                     nil
+                                     nil
+                                     t
+                                     (when
+                                         (eq major-mode 'dired-mode)
+                                       (file-name-nondirectory (dired-get-filename))))))
   (if current-prefix-arg
       (progn
-	(and (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
+        (and (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
              (dvc-run-dvc-sync 'xhg (list "qpush")))
-	(message "Ok patch %s added" patch))
+        (message "Ok patch %s added" patch))
     (dvc-run-dvc-sync 'xhg (list "qimport" (expand-file-name patch)))
     (message "Ok patch %s added ; don't forget to qpush" patch)))
 
@@ -518,10 +553,10 @@ that is used in the generated email."
   (interactive)
   (let ((patch-name (or patch (xhg-mq-patch-name-at-point)))
         (cur-buf (current-buffer)))
-      (find-file-other-window (xhg-mq-patch-file-name patch-name))
-      (toggle-read-only 1)
-      (diff-mode)
-      (pop-to-buffer cur-buf)))
+    (find-file-other-window (xhg-mq-patch-file-name patch-name))
+    (toggle-read-only 1)
+    (diff-mode)
+    (pop-to-buffer cur-buf)))
 
 ;; --------------------------------------------------------------------------------
 ;; the xhg mq mode
@@ -536,7 +571,7 @@ that is used in the generated email."
     (define-key map [down] 'xhg-mq-next)
     (define-key map [up] 'xhg-mq-previous)
     (define-key map [?P] 'xhg-qpush) ;; mnemonic: stack gets bigger
-    (define-key map [?p] 'xhg-qpop) ;; mnemonic: stack gets smaller
+    (define-key map [?p] 'xhg-qpop)  ;; mnemonic: stack gets smaller
     (define-key map [?=] 'xhg-qdiff-at-point)
     (define-key map [?E] 'xhg-mq-export-via-mail)
     (define-key map [?M] 'xhg-qrename)

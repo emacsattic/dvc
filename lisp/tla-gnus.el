@@ -104,7 +104,7 @@ The second supported format contains an extra line for Revision and Archive."
     (goto-char (point-min))
     (cond ((re-search-forward (concat "Committed " (tla-make-name-regexp 4 nil t)) nil t)
            (setq version (buffer-substring-no-properties
-                               (+ (match-beginning 0) 10) (- (match-end 0) 1))))
+                          (+ (match-beginning 0) 10) (- (match-end 0) 1))))
           (t
            (when (search-forward "Revision: " nil t)
              (setq revision (buffer-substring-no-properties (point) (line-end-position))))
@@ -151,14 +151,14 @@ When called with no prefix arg, set N := 2."
                      (tla--name-split dvc-memorized-version))
                    tla-apply-patch-mapping))
         (tree)
-	(window-conf (current-window-configuration)))
+        (window-conf (current-window-configuration)))
     (mm-save-part-to-file handle archive-name)
     (gnus-summary-select-article-buffer)
     (split-window-vertically)
     (tla-show-changeset-from-tgz archive-name)
     (dvc-buffer-push-previous-window-config window-conf)
     (setq tree (dvc-read-directory-name "Apply to tree: "
-                                         tree-dir tree-dir))
+                                        tree-dir tree-dir))
     (tla-apply-changeset-from-tgz archive-name tree nil)
     (delete-file archive-name)
     (when (eq major-mode 'tla-inventory-mode)

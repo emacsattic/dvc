@@ -55,13 +55,13 @@
                                  ,(int-to-string (nth 2 data)))
                                :finished 'dvc-output-buffer-handler)))
           ((eq (car data) 'remote)
-             (dvc-run-dvc-sync 'bzr
-                               `("log" "--revision"
-                                 ,(concat "revno:"
-                                          (int-to-string (nth 2 data))
-                                          ":"
-                                          (nth 1 data)))
-                               :finished 'dvc-output-buffer-handler))
+           (dvc-run-dvc-sync 'bzr
+                             `("log" "--revision"
+                               ,(concat "revno:"
+                                        (int-to-string (nth 2 data))
+                                        ":"
+                                        (nth 1 data)))
+                             :finished 'dvc-output-buffer-handler))
           (t (error (format "Revision ID %S not implemented" rev-id))))))
 
 

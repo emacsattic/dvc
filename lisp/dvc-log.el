@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -247,8 +247,15 @@ For use as add-log-file-name-function."
 from the ediff control buffer."
   (interactive "P")
   (let ((dvc-temp-current-active-dvc dvc-buffer-current-active-dvc))
-    (set-buffer ediff-buffer-B) ; DVC puts workspace version here
+    (set-buffer ediff-buffer-B)         ; DVC puts workspace version here
     (dvc-add-log-entry-internal other-frame)))
+
+(defun dvc-ediff-setup ()
+  (define-key 'ediff-mode-map "t" 'dvc-ediff-add-log-entry)) ; matches dvc-diff-mode-map
+
+;; ediff hooks that run after ediff-mode-map is created:
+;; ediff-prepare-buffer-hook, ediff-startup-hook
+(add-hook 'ediff-startup-hook 'dvc-ediff-setup)
 
 (defun dvc-add-log-entry-internal (other-frame)
   "Similar to `add-change-log-entry'.
@@ -299,7 +306,7 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
       (setq bound (point))
       (unless (and (boundp 'add-log-keep-changes-together)
                    add-log-keep-changes-together)
-        (backward-paragraph) ; paragraph delimits entries for file
+        (backward-paragraph)            ; paragraph delimits entries for file
         (forward-line 1)
         (setq beg (point))))
     (goto-char beg)

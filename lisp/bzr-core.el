@@ -1,6 +1,6 @@
 ;;; bzr-core.el --- Core of support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2008 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -44,19 +44,19 @@ If NO-ERROR is non-nil, don't raise an error if LOCATION is not a
 bzr-managed tree (but return nil)."
   (interactive)
   (dvc-tree-root-helper ".bzr/checkout/" (or interactive
-                                    (interactive-p))
+                                             (interactive-p))
                         "%S is not a bzr-managed tree"
                         location no-error))
 
 ;;;###autoload
 (defun bzr-branch-root (&optional location no-error interactive)
-  "Return the branch root for LOCATION, nil if not in a branch. 
+  "Return the branch root for LOCATION, nil if not in a branch.
 
 This function allows DVC relevant functions (e.g., log) to work
 on bzr branches with no tree."
   (interactive)
   (dvc-tree-root-helper ".bzr/branch/" (or interactive
-                                    (interactive-p))
+                                           (interactive-p))
                         "%S is not a bzr-managed branch"
                         location no-error))
 
@@ -66,19 +66,19 @@ on bzr branches with no tree."
 Does anyone know of a better way to get this info?"
   (interactive)
   (let ((tree-id nil))
-  (dvc-run-dvc-sync
-   'bzr (list "log" "-r" "1")
-   :finished (lambda (output error status arguments)
-               (set-buffer output)
-               (goto-char (point-min))
-               (if (re-search-forward "^branch nick:\\s-*\\(.+\\)$" nil t)
-                   (setq tree-id (match-string 1))
-                 (setq tree-id "<unknown>")))
-   :error (lambda (output error status arguments)
-            (setq tree-id "<unknown>")))
-  (when (interactive-p)
-    (message "tree-id for %s: %s" default-directory tree-id))
-  tree-id))
+    (dvc-run-dvc-sync
+     'bzr (list "log" "-r" "1")
+     :finished (lambda (output error status arguments)
+                 (set-buffer output)
+                 (goto-char (point-min))
+                 (if (re-search-forward "^branch nick:\\s-*\\(.+\\)$" nil t)
+                     (setq tree-id (match-string 1))
+                   (setq tree-id "<unknown>")))
+     :error (lambda (output error status arguments)
+              (setq tree-id "<unknown>")))
+    (when (interactive-p)
+      (message "tree-id for %s: %s" default-directory tree-id))
+    tree-id))
 
 ;;;###autoload
 (defun bzr-prepare-environment (env)
@@ -89,6 +89,10 @@ Does anyone know of a better way to get this info?"
 (defun bzr-default-global-argument ()
   "Disable aliases."
   '("--no-aliases"))
+
+(defun bzr-read-revision (prompt)
+  "Read a revision for the actual bzr working copy."
+  (read-string prompt (bzr-get-revision-at-point)))
 
 (provide 'bzr-core)
 ;;; bzr-core.el ends here

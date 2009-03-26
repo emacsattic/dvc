@@ -1,5 +1,6 @@
 ;;; xmtn-automate.el --- Interface to monotone's "automate" functionality
 
+;; Copyright (C) 2008 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -258,6 +259,8 @@
 
 (defmacro* xmtn-automate-with-session ((session-var-or-null root-form &key)
                                        &body body)
+  "Call BODY, after ensuring an automate session for ROOT-FORM is active."
+  (declare (indent 1) (debug (sexp body)))
   ;; I would prefer to factor out a function
   ;; `xmtn-automate--call-with-session' here, but that would make
   ;; profiler output unreadable, since every function would only
@@ -293,7 +296,9 @@
                                        &body body)
   "Send COMMAND_FORM (a list of strings, or cons of lists of
 strings) to session SESSION_FORM (current if nil). If car
-COMMAND_FORM is a list, car COMMAND_FORM is options, cdr is command."
+COMMAND_FORM is a list, car COMMAND_FORM is options, cdr is command.
+Then execute BODY."
+  (declare (indent 1) (debug (sexp body)))
   (let ((session (gensym))
         (command (gensym))
         (may-kill-p (gensym))
@@ -363,6 +368,7 @@ options, cdr is command. Insert result into BUFFER."
 
 ;; This one is useful.
 (defun xmtn-automate-simple-command-output-lines (root command)
+  "Return string containing output of COMMAND."
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
       (xmtn-automate-command-output-lines handle))))
@@ -574,18 +580,18 @@ Signals an error if output contains zero lines or more than one line."
      :root (xmtn-automate--session-root session)
      :name (xmtn-automate--session-name session))))
 
-;; Maybe this should be a defsubst; I haven't profiled this code
-;; recently.
 (defun xmtn-automate--append-encoded-strings (strings)
-  "Encode STRINGS (a list of strings) in automate stdio format,
-insert into current buffer."
-  ;; Assumes that point is at the end of the buffer.
+  "Encode STRINGS (a list of strings or nil) in automate stdio format,
+insert into current buffer.  Assumes that point is at the end of
+the buffer."
   (xmtn--assert-optional (eql (point) (point-max)))
   (dolist (string strings)
-    (save-excursion (insert string))
-    (encode-coding-region (point) (point-max) 'xmtn--monotone-normal-form)
-    (insert (number-to-string (- (point-max) (point))) ":")
-    (goto-char (point-max)))
+    (if string
+        (progn
+          (save-excursion (insert string))
+          (encode-coding-region (point) (point-max) 'xmtn--monotone-normal-form)
+          (insert (number-to-string (- (point-max) (point))) ":")
+          (goto-char (point-max)))))
   nil)
 
 (defun xmtn-automate--send-command-string (session command option-plist
@@ -918,6 +924,63 @@ car COMMAND is options, cdr is command."
         (xmtn-automate--process-new-output session input-string))
       ;;)
       )))
+
+(defun xmtn--map-parsed-certs (xmtn--root xmtn--revision-hash-id xmtn--thunk)
+  (lexical-let ((root xmtn--root)
+                (revision-hash-id xmtn--revision-hash-id)
+                (thunk xmtn--thunk))
+    (xmtn--with-automate-command-output-basic-io-parser
+        (xmtn--next-stanza root `("certs" ,revision-hash-id))
+      (loop
+       for xmtn--stanza = (funcall xmtn--next-stanza)
+       while xmtn--stanza
+       do (xmtn-match xmtn--stanza
+            ((("key" (string $xmtn--key))
+              ("signature" (string $xmtn--signature))
+              ("name" (string $xmtn--name))
+              ("value" (string $xmtn--value))
+              ("trust" (string $xmtn--trust)))
+             (setq xmtn--signature (xmtn-match xmtn--signature
+                                     ("ok" 'ok)
+                                     ("bad" 'bad)
+                                     ("unknown" 'unknown)))
+             (let ((xmtn--trusted (xmtn-match xmtn--trust
+                                    ("trusted" t)
+                                    ("untrusted" nil))))
+               (macrolet ((decodef (var)
+                            `(setq ,var (decode-coding-string
+                                         ,var 'xmtn--monotone-normal-form))))
+                 (decodef xmtn--key)
+                 (decodef xmtn--name)
+                 ;; I'm not sure this is correct.  The documentation
+                 ;; mentions a cert_is_binary hook, but it doesn't
+                 ;; exist; and even if it did, we would have no way of
+                 ;; calling it from here.  But, since cert values are
+                 ;; always passed on the command line, and command
+                 ;; line arguments are converted to utf-8, I suspect
+                 ;; certs will also always be in utf-8.
+                 (decodef xmtn--value))
+               (funcall thunk
+                        xmtn--key xmtn--signature xmtn--name xmtn--value
+                        xmtn--trusted))))))))
+
+(defun xmtn--list-parsed-certs (root revision-hash-id)
+  "Return a list of the contents of each cert attached to REVISION-HASH-ID.
+Each element of the list is a list; key, signature, name, value, trust."
+  (lexical-let ((accu '()))
+    (xmtn--map-parsed-certs root revision-hash-id
+                            (lambda (key signature name value trusted)
+                              (push (list key signature name value trusted)
+                                    accu)))
+    (setq accu (nreverse accu))
+    accu))
+
+(defun xmtn--heads (root branch)
+  (xmtn-automate-simple-command-output-lines root `("heads" ,branch)))
+
+(defun xmtn--tree-default-branch (root)
+  (xmtn-automate-simple-command-output-line root `("get_option" "branch")))
+
 
 (provide 'xmtn-automate)
 

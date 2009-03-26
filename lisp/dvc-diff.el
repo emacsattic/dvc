@@ -1,6 +1,6 @@
 ;;; dvc-diff.el --- A generic diff mode for DVC
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -113,9 +113,9 @@ Pretty-print ELEM."
           (insert mark)
         (insert empty-mark))
       (insert (dvc-face-add line
-                             face
-                             'dvc-diff-file-map
-                             dvc-diff-file-menu))))
+                            face
+                            'dvc-diff-file-map
+                            dvc-diff-file-menu))))
    ((eq (car elem) 'subtree)
     (insert (dvc-face-add
              (concat " T" (cond ((not (cadddr elem)) "?")
@@ -130,7 +130,7 @@ Pretty-print ELEM."
 
    ((eq (car elem) 'searching-subtrees)
     (insert (dvc-face-add " T  Searching for subtrees ..."
-                           'dvc-nested-tree))))
+                          'dvc-nested-tree))))
   )
 
 (defvar dvc-diff-mode-map
@@ -161,7 +161,7 @@ Pretty-print ELEM."
     (define-key map dvc-keyvec-revert                         'dvc-revert-files)
     (define-key map dvc-keyvec-quit                           'dvc-buffer-quit)
     (define-key map dvc-keyvec-remove                         'dvc-fileinfo-remove-files)
-    (define-key map [?d]                                      'dvc-remove-files); as in dired
+    (define-key map [?d]                                      'dvc-remove-files) ; as in dired
     (define-key map dvc-keyvec-mark                           'dvc-diff-mark-file)
     (define-key map dvc-keyvec-mark-all                       'dvc-fileinfo-mark-all)
     (define-key map dvc-keyvec-unmark                         'dvc-diff-unmark-file)
@@ -193,7 +193,7 @@ Pretty-print ELEM."
     ;; the merge group
     (define-key map (dvc-prefix-merge ?u)                     'dvc-update)
     (define-key map (dvc-prefix-merge ?f)                     'dvc-pull) ;; hint: fetch, p is reserved for push
-    (define-key map (dvc-prefix-merge ?m)                     'dvc-missing)
+    (define-key map (dvc-prefix-merge ?m)  '(lambda () (interactive) (dvc-missing nil default-directory)))
     (define-key map (dvc-prefix-merge ?M)                     'dvc-merge)
     map)
   "Keymap used in `dvc-diff-mode'.")
@@ -211,7 +211,8 @@ Pretty-print ELEM."
     ["Log (single file)"              dvc-diff-log-single     t]
     "--"
     ["Delete File"                    dvc-remove-files        t]
-    ["Revert File"                    dvc-revert-files        t]
+    ["Delete File"                    dvc-remove-files        t]
+    ["Add File"                       dvc-add-files           t]
     )
   "Used both in the global and the context menu of `dvc-diff-mode'.")
 
@@ -226,7 +227,7 @@ Pretty-print ELEM."
     ("Merge"
      ["Update" dvc-update t]
      ["Pull" dvc-pull t]
-     ["Show missing" dvc-missing t]
+     ["Show missing" (lambda () (interactive) (dvc-missing nil default-directory)) t]
      ["Merge" dvc-merge t]
      )
     ("Mark"
@@ -307,7 +308,8 @@ Commands:
 (defun dvc-diff-in-ewoc-p ()
   "Return non-nil if in ewoc section of diff buffer."
   (let ((elem (ewoc-locate dvc-fileinfo-ewoc)))
-    (>= (ewoc-location elem) (line-beginning-position))))
+    (when elem
+      (>= (ewoc-location elem) (line-beginning-position)))))
 
 (defun dvc-diff-jump-to-change (&optional other-file)
   "Jump to the corresponding file and location of the change at point.
@@ -318,7 +320,7 @@ file; otherwise visit the modified file."
     (if (dvc-diff-in-ewoc-p)
         (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
           (etypecase fileinfo
-            (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+            (dvc-fileinfo-file          ; also matches dvc-fileinfo-dir
              ;; FIXME: support OTHER-FILE here
              (find-file (dvc-fileinfo-current-file)))
 
@@ -358,24 +360,24 @@ file; otherwise visit the modified file."
 When in the list, jump to the corresponding
 diff. When on a diff, jump to the corresponding entry in the list."
   (interactive)
-    (if (dvc-diff-in-ewoc-p)
-        (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
-          (etypecase fileinfo
-            (dvc-fileinfo-file
-             (dvc-call "dvc-search-file-in-diff" (dvc-fileinfo-current-file))
-             (diff-hunk-next))
+  (if (dvc-diff-in-ewoc-p)
+      (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
+        (etypecase fileinfo
+          (dvc-fileinfo-file
+           (dvc-call "dvc-search-file-in-diff" (dvc-fileinfo-current-file))
+           (diff-hunk-next))
 
-            (dvc-fileinfo-legacy
-             (let ((data (dvc-fileinfo-legacy-data fileinfo)))
-               (cond
-                ((eq (car data) 'file)
-                 (dvc-call "dvc-search-file-in-diff" (cadr data))
-                 (diff-hunk-next))
+          (dvc-fileinfo-legacy
+           (let ((data (dvc-fileinfo-legacy-data fileinfo)))
+             (cond
+              ((eq (car data) 'file)
+               (dvc-call "dvc-search-file-in-diff" (cadr data))
+               (diff-hunk-next))
 
-                ((eq (car data) 'subtree)
-                 (dvc-switch-to-buffer (cadr data)))
+              ((eq (car data) 'subtree)
+               (dvc-switch-to-buffer (cadr data)))
 
-                (t (error "Not on a recognized location")))))))
+              (t (error "Not on a recognized location")))))))
 
     ;; not in list
     (goto-char (ewoc-location (dvc-fileinfo-find-file (dvc-diff-get-file-at-point))))))
@@ -432,9 +434,9 @@ a 'file."
               (dvc-fileinfo-mark-file))
           ;; legacy
           (if unmark
-            (setq dvc-buffer-marked-file-list
-                  (delete file dvc-buffer-marked-file-list))
-          (add-to-list 'dvc-buffer-marked-file-list file))))
+              (setq dvc-buffer-marked-file-list
+                    (delete file dvc-buffer-marked-file-list))
+            (add-to-list 'dvc-buffer-marked-file-list file))))
       (setq ewoc-elem (ewoc-next dvc-fileinfo-ewoc ewoc-elem)))
 
     (ewoc-refresh dvc-fileinfo-ewoc)
@@ -467,7 +469,7 @@ file after."
          (setq dvc-buffer-marked-file-list (delete file dvc-buffer-marked-file-list))
          (ewoc-invalidate dvc-fileinfo-ewoc current)))))
 
-  (unless up (dvc-fileinfo-next nil)))
+  (unless up (dvc-fileinfo-next)))
 
 (defun dvc-diff-unmark-file-up ()
   "Unmark the file under point and move up."
@@ -683,11 +685,11 @@ diff parser."
       (ewoc-enter-last dvc-fileinfo-ewoc
                        (make-dvc-fileinfo-message
                         :text (concat "* " msg ":\n"
-                                (dvc-buffer-content output)
-                                (dvc-buffer-content error))))
+                                      (dvc-buffer-content output)
+                                      (dvc-buffer-content error))))
       (ewoc-refresh dvc-fileinfo-ewoc)
       (recenter)))
-    (message msg))
+  (message msg))
 
 (defun dvc-diff-clear-buffers (dvc root msg &optional header)
   "Clears all DVC diff and status buffers with root ROOT, insert MSG and optional HEADER.
@@ -728,7 +730,7 @@ Useful to clear diff buffers after a commit."
     (ecase status
       (added
        (if (< 1 length-marked-elems)
-         (error "cannot Do The Right Thing on more than one 'added' file"))
+           (error "cannot Do The Right Thing on more than one 'added' file"))
        (dvc-fileinfo-add-log-entry-1 fileinfo prefix))
 
       (deleted
@@ -783,19 +785,28 @@ Useful to clear diff buffers after a commit."
 (defun dvc-file-ediff (file)
   "Run ediff of FILE (default current buffer file) against last revision."
   (interactive (list (buffer-file-name)))
-  (let ((file-buffer (find-file-noselect file))
-        (pristine-buffer
-         (dvc-revision-get-file-in-buffer
-          file `(,(dvc-current-active-dvc)
-                 (last-revision
-                  ,(dvc-tree-root file t)
-                  1)))))
-    (with-current-buffer pristine-buffer
-      (set-buffer-modified-p nil)
-      (toggle-read-only 1)
-      (let ((buffer-file-name file))
-        (set-auto-mode t)))
-    (dvc-ediff-buffers pristine-buffer file-buffer)))
+  ;; Setting `enable-local-variables' nil here is something of a
+  ;; trade-off. In some buffers (Makefiles), the local variables may
+  ;; include expressions that parse project files, which can take a
+  ;; long time and confuse Emacs, so we don't want to process them. On
+  ;; the other hand, they may set fontification style, which we do
+  ;; want in ediff. The only general solution is to define a subset of
+  ;; local variables that are desireable for ediff; we can't do that
+  ;; just in DVC.
+  (let ((enable-local-variables nil))
+    (let ((file-buffer (find-file-noselect file))
+          (pristine-buffer
+           (dvc-revision-get-file-in-buffer
+            file `(,(dvc-current-active-dvc)
+                   (last-revision
+                    ,(dvc-tree-root file t)
+                    1)))))
+      (with-current-buffer pristine-buffer
+        (set-buffer-modified-p nil)
+        (toggle-read-only 1)
+        (let ((buffer-file-name file))
+          (set-auto-mode t)))
+      (dvc-ediff-buffers pristine-buffer file-buffer))))
 
 (defun dvc-file-ediff-revisions (file base modified)
   "View changes in FILE between BASE and MODIFIED using ediff."

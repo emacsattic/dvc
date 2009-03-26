@@ -98,20 +98,20 @@
 
 ;; common keys
 ;;;###autoload
-(defvar dvc-key-help        ??)        ; help
-(defvar dvc-key-mark-prefix ?*)   ; other mark related command prefix
-(defvar dvc-key-add-bookmark    ?b)    ; add this to bookmark
-(defvar dvc-key-get      ?>)           ; prefix for getting something
-(defvar dvc-key-reflect  ?<)           ; mirror, apply, install...
-(defvar dvc-key-parent   ?^)       ; visit uppper XXX. e.g. directory
+(defvar dvc-key-help        ??)         ; help
+(defvar dvc-key-mark-prefix ?*)         ; other mark related command prefix
+(defvar dvc-key-add-bookmark    ?b)     ; add this to bookmark
+(defvar dvc-key-get      ?>)            ; prefix for getting something
+(defvar dvc-key-reflect  ?<)            ; mirror, apply, install...
+(defvar dvc-key-parent   ?^)            ; visit uppper XXX. e.g. directory
 ;;;###autoload
-(defvar dvc-key-diff     ?=)           ; one shot
+(defvar dvc-key-diff     ?=)            ; one shot
 ;;;###autoload
-(defvar dvc-key-status   ?s)           ; one shot
+(defvar dvc-key-status   ?s)            ; one shot
 
-(defvar dvc-key-add      ?a)           ; prefix for adding something
+(defvar dvc-key-add      ?a)            ; prefix for adding something
 ;;;###autoload
-(defvar dvc-key-show-bookmark ?b)      ; show bookmark
+(defvar dvc-key-show-bookmark ?b)       ; show bookmark
 (defvar dvc-key-diff-prefix ?d)
 ;;;###autoload
 (defvar dvc-key-file-diff ?d)
@@ -138,29 +138,31 @@
 ;;;###autoload
 (defvar dvc-key-kill-ring-prefix ?w)
 ;;;###autoload
-(defvar dvc-key-commit    ?c)          ; actually edit-log, but
+(defvar dvc-key-commit    ?c)           ; actually edit-log, but
                                         ; that's what you do when you
                                         ; want to commit.
 ;;;###autoload
-(defvar dvc-key-update     ?u)           ; to run dvc update
-(defvar dvc-key-replay     ?r)           ; to run dvc replay
-(defvar dvc-key-star-merge ?s)           ; to run dvc star-merge
+(defvar dvc-key-update     ?u)          ; to run dvc update
+(defvar dvc-key-replay     ?r)          ; to run dvc replay
+(defvar dvc-key-star-merge ?s)          ; to run dvc star-merge
 ;;;###autoload
-(defvar dvc-key-missing    ?m)           ; to run dvc missing
+(defvar dvc-key-missing    ?m)          ; to run dvc missing
 
 ;;;###autoload
-(defvar dvc-key-buffer-prefix ?B)   ; perfix for switching XXX buffer
+(defvar dvc-key-buffer-prefix ?B)       ; prefix to switch to XXX buffer
+(defvar dvc-key-view-buffer-prefix ?v)  ; prefix to view XXX buffer
 (defvar dvc-key-directory-prefix ?D)
 
 ;;;###autoload
-(defvar dvc-key-file-prefix ?f) ; file specific functions
+(defvar dvc-key-file-prefix ?f)         ; file specific functions
+(defvar dvc-key-branch-prefix ?o)       ; branch specific functions
 (defvar dvc-key-merge-prefix ?M)
 (defvar dvc-key-tag ?T)
 (defvar dvc-key-revert ?U)
-(defvar dvc-key-working-copy ?W)       ; Affecting on working copy
+(defvar dvc-key-working-copy ?W)        ; Affecting on working copy
 (defvar dvc-key-partner-file-prefix ?f) ; Only used in the bookmarks buffer
 (defvar dvc-key-tagging-method-prefix ?#)
-(defvar dvc-key-id ?t)                 ; `t' for `t'ag.
+(defvar dvc-key-id ?t)                  ; `t' for `t'ag.
 
 ;; functions for creating key groups
 ;;;###autoload
@@ -195,12 +197,22 @@
 ;;;###autoload
 (progn
   (defun dvc-prefix-file (&rest keys)
-  (dvc-key-group dvc-key-file-prefix keys)))
+    (dvc-key-group dvc-key-file-prefix keys)))
+
+;;;###autoload
+(progn
+  (defun dvc-prefix-branch (&rest keys)
+    (dvc-key-group dvc-key-branch-prefix keys)))
 
 ;;;###autoload
 (progn
   (defun dvc-prefix-kill-ring (&rest keys)
     (dvc-key-group dvc-key-kill-ring-prefix keys)))
+
+;;;###autoload
+(progn
+  (defun dvc-prefix-view-buffer (&rest keys)
+    (dvc-key-group dvc-key-view-buffer-prefix keys)))
 
 ;;;###autoload
 (progn
@@ -294,22 +306,22 @@
   (let ((map (make-sparse-keymap)))
     (define-key map [?U]                     'tla-undo)
     (define-key map [?R]                     'tla-redo)
+    (define-key map [?t]                     'tla-tag-insert)
+    (define-key map [?r]                     'tla-tree-revisions)
+    (define-key map [(meta ?l)]              'tla-tree-lint)
+    ;;(define-key map [(meta ?o)]            'tla-file-view-original)
     (define-key map [?p]                     'dvc-submit-patch)
     (define-key map dvc-keyvec-log-entry     'dvc-add-log-entry)
     (define-key map [?A] 'tla-archives)
     (define-key map dvc-keyvec-file-diff     'dvc-file-diff)
     (define-key map dvc-keyvec-ediff         'dvc-file-ediff)
-    (define-key map [?o]                     'tla-file-view-original)
     (define-key map dvc-keyvec-diff          'dvc-diff)
     (define-key map dvc-keyvec-status        'dvc-status)
     (define-key map dvc-keyvec-commit        'dvc-log-edit)
-    (define-key map [?t]                     'tla-tag-insert)
     (define-key map dvc-keyvec-inventory     'dvc-inventory)
-    (define-key map [?r]                     'tla-tree-revisions)
     (define-key map dvc-keyvec-logs          'dvc-log)
     ;; dvc: l runs changelog, M-l runs tree-lint for Arch
-    (define-key map [?l] 'dvc-changelog)
-    (define-key map [(meta ?l)] 'tla-tree-lint)
+    (define-key map [?l]                     'dvc-changelog)
     (define-key map [?I]                     'dvc-init)
     (define-key map [?C]                     'dvc-clone)
     (define-key map [?F]                     'dvc-pull)
@@ -320,22 +332,34 @@
     (define-key map dvc-keyvec-show-bookmark 'dvc-bookmarks)
     (define-key map dvc-keyvec-help          'tla-help)
 
+    ;; branch handling
+    (define-key map (dvc-prefix-branch ?c)   'dvc-create-branch)
+    (define-key map (dvc-prefix-branch ?s)   'dvc-select-branch)
+    (define-key map (dvc-prefix-branch ?l)   'dvc-list-branches)
+
     ;; file specific functionality
     (define-key map (dvc-prefix-file ?a) 'dvc-add-files)
     (define-key map (dvc-prefix-file ?D) 'dvc-remove-files)
     (define-key map (dvc-prefix-file ?R) 'dvc-revert-files)
     (define-key map (dvc-prefix-file ?M) 'dvc-rename)
     (define-key map (dvc-prefix-file ?X) 'dvc-purge-files)
+    (define-key map (dvc-prefix-file ?=) 'dvc-file-diff)
 
-    (define-key map (dvc-prefix-buffer
+    (define-key map (dvc-prefix-view-buffer
+                     ?p)                     'dvc-show-process-buffer)
+    (define-key map (dvc-prefix-view-buffer
+                     ?e)                     'dvc-show-last-error-buffer)
+    (define-key map (dvc-prefix-view-buffer
+                     ?l)                     'dvc-open-internal-log-buffer)
+    (define-key map (dvc-prefix-view-buffer
                      dvc-key-diff)           'tla-changes-goto)
-    (define-key map (dvc-prefix-buffer
+    (define-key map (dvc-prefix-view-buffer
                      dvc-key-status)         'baz-status-goto)
-    (define-key map (dvc-prefix-buffer
+    (define-key map (dvc-prefix-view-buffer
                      dvc-key-inventory)      'tla-inventory-goto)
-    (define-key map (dvc-prefix-buffer
-                     dvc-key-tree-lint)      'tla-tree-lint-goto)
-    (define-key map (dvc-prefix-buffer ?r)   'tla-tree-revisions-goto)
+    (define-key map (dvc-prefix-view-buffer
+                     ?L)                     'tla-tree-lint-goto)
+    (define-key map (dvc-prefix-view-buffer ?r)   'tla-tree-revisions-goto)
 
     (define-key map (dvc-prefix-kill-ring ?a) 'tla-save-archive-to-kill-ring)
     (define-key map (dvc-prefix-kill-ring ?v) 'tla-save-version-to-kill-ring)
@@ -408,14 +432,20 @@ If you wish to disable the prefix key, set this variable to nil."
    "Tree Commands:"
    ["View Diff" dvc-diff t]
    ["View Status" dvc-status t]
+   ["View Missing" dvc-missing t]
+   ["View Log" dvc-log t]
+   ["View ChangeLog" dvc-changelog t]
    ;; ["View Inventory" tla-inventory t]
    ;; ["View Tree Lint" tla-tree-lint t]
    ;; ["Show Tree Revisions" tla-tree-revisions t]
    ["Edit Commit Log" dvc-log-edit t]
    "---"
    "File Commands:"
-   ;; ["Insert Arch Tag" tla-tag-insert t]
+   ["Add Files"  dvc-add-files t]
+   ["Revert Files"  dvc-revert-files t]
+   ["Remove Files"  dvc-remove-files t]
    ["Add Log Entry"  dvc-add-log-entry t]
+   ;; ["Insert Arch Tag" tla-tag-insert t]
    ;; ["View File Diff" tla-file-diff t]
    ;; ["View File Ediff" tla-file-ediff t]
    ;; ["View Original" tla-file-view-original t]
@@ -436,8 +466,8 @@ If you wish to disable the prefix key, set this variable to nil."
      :style toggle :selected tla-show-ancestor]
     ["Non Recursive Inventory" tla-toggle-non-recursive-inventory
      :style toggle :selected tla-non-recursive-inventory]
-;;     ["Use --forward" tla-toggle-use-forward-option
-;;      :style toggle :selected tla-use-forward-option]
+    ;; ["Use --forward" tla-toggle-use-forward-option
+    ;;  :style toggle :selected tla-use-forward-option]
     ["Use --skip-present" tla-toggle-use-skip-present-option
      :style toggle :selected tla-use-skip-present-option]
     )
@@ -457,7 +487,7 @@ If you wish to disable the prefix key, set this variable to nil."
 
 
 (defun dvc-show-active-dvc (arg)
-"Toggle displaying a DVC string in the modeline.
+  "Toggle displaying a DVC string in the modeline.
 
 If ARG is null, toggle displaying
 If ARG is a number and is greater than zero, turn on visualization; otherwise,
