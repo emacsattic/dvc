@@ -436,7 +436,7 @@ If prefix arg, merge applied patches starting from revision number or patch-name
     (find-file file)
     (goto-char (point-min))
     (erase-buffer)
-    (insert (format "## Merge of all patchs applied from revision %s\n" base))
+    (insert (format "##Merge of all patches applied from revision %s\n" base))
     (mapc #'(lambda (x)
                   (insert (concat "## " x "\n")))
           applied)
