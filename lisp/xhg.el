@@ -1,6 +1,6 @@
 ;;; xhg.el --- Mercurial interface for dvc
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -514,6 +514,15 @@ If DONT-SWITCH, don't switch to the diff buffer"
     (dvc-run-dvc-async 'xhg (list "clone" src dest))))
 
 ;;;###autoload
+(defun xhg-dired-clone ()
+  (interactive)
+  (let* ((source (dired-filename-at-point))
+         (target
+          (read-string (format "Clone(%s)To: " (file-name-nondirectory source))
+                       (file-name-directory source))))
+    (xhg-clone source target)))
+
+;;;###autoload
 (defun xhg-incoming (&optional src show-patch no-merges)
   "Run hg incoming."
   (interactive (list (let* ((completions (xhg-paths 'both))
@@ -709,7 +718,7 @@ string keys as:
 U = unresolved
 R = resolved"
   (interactive)
-  (let ((resolve-alist nil)) 
+  (let ((resolve-alist nil))
     (if quiet
         (progn
           (save-window-excursion
@@ -724,7 +733,7 @@ R = resolved"
             (kill-buffer "*xhg-info*")
             resolve-alist))
         (dvc-run-dvc-display-as-info 'xhg (list "resolve" "--list")))))
-    
+
 
 (defun xhg-command-version ()
   "Run hg version."

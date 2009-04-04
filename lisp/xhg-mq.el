@@ -1,6 +1,6 @@
 ;;; xhg-mq.el --- dvc integration for hg's mq
 
-;; Copyright (C) 2006-2008 by all contributors
+;; Copyright (C) 2006-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -399,8 +399,9 @@ Called with prefix-arg, do not prompt for confirmation"
   "Merge applied patches in a single patch satrting from \"qbase\".
 If prefix arg, merge applied patches starting from revision number or patch-name."
   (interactive "FPatchName: ")
-  (when current-prefix-arg
-    (setq start-from (read-string "PatchName or RevisionNumber: ")))
+  (when (and current-prefix-arg (interactive-p))
+    (setq start-from (dvc-completing-read "PatchName: "
+                                          (xhg-qseries))))
   (let* ((base (with-temp-buffer
                  (apply #'call-process "hg" nil t nil
                         `("parents"
@@ -435,7 +436,7 @@ If prefix arg, merge applied patches starting from revision number or patch-name
     (find-file file)
     (goto-char (point-min))
     (erase-buffer)
-    (insert (format "## Merge of all patchs applied from revision %s\n" base))
+    (insert (format "##Merge of all patches applied from revision %s\n" base))
     (mapc #'(lambda (x)
                   (insert (concat "## " x "\n")))
           applied)
@@ -467,26 +468,46 @@ If prefix arg, merge applied patches starting from revision number or patch-name
 ;; --------------------------------------------------------------------------------
 
 ;;;###autoload
-(defun xhg-mq-export-via-mail (patch)
+(defun xhg-mq-export-via-mail (patch &optional single)
   "Prepare an email that contains a mq patch.
 `xhg-submit-patch-mapping' is honored for the destination email address and the project name
 that is used in the generated email."
   (interactive (list
                 (let ((series (xhg-qseries)))
-                  (dvc-completing-read "Send mq patch via mail: " series nil t
+                  (dvc-completing-read (if current-prefix-arg
+                                           "Send single patch from: "
+                                           "Send mq patch via mail: ") series nil t
                                        (car (member (xhg-mq-patch-name-at-point) series))))))
   (let ((file-name)
         (destination-email "")
         (base-file-name nil)
-        (subject))
+        (subject)
+        (log))
     (dolist (m xhg-submit-patch-mapping)
       (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (xhg-tree-root)))
         ;;(message "%S" (cadr m))
         (setq destination-email (car (cadr m)))
         (setq base-file-name (cadr (cadr m)))))
     (message "Preparing an email for the mq patch '%s' for '%s'" patch destination-email)
-    (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") "-" patch ".patch"))
-    (copy-file (xhg-mq-patch-file-name patch) file-name t t)
+    (if (or current-prefix-arg single)
+        (let ((pname (format "single-from-%s-to-tip.patch" patch)))
+          (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory)
+                                  pname))
+          (xhg-qsingle file-name patch)
+          (setq log
+                (with-temp-buffer
+                  (let (beg end)
+                  (insert-file-contents file-name)
+                  (goto-char (point-min))
+                  (setq beg (point))
+                  (when (re-search-forward "diff" nil t)
+                    (setq end (point-at-bol)))
+                  (replace-regexp-in-string "^#*" ""
+                                            (buffer-substring beg end)))))
+          (setq subject pname))
+        (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory)
+                                (or base-file-name "") "-" patch ".patch"))
+        (copy-file (xhg-mq-patch-file-name patch) file-name t t))
 
     (require 'reporter)
     (delete-other-windows)
@@ -496,8 +517,11 @@ that is used in the generated email."
      nil
      nil
      nil
-     dvc-patch-email-message-body-template)
-    (setq subject (if base-file-name (concat base-file-name ": " patch) patch))
+     (if (or current-prefix-arg single)
+         log
+         dvc-patch-email-message-body-template))
+    (unless (or current-prefix-arg single)
+      (setq subject (if base-file-name (concat base-file-name ": " patch) patch)))
 
     ;; delete emacs version - its not needed here
     (delete-region (point) (point-max))

@@ -164,9 +164,13 @@ not &rest."
 ;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
   "Display the changes from BASE-REV to the local tree in PATH.
+
 BASE-REV (a revision-id) defaults to base revision of the
 tree. Use `dvc-delta' for differencing two revisions.
-PATH defaults to `default-directory'.
+
+PATH defaults to `default-directory', that is, the whole working tree.
+See also `dvc-file-diff', which defaults to the current buffer file.
+
 The new buffer is always displayed; if DONT-SWITCH is nil, select it."
   (interactive)
   (let ((default-directory
