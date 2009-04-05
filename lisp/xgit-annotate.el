@@ -1,6 +1,6 @@
-;;; xgit-annotate.el --- Git/Cogito interface for dvc: mode for git-annotate style output
+;;; xgit-annotate.el --- Git interface for dvc: mode for git-annotate style output
 
-;; Copyright (C) 2007 by all contributors
+;; Copyright (C) 2007-2009 by all contributors
 
 ;; Author: Takuzo O'hara, <takuzo.ohara@gmail.com>
 
@@ -21,7 +21,7 @@
 
 ;;; Commentary:
 
-;; The git/cogito interface for dvc: a mode to handle git-annotate style output
+;; The git interface for dvc: a mode to handle git-annotate style output
 
 ;;; Code:
 (require 'dvc-annotate)
