@@ -24,6 +24,64 @@
 ;; For more information on mq see:
 ;;   http://www.selenic.com/mercurial/wiki/index.cgi/MqTutorial
 
+;;; Commands:
+;;
+;; Below is a complete command list:
+;;
+;;  `xhg-qinit'
+;;    Run hg qinit.
+;;  `xhg-qnew'
+;;    Run hg qnew.
+;;  `xhg-qrefresh'
+;;    Run hg qrefresh.
+;;  `xhg-qrefresh-header'
+;;    Run hg qrefresh --message.
+;;  `xhg-qrefresh-edit-message-done'
+;;    Use the current buffer content as parameter for hg qrefresh --message.
+;;  `xhg-qrefresh-edit-message-mode'
+;;    Major mode to edit the mq header message for the current patch.
+;;  `xhg-qpop'
+;;    Run hg qpop.
+;;  `xhg-qpush'
+;;    Run hg qpush.
+;;  `xhg-qapplied'
+;;    Run hg qapplied.
+;;  `xhg-qunapplied'
+;;    Run hg qunapplied.
+;;  `xhg-qseries'
+;;    Run hg qseries.
+;;  `xhg-qdiff'
+;;    Run hg qdiff.
+;;  `xhg-qdelete'
+;;    Run hg qdelete
+;;  `xhg-qconvert-to-permanent'
+;;    Convert all applied patchs in permanent changeset.
+;;  `xhg-qrename'
+;;    Run hg qrename
+;;  `xhg-qtop'
+;;    Run hg qtop.
+;;  `xhg-qnext'
+;;    Run hg qnext.
+;;  `xhg-qprev'
+;;    Run hg qprev.
+;;  `xhg-qheader'
+;;    Run hg qheader.
+;;  `xhg-qsingle'
+;;    Merge applied patches in a single patch satrting from "qbase".
+;;  `xhg-qimport'
+;;    Run hg qimport
+;;  `xhg-mq-export-via-mail'
+;;    Prepare an email that contains a mq patch.
+;;  `xhg-mq-show-stack'
+;;    Show the mq stack.
+;;  `xhg-qdiff-at-point'
+;;    Show the diff for a given patch.
+;;  `xhg-mq-mode'
+;;    Major mode for xhg mq interaction.
+;;  `xhg-mq-edit-series-file'
+;;    Edit the mq patch series file
+;;
+
 ;; The following commands are available for hg's mq:
 ;; X qapplied      print the patches already applied
 ;;   qclone        clone main and patch repository at same time
@@ -34,7 +92,7 @@
 ;;   qgoto         push or pop patches until named patch is at top of stack
 ;;   qguard        set or print guards for a patch
 ;; X qheader       Print the header of the topmost or specified patch
-;;   qimport       import a patch
+;; X qimport       import a patch
 ;; X qinit         init a new queue repository
 ;; X qnew          create a new patch
 ;; X qnext         print the name of the next patch
@@ -49,6 +107,8 @@
 ;; X qseries       print the entire series file
 ;; X qtop          print the name of the current patch
 ;; X qunapplied    print the patches not yet applied
+
+;;; Code:
 
 (defvar xhg-mq-submenu
   '("mq"
@@ -396,12 +456,14 @@ Called with prefix-arg, do not prompt for confirmation"
 
 ;;;###autoload
 (defun* xhg-qsingle (file &optional (start-from "qbase"))
-  "Merge applied patches in a single patch satrting from \"qbase\".
+  "Merge applied patches in a single patch starting from \"qbase\".
 If prefix arg, merge applied patches starting from revision number or patch-name."
   (interactive "FPatchName: ")
   (when (and current-prefix-arg (interactive-p))
-    (setq start-from (dvc-completing-read "PatchName: "
-                                          (xhg-qseries))))
+    (let ((series (xhg-qseries)))
+      (setq start-from (completing-read "PatchName: "
+                                        series nil t
+                                        (car (member (xhg-mq-patch-name-at-point) series))))))
   (let* ((base (with-temp-buffer
                  (apply #'call-process "hg" nil t nil
                         `("parents"
@@ -438,7 +500,7 @@ If prefix arg, merge applied patches starting from revision number or patch-name
     (erase-buffer)
     (insert (format "##Merge of all patches applied from revision %s\n" base))
     (mapc #'(lambda (x)
-                  (insert (concat "## " x "\n")))
+              (insert (concat "## " x "\n")))
           applied)
     (insert patch)
     (save-buffer)
@@ -476,8 +538,8 @@ that is used in the generated email."
                 (let ((series (xhg-qseries)))
                   (dvc-completing-read (if current-prefix-arg
                                            "Send single patch from: "
-                                           "Send mq patch via mail: ") series nil t
-                                       (car (member (xhg-mq-patch-name-at-point) series))))))
+                                         "Send mq patch via mail: ") series nil t
+                                         (car (member (xhg-mq-patch-name-at-point) series))))))
   (let ((file-name)
         (destination-email "")
         (base-file-name nil)
@@ -497,13 +559,12 @@ that is used in the generated email."
           (setq log
                 (with-temp-buffer
                   (let (beg end)
-                  (insert-file-contents file-name)
-                  (goto-char (point-min))
-                  (setq beg (point))
-                  (when (re-search-forward "diff" nil t)
-                    (setq end (point-at-bol)))
-                  (replace-regexp-in-string "^#*" ""
-                                            (buffer-substring beg end)))))
+                    (insert-file-contents file-name)
+                    (goto-char (point-min))
+                    (setq beg (point))
+                    (when (re-search-forward "^diff" nil t)
+                      (setq end (point-at-bol)))
+                    (replace-regexp-in-string "^#*" "" (buffer-substring beg end)))))
           (setq subject pname))
         (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory)
                                 (or base-file-name "") "-" patch ".patch"))
@@ -616,7 +677,9 @@ that is used in the generated email."
   (toggle-read-only 1))
 
 (defun xhg-mq-ewoc-data-at-point ()
-  (if (or (= (dvc-line-number-at-pos) 1) (eq (line-beginning-position) (line-end-position)) (not (eq major-mode 'xhg-mq-mode)))
+  (if (or (= (dvc-line-number-at-pos) 1)
+          (eq (line-beginning-position) (line-end-position))
+          (not (eq major-mode 'xhg-mq-mode)))
       nil
     (ewoc-data (ewoc-locate xhg-mq-cookie))))
 
