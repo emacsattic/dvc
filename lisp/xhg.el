@@ -105,6 +105,8 @@
 ;;    Kill a hg serve process started with `xhg-serve'.
 ;;  `xhg-revision-get-last-or-num-revision'
 ;;    Run the command:
+;;  `xhg-ediff-file-at-rev'
+;;    Ediff file at rev1 against rev2.
 ;;  `xhg-missing-1'
 ;;    Shows the logs of the new arrived changesets after a pull and before an update.
 ;;  `xhg-save-diff'
@@ -1079,6 +1081,33 @@ hg cat --rev <num revision> -o outputfile inputfile"
            (file-name-nondirectory infile)
            (file-relative-name outfile)
            revision))
+
+;;;###autoload
+(defun xhg-ediff-file-at-rev (file rev1 rev2 &optional keep-variants)
+  "Ediff file at rev1 against rev2.
+With prefix arg do not delete the files.
+If rev1 or rev2 are empty, ediff current file against last revision.
+Tip: to quit ediff, use C-u q to kill the ediffied buffers."
+  (interactive (list (read-file-name "File:" nil (dvc-get-file-info-at-point))
+                     (read-from-minibuffer "Rev1: " nil nil nil nil (xhg-dry-tip))
+                     (read-string "Rev2: ")))
+  (let* ((fname (expand-file-name file))
+         (bfname (file-name-nondirectory file))
+         (file1 (concat dvc-temp-directory "/" rev1 "-" bfname))
+         (file2 (concat dvc-temp-directory "/" rev2 "-" bfname))
+         (pref-arg (or keep-variants
+                       current-prefix-arg)))
+    (if (or (equal "" rev1)
+            (equal "" rev2))
+        (dvc-file-ediff fname)
+        (unless (equal rev1 rev2)
+          (xhg-revision-get-last-or-num-revision fname file1 rev1)
+          (xhg-revision-get-last-or-num-revision fname file2 rev2)
+          (ediff-files file1 file2)
+          (unless pref-arg
+            (delete-file file1)
+            (delete-file file2))))))
+
 
 ;; --------------------------------------------------------------------------------
 ;; higher level commands
