@@ -1,6 +1,6 @@
 ;;; dvc-unified.el --- The unification layer for dvc
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -112,7 +112,9 @@ in SPEC if they are nil, returning the result."
 (defmacro define-dvc-unified-command (name args comment &optional interactive)
   "Define a DVC unified command.  &optional arguments are permitted, but
 not &rest."
-  (declare (indent 2) (debug (&define name sexp stringp sexp)))
+  (declare (indent 2)
+	   (debug (&define name lambda-list stringp
+			   [&optional interactive])))
   `(defun ,name ,args
      ,comment
      ,@(when interactive (list interactive))
@@ -162,9 +164,13 @@ not &rest."
 ;;;###autoload
 (defun dvc-diff (&optional base-rev path dont-switch)
   "Display the changes from BASE-REV to the local tree in PATH.
+
 BASE-REV (a revision-id) defaults to base revision of the
 tree. Use `dvc-delta' for differencing two revisions.
-PATH defaults to `default-directory'.
+
+PATH defaults to `default-directory', that is, the whole working tree.
+See also `dvc-file-diff', which defaults to the current buffer file.
+
 The new buffer is always displayed; if DONT-SWITCH is nil, select it."
   (interactive)
   (let ((default-directory
@@ -191,11 +197,14 @@ The new buffer is always displayed; if DONT-SWITCH is nil, select it."
 
 ;;;###autoload
 (define-dvc-unified-command dvc-delta (base modified &optional dont-switch)
-  "Display from revision BASE to MODIFIED.
+  "Display diff from revision BASE to MODIFIED.
 
-BASE and MODIFIED must be revision ID.
+BASE and MODIFIED must be full revision IDs, or strings. If
+strings, the meaning is back-end specific; it should be some sort
+of revision specifier.
 
-The new buffer is always displayed; if DONT-SWITCH is nil, select it.")
+The new buffer is always displayed; if DONT-SWITCH is nil, select it."
+  (interactive "Mbase revision: \nMmodified revision: "))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-file-diff (file &optional base modified dont-switch)
@@ -365,7 +374,8 @@ reused. `default-directory' must be the tree root."
        ;; to find dired-mode buffers, so we ignore those.
        (let ((diff-status-buffers
               (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
-                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)))
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)
+                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'conflicts default-directory)))
              (activated-from-bookmark-buffer (eq major-mode 'dvc-bookmarks-mode)))
          (case (length diff-status-buffers)
            (0 (if (not activated-from-bookmark-buffer)
@@ -407,7 +417,7 @@ reused. `default-directory' must be the tree root."
                 default-directory))))))
 
 (defvar dvc-back-end-wrappers
-  '(("add-log-entry" ())
+  '(("add-log-entry" (&optional other-frame))
     ("add-files" (&rest files))
     ("diff" (&optional base-rev path dont-switch))
     ("ignore-file-extensions" (file-list))
