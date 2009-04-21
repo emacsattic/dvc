@@ -69,6 +69,8 @@
 ;;    Run hg branch.
 ;;  `xhg-branches'
 ;;    run xhg-branches
+;;  `xhg-merge-branch'
+;;    Run hg merge <branch-name>.
 ;;  `xhg-manifest'
 ;;    Run hg manifest.
 ;;  `xhg-tip'
@@ -764,10 +766,39 @@ display the current one."
       (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
 
 ;;;###autoload
-(defun xhg-branches ()
+(defun xhg-branches (&optional only-list)
   "run xhg-branches"
   (interactive)
-  (dvc-run-dvc-display-as-info 'xhg '("branches")))
+  (dvc-run-dvc-display-as-info 'xhg '("branches"))
+  (let ((branchs-list (with-current-buffer "*xhg-info*"
+                        (split-string (buffer-string) "\n"))))
+    (when only-list
+      (kill-buffer "*xhg-info*")
+      (loop for i in branchs-list
+         for e = (car (split-string i))
+         when e
+         collect e))))
+
+(defun xhg-branches-sans-current ()
+  "Run xhg-branches but remove current branch."
+  (save-window-excursion
+    (let ((cur-branch (xhg-branch))
+          (branches (xhg-branches t)))
+      (remove cur-branch branches))))
+
+;;;###autoload
+(defun xhg-merge-branch ()
+  "Run hg merge <branch-name>.
+Usually merge the change made in dev branch in default branch."
+  (interactive)
+  (let* ((current-branch (xhg-branch))
+         (branch (dvc-completing-read "BranchName: "
+                                      (xhg-branches-sans-current))))
+    (when (y-or-n-p (format "Really merge %s in %s" branch current-branch))
+      (dvc-run-dvc-sync 'xhg (list "merge" branch)
+                        :finished
+                        (dvc-capturing-lambda (output error status arguments)
+                          (message "Updated! Don't forget to commit."))))))
 
 ;;todo: add support to specify a rev
 (defun xhg-manifest ()
@@ -932,8 +963,8 @@ Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
   (let* ((opt-list (cond  ((equal current-prefix-arg '(4))
                            (list "update" "-C"))
                           ((equal current-prefix-arg '(16))
-                           (xhg-branches)
-                           (list "update" "-C" (read-string "BranchName: ")))
+                           (list "update" "-C" (dvc-completing-read "BranchName: "
+                                                                    (xhg-branches-sans-current))))
                           (t
                            (list "update"))))
          (opt-string (mapconcat 'identity opt-list " ")))
@@ -941,9 +972,7 @@ Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
                       :finished
                       (lambda (output error status arguments)
                         (dvc-default-finish-function output error status arguments)
-                        (message "hg %s complete for %s" opt-string default-directory)
-                        (if (bufferp (get-buffer "*xhg-info*"))
-                            (kill-buffer "*xhg-info*"))))))
+                        (message "hg %s complete for %s" opt-string default-directory)))))
 
 (defun xhg-convert (source target)
   "Convert a foreign SCM repository to a Mercurial one.
