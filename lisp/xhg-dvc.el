@@ -197,6 +197,11 @@ When `last-command' was `dvc-pull', run `xhg-missing'."
   (interactive)
   (xhg-update nil t))
 
+(defun xhg-dvc-ediff-file-revisions ()
+  "Layer function for `xhg-ediff-file-at-rev'."
+  (interactive)
+  (call-interactively #'xhg-ediff-file-at-rev))
+
 (defalias 'xhg-dvc-revlog-get-revision 'xhg-revlog-get-revision)
 
 (defalias 'xhg-dvc-name-construct 'xhg-name-construct)

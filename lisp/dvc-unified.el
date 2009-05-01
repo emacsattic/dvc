@@ -331,6 +331,12 @@ Use `dvc-log' for the brief log."
   "Mark FILE as resolved"
   (interactive (list (buffer-file-name))))
 
+;; Look at `xhg-ediff-file-at-rev' and `xhg-dvc-ediff-file-revisions'
+;; to build backend functions.
+(define-dvc-unified-command dvc-ediff-file-revisions ()
+  "Ediff rev1 of file against rev2."
+  (interactive))
+
 (defun dvc-rename (from-name to-name)
   "Rename file FROM-NAME to TO-NAME; TO-NAME may be a directory.
 When called non-interactively, if from-file-name does not exist,
