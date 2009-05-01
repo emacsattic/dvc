@@ -893,6 +893,18 @@ otherwise: Return a list of two element sublists containing alias, path"
              (setq result-list lisp-path-list))))))
 
 ;;;###autoload
+(defun xhg-tag (rev name)
+  "Run hg tag -r <REV> NAME."
+  (interactive (list (read-from-minibuffer "Revision: "
+                                           nil nil nil nil
+                                           (xhg-dry-tip))
+                     (read-string "TagName: ")))
+  (dvc-run-dvc-sync 'xhg (list "tag" "-r" rev name)
+                    :finished (lambda (output error status arguments)
+                                (message "Ok revision %s tagged as %s"
+                                         rev name))))
+                    
+;;;###autoload
 (defun xhg-tags ()
   "Run hg tags."
   (interactive)
