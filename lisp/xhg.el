@@ -87,6 +87,8 @@
 ;;    Run hg showconfig.
 ;;  `xhg-paths'
 ;;    Run hg paths.
+;;  `xhg-tag'
+;;    Run hg tag -r <REV> NAME.
 ;;  `xhg-tags'
 ;;    Run hg tags.
 ;;  `xhg-view'
@@ -761,9 +763,9 @@ display the current one."
           (when (interactive-p)
             (message "xhg branch: %s" branch))
           branch)
-      (when (interactive-p)
-        (setq new-name (read-string (format "Change branch from '%s' to: " branch) nil nil branch)))
-      (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
+        (when (interactive-p)
+          (setq new-name (read-string (format "Change branch from '%s' to: " branch) nil nil branch)))
+        (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
 
 ;;;###autoload
 (defun xhg-branches (&optional only-list)
@@ -903,7 +905,7 @@ otherwise: Return a list of two element sublists containing alias, path"
                     :finished (lambda (output error status arguments)
                                 (message "Ok revision %s tagged as %s"
                                          rev name))))
-                    
+
 ;;;###autoload
 (defun xhg-tags ()
   "Run hg tags."
@@ -967,14 +969,16 @@ otherwise: Return a list of two element sublists containing alias, path"
       (message "xhg: No undo information available."))))
 
 ;;;###autoload
-(defun xhg-update ()
+(defun xhg-update (&optional clean switch)
   "Run hg update.
 When called with one prefix-arg run hg update -C (clean).
 Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
   (interactive)
-  (let* ((opt-list (cond  ((equal current-prefix-arg '(4))
+  (let* ((opt-list (cond  ((or clean
+                               (equal current-prefix-arg '(4)))
                            (list "update" "-C"))
-                          ((equal current-prefix-arg '(16))
+                          ((or switch
+                               (equal current-prefix-arg '(16)))
                            (list "update" "-C" (dvc-completing-read "BranchName: "
                                                                     (xhg-branches-sans-current))))
                           (t
