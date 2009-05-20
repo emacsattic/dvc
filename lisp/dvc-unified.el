@@ -23,6 +23,54 @@
 
 ;; This file provides the functionality that unifies the various dvc layers
 
+;;; Commands:
+;;
+;; Below is a complete command list:
+;;
+;;  `dvc-init'
+;;    Initialize a new repository.
+;;  `dvc-add-files'
+;;    Add FILES to the currently active dvc. FILES is a list of
+;;  `dvc-revert-files'
+;;    Revert FILES for the currently active dvc.
+;;  `dvc-remove-files'
+;;    Remove FILES for the currently active dvc.
+;;  `dvc-clone'
+;;    Ask for the DVC to use and clone SOURCE-PATH.
+;;  `dvc-diff'
+;;    Display the changes from BASE-REV to the local tree in PATH.
+;;  `dvc-diff-against-url'
+;;    Show the diff from the current tree against a remote url
+;;  `dvc-status'
+;;    Display the status in optional PATH tree.
+;;  `dvc-log'
+;;    Display the brief log for PATH (a file-name; default current
+;;  `dvc-apply-patch'
+;;    Apply patch `patch-name' on current-tree.
+;;  `dvc-rename'
+;;    Rename file FROM-NAME to TO-NAME; TO-NAME may be a directory.
+;;  `dvc-command-version'
+;;    Returns and/or shows the version identity string of backend command.
+;;  `dvc-tree-root'
+;;    Get the tree root for PATH or the current `default-directory'.
+;;  `dvc-log-edit'
+;;    Edit the log before commiting. Optional OTHER_FRAME (default
+;;  `dvc-ignore-file-extensions'
+;;    Ignore the file extensions of the marked files, in all
+;;  `dvc-ignore-file-extensions-in-dir'
+;;    Ignore the file extensions of the marked files, only in the
+;;  `dvc-missing'
+;;    Show revisions missing from PATH (default prompt),
+;;  `dvc-push'
+;;    Push changes to a remote location.
+;;  `dvc-create-branch'
+;;    Create a new branch.
+;;  `dvc-select-branch'
+;;    Select a branch.
+;;  `dvc-list-branches'
+;;    List available branches.
+;;
+
 
 ;;; History:
 
@@ -248,6 +296,20 @@ interactively. Use `dvc-changelog' for the full log."
     (dvc-call "dvc-log" path last-n))
   nil)
 
+(defun dvc-apply-patch (patch-name)
+  "Apply patch `patch-name' on current-tree."
+  (interactive "fPatch: ")
+  (let ((current-dvc (dvc-current-active-dvc)))
+    (case current-dvc
+      ('xgit (xgit-apply-patch patch-name))
+      ('xhg (xhg-import patch-name))
+      ;; TODO ==>Please add here appropriate commands for your backend
+      (t
+       (if (y-or-n-p (format "[%s] don't know how to apply patch, do you want to run a generic command instead?"
+                             current-dvc))
+           (shell-command (format "cat %s | patch -p1" patch-name))
+           (message "I don't known yet how to patch on %s" current-dvc))))))
+
 ;;;###autoload
 (define-dvc-unified-command dvc-changelog (&optional arg)
   "Display the full changelog in this tree for the actual dvc.
@@ -268,6 +330,12 @@ Use `dvc-log' for the brief log."
 (define-dvc-unified-command dvc-resolved (file)
   "Mark FILE as resolved"
   (interactive (list (buffer-file-name))))
+
+;; Look at `xhg-ediff-file-at-rev' and `xhg-dvc-ediff-file-revisions'
+;; to build backend functions.
+(define-dvc-unified-command dvc-ediff-file-revisions ()
+  "Ediff rev1 of file against rev2."
+  (interactive))
 
 (defun dvc-rename (from-name to-name)
   "Rename file FROM-NAME to TO-NAME; TO-NAME may be a directory.
