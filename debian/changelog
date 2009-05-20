@@ -1,4 +1,4 @@
-dvc (0r20081111-1) unstable; urgency=low
+dvc (0r20090520-1) unstable; urgency=low
 
   * New snapshot.
   * Add dvc.texinfo license to debian/copyright.
