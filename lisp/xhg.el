@@ -51,6 +51,10 @@
 ;;    Run hg push.
 ;;  `xhg-clone'
 ;;    Run hg clone.
+;;  `xhg-bundle'
+;;    Run hg bundle.
+;;  `xhg-unbundle'
+;;    Run hg unbundle.
 ;;  `xhg-incoming'
 ;;    Run hg incoming.
 ;;  `xhg-outgoing'
@@ -521,12 +525,33 @@ If DONT-SWITCH, don't switch to the diff buffer"
 
 ;;;###autoload
 (defun xhg-dired-clone ()
+  "Run `xhg-clone' from dired."
   (interactive)
   (let* ((source (dired-filename-at-point))
          (target
           (read-string (format "Clone(%s)To: " (file-name-nondirectory source))
                        (file-name-directory source))))
     (xhg-clone source target)))
+
+;;;###autoload
+(defun xhg-bundle (name)
+  "Run hg bundle."
+  (interactive "sBundleName: ")
+  (let ((bundle-name (if (string-match ".*\.hg$" name)
+                         name
+                       (concat name ".hg"))))
+    (dvc-run-dvc-async 'xhg (list "bundle" "--base" "null" bundle-name))))
+
+;;;###autoload
+(defun xhg-unbundle (fname)
+  "Run hg unbundle."
+  (interactive "fBundleName: ")
+  (dvc-run-dvc-async 'xhg (list "unbundle" (expand-file-name fname))
+                     :finished
+                     (dvc-capturing-lambda (output error status arguments)
+                       (if (y-or-n-p "Update now?")
+                           (xhg-update)
+                         (message "Don't forget to update!")))))
 
 ;;;###autoload
 (defun xhg-incoming (&optional src show-patch no-merges)
