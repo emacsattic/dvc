@@ -1033,6 +1033,7 @@ display the current one."
         (setq new-nick (read-string (format "Change nick from '%s' to: " nick) nil nil nick)))
       (dvc-run-dvc-sync 'bzr (list "nick" new-nick)))))
 
+;;;###autoload
 (defun bzr-info ()
   "Run bzr info."
   (interactive)
