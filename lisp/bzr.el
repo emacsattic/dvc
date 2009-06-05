@@ -156,10 +156,11 @@ via bzr init-repository."
 (defun bzr-push (&optional repo-path)
   "Run bzr push.
 When called with a prefix argument, add the --remember option"
-  (interactive (list (read-string (format "Push %sto bzr repository [%s]: " 
-					  (if current-prefix-arg "--remember " "")
-					  (bzr-info-branchinfo "push")
-					  ))))
+  (interactive (list (let ((push-branch (bzr-info-branchinfo "push")))
+		       (read-string (format "Push %sto bzr repository [%s]: " 
+					    (if current-prefix-arg "--remember " "")
+					    push-branch)
+				    ))))
   (when (string= repo-path "")
     (setq repo-path nil))
   (dvc-run-dvc-async 'bzr (list "push" repo-path (when current-prefix-arg "--remember"))
