@@ -1045,6 +1045,14 @@ display the current one."
    (re-search-forward (concat"\\s-+ " kname " branch: \\([^\n]*\\)?$") nil 't)
    (match-string-no-properties 1)))
 
+(defun bzr-info-branchinfo (kname)
+  (dvc-run-dvc-sync 'bzr (list "info")
+		    :finished 
+		    (dvc-capturing-lambda (output error status arguments)
+		      (with-current-buffer output
+			(beginning-of-buffer)
+			(message "Got %s" (bzr-parse-info-key kname))))))
+
 (defun bzr-testament ()
   "Run bzr testament."
   (interactive)
