@@ -1039,6 +1039,12 @@ display the current one."
   (interactive)
   (dvc-run-dvc-display-as-info 'bzr '("info")))
 
+(defun bzr-parse-info-key (kname)
+  "Parse the output of bzr info buffer and return value kname"
+  (progn
+   (re-search-forward (concat"\\s-+ " kname " branch: \\([^\n]*\\)?$") nil 't)
+   (match-string-no-properties 1)))
+
 (defun bzr-testament ()
   "Run bzr testament."
   (interactive)
