@@ -51,6 +51,10 @@
 ;;    Run hg push.
 ;;  `xhg-clone'
 ;;    Run hg clone.
+;;  `xhg-bundle'
+;;    Run hg bundle.
+;;  `xhg-unbundle'
+;;    Run hg unbundle.
 ;;  `xhg-incoming'
 ;;    Run hg incoming.
 ;;  `xhg-outgoing'
@@ -69,6 +73,8 @@
 ;;    Run hg branch.
 ;;  `xhg-branches'
 ;;    run xhg-branches
+;;  `xhg-merge-branch'
+;;    Run hg merge <branch-name>.
 ;;  `xhg-manifest'
 ;;    Run hg manifest.
 ;;  `xhg-tip'
@@ -85,6 +91,8 @@
 ;;    Run hg showconfig.
 ;;  `xhg-paths'
 ;;    Run hg paths.
+;;  `xhg-tag'
+;;    Run hg tag -r <REV> NAME.
 ;;  `xhg-tags'
 ;;    Run hg tags.
 ;;  `xhg-view'
@@ -105,6 +113,8 @@
 ;;    Kill a hg serve process started with `xhg-serve'.
 ;;  `xhg-revision-get-last-or-num-revision'
 ;;    Run the command:
+;;  `xhg-ediff-file-at-rev'
+;;    Ediff file at rev1 against rev2.
 ;;  `xhg-missing-1'
 ;;    Shows the logs of the new arrived changesets after a pull and before an update.
 ;;  `xhg-save-diff'
@@ -515,12 +525,33 @@ If DONT-SWITCH, don't switch to the diff buffer"
 
 ;;;###autoload
 (defun xhg-dired-clone ()
+  "Run `xhg-clone' from dired."
   (interactive)
   (let* ((source (dired-filename-at-point))
          (target
           (read-string (format "Clone(%s)To: " (file-name-nondirectory source))
                        (file-name-directory source))))
     (xhg-clone source target)))
+
+;;;###autoload
+(defun xhg-bundle (name)
+  "Run hg bundle."
+  (interactive "sBundleName: ")
+  (let ((bundle-name (if (string-match ".*\.hg$" name)
+                         name
+                       (concat name ".hg"))))
+    (dvc-run-dvc-async 'xhg (list "bundle" "--base" "null" bundle-name))))
+
+;;;###autoload
+(defun xhg-unbundle (fname)
+  "Run hg unbundle."
+  (interactive "fBundleName: ")
+  (dvc-run-dvc-async 'xhg (list "unbundle" (expand-file-name fname))
+                     :finished
+                     (dvc-capturing-lambda (output error status arguments)
+                       (if (y-or-n-p "Update now?")
+                           (xhg-update)
+                         (message "Don't forget to update!")))))
 
 ;;;###autoload
 (defun xhg-incoming (&optional src show-patch no-merges)
@@ -757,15 +788,44 @@ display the current one."
           (when (interactive-p)
             (message "xhg branch: %s" branch))
           branch)
-      (when (interactive-p)
-        (setq new-name (read-string (format "Change branch from '%s' to: " branch) nil nil branch)))
-      (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
+        (when (interactive-p)
+          (setq new-name (read-string (format "Change branch from '%s' to: " branch) nil nil branch)))
+        (dvc-run-dvc-sync 'xhg (list "branch" new-name)))))
 
 ;;;###autoload
-(defun xhg-branches ()
+(defun xhg-branches (&optional only-list)
   "run xhg-branches"
   (interactive)
-  (dvc-run-dvc-display-as-info 'xhg '("branches")))
+  (dvc-run-dvc-display-as-info 'xhg '("branches"))
+  (let ((branchs-list (with-current-buffer "*xhg-info*"
+                        (split-string (buffer-string) "\n"))))
+    (when only-list
+      (kill-buffer "*xhg-info*")
+      (loop for i in branchs-list
+         for e = (car (split-string i))
+         when e
+         collect e))))
+
+(defun xhg-branches-sans-current ()
+  "Run xhg-branches but remove current branch."
+  (save-window-excursion
+    (let ((cur-branch (xhg-branch))
+          (branches (xhg-branches t)))
+      (remove cur-branch branches))))
+
+;;;###autoload
+(defun xhg-merge-branch ()
+  "Run hg merge <branch-name>.
+Usually merge the change made in dev branch in default branch."
+  (interactive)
+  (let* ((current-branch (xhg-branch))
+         (branch (dvc-completing-read "BranchName: "
+                                      (xhg-branches-sans-current))))
+    (when (y-or-n-p (format "Really merge %s in %s" branch current-branch))
+      (dvc-run-dvc-sync 'xhg (list "merge" branch)
+                        :finished
+                        (dvc-capturing-lambda (output error status arguments)
+                          (message "Updated! Don't forget to commit."))))))
 
 ;;todo: add support to specify a rev
 (defun xhg-manifest ()
@@ -860,6 +920,18 @@ otherwise: Return a list of two element sublists containing alias, path"
              (setq result-list lisp-path-list))))))
 
 ;;;###autoload
+(defun xhg-tag (rev name)
+  "Run hg tag -r <REV> NAME."
+  (interactive (list (read-from-minibuffer "Revision: "
+                                           nil nil nil nil
+                                           (xhg-dry-tip))
+                     (read-string "TagName: ")))
+  (dvc-run-dvc-sync 'xhg (list "tag" "-r" rev name)
+                    :finished (lambda (output error status arguments)
+                                (message "Ok revision %s tagged as %s"
+                                         rev name))))
+
+;;;###autoload
 (defun xhg-tags ()
   "Run hg tags."
   (interactive)
@@ -922,16 +994,18 @@ otherwise: Return a list of two element sublists containing alias, path"
       (message "xhg: No undo information available."))))
 
 ;;;###autoload
-(defun xhg-update ()
+(defun xhg-update (&optional clean switch)
   "Run hg update.
 When called with one prefix-arg run hg update -C (clean).
 Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
   (interactive)
-  (let* ((opt-list (cond  ((equal current-prefix-arg '(4))
+  (let* ((opt-list (cond  ((or clean
+                               (equal current-prefix-arg '(4)))
                            (list "update" "-C"))
-                          ((equal current-prefix-arg '(16))
-                           (xhg-branches)
-                           (list "update" "-C" (read-string "BranchName: ")))
+                          ((or switch
+                               (equal current-prefix-arg '(16)))
+                           (list "update" "-C" (dvc-completing-read "BranchName: "
+                                                                    (xhg-branches-sans-current))))
                           (t
                            (list "update"))))
          (opt-string (mapconcat 'identity opt-list " ")))
@@ -939,9 +1013,7 @@ Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
                       :finished
                       (lambda (output error status arguments)
                         (dvc-default-finish-function output error status arguments)
-                        (message "hg %s complete for %s" opt-string default-directory)
-                        (if (bufferp (get-buffer "*xhg-info*"))
-                            (kill-buffer "*xhg-info*"))))))
+                        (message "hg %s complete for %s" opt-string default-directory)))))
 
 (defun xhg-convert (source target)
   "Convert a foreign SCM repository to a Mercurial one.
@@ -1079,6 +1151,33 @@ hg cat --rev <num revision> -o outputfile inputfile"
            (file-name-nondirectory infile)
            (file-relative-name outfile)
            revision))
+
+;;;###autoload
+(defun xhg-ediff-file-at-rev (file rev1 rev2 &optional keep-variants)
+  "Ediff file at rev1 against rev2.
+With prefix arg do not delete the files.
+If rev1 or rev2 are empty, ediff current file against last revision.
+Tip: to quit ediff, use C-u q to kill the ediffied buffers."
+  (interactive (list (read-file-name "File:" nil (dvc-get-file-info-at-point))
+                     (read-from-minibuffer "Rev1: " nil nil nil nil (xhg-dry-tip))
+                     (read-string "Rev2: ")))
+  (let* ((fname (expand-file-name file))
+         (bfname (file-name-nondirectory file))
+         (file1 (concat dvc-temp-directory "/" rev1 "-" bfname))
+         (file2 (concat dvc-temp-directory "/" rev2 "-" bfname))
+         (pref-arg (or keep-variants
+                       current-prefix-arg)))
+    (if (or (equal "" rev1)
+            (equal "" rev2))
+        (dvc-file-ediff fname)
+        (unless (equal rev1 rev2)
+          (xhg-revision-get-last-or-num-revision fname file1 rev1)
+          (xhg-revision-get-last-or-num-revision fname file2 rev2)
+          (ediff-files file1 file2)
+          (unless pref-arg
+            (delete-file file1)
+            (delete-file file2))))))
+
 
 ;; --------------------------------------------------------------------------------
 ;; higher level commands
