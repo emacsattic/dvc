@@ -1246,6 +1246,12 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
     (bzr-switch-checkout target))
   )
 
+(defun bzr-goto-checkout-root ()
+  "Find the directory containing the checkout source branch"
+  (interactive)
+  (find-file (bzr-info-branchinfo "checkout of")))
+
+
 (defun bzr-create-bundle (rev file-name &optional extra-parameter-list)
   "Call bzr send --output to create a file containing a bundle"
   (interactive (list (bzr-read-revision "Create bundle for revision: ")
