@@ -298,7 +298,9 @@ interactively. Use `dvc-changelog' for the full log."
 
 (defun dvc-apply-patch (patch-name)
   "Apply patch `patch-name' on current-tree."
-  (interactive "fPatch: ")
+  (interactive (list (read-from-minibuffer "Patch: "
+                                     nil nil nil nil
+                                     (dired-filename-at-point))))
   (let ((current-dvc (dvc-current-active-dvc)))
     (case current-dvc
       ('xgit (xgit-apply-patch patch-name))
