@@ -41,6 +41,8 @@
 ;;    Run 'hg add' to add all files to mercurial.
 ;;  `xhg-log'
 ;;    Run hg log.
+;;  `xhg-search-regexp-in-log'
+;;    Run hg log -k <pattern>
 ;;  `xhg-diff-1'
 ;;    Run hg diff.
 ;;  `xhg-dvc-diff'
@@ -51,6 +53,8 @@
 ;;    Run hg push.
 ;;  `xhg-clone'
 ;;    Run hg clone.
+;;  `xhg-dired-clone'
+;;    Run `xhg-clone' from dired.
 ;;  `xhg-bundle'
 ;;    Run hg bundle.
 ;;  `xhg-unbundle'
@@ -344,6 +348,29 @@ negative : Don't show patches, limit to n revisions."
                                 (goto-char (point-min))
                                 (insert (format "hg log for %s\n\n" default-directory))
                                 (toggle-read-only 1)))))))))
+
+;;;###autoload
+(defun xhg-search-regexp-in-log ()
+  "Run hg log -k <pattern>"
+  (interactive)
+  (let* ((regex  (read-string "Pattern: "))
+         (args   `("log" "-k" ,regex))
+         (buffer (dvc-get-buffer-create 'xhg 'log)))
+    (dvc-switch-to-buffer-maybe buffer)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (xhg-log-mode)
+    (dvc-run-dvc-sync 'xhg args
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (progn
+                          (with-current-buffer (capture buffer)
+                            (let ((inhibit-read-only t))
+                              (erase-buffer)
+                              (insert-buffer-substring output)
+                              (goto-char (point-min))
+                              (insert (format "hg log for %s\n\n" default-directory))
+                              (toggle-read-only 1))))))))
 
 (defun xhg-parse-diff (changes-buffer)
   (save-excursion
