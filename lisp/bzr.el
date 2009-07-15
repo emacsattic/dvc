@@ -1328,7 +1328,9 @@ this function."
     (mml-attach-file file-name "text/x-patch")
     (goto-char (point-min))
     (mail-position-on-field "Subject")
-    (insert (concat "[PATCH] " summary))))
+    ;; Bundle Buggy, and possibly other tools, require [MERGE] in the
+    ;; subject line in order to detect Bzr merge requests.
+    (insert (concat "[MERGE] " summary))))
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.
