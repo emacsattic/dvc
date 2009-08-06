@@ -371,8 +371,12 @@ TODO: DONT-SWITCH is currently ignored."
 
 TODO: dont-switch is currently ignored."
   (dvc-trace "bzr-delta: base=%S, modified=%S; dir=%S" base modified default-directory)
-  (let* ((base-str (bzr-revision-id-to-string base))
-         (modified-str (bzr-revision-id-to-string modified))
+  (let* ((base-str     (if (stringp base)
+                           base
+                         (bzr-revision-id-to-string base)))
+         (modified-str (if (stringp modified)
+                           modified
+                         (bzr-revision-id-to-string modified)))
          (extra-string (if extra-arg (format ", %s" extra-arg) ""))
          (buffer (dvc-prepare-changes-buffer
                   base modified
@@ -385,9 +389,11 @@ TODO: dont-switch is currently ignored."
     (when dvc-switch-to-buffer-first
       (dvc-switch-to-buffer buffer))
     (let ((default-directory
-            (cond ((bzr-revision-id-is-local modified)
+            (cond ((and (consp modified)
+                        (bzr-revision-id-is-local modified))
                    (bzr-revision-id-location modified))
-                  ((bzr-revision-id-is-local base)
+                  ((and (consp base)
+                        (bzr-revision-id-is-local base))
                    (bzr-revision-id-location base))
                   (t default-directory))))
       (dvc-run-dvc-async
