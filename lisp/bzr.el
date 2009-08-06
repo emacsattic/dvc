@@ -377,9 +377,9 @@ TODO: dont-switch is currently ignored."
          (buffer (dvc-prepare-changes-buffer
                   base modified
                   'revision-diff
-                  (concat (bzr-revision-id-to-string base)
+                  (concat base-str
                           ".."
-                          (bzr-revision-id-to-string modified)
+                          modified-str
                           extra-string)
                   'bzr)))
     (when dvc-switch-to-buffer-first
