@@ -1056,7 +1056,7 @@ display the current one."
 		    :finished
 		    (dvc-capturing-lambda (output error status arguments)
 		      (with-current-buffer output
-			(beginning-of-buffer)
+			(goto-char (point-min))
 			(bzr-parse-info-key kname)))))
 
 (defun bzr-testament ()
