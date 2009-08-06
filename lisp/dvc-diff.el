@@ -58,6 +58,8 @@ TYPE must be found in `dvc-buffer-type-alist'.
 
 PATH must match mode in `dvc-buffer-type-alist' for TYPE.
 
+DVC is the backend in effect.
+
 TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
       (dvc-get-buffer-create dvc type path)
@@ -339,7 +341,7 @@ file; otherwise visit the modified file."
       (diff-goto-source other-file))))
 
 (defun dvc-diff-scroll-or-diff (up-or-down)
-  "If file-diff buffer is visible, scroll. Otherwise, show it."
+  "If file-diff buffer is visible, call UP-OR-DOWN.  Otherwise, show it."
   (let ((file (dvc-get-file-info-at-point)))
     (unless file
       (error "No file at point."))
@@ -358,7 +360,7 @@ file; otherwise visit the modified file."
 (defun dvc-diff-diff-or-list ()
   "Jump between list entry and corresponding diff hunk.
 When in the list, jump to the corresponding
-diff. When on a diff, jump to the corresponding entry in the list."
+diff.  When on a diff, jump to the corresponding entry in the list."
   (interactive)
   (if (dvc-diff-in-ewoc-p)
       (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
@@ -405,9 +407,9 @@ If on a message, mark the group to the next message."
          (dvc-fileinfo-next))))))
 
 (defun dvc-diff-mark-group (&optional unmark)
-  "Mark a group of files.
+  "Mark (or UNMARK) a group of files.
 
-Must be called with the cursor on a 'message ewoc entry. Marks all
+Must be called with the cursor on a 'message ewoc entry.  Marks all
 files until the end of the ewoc, or the next ewoc entry which is not
 a 'file."
   (if (not (dvc-diff-in-ewoc-p))
@@ -446,7 +448,7 @@ a 'file."
 
 (defun dvc-diff-unmark-file (&optional up)
   "Unmark the file under point.
-If on a message, unmark the group to the next message. If
+If on a message, unmark the group to the next message.  If
 optional UP, move to previous file first; otherwise move to next
 file after."
   (interactive)
@@ -534,7 +536,7 @@ file after."
           (ediff-jump-to-difference hunk))))))
 
 (defun dvc-diff-log-single (&optional last-n)
-  "Show log for current file, LAST-N entries (default
+  "Show log for current file, LAST-N entries. (default
 `dvc-log-last-n'; all if nil). LAST-N may be specified
 interactively."
   (interactive (list (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
