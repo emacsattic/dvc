@@ -824,10 +824,10 @@ workspace version)."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
          (modified (or modified `(,dvc (local-tree ,file))))
-         (diff-buffer (dvc-get-buffer-create
-                       dvc
-                       'file-diff
-                       (dvc-uniquify-file-name file)))
+         (diff-buffer (dvc-prepare-changes-buffer
+                       base
+                       modified
+                       'file-diff file 'bzr))
          (base-buffer
           (dvc-revision-get-file-in-buffer file base))
          (modified-buffer
@@ -859,9 +859,8 @@ workspace version)."
     (delete-file base-file)
     (delete-file modified-file)
     (message "")
-    (toggle-read-only 1)
     (goto-char (point-min))
-    (diff-mode)))
+    (setq buffer-read-only t)))
 
 (defun dvc-ediff-startup-hook ()
   "Passed as a startup hook for ediff.
