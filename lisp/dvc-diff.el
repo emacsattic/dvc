@@ -294,7 +294,7 @@ Commands:
   (setq dvc-fileinfo-ewoc (ewoc-create 'dvc-fileinfo-printer))
   (setq dvc-buffer-marked-file-list nil)
   (dvc-install-buffer-menu)
-  (toggle-read-only 1)
+  (setq buffer-read-only t)
   (set-buffer-modified-p nil))
 
 (dvc-add-uniquify-directory-mode 'dvc-diff-mode)
@@ -644,7 +644,7 @@ CMD, if non-nil, is prepended to dvc-header."
           (with-current-buffer changes-buffer
             (ewoc-set-hf dvc-fileinfo-ewoc dvc-header footer)
             (if root (cd root)))))))
-  (toggle-read-only 1)
+  (setq buffer-read-only t)
   (if (progn (goto-char (point-min))
              (re-search-forward "^---" nil t))
       (when (or global-font-lock-mode font-lock-mode)
@@ -805,7 +805,7 @@ Useful to clear diff buffers after a commit."
                     1)))))
       (with-current-buffer pristine-buffer
         (set-buffer-modified-p nil)
-        (toggle-read-only 1)
+        (setq buffer-read-only t)
         (let ((buffer-file-name file))
           (set-auto-mode t)))
       (dvc-ediff-buffers pristine-buffer file-buffer))))
