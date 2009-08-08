@@ -36,11 +36,11 @@
 (easy-menu-define xgit-log-edit-mode-menu xgit-log-edit-mode-map
   "`xgit-log-edit-mode' menu"
   '("Log"
-    ["Insert Signed-Off-By:"     xgit-log-edit-insert-sob t]
+    ["Insert Signed-off-by:"     xgit-log-edit-insert-sob t]
     ))
 
 (defvar xgit-log-edit-font-lock-keywords
-  `(("^Signed-Off-By: " . 'dvc-header)
+  `(("^Signed-off-by: " . 'dvc-header)
     ("^#.*$" . 'dvc-comment)
   "Keywords in xgit-log-edit mode."))
 
@@ -50,7 +50,7 @@
   (re-search-backward "^[^#\n]")
   (end-of-line)
   (newline 2)
-  (insert "Signed-Off-By: " user-full-name " <" user-mail-address ">"))
+  (insert "Signed-off-by: " user-full-name " <" user-mail-address ">"))
 
 ;;;###autoload
 (define-derived-mode xgit-log-edit-mode dvc-log-edit-mode "xgit-log-edit"
