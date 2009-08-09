@@ -1,6 +1,6 @@
 ;;; bzr.el --- Support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -1056,7 +1056,7 @@ display the current one."
 		    :finished
 		    (dvc-capturing-lambda (output error status arguments)
 		      (with-current-buffer output
-			(beginning-of-buffer)
+			(goto-char (point-min))
 			(bzr-parse-info-key kname)))))
 
 (defun bzr-testament ()

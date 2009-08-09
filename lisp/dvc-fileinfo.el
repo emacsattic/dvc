@@ -1,13 +1,13 @@
 ;;; dvc-fileinfo.el --- An ewoc structure for displaying file information
 ;;; for DVC
 
-;; Copyright (C) 2007, 2008 by all contributors
+;; Copyright (C) 2007 - 2009 by all contributors
 
 ;; Author: Stephen Leake, <stephen_leake@stephe-leake.org>
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -137,7 +137,7 @@ This is used by `dvc-fileinfo-printer-full'."
 (defstruct (dvc-fileinfo-legacy
             (:include dvc-fileinfo-root)
             (:copier nil))
-  ;; This type is has the same form as the old dvc-diff-cookie ewoc
+  ;; This type has the same form as the old dvc-diff-cookie ewoc
   ;; element. It is provided to ease the transition to the new
   ;; structure; current parsing code needs very few changes to use
   ;; this, and can be more gradually changed to use a dvc-fileinfo
@@ -321,7 +321,8 @@ point is not on a file element line."
   "Remove the current element(s) from the ewoc."
   (interactive)
 
-  (if (= 0 (length dvc-buffer-marked-file-list))
+  (if (and (= 0 (length (dvc-fileinfo-marked-files)))
+           (= 0 (length dvc-buffer-marked-file-list)))
       ;; no marked files
       (progn
         ;; binding inhibit-read-only doesn't seem to work here
@@ -329,34 +330,39 @@ point is not on a file element line."
         (dvc-ewoc-delete dvc-fileinfo-ewoc (ewoc-locate dvc-fileinfo-ewoc))
         (toggle-read-only 1))
     ;; marked files
-    (setq dvc-buffer-marked-file-list nil)
-    (ewoc-filter dvc-fileinfo-ewoc
-                 (lambda (fileinfo)
-                   (not (dvc-fileinfo-file-mark fileinfo)))
-                 )))
+    (if (= 0 (length dvc-buffer-marked-file-list))
+        ;; non-legacy files
+        (ewoc-filter dvc-fileinfo-ewoc
+                     (lambda (fileinfo)
+                       (not (dvc-fileinfo-file-mark fileinfo)))
+                     )
+      ;; legacy files
+      (error "dvc-fileinfo-kill not implemented for legacy files"))))
 
 (defun dvc-fileinfo-mark-dir-1 (fileinfo mark)
   ;; `dir-compare' must be let-bound to the directory being marked.
   ;; It can't be a normal parameter because this is called via ewoc-map.
+  ;; Note that fileinfo will only be fileinfo-file or fileinfo-dir
   (if (string-equal dir-compare (dvc-fileinfo-file-dir fileinfo))
       (let ((file (dvc-fileinfo-path fileinfo)))
-        (if (dvc-fileinfo-file-exclude fileinfo)
-            (if mark
-                (message "not marking %s; excluded" file))
-          (setf (dvc-fileinfo-file-mark fileinfo) mark)
-          (if mark
-              (add-to-list 'dvc-buffer-marked-file-list file)
-            (setq dvc-buffer-marked-file-list
-                  (delete file dvc-buffer-marked-file-list))))
         (etypecase fileinfo
           (dvc-fileinfo-dir
-           (dvc-fileinfo-mark-dir file mark)
+           (if (dvc-fileinfo-file-exclude fileinfo)
+               (if mark
+                   (message "not marking %s; excluded" file))
+             (dvc-fileinfo-mark-dir file mark))
            ;; return non-nil so this element is refreshed
            t)
 
           (dvc-fileinfo-file
+           (if (dvc-fileinfo-file-exclude fileinfo)
+               (if mark
+                   (message "not marking %s; excluded" file))
+             (setf (dvc-fileinfo-file-mark fileinfo) mark))
            ;; return non-nil so this element is refreshed
-           t)))))
+           t)
+
+          ))))
 
 (defun dvc-fileinfo-mark-dir (dir mark)
   "Set the mark for all files in DIR to MARK, recursively."
@@ -366,7 +372,10 @@ point is not on a file element line."
                   (dvc-fileinfo-file    ; also matches dvc-fileinfo-dir
                    (dvc-fileinfo-mark-dir-1 fileinfo mark))
 
-                  (dvc-fileinfo-message nil)))
+                  (dvc-fileinfo-message nil)
+
+                  (dvc-fileinfo-legacy
+                   (error "dvc-fileinfo-mark-dir not implemented for legacy back-ends"))))
               dvc-fileinfo-ewoc)))
 
 (defun dvc-fileinfo-mark-file-1 (mark)
@@ -387,10 +396,6 @@ in that directory."
                    (message "not marking %s; excluded" file)))
            ;; not excluded
            (setf (dvc-fileinfo-file-mark fileinfo) mark)
-           (if mark
-               (add-to-list 'dvc-buffer-marked-file-list file)
-             (setq dvc-buffer-marked-file-list
-                   (delete file dvc-buffer-marked-file-list)))
            (ewoc-invalidate dvc-fileinfo-ewoc current)
            (dvc-fileinfo-mark-dir file mark))))
 
@@ -406,11 +411,10 @@ in that directory."
                    (message "not marking %s; excluded" file)))
            ;; not excluded
            (setf (dvc-fileinfo-file-mark fileinfo) mark)
-           (if mark
-               (add-to-list 'dvc-buffer-marked-file-list file)
-             (setq dvc-buffer-marked-file-list
-                   (delete file dvc-buffer-marked-file-list)))
            (ewoc-invalidate dvc-fileinfo-ewoc current))))
+
+      (dvc-fileinfo-legacy
+       (error "mark not supported for legacy systems"))
 
       (dvc-fileinfo-message
        (error "not on a file or directory")))))
@@ -450,10 +454,11 @@ in that directory. Then move to previous ewoc entry."
                        ;; don't need to refresh
                        nil)
                    (setf (dvc-fileinfo-file-mark fileinfo) t)
-                   (add-to-list 'dvc-buffer-marked-file-list
-                                (dvc-fileinfo-path fileinfo))
                    ;; return non-nil so this element is refreshed
                    t))
+
+                (dvc-fileinfo-legacy
+                 (error "mark not supported for legacy backends"))
 
                 (dvc-fileinfo-message
                  nil)))
@@ -462,7 +467,6 @@ in that directory. Then move to previous ewoc entry."
 (defun dvc-fileinfo-unmark-all ()
   "Unmark all files and directories."
   (interactive)
-  (setq dvc-buffer-marked-file-list nil)
   (ewoc-map (lambda (fileinfo)
               (etypecase fileinfo
                 (dvc-fileinfo-file      ; also matches dvc-fileinfo-dir
@@ -471,6 +475,9 @@ in that directory. Then move to previous ewoc entry."
                        (setf (dvc-fileinfo-file-mark fileinfo) nil)
                        ;; return non-nil so this element is refreshed
                        t)))
+
+                (dvc-fileinfo-legacy
+                 (error "mark not supported for legacy backends"))
 
                 (dvc-fileinfo-message
                  nil)))
@@ -485,6 +492,7 @@ in that directory. Then move to previous ewoc entry."
       (dvc-fileinfo-file
        (if (dvc-fileinfo-file-mark fileinfo)
            (error "Cannot exclude marked file"))
+
        (setf (dvc-fileinfo-file-exclude fileinfo)
              (not (dvc-fileinfo-file-exclude fileinfo)))
        (ewoc-invalidate dvc-fileinfo-ewoc current))
@@ -557,6 +565,21 @@ if there is no prev."
         (if (and (dvc-fileinfo-file-p fi)
                  (dvc-fileinfo-file-mark fi))
             (setq result (append result (list elem))))
+        (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
+    result))
+
+(defun dvc-fileinfo-marked-files ()
+  "Return list of files that are marked."
+  ;; This does _not_ include legacy fileinfo structs; they do not
+  ;; contain a mark field. We are planning to eventually eliminate
+  ;; dvc-buffer-marked-file-list and legacy fileinfos.
+  (let ((elem (ewoc-nth dvc-fileinfo-ewoc 0))
+        result)
+    (while elem
+      (let ((fi (ewoc-data elem)))
+        (if (and (dvc-fileinfo-file-p fi)
+                 (dvc-fileinfo-file-mark fi))
+            (setq result (append result (list (dvc-fileinfo-path fi)))))
         (setq elem (ewoc-next dvc-fileinfo-ewoc elem))))
     result))
 

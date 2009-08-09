@@ -288,28 +288,16 @@ the file before saving."
       )))
 
 (defun xmtn-dvc-log-message ()
-  "Copy _MTN/log to temp file, return --message-file argument string."
-  ;; Monotone's rule that _MTN/log must not exist when committing
-  ;; non-interactively is really a pain to deal with.
-  (let
-      ((log-edit-file (expand-file-name "./_MTN/log"))
-       (commit-message-file
-        (xmtn--make-temp-file
-         (concat (expand-file-name "./_MTN/log") "-xmtn")
-         nil ".tmp")))
+  "Return --message-file argument string, if any."
+  (let ((log-edit-file "_MTN/log"))
     (if (file-exists-p log-edit-file)
-        (progn
-          (rename-file log-edit-file commit-message-file t)
-          (concat "--message-file=" commit-message-file))
-      ;; no message file
-      nil)))
+        (concat "--message-file=" log-edit-file))))
 
 (defun xmtn-dvc-log-clean ()
-  "Delete main and temporary xmtn log files."
-  (let ((files (file-expand-wildcards "_MTN/log*")))
-    (while files
-      (delete-file (car files))
-      (setq files (cdr files)))))
+  "Delete xmtn log file."
+  (let ((log-edit-file "_MTN/log"))
+    (if (file-exists-p log-edit-file)
+        (delete-file log-edit-file))))
 
 ;;;###autoload
 (defun xmtn-dvc-log-edit-done ()
