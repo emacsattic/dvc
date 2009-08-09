@@ -156,7 +156,11 @@ via bzr init-repository."
 (defun bzr-push (&optional repo-path)
   "Run bzr push.
 When called with a prefix argument, add the --remember option"
-  (interactive (list (read-string (format "Push %sto bzr repository: " (if current-prefix-arg "--remember " "")))))
+  (interactive (list (let ((push-branch (bzr-info-branchinfo "push")))
+		       (read-string (format "Push %sto bzr repository [%s]: "
+					    (if current-prefix-arg "--remember " "")
+					    push-branch)
+				    ))))
   (when (string= repo-path "")
     (setq repo-path nil))
   (dvc-run-dvc-async 'bzr (list "push" repo-path (when current-prefix-arg "--remember"))
@@ -503,11 +507,13 @@ of the commit. Additionally the destination email address can be specified."
                  (setq current-status 'unknown))
                 ((string-equal msg "pending merges:")
                  (setq current-status nil))
+                ((string-equal msg "pending merge tips:")
+                 (setq current-status nil))
                 ((string-equal msg "renamed:")
                  ;; Rename case is handled explictly below
                  (setq current-status nil))
                 (t
-                 (error "unrecognized label %s in bzr-parse-status" msg)))))
+                 (error "unrecognized label '%s' in bzr-parse-status" msg)))))
 
             ((looking-at "^ +\\([^ ][^\n]*?\\)\\([/@]\\)? => \\([^\n]*?\\)\\([/@]\\)?$")
              ;; a renamed file
@@ -1033,10 +1039,25 @@ display the current one."
         (setq new-nick (read-string (format "Change nick from '%s' to: " nick) nil nil nick)))
       (dvc-run-dvc-sync 'bzr (list "nick" new-nick)))))
 
+;;;###autoload
 (defun bzr-info ()
   "Run bzr info."
   (interactive)
   (dvc-run-dvc-display-as-info 'bzr '("info")))
+
+(defun bzr-parse-info-key (kname)
+  "Parse the output of bzr info buffer and return value kname"
+  (progn
+   (re-search-forward (concat"\\s-+ " kname " branch: \\([^\n]*\\)?$") nil 't)
+   (match-string-no-properties 1)))
+
+(defun bzr-info-branchinfo (kname)
+  (dvc-run-dvc-sync 'bzr (list "info")
+		    :finished
+		    (dvc-capturing-lambda (output error status arguments)
+		      (with-current-buffer output
+			(beginning-of-buffer)
+			(bzr-parse-info-key kname)))))
 
 (defun bzr-testament ()
   "Run bzr testament."
@@ -1227,11 +1248,17 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
     (bzr-switch-checkout target))
   )
 
+(defun bzr-goto-checkout-root ()
+  "Find the directory containing the checkout source branch"
+  (interactive)
+  (find-file (bzr-info-branchinfo "checkout of")))
+
+
 (defun bzr-create-bundle (rev file-name &optional extra-parameter-list)
   "Call bzr send --output to create a file containing a bundle"
   (interactive (list (bzr-read-revision "Create bundle for revision: ")
                      (read-file-name "Name of the bzr bundle file: ")
-                     (read-string "Extra parameters: ")))
+                     (split-string (read-string "Extra parameters: "))))
   (let ((arg-list (list "send" "-o" (expand-file-name file-name) "-r" rev)))
     (when extra-parameter-list
       (setq arg-list (append arg-list extra-parameter-list)))
@@ -1240,7 +1267,10 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
                       (lambda (output error status arguments)
                         (message "Created bundle for revision %s in %s." rev file-name)))))
 
-(defvar bzr-export-via-email-parameters nil)
+;;; FIXME: this should probably be a defcustom
+;;;###autoload
+(defvar bzr-export-via-email-parameters nil
+  "list of (PATH (EMAIL BRANCH-NICK (EXTRA-ARG ...)))")
 ;;(add-to-list 'bzr-export-via-email-parameters '("~/work/myprg/dvc" ("joe@host.com" "dvc-el")))
 ;; or:
 ;;(add-to-list 'bzr-export-via-email-parameters
@@ -1248,8 +1278,13 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
 
 (defun bzr-export-via-email ()
   "Export the revision at point via email.
-`bzr-export-via-email-parameters' can be used to customize the behaviour of this function."
+`bzr-export-via-email-parameters' can be used to customize the behaviour of
+this function."
   (interactive)
+
+  (require 'message)
+  (require 'mml)
+
   (let* ((rev (bzr-get-revision-at-point))
          (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
          (base-file-name nil)
@@ -1257,7 +1292,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
          (file-name nil)
          (description nil)
          (destination-email "")
-         (extra-export-parameter-list nil))
+         (extra-parameter-list nil))
     (dolist (m bzr-export-via-email-parameters)
       (when (string= (dvc-uniquify-file-name (car m)) (dvc-uniquify-file-name (bzr-tree-root)))
         ;;(message "%S" (cadr m))
@@ -1265,7 +1300,8 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
         (setq base-file-name (nth 1 (cadr m)))
         (setq extra-parameter-list (nth 2 (cadr m)))))
     (message "bzr-export-via-email %s: %s to %s" rev summary destination-email)
-    (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory) (or base-file-name "") rev ".patch"))
+    (setq file-name (concat (dvc-uniquify-file-name dvc-temp-directory)
+			    (or base-file-name "") rev ".patch"))
     (bzr-create-bundle rev file-name extra-parameter-list)
 
     (setq description
@@ -1281,6 +1317,10 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
      nil
      nil
      description)
+
+    ;; we need MML converted to MIME or the attachment isn't attached!
+    (when (eq mail-user-agent 'sendmail-user-agent)
+      (add-hook 'mail-send-hook 'mml-to-mime nil t))
 
     ;; delete emacs version - its not needed here
     (delete-region (point) (point-max))
