@@ -1,12 +1,12 @@
 ;;; dvc-revlist.el --- Revision list in DVC
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -50,7 +50,7 @@
 (defstruct (dvc-revlist-entry-patch)
   dvc ;; the back-end
   marked
-  struct
+  struct ;; back-end struct
   rev-id ;; DVC revision ID.
   merged-by
   log-buffer
@@ -378,7 +378,8 @@ Function used to get the revision info at point")
 ;; defined, instead of this one. If so, it should be derived from
 ;; dvc-revlist-mode (via `define-derived-mode'), and rely on it for as
 ;; many features as possible (one can, for example, extend the menu
-;; and keymap). See `xmtn-revlist-mode' in xgit.el for a good example.
+;; and keymap). See `xmtn-revlist-mode' in xmtn-revlist.el for a good
+;; example.
 ;;
 ;; Remember to add the new mode to
 ;; `uniquify-list-buffers-directory-modes' using

@@ -1,6 +1,6 @@
 ;;; xmtn-conflicts.el --- conflict resolution for DVC backend for monotone
 
-;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2008 - 2009 Stephen Leake
 
 ;; Author: Stephen Leake
 ;; Keywords: tools
@@ -172,11 +172,6 @@ All xmtn-conflicts functions operate on this ewoc.
 The elements must all be of class xmtn-conflicts.")
 (make-variable-buffer-local 'xmtn-conflicts-ewoc)
 
-(defun xmtn-conflicts-check-mtn-version()
-  "Error if mtn version does not support conflict resolution."
-  (let ((xmtn--minimum-required-command-version '(0 42)))
-    (xmtn--check-cached-command-version)))
-
 (defun xmtn-conflicts-parse-header ()
   "Fill `xmtn-conflicts-left-revision', `xmtn-conflicts-left-root',
 `xmtn-conflicts-right-revision', `xmtn-conflicts-right-root'
@@ -259,17 +254,37 @@ header."
   ;;    right_name "checkout_left.sh"
   ;; right_file_id [355315653eb77ade4804e42a2ef30c89387e1a2d]
   ;;
+  ;;   conflict duplicate_name
+  ;;  left_type "added directory"
+  ;;  left_name "utils"
+  ;; right_type "added directory"
+  ;; right_name "utils"
+  ;;
   ;; optional left and right resolutions:
+  ;; resolved_keep{_left | _right}
   ;; resolved_drop{_left | _right}
   ;; resolved_rename{_left | _right} <file>
   ;; resolved_user{_left | _right} <file>
   (let ((conflict (make-xmtn-conflicts-duplicate_name)))
     (xmtn-basic-io-check-line "left_type" (setf (xmtn-conflicts-duplicate_name-left_type conflict) (cadar value)))
     (xmtn-basic-io-check-line "left_name" (setf (xmtn-conflicts-duplicate_name-left_name conflict) (cadar value)))
-    (xmtn-basic-io-check-line "left_file_id" (setf (xmtn-conflicts-duplicate_name-left_file_id conflict) (cadar value)))
-    (xmtn-basic-io-check-line "right_type" (setf (xmtn-conflicts-duplicate_name-right_type conflict) (cadar value)))
-    (xmtn-basic-io-check-line "right_name" (setf (xmtn-conflicts-duplicate_name-right_name conflict) (cadar value)))
-    (xmtn-basic-io-check-line "right_file_id" (setf (xmtn-conflicts-duplicate_name-right_file_id conflict) (cadar value)))
+    (xmtn-basic-io-parse-line
+        (cond
+          ((string= "left_file_id" symbol)
+           (setf (xmtn-conflicts-duplicate_name-left_file_id conflict) (cadar value))
+           (xmtn-basic-io-check-line "right_type"
+             (setf (xmtn-conflicts-duplicate_name-right_type conflict) (cadar value)))
+           (xmtn-basic-io-check-line "right_name"
+             (setf (xmtn-conflicts-duplicate_name-right_name conflict) (cadar value)))
+           (xmtn-basic-io-check-line "right_file_id"
+             (setf (xmtn-conflicts-duplicate_name-right_file_id conflict) (cadar value))))
+
+          ((string= "right_type" symbol)
+           (setf (xmtn-conflicts-duplicate_name-right_type conflict) (cadar value))
+           (xmtn-basic-io-check-line "right_name"
+             (setf (xmtn-conflicts-duplicate_name-right_name conflict) (cadar value))))
+          (t
+           (error "found %s" symbol))))
 
     ;; look for a left resolution
     (case (xmtn-basic-io--peek)
@@ -277,6 +292,8 @@ header."
       (t
        (xmtn-basic-io-parse-line
         (cond
+          ((string= "resolved_keep_left" symbol)
+           (setf (xmtn-conflicts-duplicate_name-left_resolution conflict) (list 'resolved_keep)))
           ((string= "resolved_drop_left" symbol)
            (setf (xmtn-conflicts-duplicate_name-left_resolution conflict) (list 'resolved_drop)))
           ((string= "resolved_rename_left" symbol)
@@ -292,6 +309,8 @@ header."
       (t
        (xmtn-basic-io-parse-line
         (cond
+          ((string= "resolved_keep_right" symbol)
+           (setf (xmtn-conflicts-duplicate_name-right_resolution conflict) (list 'resolved_keep)))
           ((string= "resolved_drop_right" symbol)
            (setf (xmtn-conflicts-duplicate_name-right_resolution conflict) (list 'resolved_drop)))
           ((string= "resolved_rename_right" symbol)
@@ -412,33 +431,43 @@ header."
   (xmtn-basic-io-write-sym "conflict" "duplicate_name")
   (xmtn-basic-io-write-str "left_type" (xmtn-conflicts-duplicate_name-left_type conflict))
   (xmtn-basic-io-write-str "left_name" (xmtn-conflicts-duplicate_name-left_name conflict))
-  (xmtn-basic-io-write-id "left_file_id" (xmtn-conflicts-duplicate_name-left_file_id conflict))
+  (if (xmtn-conflicts-duplicate_name-left_file_id conflict)
+      (xmtn-basic-io-write-id "left_file_id" (xmtn-conflicts-duplicate_name-left_file_id conflict)))
   (xmtn-basic-io-write-str "right_type" (xmtn-conflicts-duplicate_name-right_type conflict))
   (xmtn-basic-io-write-str "right_name" (xmtn-conflicts-duplicate_name-right_name conflict))
-  (xmtn-basic-io-write-id "right_file_id" (xmtn-conflicts-duplicate_name-right_file_id conflict))
+  (if (xmtn-conflicts-duplicate_name-right_file_id conflict)
+      (xmtn-basic-io-write-id "right_file_id" (xmtn-conflicts-duplicate_name-right_file_id conflict)))
 
   (if (xmtn-conflicts-duplicate_name-left_resolution conflict)
       (ecase (car (xmtn-conflicts-duplicate_name-left_resolution conflict))
+        (resolved_keep
+         (insert "resolved_keep_left \n"))
         (resolved_drop
          (insert "resolved_drop_left \n"))
         (resolved_rename
-         (xmtn-basic-io-write-str "resolved_rename_left"
-                                  (cadr (xmtn-conflicts-duplicate_name-left_resolution conflict))))
+         (xmtn-basic-io-write-str
+          "resolved_rename_left"
+          (file-relative-name (cadr (xmtn-conflicts-duplicate_name-left_resolution conflict)))))
         (resolved_user
-         (xmtn-basic-io-write-str "resolved_user_left"
-                                  (cadr (xmtn-conflicts-duplicate_name-left_resolution conflict))))
+         (xmtn-basic-io-write-str
+          "resolved_user_left"
+          (file-relative-name (cadr (xmtn-conflicts-duplicate_name-left_resolution conflict)))))
         ))
 
   (if (xmtn-conflicts-duplicate_name-right_resolution conflict)
       (ecase (car (xmtn-conflicts-duplicate_name-right_resolution conflict))
+        (resolved_keep
+         (insert "resolved_keep_right \n"))
         (resolved_drop
          (insert "resolved_drop_right \n"))
         (resolved_rename
-         (xmtn-basic-io-write-str "resolved_rename_right"
-                                  (cadr (xmtn-conflicts-duplicate_name-right_resolution conflict))))
+         (xmtn-basic-io-write-str
+          "resolved_rename_right"
+          (file-relative-name (cadr (xmtn-conflicts-duplicate_name-right_resolution conflict)))))
         (resolved_user
-         (xmtn-basic-io-write-str "resolved_user_right"
-                                  (cadr (xmtn-conflicts-duplicate_name-right_resolution conflict))))
+         (xmtn-basic-io-write-str
+          "resolved_user_right"
+          (file-relative-name (cadr (xmtn-conflicts-duplicate_name-right_resolution conflict)))))
         ))
 
   (if (and (xmtn-conflicts-duplicate_name-left_resolution conflict)
@@ -619,6 +648,18 @@ header."
     (ediff-merge-files-with-ancestor file-left file-right file-ancestor nil result-file)
     ))
 
+(defun xmtn-conflicts-resolve-duplicate_name-keep (side)
+  "Resolve the duplicate_name SIDE conflict in current ewoc element, by keep."
+  (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
+         (conflict (ewoc-data elem)))
+      (ecase side
+        ('left
+         (setf (xmtn-conflicts-duplicate_name-left_resolution conflict) (list 'resolved_keep)))
+        ('right
+         (setf (xmtn-conflicts-duplicate_name-right_resolution conflict) (list 'resolved_keep)))
+        )
+      (ewoc-invalidate xmtn-conflicts-ewoc elem)))
+
 (defun xmtn-conflicts-resolve-duplicate_name-drop (side)
   "Resolve the duplicate_name SIDE conflict in current ewoc element, by drop."
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
@@ -647,6 +688,24 @@ header."
         )
       (ewoc-invalidate xmtn-conflicts-ewoc elem)))
 
+(defun xmtn-conflicts-resolve-duplicate_name-rename (side)
+  "Resolve the duplicate_name SIDE conflict in current ewoc element, by rename."
+  ;; Right is the target workspace in a propagate, and also the current
+  ;; workspace in a merge. So default to right_name.
+  (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
+         (conflict (ewoc-data elem))
+         (result-file
+          (file-relative-name
+           (read-file-name "rename file: " "" nil nil
+                           (concat "/" (xmtn-conflicts-duplicate_name-right_name conflict))))))
+      (ecase side
+        ('left
+         (setf (xmtn-conflicts-duplicate_name-left_resolution conflict) (list 'resolved_rename result-file)))
+        ('right
+         (setf (xmtn-conflicts-duplicate_name-right_resolution conflict) (list 'resolved_rename result-file)))
+        )
+      (ewoc-invalidate xmtn-conflicts-ewoc elem)))
+
 (defun xmtn-conflicts-resolve-duplicate_name-ediff (side)
   "Resolve the duplicate_name conflict SIDE in current ewoc element, via ediff."
   (if xmtn-conflicts-current-conflict-buffer
@@ -656,28 +715,30 @@ header."
   ;; the buffers nice names. Store the result in _MTN/*, so a later
   ;; 'merge --resolve-conflicts-file' can find it.
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
-         (conflict (ewoc-data elem))
-         (file-left (xmtn-conflicts-get-file (xmtn-conflicts-duplicate_name-left_file_id conflict)
-                                             xmtn-conflicts-left-root
-                                             (xmtn-conflicts-duplicate_name-left_name conflict)))
-         (file-right (xmtn-conflicts-get-file (xmtn-conflicts-duplicate_name-right_file_id conflict)
-                                              xmtn-conflicts-right-root
-                                              (xmtn-conflicts-duplicate_name-right_name conflict)))
+         (conflict (ewoc-data elem)))
+    (if (not (xmtn-conflicts-duplicate_name-left_file_id conflict))
+        (error "can't ediff directories from here"))
+    (let ((file-left (xmtn-conflicts-get-file (xmtn-conflicts-duplicate_name-left_file_id conflict)
+                                              xmtn-conflicts-left-root
+                                              (xmtn-conflicts-duplicate_name-left_name conflict)))
+          (file-right (xmtn-conflicts-get-file (xmtn-conflicts-duplicate_name-right_file_id conflict)
+                                               xmtn-conflicts-right-root
+                                               (xmtn-conflicts-duplicate_name-right_name conflict)))
 
-         (result-file (concat "_MTN/resolutions/result/" (xmtn-conflicts-duplicate_name-right_name conflict))) )
+          (result-file (concat "_MTN/resolutions/result/" (xmtn-conflicts-duplicate_name-right_name conflict))) )
 
-    (unless (file-exists-p "_MTN/resolutions/result")
-      (make-directory "_MTN/resolutions/result" t))
+      (unless (file-exists-p "_MTN/resolutions/result")
+        (make-directory "_MTN/resolutions/result" t))
 
-    (add-hook 'ediff-quit-merge-hook 'xmtn-conflicts-resolve-conflict-post-ediff)
-    ;; ediff leaves the merge buffer active;
-    ;; xmtn-conflicts-resolve-conflict-post-ediff needs to find the
-    ;; conflict buffer, in order to find the quit-info.
-    (setq xmtn-conflicts-current-conflict-buffer (current-buffer))
-    (setq xmtn-conflicts-ediff-quit-info
-          (list elem result-file (current-window-configuration) side))
-    (ediff-merge-files file-left file-right nil result-file)
-    ))
+      (add-hook 'ediff-quit-merge-hook 'xmtn-conflicts-resolve-conflict-post-ediff)
+      ;; ediff leaves the merge buffer active;
+      ;; xmtn-conflicts-resolve-conflict-post-ediff needs to find the
+      ;; conflict buffer, in order to find the quit-info.
+      (setq xmtn-conflicts-current-conflict-buffer (current-buffer))
+      (setq xmtn-conflicts-ediff-quit-info
+            (list elem result-file (current-window-configuration) side))
+      (ediff-merge-files file-left file-right nil result-file)
+      )))
 
 (defun xmtn-conflicts-content-resolvep ()
   (let ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc))))
@@ -685,52 +746,92 @@ header."
          (not (xmtn-conflicts-content-resolution conflict)))))
 
 (defun xmtn-conflicts-duplicate_name-resolve-leftp ()
+  "Non-nil if current conflict has no left resolution."
   (let ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc))))
     (and (typep conflict 'xmtn-conflicts-duplicate_name)
          (not (xmtn-conflicts-duplicate_name-left_resolution conflict)))))
 
-(defun xmtn-conflicts-duplicate_name-resolve-rightp ()
+(defun xmtn-conflicts-duplicate_name-resolve-left-filep ()
+  "Non-nil if current conflict is a file, and has no left resolution."
   (let ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc))))
     (and (typep conflict 'xmtn-conflicts-duplicate_name)
+         ;; if no file_id, it's a directory
+         (xmtn-conflicts-duplicate_name-left_file_id conflict)
+         (not (xmtn-conflicts-duplicate_name-left_resolution conflict)))))
+
+(defun xmtn-conflicts-duplicate_name-resolve-rightp ()
+  "Non-nil if current conflict no right resolution."
+  (let ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc))))
+    (and (typep conflict 'xmtn-conflicts-duplicate_name)
+         ;; There are lots of options; only show right options when left is done
+         (xmtn-conflicts-duplicate_name-left_resolution conflict)
+         (not (xmtn-conflicts-duplicate_name-right_resolution conflict)))))
+
+(defun xmtn-conflicts-duplicate_name-resolve-right-filep ()
+  "Non-nil if current conflict is a file, and has no right resolution."
+  (let ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc))))
+    (and (typep conflict 'xmtn-conflicts-duplicate_name)
+         ;; if no file_id, it's a directory
+         (xmtn-conflicts-duplicate_name-right_file_id conflict)
          (not (xmtn-conflicts-duplicate_name-right_resolution conflict)))))
 
 (defvar xmtn-conflicts-resolve-map
   (let ((map (make-sparse-keymap "resolution")))
-    (define-key map [?8]  '(menu-item "8) clear resolution"
+    (define-key map [?c]  '(menu-item "c) clear resolution"
                                       xmtn-conflicts-clear-resolution))
 
     ;; duplicate_name resolutions
-    (define-key map [?7]  '(menu-item "7) right file"
-                                      (lambda ()
-                                        (interactive)
-                                        (xmtn-conflicts-resolve-duplicate_name-file 'right))
-                                      :visible (xmtn-conflicts-duplicate_name-resolve-rightp)))
-    (define-key map [?6]  '(menu-item "6) right ediff"
-                                      (lambda ()
-                                        (interactive)
-                                        (xmtn-conflicts-resolve-duplicate_name-ediff 'right))
-                                      :visible (xmtn-conflicts-duplicate_name-resolve-rightp)))
-    (define-key map [?5]  '(menu-item "5) right drop"
+    (define-key map [?b]  '(menu-item "b) right drop"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-duplicate_name-drop 'right))
                                       :visible (xmtn-conflicts-duplicate_name-resolve-rightp)))
+    (define-key map [?a]  '(menu-item "a) right rename"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-duplicate_name-rename 'right))
+                                      :visible (xmtn-conflicts-duplicate_name-resolve-rightp)))
+    (define-key map [?9]  '(menu-item "9) right file"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-duplicate_name-file 'right))
+                                      :visible (xmtn-conflicts-duplicate_name-resolve-right-filep)))
+    (define-key map [?8]  '(menu-item "8) right keep"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-duplicate_name-keep 'right))
+                                      :visible (xmtn-conflicts-duplicate_name-resolve-rightp)))
+    (define-key map [?7]  '(menu-item "7) right ediff"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-duplicate_name-ediff 'right))
+                                      :visible (xmtn-conflicts-duplicate_name-resolve-right-filep)))
 
-    (define-key map [?4]  '(menu-item "4) left file"
+    (define-key map [?6]  '(menu-item "6) left file"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-duplicate_name-file 'left))
-                                      :visible (xmtn-conflicts-duplicate_name-resolve-leftp)))
-    (define-key map [?3]  '(menu-item "3) left ediff"
-                                      (lambda ()
-                                        (interactive)
-                                        (xmtn-conflicts-resolve-duplicate_name-ediff 'left))
-                                      :visible (xmtn-conflicts-duplicate_name-resolve-leftp)))
-    (define-key map [?2]  '(menu-item "2) left drop"
+                                      :visible (xmtn-conflicts-duplicate_name-resolve-left-filep)))
+    (define-key map [?5]  '(menu-item "5) left drop"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-duplicate_name-drop 'left))
                                       :visible (xmtn-conflicts-duplicate_name-resolve-leftp)))
+    (define-key map [?4]  '(menu-item "4) left rename"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-duplicate_name-rename 'left))
+                                      :visible (xmtn-conflicts-duplicate_name-resolve-leftp)))
+    (define-key map [?3]  '(menu-item "3) left keep"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-duplicate_name-keep 'left))
+                                      :visible (xmtn-conflicts-duplicate_name-resolve-leftp)))
+    (define-key map [?2]  '(menu-item "2) left ediff"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-duplicate_name-ediff 'left))
+                                      :visible (xmtn-conflicts-duplicate_name-resolve-left-filep)))
 
     ;; content resolutions
     (define-key map [?1]  '(menu-item "1) file"
@@ -891,7 +992,6 @@ revisions (monotone revision specs; if nil, defaults to heads of
 respective workspace branches) in LEFT-WORK and RIGHT-WORK
 workspaces (strings).  Allow specifying resolutions.  Stores
 conflict file in LEFT-WORK/_MTN."
-  (xmtn-conflicts-check-mtn-version)
   (xmtn-conflicts-save-opts left-work right-work)
   (dvc-run-dvc-async
    'xmtn
@@ -919,8 +1019,7 @@ Prompt if the last two conditions are not satisfied."
         (error "%s has multiple heads; can't propagate" work))
 
     (if (not (string= base (nth 0 heads)))
-        (if (not (yes-or-no-p (format "%s base is not head; really propagate? " work)))
-            (error "aborting due to not at head")))
+            (error "Aborting due to %s not at head" work))
 
     ;; check for local changes
     (message "checking %s for local changes" work)
@@ -944,6 +1043,27 @@ Prompt if the last two conditions are not satisfied."
 
   )
 
+(defun xmtn-check-propagate-needed (left-work right-work)
+  "Throw error unless branch in workspace LEFT-WORK needs to be propagated to RIGHT-WORK."
+  ;; We assume xmtn-check-workspace-for-propagate has already been run
+  ;; on left-work, right-work, so just check if they have the same
+  ;; base revision, or the target (right) base revision is a
+  ;; descendant of the source.
+  (message "checking if propagate needed")
+
+  (let ((left-base (xmtn--get-base-revision-hash-id-or-null left-work))
+        (right-base (xmtn--get-base-revision-hash-id-or-null right-work)))
+
+    (if (string= left-base right-base)
+        (error "don't need to propagate")
+      ;; check for right descendant of left
+      (let ((descendents (xmtn-automate-simple-command-output-lines left-work (list "descendents" left-base))))
+        (while descendents
+          (if (string= right-base (car descendents))
+              (error "don't need to propagate"))
+          (setq descendents (cdr descendents)))))
+  ))
+
 ;;;###autoload
 (defun xmtn-conflicts-propagate (left-work right-work)
   "List conflicts for a propagate from LEFT-WORK to RIGHT-WORK workspace branch head revisions.
@@ -956,6 +1076,10 @@ workspace."
 
   (xmtn-check-workspace-for-propagate left-work)
   (xmtn-check-workspace-for-propagate right-work)
+
+  (xmtn-check-propagate-needed left-work right-work)
+
+  (message "computing conflicts")
 
   (let ((default-directory right-work))
     (xmtn-conflicts-1 left-work
@@ -984,9 +1108,10 @@ workspace."
 
     (let ((conflicts-buffer (dvc-get-buffer-create 'xmtn 'conflicts default-directory)))
       (pop-to-buffer conflicts-buffer)
+      (setq buffer-read-only nil)
       (xmtn-conflicts-load-opts)
       (set (make-local-variable 'after-insert-file-functions) '(xmtn-conflicts-after-insert-file))
-      (insert-file-contents "_MTN/conflicts" t))))
+      (insert-file-contents "_MTN/conflicts" t nil nil t))))
 
 ;;;###autoload
 (defun xmtn-conflicts-clean (&optional workspace)

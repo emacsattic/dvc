@@ -6,7 +6,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -129,7 +129,8 @@ to (dvc-current-file-list)."
 
 ;;;###autoload
 (defun dvc-remove-files (&rest files)
-  "Remove FILES for the currently active dvc."
+  "Remove FILES for the currently active dvc.
+Return t if files removed, nil if not (due to user confirm or error)."
   (interactive (dvc-current-file-list))
   (when (setq files (dvc-confirm-file-op "remove" files t))
     (dvc-apply "dvc-remove-files" files)))

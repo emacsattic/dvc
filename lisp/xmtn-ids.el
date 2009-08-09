@@ -1,6 +1,6 @@
 ;;; xmtn-ids.el --- Resolver routines for xmtn revision ids
 
-;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2008, 2009 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -30,7 +30,7 @@
 ;; This way, previous-revision can contain any nested BACKEND-ID.
 ;; This simplifies the code and may be useful.
 ;;
-;; REVISION-ID :: (xmtn BACKEND-ID)
+;; REVISION-ID :: (xmtn BACKEND-ID) | "selector"
 ;;
 ;; BACKEND-ID :: BACKEND-REVISION
 ;;             | (revision BACKEND-REVISION)
@@ -82,50 +82,54 @@
   "Return the hash-id from a REVISION-ID"
   (car (cdadr revision-id)))
 
-(defun xmtn--resolve-revision-id (root revision-id)
-  "Resolve REVISION-ID to a RESOLVED-BACKEND-ID.
+(defun xmtn--resolve-revision-id-1 (root revision-id)
+  "Resolve dvc REVISION-ID to a RESOLVED-BACKEND-ID."
+  (ecase (car revision-id)
+    ('xmtn
+     (xmtn--resolve-backend-id root (cadr revision-id)))))
 
-See file commentary for details."
+(defun xmtn--resolve-revision-id (root revision-id)
+  "Resolve REVISION-ID to a RESOLVED-BACKEND-ID. REVISION-ID may
+be a dvc revision (list starting with 'xmtn) or a string
+containing a mtn selector."
   (unless root (setq root (dvc-tree-root)))
-  (xmtn-match revision-id
-    ((xmtn $backend-id)
-     (let ((resolved-backend-id (xmtn--resolve-backend-id root backend-id)))
-       resolved-backend-id))))
+  (cond
+   ((listp revision-id)
+    (xmtn--resolve-revision-id-1 root revision-id))
+   ((stringp revision-id)
+    (xmtn--resolve-revision-id-1
+     root
+     (list 'xmtn (list 'revision (car (xmtn--expand-selector root revision-id))))))
+   (t
+    (error "revision-id must be a list or string"))))
 
 (defun xmtn--resolve-backend-id (root backend-id)
   "Resolve BACKEND-ID to a RESOLVED-BACKEND-ID.
 
 See file commentary for details."
   (let ((resolved-backend-id
-         (xmtn-automate-with-session (nil root)
-           (etypecase backend-id
-             (xmtn--hash-id
-              (xmtn--resolve--revision root backend-id))
-             (list
-              (xmtn-match backend-id
-                ((revision $backend-revision)
-                 (xmtn--resolve--revision root backend-revision))
-                ((local-tree $path)
-                 (xmtn--resolve--local-tree root path))
-                ((last-revision $path $num)
-                 (xmtn--resolve--last-revision root path num))
-                ((previous-revision $base-backend-id . $optional-num)
-                 (destructuring-bind (&optional num) optional-num
-                   (unless num (setq num 1))
-                   (xmtn--resolve--previous-revision root
-                                                     base-backend-id
-                                                     num)))))))))
+         (etypecase backend-id
+           (xmtn--hash-id
+            (list 'revision backend-id))
+           (list
+            (xmtn-match backend-id
+              ((revision $backend-revision)
+               backend-id)
+              ((local-tree $path)
+               backend-id)
+              ((last-revision $path $num)
+               (xmtn--resolve--last-revision root path num))
+              ((previous-revision $base-backend-id . $optional-num)
+               (destructuring-bind (&optional num) optional-num
+                 (unless num (setq num 1))
+                 (xmtn--resolve--previous-revision root
+                                                   base-backend-id
+                                                   num))))))))
     ;; Small sanity check.  Also implicit documentation.
     (xmtn-match resolved-backend-id
       ((revision $hash-id) (assert (typep hash-id 'xmtn--hash-id)))
       ((local-tree $string) (assert (typep string 'string))))
     resolved-backend-id))
-
-(defun xmtn--resolve--revision (root hash-id)
-  (check-type hash-id xmtn--hash-id)
-  ;; I don't really know whether this is a good idea.
-  (xmtn--error-unless-revision-exists root hash-id)
-  `(revision ,hash-id))
 
 (defun xmtn--resolve--local-tree (root path)
   (check-type path string)
