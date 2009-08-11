@@ -230,7 +230,7 @@ Signals an error if more (or fewer) than one line is output."
              arguments))
     (first lines)))
 
-(defconst xmtn--minimum-required-command-version '(0 37))
+(defconst xmtn--minimum-required-command-version '(0 43))
 
 (defun xmtn--have-no-ignore ()
   "Non-nil if mtn automate inventory supports --no-ignore, --no-unknown, --no-unchanged options."

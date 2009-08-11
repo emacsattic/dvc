@@ -1,6 +1,6 @@
 ;;; xmtn-automate.el --- Interface to monotone's "automate" functionality
 
-;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2008, 2009 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -351,24 +351,24 @@ options, cdr is command. Insert result into BUFFER."
          (xmtn-automate-command-buffer handle))))))
 
 (defun xmtn-automate-command-output-lines (handle)
+  ;; Return list of lines of output; first line output is first in
+  ;; list.
   (xmtn-automate-command-check-for-and-report-error handle)
   (xmtn-automate-command-wait-until-finished handle)
-  ;; Maybe a simple buffer-substring-no-properties and split-string
-  ;; would be more efficient.  I don't know.
   (save-excursion
     (set-buffer (xmtn-automate-command-buffer handle))
     (goto-char (point-min))
-    (loop while (< (point) (point-max))
-          collect (buffer-substring-no-properties (point)
-                                                  (progn (end-of-line)
-                                                         (point)))
-          do
-          (forward-line 1)
-          (xmtn--assert-optional (bolp)))))
+    (let (result)
+      (while (< (point) (point-max))
+        (setq result (cons (buffer-substring-no-properties
+                            (point)
+                            (progn (end-of-line) (point)))
+                           result))
+        (forward-line 1))
+      (nreverse result))))
 
-;; This one is useful.
 (defun xmtn-automate-simple-command-output-lines (root command)
-  "Return string containing output of COMMAND."
+  "Return list of strings containing output of COMMAND, one line per string."
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
       (xmtn-automate-command-output-lines handle))))
@@ -976,7 +976,11 @@ Each element of the list is a list; key, signature, name, value, trust."
     accu))
 
 (defun xmtn--heads (root branch)
-  (xmtn-automate-simple-command-output-lines root `("heads" ,branch)))
+  ;; apparently stdio automate doesn't default arguments properly;
+  ;; this fails if branch is not passed to mtn.
+  (xmtn-automate-simple-command-output-lines root (list "heads"
+                                                        (or branch
+                                                            (xmtn--tree-default-branch root)))))
 
 (defun xmtn--tree-default-branch (root)
   (xmtn-automate-simple-command-output-line root `("get_option" "branch")))
