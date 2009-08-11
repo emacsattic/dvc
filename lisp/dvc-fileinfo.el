@@ -318,7 +318,8 @@ point is not on a file element line."
                  (not (dvc-fileinfo-message-p fileinfo)))))
 
 (defun dvc-fileinfo-kill ()
-  "Remove the current element(s) from the ewoc."
+  "Remove the current element(s) from the ewoc. Does nothing for
+marked legacy fileinfos."
   (interactive)
 
   (if (and (= 0 (length (dvc-fileinfo-marked-files)))
@@ -337,7 +338,7 @@ point is not on a file element line."
                        (not (dvc-fileinfo-file-mark fileinfo)))
                      )
       ;; legacy files
-      (error "dvc-fileinfo-kill not implemented for legacy files"))))
+      nil)))
 
 (defun dvc-fileinfo-mark-dir-1 (fileinfo mark)
   ;; `dir-compare' must be let-bound to the directory being marked.
@@ -614,6 +615,35 @@ if there is no prev."
       status)))
 
 ;;; actions
+(defun dvc-fileinfo-set-status (status)
+  "Set status of current file(s) to STATUS. This avoids the need
+to run the backend again. Does nothing for legacy fileinfos."
+  (if (= 0 (length (dvc-fileinfo-marked-files)))
+      (if dvc-buffer-marked-file-list
+          ;; legacy fileinfo
+          nil
+        ;; no marked files
+        (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
+          (setf (dvc-fileinfo-file-status fileinfo) status)
+          (ewoc-invalidate dvc-fileinfo-ewoc (ewoc-locate dvc-fileinfo-ewoc))))
+    ;; marked files
+    (ewoc-map (lambda (fileinfo)
+                (etypecase fileinfo
+                  (dvc-fileinfo-message
+                   nil)
+
+                  (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+                   (if (dvc-fileinfo-file-mark fileinfo) (setf (dvc-fileinfo-file-status fileinfo) status)))))
+              dvc-fileinfo-ewoc)))
+
+(defun dvc-fileinfo-add-files ()
+  "Add current file(s) to the database. Directories are also added,
+but not recursively."
+  (interactive)
+  (apply 'dvc-add-files (dvc-current-file-list))
+
+  (dvc-fileinfo-set-status 'added))
+
 (defun dvc-fileinfo-add-log-entry-1 (fileinfo other-frame)
   "Add an entry in the current log-edit buffer for FILEINFO.
 If OTHER-FRAME (default prefix) xor `dvc-log-edit-other-frame' is
@@ -657,53 +687,71 @@ non-nil, show log-edit buffer in other frame."
   (interactive "P")
   (dvc-fileinfo-add-log-entry-1 (dvc-fileinfo-current-fileinfo) other-frame))
 
+(defun dvc-fileinfo-ignore-files ()
+  "Ignore current files."
+  (interactive)
+  (dvc-ignore-files (dvc-current-file-list))
+
+  (dvc-fileinfo-kill))
+
 (defun dvc-fileinfo-remove-files ()
   "Remove current files. If status `unknown', delete from
-workspace. Otherwise, call `dvc-remove-files'."
+workspace. Otherwise, call `dvc-remove-files'. For marked legacy
+fileinfos, just call `dvc-remove-files'."
   (interactive)
-  (let ((elems (or (dvc-fileinfo-marked-elems)
-                   (list (ewoc-locate dvc-fileinfo-ewoc))))
-        (inhibit-read-only t)
-        known-files)
+  (if dvc-buffer-marked-file-list
+      (dvc-remove-files)
+    ;; not legacy
+    (let ((elems (or (dvc-fileinfo-marked-elems)
+                     (list (ewoc-locate dvc-fileinfo-ewoc))))
+          (inhibit-read-only t)
+          known-files)
 
-    (while elems
-      (let ((fileinfo (ewoc-data (car elems))))
-        (typecase fileinfo
-          (dvc-fileinfo-file
-           (if (equal 'unknown (dvc-fileinfo-file-status fileinfo))
-               (progn
-                 (delete-file (dvc-fileinfo-path fileinfo))
-                 (dvc-ewoc-delete dvc-fileinfo-ewoc (car elems)))
-             ;; `add-to-list' gets a stack overflow here
-             (setq known-files (cons (car elems) known-files))))
+      (while elems
+        (let ((fileinfo (ewoc-data (car elems))))
+          (typecase fileinfo
+            (dvc-fileinfo-file
+             (if (equal 'unknown (dvc-fileinfo-file-status fileinfo))
+                 (progn
+                   (delete-file (dvc-fileinfo-path fileinfo))
+                   (dvc-ewoc-delete dvc-fileinfo-ewoc (car elems)))
+               ;; `add-to-list' gets a stack overflow here
+               (setq known-files (cons (car elems) known-files))))
 
-          (dvc-fileinfo-legacy
-           ;; Assume files are known
-           (add-to-list known-files fileinfo))
+            (dvc-fileinfo-legacy
+             ;; Assume files are known
+             (add-to-list known-files fileinfo))
 
-          (otherwise
-           ;; just ignore
-           nil))
-        (setq elems (cdr elems))))
+            (otherwise
+             ;; just ignore
+             nil))
+          (setq elems (cdr elems))))
 
-    (if known-files
-        (progn
-          (apply 'dvc-remove-files
-                 (mapcar (lambda (elem)
-                           (dvc-fileinfo-path (ewoc-data elem)))
-                         known-files))
-          (mapc
-           (lambda (elem)
-             (let ((fileinfo (ewoc-data elem)))
-               (etypecase fileinfo
-                 (dvc-fileinfo-file
-                  (setf (dvc-fileinfo-file-status fileinfo) 'deleted)
-                  (ewoc-invalidate dvc-fileinfo-ewoc elem))
+      (if known-files
+          (progn
+            (apply 'dvc-remove-files
+                   (mapcar (lambda (elem)
+                             (dvc-fileinfo-path (ewoc-data elem)))
+                           known-files))
+            (mapc
+             (lambda (elem)
+               (let ((fileinfo (ewoc-data elem)))
+                 (etypecase fileinfo
+                   (dvc-fileinfo-file
+                    (setf (dvc-fileinfo-file-status fileinfo) 'deleted)
+                    (ewoc-invalidate dvc-fileinfo-ewoc elem))
 
-                 (dvc-fileinfo-legacy
-                  ;; Don't have enough info to update this
-                  nil))))
-           known-files)))))
+                   (dvc-fileinfo-legacy
+                    ;; Don't have enough info to update this
+                    nil))))
+             known-files))))))
+
+(defun dvc-fileinfo-revert-files ()
+  "Revert current files."
+  (interactive)
+  (apply 'dvc-revert-files (dvc-current-file-list))
+
+  (dvc-fileinfo-kill))
 
 (defun dvc-fileinfo--do-rename (fi-source fi-target elems)
   (dvc-rename (dvc-fileinfo-path fi-source)

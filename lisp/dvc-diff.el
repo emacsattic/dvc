@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -143,7 +143,7 @@ Pretty-print ELEM."
     (define-key map [(meta return)]                           'dvc-diff-scroll-down-or-diff)
     (define-key map "\M-\C-m"                                 'dvc-diff-scroll-down-or-diff)
     (define-key map [?=]                                      'dvc-diff-diff)
-    (define-key map dvc-keyvec-add                            'dvc-add-files)
+    (define-key map dvc-keyvec-add                            'dvc-fileinfo-add-files)
     (define-key map "\M-d"                                    'dvc-diff-dtrt)
     (define-key map "E"                                       'dvc-fileinfo-toggle-exclude)
     (define-key map "\M-e"                                    'dvc-edit-exclude)
@@ -158,10 +158,10 @@ Pretty-print ELEM."
 
     (define-key map dvc-keyvec-next                           'dvc-diff-next)
     (define-key map dvc-keyvec-previous                       'dvc-diff-prev)
-    (define-key map dvc-keyvec-revert                         'dvc-revert-files)
+    (define-key map dvc-keyvec-revert                         'dvc-fileinfo-revert-files)
     (define-key map dvc-keyvec-quit                           'dvc-buffer-quit)
     (define-key map dvc-keyvec-remove                         'dvc-fileinfo-remove-files)
-    (define-key map [?d]                                      'dvc-remove-files) ; as in dired
+    (define-key map [?d]                                      'dvc-fileinfo-remove-files) ; as in dired
     (define-key map dvc-keyvec-mark                           'dvc-diff-mark-file)
     (define-key map dvc-keyvec-mark-all                       'dvc-fileinfo-mark-all)
     (define-key map dvc-keyvec-unmark                         'dvc-diff-unmark-file)
@@ -179,10 +179,10 @@ Pretty-print ELEM."
     (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
 
     ;; Ignore file handling
-    (define-key map (dvc-prefix-tagging-method ?i)            'dvc-ignore-files)
+    (define-key map (dvc-prefix-tagging-method ?i)            'dvc-fileinfo-ignore-files)
     (define-key map (dvc-prefix-tagging-method ?I)            'dvc-ignore-file-extensions)
     (define-key map (dvc-prefix-tagging-method ?e)            'dvc-edit-ignore-files)
-    (define-key map [?i]                                      'dvc-ignore-files)
+    (define-key map [?i]                                      'dvc-fileinfo-ignore-files)
     (define-key map [?I]                                      'dvc-ignore-file-extensions-in-dir)
     (define-key map "\M-I"                                    'dvc-ignore-file-extensions)
 
@@ -210,9 +210,9 @@ Pretty-print ELEM."
     ["Log (full tree)"                dvc-diff-log-tree       t]
     ["Log (single file)"              dvc-diff-log-single     t]
     "--"
-    ["Delete File"                    dvc-remove-files        t]
-    ["Delete File"                    dvc-remove-files        t]
-    ["Add File"                       dvc-add-files           t]
+    ["Delete File"                    dvc-fileinfo-remove-files t]
+    ["Revert File"                    dvc-fileinfo-revert-files t]
+    ["Add File"                       dvc-fileinfo-add-files    t]
     )
   "Used both in the global and the context menu of `dvc-diff-mode'.")
 
@@ -237,7 +237,7 @@ Pretty-print ELEM."
      ["Unmark all"  dvc-fileinfo-unmark-all t]
      )
     ("Ignore"
-     ["Ignore Files" dvc-ignore-files t]
+     ["Ignore Files" dvc-fileinfo-ignore-files t]
      ["Ignore File Extensions" dvc-ignore-file-extensions t]
      ["Edit Ignore File" dvc-edit-ignore-files t]
      )
@@ -748,8 +748,8 @@ Useful to clear diff buffers after a commit."
          (dvc-fileinfo-same-status marked-elems)
          (ding)
          (dvc-offer-choices (concat (dvc-fileinfo-current-file) " does not exist in working directory")
-                            '((dvc-revert-files "revert")
-                              (dvc-remove-files "remove")
+                            '((dvc-fileinfo-revert-files "revert")
+                              (dvc-fileinfo-remove-files "remove")
                               (dvc-fileinfo-rename "rename"))))))
 
       (modified
@@ -775,9 +775,9 @@ Useful to clear diff buffers after a commit."
         (t
          (dvc-fileinfo-same-status marked-elems)
          (dvc-offer-choices nil
-                            '((dvc-add-files "add")
-                              (dvc-ignore-files "ignore")
-                              (dvc-remove-files "remove")
+                            '((dvc-fileinfo-add-files "add")
+                              (dvc-fileinfo-ignore-files "ignore")
+                              (dvc-fileinfo-remove-files "remove")
                               (dvc-fileinfo-rename "rename"))))))
       )))
 
