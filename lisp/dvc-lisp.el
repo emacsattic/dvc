@@ -37,6 +37,8 @@
 ;;
 ;; Overhauled in Aug 2007 by Michael Olson
 
+(autoload 'edebug-unwrap "edebug")
+
 (defvar dvc-gensym-counter 0)
 
 (defun dvc-gensym (&optional prefix)
@@ -67,7 +69,7 @@ symbol.
 This is used by `dvc-capturing-lambda'."
   (cond ((atom l) l)
         ((eq (car l) 'capture)
-         (let ((sym (cadr l)))
+         (let ((sym (edebug-unwrap (cadr l))))
            (unless (symbolp sym)
              (error "Expected a symbol in capture statement: %S" sym))
            (let ((g (car (rassq sym captured-values))))
@@ -135,7 +137,8 @@ An example for the well-read Lisp fan:
       (funcall l 'dummy-arg)))
 
   => (dynamic-x lexical-y dummy-arg)"
-  (declare (indent 1) (debug (sexp body)))
+  (declare (indent 1)
+	   (debug (sexp body)))
   (let* ((captured-values nil)
          (body (dvc-capturing-lambda-helper body)))
     `(list 'lambda ',args
