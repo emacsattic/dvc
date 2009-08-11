@@ -149,6 +149,9 @@ Otherwise `dvc-gnus-apply-patch' is called."
                                   nil t)
                (setq patch-type 'tla))
               ((progn (goto-char (point-min))
+                      (re-search-forward "^# Bazaar merge directive format" nil t))
+               (setq patch-type 'bzr-merge-bundle))
+              ((progn (goto-char (point-min))
                       (or
                        (re-search-forward "^changeset: +[0-9]+:[0-9a-f]+$" nil t)
                        (re-search-forward "^Merge of all patches applied from revision" nil t)))
@@ -158,9 +161,6 @@ Otherwise `dvc-gnus-apply-patch' is called."
                           (re-search-forward "^Committed revision [0-9]+ to \\(.+\\)$" nil t)))
                (setq patch-type 'bzr-merge-or-pull
                      bzr-merge-or-pull-url (match-string-no-properties 1)))
-              ((progn (goto-char (point-min))
-                      (re-search-forward "^# Bazaar merge directive format" nil t))
-               (setq patch-type 'bzr-merge-bundle))
               ((progn (goto-char (point-min))
                       (and (re-search-forward "^---$" nil t)
                            (re-search-forward "^diff --git" nil t)))

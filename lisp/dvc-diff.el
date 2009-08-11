@@ -58,6 +58,8 @@ TYPE must be found in `dvc-buffer-type-alist'.
 
 PATH must match mode in `dvc-buffer-type-alist' for TYPE.
 
+DVC is the backend in effect.
+
 TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
       (dvc-get-buffer-create dvc type path)
@@ -292,7 +294,7 @@ Commands:
   (setq dvc-fileinfo-ewoc (ewoc-create 'dvc-fileinfo-printer))
   (setq dvc-buffer-marked-file-list nil)
   (dvc-install-buffer-menu)
-  (toggle-read-only 1)
+  (setq buffer-read-only t)
   (set-buffer-modified-p nil))
 
 (dvc-add-uniquify-directory-mode 'dvc-diff-mode)
@@ -339,7 +341,7 @@ file; otherwise visit the modified file."
       (diff-goto-source other-file))))
 
 (defun dvc-diff-scroll-or-diff (up-or-down)
-  "If file-diff buffer is visible, scroll. Otherwise, show it."
+  "If file-diff buffer is visible, call UP-OR-DOWN.  Otherwise, show it."
   (let ((file (dvc-get-file-info-at-point)))
     (unless file
       (error "No file at point."))
@@ -358,7 +360,7 @@ file; otherwise visit the modified file."
 (defun dvc-diff-diff-or-list ()
   "Jump between list entry and corresponding diff hunk.
 When in the list, jump to the corresponding
-diff. When on a diff, jump to the corresponding entry in the list."
+diff.  When on a diff, jump to the corresponding entry in the list."
   (interactive)
   (if (dvc-diff-in-ewoc-p)
       (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
@@ -405,9 +407,9 @@ If on a message, mark the group to the next message."
          (dvc-fileinfo-next))))))
 
 (defun dvc-diff-mark-group (&optional unmark)
-  "Mark a group of files.
+  "Mark (or UNMARK) a group of files.
 
-Must be called with the cursor on a 'message ewoc entry. Marks all
+Must be called with the cursor on a 'message ewoc entry.  Marks all
 files until the end of the ewoc, or the next ewoc entry which is not
 a 'file."
   (if (not (dvc-diff-in-ewoc-p))
@@ -446,7 +448,7 @@ a 'file."
 
 (defun dvc-diff-unmark-file (&optional up)
   "Unmark the file under point.
-If on a message, unmark the group to the next message. If
+If on a message, unmark the group to the next message.  If
 optional UP, move to previous file first; otherwise move to next
 file after."
   (interactive)
@@ -534,7 +536,7 @@ file after."
           (ediff-jump-to-difference hunk))))))
 
 (defun dvc-diff-log-single (&optional last-n)
-  "Show log for current file, LAST-N entries (default
+  "Show log for current file, LAST-N entries. (default
 `dvc-log-last-n'; all if nil). LAST-N may be specified
 interactively."
   (interactive (list (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
@@ -642,7 +644,7 @@ CMD, if non-nil, is prepended to dvc-header."
           (with-current-buffer changes-buffer
             (ewoc-set-hf dvc-fileinfo-ewoc dvc-header footer)
             (if root (cd root)))))))
-  (toggle-read-only 1)
+  (setq buffer-read-only t)
   (if (progn (goto-char (point-min))
              (re-search-forward "^---" nil t))
       (when (or global-font-lock-mode font-lock-mode)
@@ -803,7 +805,7 @@ Useful to clear diff buffers after a commit."
                     1)))))
       (with-current-buffer pristine-buffer
         (set-buffer-modified-p nil)
-        (toggle-read-only 1)
+        (setq buffer-read-only t)
         (let ((buffer-file-name file))
           (set-auto-mode t)))
       (dvc-ediff-buffers pristine-buffer file-buffer))))
@@ -822,10 +824,10 @@ workspace version)."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
          (modified (or modified `(,dvc (local-tree ,file))))
-         (diff-buffer (dvc-get-buffer-create
-                       dvc
-                       'file-diff
-                       (dvc-uniquify-file-name file)))
+         (diff-buffer (dvc-prepare-changes-buffer
+                       base
+                       modified
+                       'file-diff file 'bzr))
          (base-buffer
           (dvc-revision-get-file-in-buffer file base))
          (modified-buffer
@@ -857,9 +859,8 @@ workspace version)."
     (delete-file base-file)
     (delete-file modified-file)
     (message "")
-    (toggle-read-only 1)
     (goto-char (point-min))
-    (diff-mode)))
+    (setq buffer-read-only t)))
 
 (defun dvc-ediff-startup-hook ()
   "Passed as a startup hook for ediff.

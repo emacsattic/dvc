@@ -152,6 +152,7 @@ The new function is named FUNCTION-by-mouse; and takes one argument,
 a mouse click event.
 Thew new function moves the point to the place where mouse is clicked
 then invoke FUNCTION."
+  (declare (debug (&define name :name -by-mouse)))
   `(defun ,(intern (concat (symbol-name function) "-by-mouse")) (event)
      ,(concat "`" (symbol-name function) "'" " with mouse interface.")
      (interactive "e")
@@ -391,7 +392,7 @@ Local to each buffer, not killed by kill-all-local-variables.")
   "Execute a body of code with keywords bound.
 Each keyword listed in KEYWORDS is bound to its value from PLIST, then
 BODY is evaluated."
-  (declare (indent 1) (debug (sexp sexp body)))
+  (declare (indent 1) (debug (sexp form body)))
   (flet ((keyword-to-symbol (keyword)
                             (intern (substring (symbol-name keyword) 1))))
     (let ((keyword (make-symbol "keyword"))
@@ -934,6 +935,7 @@ Else return t."
   "Define a FUNCTION for switching to the buffer associated with some event.
 ACCESSOR is a function for retrieving the appropriate buffer from a
 `dvc-event' structure."
+  (declare (debug (&define name symbolp)))
   `(defun ,function ()
      "In a log buffer, pops to the output or error buffer corresponding to the
 process at point"

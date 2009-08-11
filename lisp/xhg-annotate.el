@@ -81,7 +81,7 @@ Special commands:
 (defvar xhg-annotate-current-buffer nil)
 
 (defun xhg-annotate-get-rev-num-on-line ()
-  "Extract revision number on line in xhg-annotate buffer."
+  "Extract revision number on line in `xhg-annotate' buffer."
   (let ((cur-line (buffer-substring (point-at-bol) (point-at-eol)))
         (rev-num))
     (when (string-match "^ *[0-9]*" cur-line)
@@ -90,8 +90,7 @@ Special commands:
 
 ;;;###autoload
 (defun xhg-annotate-show-rev-number-log ()
-  "Show xhg-log output corresponding to line at point in
-xhg-annotate buffer."
+  "Show `xhg-log' corresponding to current line in `xhg-annotate' buffer."
   (interactive)
   (let ((rev-number (xhg-annotate-get-rev-num-on-line))
         (fname xhg-annotate-current-buffer))
