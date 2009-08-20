@@ -41,8 +41,8 @@
 
 (defvar xgit-log-edit-font-lock-keywords
   `(("^Signed-off-by: " . 'dvc-header)
-    ("^#.*$" . 'dvc-comment)
-  "Keywords in xgit-log-edit mode."))
+    ("^#.*$" . 'dvc-comment))
+  "Keywords in xgit-log-edit mode.")
 
 (defun xgit-log-edit-insert-sob ()
   (interactive)
