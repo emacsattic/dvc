@@ -696,7 +696,8 @@ FILE is filename in the repository at DIR."
   (let* ((buffer (dvc-get-buffer-create 'xgit 'annotate))
          (repo (xgit-git-dir-option dir))
          (cmd "blame")
-         (fname (file-relative-name file (xgit-tree-root dir)))
+         (fname (file-relative-name (dvc-uniquify-file-name file)
+                                    (xgit-tree-root dir)))
          (args (list repo cmd "--" fname)))
     (dvc-switch-to-buffer-maybe buffer)
     (dvc-run-dvc-sync 'xgit args
@@ -874,7 +875,9 @@ LAST-REVISION looks like
              file last-revision)
   (let* ((xgit-rev (int-to-string (1- (nth 1 last-revision))))
          (default-directory (car last-revision))
-         (fname (file-relative-name file (xgit-tree-root))))
+         (fname (file-relative-name
+                 (dvc-uniquify-file-name file)
+                 (xgit-tree-root))))
     (insert (dvc-run-dvc-sync
              'xgit (list "cat-file" "blob"
                          (format "HEAD~%s:%s" xgit-rev fname))
