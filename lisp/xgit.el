@@ -324,7 +324,7 @@ conflict, added, modified, renamed, copied, deleted, unknown."
 
 (defun xgit-status-verbose ()
   (interactive)
-  (xgit-status t))
+  (xgit-dvc-status t))
 
 (defun xgit-status-add-patch ()
   "Run `xgit-add-patch' on selected files."
