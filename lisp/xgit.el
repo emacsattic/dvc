@@ -660,7 +660,7 @@ files changed in the revision is passed to
                                 (insert (format "git %s\n\n"
                                                 (mapconcat #'identity
                                                            args " ")))
-                                (diff-mode)
+                                (dvc-diff-mode)
                                 (toggle-read-only 1)))))))))
 
 (defvar xgit-describe-regexp "^\\(.*?\\)-\\([0-9]+\\)-g[[:xdigit:]]\\{7\\}")
