@@ -66,15 +66,40 @@
   (xgit-dvc-add-files file))
 
 ;;;###autoload
+(defun xgit-add-patch (files)
+  ;; this is somehow a dirty hack. DVC should have it's own
+  ;; hunk-by-hunk staging feature, but waiting for that, 'git add -p'
+  ;; is sooo nice, let's use it through term.el
+  "Add FILES to the current git project using 'git add --patch ...'.
+If FILES is nil, just run 'git add --patch'"
+  (interactive (list (list (expand-file-name (dvc-confirm-read-file-name "Add file or directory: ")))))
+  (require 'term)
+  (let* ((root (dvc-tree-root (car files)))
+         (default-directory root)
+         (buffer (dvc-get-buffer-create 'xgit 'add-patch))
+         (args (mapcar (lambda (f)
+                         (file-relative-name (dvc-uniquify-file-name
+                                              f) root))
+                       files)))
+    (switch-to-buffer
+     (eval `(term-ansi-make-term ,(buffer-name buffer)
+                                 ,xgit-executable nil "add" "-p" "--"
+                                 ,@args)))))
+
+;;;###autoload
 (defun xgit-dvc-add-files (&rest files)
-  "Run git add."
+  "Run git add.
+
+When called with a prefix argument, use `xgit-add-patch'."
   (dvc-trace "xgit-add-files: %s" files)
-  (let ((default-directory (xgit-tree-root)))
-    (dvc-run-dvc-sync 'xgit (append '("add")
-                                    (mapcar #'file-relative-name files))
-                      :finished (dvc-capturing-lambda
-                                    (output error status arguments)
-                                  (message "git add finished")))))
+  (if current-prefix-arg
+      (xgit-add-patch files)
+    (let ((default-directory (xgit-tree-root)))
+      (dvc-run-dvc-sync 'xgit (append '("add")
+                                      (mapcar #'file-relative-name files))
+                        :finished (dvc-capturing-lambda
+                                      (output error status arguments)
+                                    (message "git add finished"))))))
 
 ;;;###autoload
 (defun xgit-remove (file &optional force)
