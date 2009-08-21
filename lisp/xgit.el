@@ -86,6 +86,11 @@ If FILES is nil, just run 'git add --patch'"
                                  ,xgit-executable nil "add" "-p" "--"
                                  ,@args)))))
 
+(defun xgit-add-patch-all ()
+  "Call `xgit-add-patch' without argument, to run plain 'git add -p'"
+  (interactive)
+  (xgit-add-patch nil))
+
 ;;;###autoload
 (defun xgit-dvc-add-files (&rest files)
   "Run git add.
@@ -321,6 +326,11 @@ conflict, added, modified, renamed, copied, deleted, unknown."
   (interactive)
   (xgit-status t))
 
+(defun xgit-status-add-patch ()
+  "Run `xgit-add-patch' on selected files."
+  (interactive)
+  (xgit-add-patch (dvc-current-file-list)))
+
 (defun xgit-status-add-u ()
   "Run \"git add -u\" and refresh current buffer."
   (interactive)
@@ -348,7 +358,13 @@ This reset the index to HEAD, but doesn't touch files."
 (defvar xgit-diff-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?A] 'xgit-status-add-u)
-    (define-key map [?R] 'xgit-status-reset-mixed)
+    (define-key map [?G ?r] 'xgit-status-reset-mixed)
+    (define-key map [?G ?p] 'xgit-status-add-patch)
+    (define-key map [?G ?P] 'xgit-add-patch-all)
+    ;; 's'taged.
+    (define-key map [?G ?s] 'xgit-diff-cached)
+    ;; 'u'nstaged.
+    (define-key map [?G ?u] 'xgit-diff-index)
     map))
 
 (easy-menu-define xgit-diff-mode-menu xgit-diff-mode-map
