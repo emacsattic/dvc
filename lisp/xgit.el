@@ -630,13 +630,14 @@ If FILES is nil and `xgit-show-filter-filename-func' is non-nil,
 files changed in the revision is passed to
 `xgit-show-filter-filename-func' and result is used."
   (interactive (list default-directory
-                     (read-string "Revision: "
+                     (read-string "Revision (default: HEAD): "
                                   (let ((candidate (thing-at-point
                                                     'word)))
                                     (when (and candidate
                                                (string-match "[0-9a-f]"
                                                              candidate))
-                                      candidate)))))
+                                      candidate))
+                                  nil "HEAD")))
   (if (and (null files) xgit-show-filter-filename-func)
       (setq files (funcall xgit-show-filter-filename-func
                            (xgit-changed-files dir rev))))
