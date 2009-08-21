@@ -633,8 +633,9 @@ files changed in the revision is passed to
                      (read-string "Revision: "
                                   (let ((candidate (thing-at-point
                                                     'word)))
-                                    (when (string-match "[0-9a-f]"
-                                                        candidate)
+                                    (when (and candidate
+                                               (string-match "[0-9a-f]"
+                                                             candidate))
                                       candidate)))))
   (if (and (null files) xgit-show-filter-filename-func)
       (setq files (funcall xgit-show-filter-filename-func
