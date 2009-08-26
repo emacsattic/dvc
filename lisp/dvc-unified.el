@@ -440,17 +440,18 @@ reused. `default-directory' must be the tree root."
     (case (length log-edit-buffers)
       (0 ;; Need to create a new log-edit buffer. In the log-edit
        ;; buffer, dvc-partner-buffer must be set to a buffer with a
-       ;; mode that dvc-current-file-list supports. That is
-       ;; currently dvc-diff-mode or dired-mode; we don't have a way
-       ;; to find dired-mode buffers, so we ignore those.
-       (let ((diff-status-buffers
-              (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
-                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)
-                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'conflicts default-directory)))
+       ;; mode that dvc-current-file-list supports.
+       ;; dvc-buffer-current-active-dvc could be nil here, so we have
+       ;; to use dvc-current-active-dvc, and let it prompt.
+       (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+              (diff-status-buffers
+               (append (dvc-get-matching-buffers dvc-temp-current-active-dvc 'diff default-directory)
+                       (dvc-get-matching-buffers dvc-temp-current-active-dvc 'status default-directory)
+                       (dvc-get-matching-buffers dvc-temp-current-active-dvc 'conflicts default-directory)))
              (activated-from-bookmark-buffer (eq major-mode 'dvc-bookmarks-mode)))
          (case (length diff-status-buffers)
            (0 (if (not activated-from-bookmark-buffer)
-                  (error "Must have a DVC diff or status buffer before calling dvc-log-edit")
+                  (error "Must have a DVC diff, status, or conflict buffer before calling dvc-log-edit")
                 (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil)))
            (1
             (set-buffer (nth 1 (car diff-status-buffers)))
@@ -464,9 +465,9 @@ reused. `default-directory' must be the tree root."
 
               ;; give up. IMPROVEME: could prompt
               (if dvc-buffer-current-active-dvc
-                  (error "More than one dvc-diff or dvc-status buffer for %s in %s; can't tell which to use. Please close some."
+                  (error "More than one diff, status, or conflict buffer for %s in %s; can't tell which to use. Please close some."
                          dvc-buffer-current-active-dvc default-directory)
-                (error "More than one dvc-diff or dvc-status buffer for %s; can't tell which to use. Please close some."
+                (error "More than one diff, status, or conflict buffer for %s; can't tell which to use. Please close some."
                        default-directory)))))))
 
       (1 ;; Just reuse the buffer. In this call, we can't use
