@@ -213,7 +213,7 @@ must be a workspace."
                   (xmtn-basic-io-parse-line
                       (if (string= symbol "value")
                           (add-to-list 'result (cadar value)))))
-              nil)))))
+              )))))
     result))
 
 (defun xmtn--get-parent-revision-hash-id (root hash-id &optional multi-parent-use-local-branch)
