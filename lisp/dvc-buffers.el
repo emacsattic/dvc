@@ -51,6 +51,7 @@ Used to keep track of all the dvc related buffers.")
     (alog       "log*"      path)
     ;; alog for "absolute log", i.e., assume path supplied is already
     ;; the root path
+    (add-patch "add-patch*" path)
     (annotate  "annotate*"  path)
     (archives  "archives*"  single)
     (bookmark  "bookmarks*" single)
