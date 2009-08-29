@@ -508,6 +508,9 @@ header."
           (resolved_internal
            (insert "resolved_internal \n"))
 
+          (resolved_keep
+           (insert "resolved_keep_left \n"))
+
           (resolved_user
            (xmtn-basic-io-write-str "resolved_user_left" (cadr (xmtn-conflicts-conflict-left_resolution conflict))))
           ))))
@@ -736,7 +739,8 @@ header."
       (error "another conflict resolution is already in progress."))
 
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
-         (conflict (ewoc-data elem)))
+         (conflict (ewoc-data elem))
+         (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
     (if (not (xmtn-conflicts-conflict-left_file_id conflict))
         (error "can't ediff directories from here"))
@@ -779,6 +783,7 @@ header."
 
 (defun xmtn-conflicts-resolve-keep_left ()
   "Resolve the current conflict by keep_left."
+  (interactive)
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
          (conflict (ewoc-data elem)))
     (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_keep))
@@ -786,6 +791,7 @@ header."
 
 (defun xmtn-conflicts-resolve-keep_right ()
   "Resolve the current conflict by keep_right."
+  (interactive)
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
          (conflict (ewoc-data elem)))
     (setf (xmtn-conflicts-conflict-right_resolution conflict) (list 'resolved_keep))
@@ -793,6 +799,7 @@ header."
 
 (defun xmtn-conflicts-resolve-drop_left ()
   "Resolve the current conflict by drop_left."
+  (interactive)
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
          (conflict (ewoc-data elem)))
     (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_drop))
@@ -800,18 +807,20 @@ header."
 
 (defun xmtn-conflicts-resolve-drop_right ()
   "Resolve the current conflict by drop_right."
+  (interactive)
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
          (conflict (ewoc-data elem)))
     (setf (xmtn-conflicts-conflict-right_resolution conflict) (list 'resolved_drop))
     (ewoc-invalidate xmtn-conflicts-ewoc elem)))
 
-(defun xmtn-conflicts-resolve-file (side)
+(defun xmtn-conflicts-resolve-user (side)
   "Resolve the current conflict by user_SIDE."
+  (interactive)
   ;; Right is the target workspace in a propagate, and also the current
   ;; workspace in a merge. So default to right_name.
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
          (conflict (ewoc-data elem))
-         (result-file (read-file-name "resolution file: " "_MTN/resolutions/result/" nil t
+         (result-file (read-file-name "resolution file: " "./" nil t
                                       (xmtn-conflicts-conflict-right_name conflict))))
     (ecase side
       ('left
@@ -823,6 +832,7 @@ header."
 
 (defun xmtn-conflicts-resolve-rename (side)
   "Resolve the current conflict by rename_SIDE."
+  (interactive)
   ;; Right is the target workspace in a propagate, and also the current
   ;; workspace in a merge. So default to right_name.
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
@@ -839,79 +849,96 @@ header."
         )
       (ewoc-invalidate xmtn-conflicts-ewoc elem)))
 
-(defun xmtn-conflicts-resolve-filep ()
-  "Non-nil if current conflict is single file and can be resolved
-by user file."
-  (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
-         (type (xmtn-conflicts-conflict-conflict_type conflict)))
-
-    (and (= type 'content)
-         (not (xmtn-conflicts-conflict-left_resolution conflict)))))
-
 (defun xmtn-conflicts-resolve-user_leftp ()
-  "Non-nil if current conflict is two file, has no left
-resolution, and can be resolved by user_left."
+  "Non-nil if user_left resolution is appropriate for current conflict."
   (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
          (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
-    (and (= type 'duplicate_name)
-         ;; if no file_id, it's a directory
-         (xmtn-conflicts-conflict-left_file_id conflict)
-         (not (xmtn-conflicts-conflict-left_resolution conflict)))))
+    (and (not (xmtn-conflicts-conflict-left_resolution conflict))
+         (or (equal type 'content)
+             (and (equal type 'duplicate_name)
+                  ;; if no file_id, it's a directory
+                  (xmtn-conflicts-conflict-left_file_id conflict))) )))
 
 (defun xmtn-conflicts-resolve-user_rightp ()
-  "Non-nil if current conflict is two file, has a left resolution
-but no right resolution, and can be resolved by user_right."
+  "Non-nil if user_right resolution is appropriate for current conflict."
   (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
          (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
-    (and (= type 'duplicate_name)
+    ;; duplicate_name is the only conflict type that needs a right resolution
+    (and (xmtn-conflicts-conflict-left_resolution conflict)
+         (not (xmtn-conflicts-conflict-right_resolution conflict))
+         (equal type 'duplicate_name)
          ;; if no file_id, it's a directory
-         (xmtn-conflicts-conflict-left_file_id conflict)
-         (xmtn-conflicts-conflict-left_resolution conflict)
-         (not (xmtn-conflicts-conflict-right_resolution conflict)))))
+         (xmtn-conflicts-conflict-right_file_id conflict)
+         ;; user_right doesn't change name, so left resolution must change name or drop
+         (let ((left-res (car (xmtn-conflicts-conflict-left_resolution conflict))))
+           (member left-res '(resolved_drop resolved_rename))))))
+
+(defun xmtn-conflicts-resolve-keep_leftp ()
+  "Non-nil if keep_left resolution is appropriate for current conflict."
+  (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
+         (type (xmtn-conflicts-conflict-conflict_type conflict)))
+
+    (and (not (xmtn-conflicts-conflict-left_resolution conflict))
+         (equal type 'duplicate_name))))
+
+(defun xmtn-conflicts-resolve-keep_rightp ()
+  "Non-nil if keep_right resolution is appropriate for current conflict."
+  (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
+         (type (xmtn-conflicts-conflict-conflict_type conflict)))
+
+    ;; duplicate_name is the only conflict type that needs a right resolution
+    (and (xmtn-conflicts-conflict-left_resolution conflict)
+         (not (xmtn-conflicts-conflict-right_resolution conflict))
+         (equal type 'duplicate_name)
+         (let ((left-res (car (xmtn-conflicts-conflict-left_resolution conflict))))
+           (member left-res '(resolved_drop resolved_rename))))))
 
 (defun xmtn-conflicts-resolve-rename_leftp ()
-  "Non-nil if current conflict is two file, has no left
-resolution, and can be resolved by rename_left."
+  "Non-nil if rename_left resolution is appropriate for current conflict."
   (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
          (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
-    (and (member type '(duplicate_name orphaned_node))
-         (not (xmtn-conflicts-conflict-left_resolution conflict)))))
+    (and (not (xmtn-conflicts-conflict-left_resolution conflict))
+         (member type '(duplicate_name orphaned_node)))))
 
 (defun xmtn-conflicts-resolve-rename_rightp ()
-  "Non-nil if current conflict is two file, has a left resolution
-but no right resolution, and can be resolved by rename_right."
+  "Non-nil if rename_right resolution is appropriate for current conflict."
   (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
          (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
-    (and (member type '(duplicate_name orphaned_node))
-         (xmtn-conflicts-conflict-left_resolution conflict)
-         (not (xmtn-conflicts-conflict-right_resolution conflict)))))
+    ;; duplicate_name is the only conflict type that needs a right resolution
+    (and (xmtn-conflicts-conflict-left_resolution conflict)
+         (not (xmtn-conflicts-conflict-right_resolution conflict))
+         (equal type 'duplicate_name))))
 
 (defun xmtn-conflicts-resolve-drop_leftp ()
-  "Non-nil if current conflict is two file, has no left
-resolution, and can be resolved by drop_left."
+  "Non-nil if drop_left resolution is appropriate for the current conflict."
   (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
          (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
-    (and (member type '(duplicate_name orphaned_node))
-         ;; if no file_id, it's a directory; can't drop if not empty
-         (xmtn-conflicts-conflict-left_file_id conflict)
-         (not (xmtn-conflicts-conflict-left_resolution conflict)))))
+    (and (not (xmtn-conflicts-conflict-left_resolution conflict))
+         (or (and (equal type 'duplicate_name)
+                  ;; if no file_id, it's a directory; can't drop if not empty
+                  (xmtn-conflicts-conflict-left_file_id conflict))
+             (and (equal type 'orphaned_node)
+                  ;; if no left or right file_id, it's a directory; can't drop if not empty
+                  (or (xmtn-conflicts-conflict-left_file_id conflict)
+                      (xmtn-conflicts-conflict-right_file_id conflict)
+                      ))))))
 
 (defun xmtn-conflicts-resolve-drop_rightp ()
-  "Non-nil if current conflict is two file, has a left
-resolution but no right resolution, and can be resolved by drop_right."
+  "Non-nil if drop_right resolution is appropriate for the current conflict."
   (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
          (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
-    (and (member type '(duplicate_name orphaned_node))
+    ;; duplicate_name is the only conflict type that needs a right resolution
+    (and (xmtn-conflicts-conflict-left_resolution conflict)
+         (not (xmtn-conflicts-conflict-right_resolution conflict))
+         (equal type 'duplicate_name)
          ;; if no file_id, it's a directory; can't drop if not empty
-         (xmtn-conflicts-conflict-left_file_id conflict)
-         (xmtn-conflicts-conflict-left_resolution conflict)
-         (not (xmtn-conflicts-conflict-right_resolution conflict)))))
+         (xmtn-conflicts-conflict-right_file_id conflict))))
 
 (defvar xmtn-conflicts-resolve-map
   (let ((map (make-sparse-keymap "resolution")))
@@ -932,11 +959,11 @@ resolution but no right resolution, and can be resolved by drop_right."
     (define-key map [?7]  '(menu-item "7) file"
                                       (lambda ()
                                         (interactive)
-                                        (xmtn-conflicts-resolve-file 'right))
+                                        (xmtn-conflicts-resolve-user 'right))
                                       :visible (xmtn-conflicts-resolve-user_rightp)))
     (define-key map [?6]  '(menu-item "6) keep"
                                       xmtn-conflicts-resolve-keep_right
-                                      :visible (xmtn-conflicts-resolve-user_rightp)))
+                                      :visible (xmtn-conflicts-resolve-keep_rightp)))
     (define-key map [?5]  '(menu-item "5) ediff"
                                       (lambda ()
                                         (interactive)
@@ -946,7 +973,7 @@ resolution but no right resolution, and can be resolved by drop_right."
     (define-key map [?4]  '(menu-item "4) file"
                                       (lambda ()
                                         (interactive)
-                                        (xmtn-conflicts-resolve-file 'left))
+                                        (xmtn-conflicts-resolve-user 'left))
                                       :visible (xmtn-conflicts-resolve-user_leftp)))
     (define-key map [?3]  '(menu-item "3) drop"
                                       xmtn-conflicts-resolve-drop_left
@@ -958,7 +985,7 @@ resolution but no right resolution, and can be resolved by drop_right."
                                       :visible (xmtn-conflicts-resolve-rename_leftp)))
     (define-key map [?1]  '(menu-item "1) keep"
                                       xmtn-conflicts-resolve-keep_left
-                                      :visible (xmtn-conflicts-resolve-user_leftp)))
+                                      :visible (xmtn-conflicts-resolve-keep_leftp)))
     (define-key map [?0]  '(menu-item "0) ediff"
                                       (lambda ()
                                         (interactive)
@@ -1047,6 +1074,10 @@ non-nil, show log-edit buffer in other frame."
   ;; Arrange for `revert-buffer' to do the right thing
   (set (make-local-variable 'after-insert-file-functions) '(xmtn-conflicts-after-insert-file))
 
+  ;; don't do normal clean up stuff
+  (set (make-local-variable 'before-save-hook) nil)
+  (set (make-local-variable 'write-file-functions) nil)
+
   (dvc-install-buffer-menu)
   (setq buffer-read-only t)
   (buffer-disable-undo)
@@ -1084,20 +1115,21 @@ root where options file is stored."
   "List conflicts between LEFT-REV and RIGHT-REV
 revisions (monotone revision specs; if nil, defaults to heads of
 respective workspace branches) in LEFT-WORK and RIGHT-WORK
-workspaces (strings).  Allow specifying resolutions.  Stores
-conflict file in LEFT-WORK/_MTN."
-  (xmtn-conflicts-save-opts left-work right-work)
-  (dvc-run-dvc-async
-   'xmtn
-   (list "conflicts" "store" left-rev right-rev)
-   :finished (lambda (output error status arguments)
-               (xmtn-dvc-log-clean)
-               (xmtn-conflicts-review default-directory))
-
-   :error (lambda (output error status arguments)
-            (xmtn-dvc-log-clean)
-            (pop-to-buffer error))
-   ))
+workspaces (strings).  Allow specifying resolutions, propagating
+to right.  Stores conflict file in RIGHT-WORK/_MTN."
+  (let ((default-directory right-work))
+    (xmtn-conflicts-save-opts left-work right-work)
+    (dvc-run-dvc-async
+     'xmtn
+     (list "conflicts" "store" left-rev right-rev)
+     :finished (lambda (output error status arguments)
+                 (xmtn-dvc-log-clean)
+                 (xmtn-conflicts-review default-directory))
+     
+     :error (lambda (output error status arguments)
+              (xmtn-dvc-log-clean)
+              (pop-to-buffer error))
+     )))
 
 (defun xmtn-check-workspace-for-propagate (work)
   "Check that workspace WORK is ready for propagate.
@@ -1175,11 +1207,10 @@ workspace."
 
   (message "computing conflicts")
 
-  (let ((default-directory right-work))
-    (xmtn-conflicts-1 left-work
-                      (car (xmtn--heads left-work nil))
-                      right-work
-                      (car (xmtn--heads right-work nil)))))
+  (xmtn-conflicts-1 left-work
+                    (car (xmtn--heads left-work nil))
+                    right-work
+                    (car (xmtn--heads right-work nil))))
 
 ;;;###autoload
 (defun xmtn-conflicts-merge ()
