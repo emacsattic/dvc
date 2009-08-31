@@ -1,13 +1,13 @@
 ;;; dvc-defs.el --- Common definitions for DVC
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributors: Matthieu Moy, <Matthieu.Moy@imag.fr>
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -507,10 +507,10 @@ arch operation modifying the file."
 
 - always: always prompt.
 
-- unless-specified: If a directory is given as an argument, use
-  it; otherwise prompt. Some commands modify this to use the
-  current project tree without prompt; then a user arg forces a
-  prompt.
+- unless-specified: If a valid tree directory is given as an
+  argument, use it; otherwise prompt. Some commands modify this
+  to use the current project tree without prompt; then a user arg
+  forces a prompt.
 
 - sometimes: If a command is run inside a project tree, the tree
   root is used. Otherwise, prompt.

@@ -83,6 +83,10 @@
   "Count of resolved conflicts.")
 (make-variable-buffer-local 'xmtn-conflicts-resolved-count)
 
+(defvar xmtn-conflicts-resolved-internal-count nil
+  "Count of resolved-internal conflicts.")
+(make-variable-buffer-local 'xmtn-conflicts-resolved-internal-count)
+
 (defvar xmtn-conflicts-output-buffer nil
   "Buffer to write basic-io to, when saving a conflicts buffer.")
 (make-variable-buffer-local 'xmtn-conflicts-output-buffer)
@@ -115,7 +119,7 @@
   right_resolution)
 
 (defun xmtn-conflicts-printer (conflict)
-  "Print an ewoc element; CONFLICT must be of class xmtn-conflicts-root."
+  "Print an ewoc element; CONFLICT must be of type xmtn-conflicts-conflict."
   (ecase (xmtn-conflicts-conflict-conflict_type conflict)
     ('content
      (insert (dvc-face-add "content\n" 'dvc-keyword))
@@ -177,7 +181,7 @@
 (defvar xmtn-conflicts-ewoc nil
   "Buffer-local ewoc for displaying conflicts.
 All xmtn-conflicts functions operate on this ewoc.
-The elements must all be of class xmtn-conflicts.")
+The elements must all be of type xmtn-conflicts-conflict.")
 (make-variable-buffer-local 'xmtn-conflicts-ewoc)
 
 (defun xmtn-conflicts-parse-header ()
@@ -208,6 +212,7 @@ header."
       (setq xmtn-conflicts-right-root (concat "_MTN/resolutions/" xmtn-conflicts-right-branch))))
   (setq xmtn-conflicts-total-count 0)
   (setq xmtn-conflicts-resolved-count 0)
+  (setq xmtn-conflicts-resolved-internal-count 0)
   )
 
 (defun xmtn-conflicts-parse-content-conflict ()
@@ -238,16 +243,20 @@ header."
       ((empty eof) nil)
       (t
        (xmtn-basic-io-parse-line
-           (cond
-            ((string= "resolved_internal" symbol)
-             (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_internal)))
-            ((string= "resolved_user_left" symbol)
-             (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_left_user (cadar value))))
-            (t
-             (error "found %s" symbol))))))
+           (progn
+             (setq xmtn-conflicts-resolved-count (+ 1 xmtn-conflicts-resolved-count))
+             (cond
+              ((string= "resolved_internal" symbol)
+               (setq xmtn-conflicts-resolved-internal-count (+ 1 xmtn-conflicts-resolved-internal-count))
+               (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_internal)))
+
+              ((string= "resolved_user_left" symbol)
+               (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_left_user (cadar value))))
+
+              (t
+               (error "found %s" symbol)))))))
 
     (setq xmtn-conflicts-total-count (+ 1 xmtn-conflicts-total-count))
-    (if (xmtn-conflicts-conflict-left_resolution conflict) (setq xmtn-conflicts-resolved-count (+ 1 xmtn-conflicts-resolved-count)))
 
     (xmtn-basic-io-check-empty)
 
@@ -479,14 +488,14 @@ header."
     (xmtn-conflicts-read (point-min) text-end))
 
   (set-buffer-modified-p nil)
-  (point-max))
+  (point-max)
+  (xmtn-conflicts-next nil t))
 
 (defun xmtn-conflicts-write-header (ewoc-buffer)
   "Write EWOC-BUFFER header info in basic-io format to current buffer."
   (xmtn-basic-io-write-id "left" (with-current-buffer ewoc-buffer xmtn-conflicts-left-revision))
   (xmtn-basic-io-write-id "right" (with-current-buffer ewoc-buffer xmtn-conflicts-right-revision))
   (xmtn-basic-io-write-id "ancestor" (with-current-buffer ewoc-buffer xmtn-conflicts-ancestor-revision))
-  (setq xmtn-conflicts-resolved-count 0)
   )
 
 (defun xmtn-conflicts-write-content (conflict)
@@ -506,6 +515,7 @@ header."
         (setq xmtn-conflicts-resolved-count (+ 1 xmtn-conflicts-resolved-count))
         (ecase (car (xmtn-conflicts-conflict-left_resolution conflict))
           (resolved_internal
+           (setq xmtn-conflicts-resolved-internal-count (+ 1 xmtn-conflicts-resolved-internal-count))
            (insert "resolved_internal \n"))
 
           (resolved_keep
@@ -613,6 +623,8 @@ header."
 
 (defun xmtn-conflicts-write-conflicts (ewoc)
   "Write EWOC elements in basic-io format to xmtn-conflicts-output-buffer."
+  (setq xmtn-conflicts-resolved-count 0)
+  (setq xmtn-conflicts-resolved-internal-count 0)
   (ewoc-map
    (lambda (conflict)
      (with-current-buffer xmtn-conflicts-output-buffer
@@ -653,6 +665,33 @@ header."
                t
                nil
                nil))
+
+(defun xmtn-conflicts-update-counts ()
+  "Update resolved counts."
+  (setq xmtn-conflicts-resolved-count 0)
+  (setq xmtn-conflicts-resolved-internal-count 0)
+
+  (ewoc-map
+   (lambda (conflict)
+     (ecase (xmtn-conflicts-conflict-conflict_type conflict)
+       (content
+        (if (xmtn-conflicts-conflict-left_resolution conflict)
+            (progn
+              (setq xmtn-conflicts-resolved-count (+ 1 xmtn-conflicts-resolved-count))
+              (if (eq 'resolved_internal (car (xmtn-conflicts-conflict-left_resolution conflict)))
+                  (setq xmtn-conflicts-resolved-internal-count (+ 1 xmtn-conflicts-resolved-internal-count))))))
+
+       (duplicate_name
+        (if (and (xmtn-conflicts-conflict-left_resolution conflict)
+                 (xmtn-conflicts-conflict-right_resolution conflict))
+            (setq xmtn-conflicts-resolved-count (+ 1 xmtn-conflicts-resolved-count))))
+
+       (orphaned_node
+        (if (xmtn-conflicts-conflict-left_resolution conflict)
+            (setq xmtn-conflicts-resolved-count (+ 1 xmtn-conflicts-resolved-count))))
+
+       ))
+   xmtn-conflicts-ewoc))
 
 (dvc-make-ewoc-next xmtn-conflicts-next xmtn-conflicts-ewoc)
 (dvc-make-ewoc-prev xmtn-conflicts-prev xmtn-conflicts-ewoc)
@@ -1031,10 +1070,23 @@ non-nil, show log-edit buffer in other frame."
   (save-some-buffers t); log buffer
   (xmtn-dvc-merge))
 
+(defun xmtn-conflicts-ediff-resolution-ws ()
+  "Ediff current resolution file against workspace."
+  (interactive)
+  (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
+         (conflict (ewoc-data elem)))
+    (if (and (member (xmtn-conflicts-conflict-conflict_type conflict)
+                     '(content orphaned_node))
+             (xmtn-conflicts-conflict-left_resolution conflict))
+        (ediff (cadr (xmtn-conflicts-conflict-left_resolution conflict))
+               ;; propagate target is right
+               (xmtn-conflicts-conflict-right_name conflict)))))
+
 (defvar xmtn-conflicts-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [?C]  'xmtn-conflicts-clean)
+    (define-key map [?C]  (lambda () (interactive) (xmtn-conflicts-clean xmtn-conflicts-right-work)))
     (define-key map [?c]  'xmtn-conflicts-clear-resolution)
+    (define-key map [?e]  'xmtn-conflicts-ediff-resolution-ws)
     (define-key map [?n]  'xmtn-conflicts-next)
     (define-key map [?N]  'xmtn-conflicts-next-unresolved)
     (define-key map [?p]  'xmtn-conflicts-prev)
@@ -1042,12 +1094,12 @@ non-nil, show log-edit buffer in other frame."
     (define-key map [?q]  'dvc-buffer-quit)
     (define-key map [?r]  xmtn-conflicts-resolve-map)
     (define-key map [?t]  'xmtn-conflicts-add-log-entry)
-    (define-key map "\M-d"  xmtn-conflicts-resolve-map)
+    (define-key map "\M-d" xmtn-conflicts-resolve-map)
     (define-key map "MM" 'xmtn-conflicts-do-merge)
     (define-key map "MP" 'xmtn-conflicts-do-propagate)
     (define-key map "MU" 'dvc-update)
     map)
-  "Keymap used in `xmtn-conflict-mode'.")
+  "Keymap used in `xmtn-conflicts-mode'.")
 
 (easy-menu-define xmtn-conflicts-mode-menu xmtn-conflicts-mode-map
   "`xmtn-conflicts' menu"
@@ -1066,8 +1118,6 @@ non-nil, show log-edit buffer in other frame."
   (setq dvc-buffer-current-active-dvc 'xmtn)
   (setq buffer-read-only nil)
   (setq xmtn-conflicts-ewoc (ewoc-create 'xmtn-conflicts-printer))
-  (use-local-map xmtn-conflicts-mode-map)
-  (easy-menu-add xmtn-conflicts-mode-menu)
   (setq dvc-buffer-refresh-function nil)
   (add-to-list 'buffer-file-format 'xmtn-conflicts-format)
 
@@ -1109,7 +1159,8 @@ root where options file is stored."
   (let ((opts-file (concat default-directory xmtn-conflicts-opts-file)))
     (if (file-exists-p opts-file)
         (load opts-file)
-      (error "%s options file not found" opts-file))))
+      ;; When reviewing conflicts after a merge is complete, the options file is not present
+      (message "%s options file not found" opts-file))))
 
 (defun xmtn-conflicts-1 (left-work left-rev right-work right-rev)
   "List conflicts between LEFT-REV and RIGHT-REV
@@ -1125,7 +1176,7 @@ to right.  Stores conflict file in RIGHT-WORK/_MTN."
      :finished (lambda (output error status arguments)
                  (xmtn-dvc-log-clean)
                  (xmtn-conflicts-review default-directory))
-     
+
      :error (lambda (output error status arguments)
               (xmtn-dvc-log-clean)
               (pop-to-buffer error))
@@ -1133,8 +1184,7 @@ to right.  Stores conflict file in RIGHT-WORK/_MTN."
 
 (defun xmtn-check-workspace-for-propagate (work)
   "Check that workspace WORK is ready for propagate.
-It must be merged, and should be at the head revision, and have no local changes.
-Prompt if the last two conditions are not satisfied."
+It must be merged, and should be at the head revision, and have no local changes."
   (let* ((default-directory work)
          (heads (xmtn--heads default-directory nil))
          (base (xmtn--get-base-revision-hash-id-or-null default-directory)))
@@ -1232,12 +1282,10 @@ workspace."
         (error "conflicts file not found"))
 
     (let ((conflicts-buffer (dvc-get-buffer-create 'xmtn 'conflicts default-directory)))
-      (pop-to-buffer conflicts-buffer)
+      (dvc-switch-to-buffer-maybe conflicts-buffer)
       (setq buffer-read-only nil)
       (xmtn-conflicts-load-opts)
       (set (make-local-variable 'after-insert-file-functions) '(xmtn-conflicts-after-insert-file))
-
-      ;; this calls xmtn-conflicts-after-insert-file via after-insert-file-functions hook
       (insert-file-contents "_MTN/conflicts" t nil nil t))))
 
 ;;;###autoload

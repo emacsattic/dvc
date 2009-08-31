@@ -78,6 +78,7 @@
 
 ;;; Code:
 
+(require 'dired-x)
 (require 'dvc-register)
 (require 'dvc-core)
 (require 'dvc-defs)
@@ -285,7 +286,8 @@ If DONT-SWITCH is non-nil, just show the diff buffer, don't select it."
   "Display the brief log for PATH (a file-name; default current
 buffer file name; nil means entire tree), LAST-N entries (default
 `dvc-log-last-n'; all if nil). LAST-N may be specified
-interactively. Use `dvc-changelog' for the full log."
+interactively by giving an empty prefix arg. Use `dvc-changelog'
+for the full log."
   (interactive (list (buffer-file-name)
                      (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
   (let ((default-directory
