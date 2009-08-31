@@ -280,10 +280,7 @@ arg; root. Result is of the form:
   (interactive)
   (let ((dvc-temp-current-active-dvc 'xmtn))
     (if (interactive-p)
-        (if path
-            (let ((default-directory path))
-              (call-interactively 'dvc-log))
-          (call-interactively 'dvc-log))
+        (call-interactively 'dvc-log)
       (funcall 'dvc-log path last-n))))
 
 ;;;###autoload

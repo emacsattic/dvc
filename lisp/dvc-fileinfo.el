@@ -620,12 +620,22 @@ if there is no prev."
 to run the backend again. Does nothing for legacy fileinfos."
   (if (= 0 (length (dvc-fileinfo-marked-files)))
       (if dvc-buffer-marked-file-list
-          ;; legacy fileinfo
+          ;; marked legacy fileinfos
           nil
+
         ;; no marked files
         (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
-          (setf (dvc-fileinfo-file-status fileinfo) status)
+          (etypecase fileinfo
+            (dvc-fileinfo-message
+             nil)
+
+            (dvc-fileinfo-file ; also matches dvc-fileinfo-dir
+             (setf (dvc-fileinfo-file-status fileinfo) status))
+
+            (dvc-fileinfo-legacy
+             nil))
           (ewoc-invalidate dvc-fileinfo-ewoc (ewoc-locate dvc-fileinfo-ewoc))))
+
     ;; marked files
     (ewoc-map (lambda (fileinfo)
                 (etypecase fileinfo
