@@ -424,8 +424,14 @@ from the merge."
     (xmtn--setup-revlist
      root
      'xmtn--revlist--missing-get-info
-     ;; Passing nil as first-line-only-p, last-n is arbitrary here.
-     nil nil))
+     ;; Passing nil as first-line-only-p is arbitrary here.
+     ;;
+     ;; When the missing revs are due to a propagate, there can be a
+     ;; lot of them, but we only really need to see the revs since the
+     ;; propagate. So dvc-log-last-n is appropriate. We use
+     ;; dvc-log-last-n, not dvc-revlist-last-n, because -log is user
+     ;; customizable.
+     nil dvc-log-last-n))
   nil)
 
 ;;;###autoload
@@ -593,7 +599,7 @@ To be invoked from an xmtn revlist buffer."
   (let* ((root (dvc-tree-root))
          (entry (dvc-revlist-current-patch-struct))
          (target-hash-id (xmtn--revlist-entry-revision-hash-id entry)))
-    (xmtn--update-after-confirmation root target-hash-id)))
+    (xmtn--update root target-hash-id)))
 
 ;; Being able to conveniently disapprove whole batches of revisions
 ;; is going to be a lot of fun.

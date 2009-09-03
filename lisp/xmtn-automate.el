@@ -332,6 +332,9 @@ Then execute BODY."
   nil)
 
 (defun xmtn-automate-simple-command-output-string (root command)
+  "Send COMMAND (a list of strings, or cons of lists of strings)
+to current session. If car COMMAND is a list, car COMMAND is
+options, cdr is command. Return result as a string."
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
       (xmtn-automate-command-check-for-and-report-error handle)

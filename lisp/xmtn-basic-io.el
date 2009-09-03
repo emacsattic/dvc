@@ -211,19 +211,19 @@ List is of form ((category value) ...)."
              (value (cdr line)))
          ,body))))
 
-(defmacro xmtn-basic-io-optional-line (expected-key body-present body-absent)
+(defmacro xmtn-basic-io-optional-line (expected-key body-present)
   "Read next basic-io line at point. If its key is
-EXPECTED-KEY (a string), execute BODY-PRESENT with `value' bound to list
-containing parsed rest of line. List is of form ((category value)
-...). Else execute BODY-ABSENT, with `value' bound to nil."
+EXPECTED-KEY (a string), execute BODY-PRESENT with `value' bound
+to list containing parsed rest of line. List is of
+form ((category value) ...). Else reset to parse the same line
+again."
   (declare (indent 1) (debug (sexp body)))
   `(let ((line (xmtn-basic-io--next-parsed-line)))
      (if (and (not (member line '(empty eof)))
               (string= (car line) ,expected-key))
          (let ((value (cdr line)))
            ,body-present)
-       (let ((value nil))
-         ,body-absent)
+       (beginning-of-line 0)
        )))
 
 (defmacro xmtn-basic-io-check-line (expected-key body)

@@ -1,6 +1,7 @@
 ;;; xmtn-base.el --- Basic definitions for accessing monotone
 
-;; Copyright (C) 2006, 2007 Christian M. Ohler
+;; Copyright (C) 2009 Stephen Leake
+;; Copyright (C) 2006, 2007, 2009 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
 ;; Keywords: tools
@@ -44,6 +45,9 @@ cache.")
   "*Additional arguments to pass to monotone.
 
 A list of strings.")
+
+(defvar xmtn-confirm-operation t
+  "May be let-bound to nil to bypass confirmations.")
 
 (deftype xmtn--hash-id ()
   `(and string

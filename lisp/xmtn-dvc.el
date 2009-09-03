@@ -99,15 +99,6 @@
   (concat (file-name-as-directory (or root (dvc-tree-root)))
           "_MTN/log"))
 
-(defun xmtn--tree-has-changes-p-future (root)
-  (lexical-let ((future
-                 (xmtn--command-output-lines-future
-                  root
-                  ;; Isn't there a better solution to this?
-                  `("ls" "changed"))))
-    (lambda ()
-      (not (endp (funcall future))))))
-
 (defun xmtn--toposort (root revision-hash-ids)
   (xmtn-automate-simple-command-output-lines root
                                              `("toposort"
@@ -1233,7 +1224,7 @@ finished."
   (check-type revision-hash-id xmtn--hash-id)
   (xmtn--command-output-lines-future root `("disapprove" ,revision-hash-id)))
 
-(defun xmtn--do-update (root target-revision-hash-id changes-p)
+(defun xmtn--do-update (root target-revision-hash-id)
   (check-type root string)
   (check-type target-revision-hash-id xmtn--hash-id)
   (lexical-let ((progress-message (format "Updating tree %s to revision %s"
@@ -1252,60 +1243,33 @@ finished."
           )
 
       (message "%s..." progress-message)
-      (if changes-p
-          (xmtn--run-command-that-might-invoke-merger root command post-process)
-        (xmtn--run-command-sync root command)
-        (funcall post-process)))
+      ;; this used to have an option to call '--might-invoke-merger'; could be simplified.
+      (xmtn--run-command-sync root command)
+      (funcall post-process))
     nil))
 
-(defun xmtn--update-after-confirmation (root target-revision-hash-id)
+(defun xmtn--update (root target-revision-hash-id)
   ;; mtn will just give an innocuous message if already updated, which
   ;; the user won't see. So check that here - it's fast.
   (when (equal (xmtn--get-base-revision-hash-id root) target-revision-hash-id)
     (error "Tree %s is already based on target revision %s"
            root target-revision-hash-id))
   (dvc-save-some-buffers root)
-  (let (changes-p)
-    (if dvc-confirm-update
-        (progn
-          ;; tree-has-changes-p and update will break if tree is
-          ;; inconsistent, so check that first. But it's a slow check,
-          ;; so don't bother if not confirming; error message from
-          ;; update is clear.
-          (unless (funcall (xmtn--tree-consistent-p-future root))
-            (error "Tree is inconsistent, unable to update"))
-          (unless (y-or-n-p
-                   (format (concat "Update tree %s to revision %s? ")
-                           root target-revision-hash-id))
-            (error "Aborted update"))
-
-          ;; has-changes-p is also a slow check. xmtn--do-update will
-          ;; show a "possible merger" window if changes-p is true;
-          ;; experienced users who set dvc-confirm-update don't need
-          ;; that.
-          (setq changes-p (funcall (xmtn--tree-has-changes-p-future root)))
-          (when changes-p
-            (unless (yes-or-no-p
-                     (format (concat
-                              "Tree %s contains uncommitted changes.  Update anyway? ")
-                             root))
-              (error "Aborted update")))))
-    (xmtn--do-update root target-revision-hash-id changes-p))
-  nil)
+  (xmtn--do-update root target-revision-hash-id))
 
 ;;;###autoload
 (defun xmtn-dvc-update (&optional revision-id)
   (let ((root (dvc-tree-root)))
     (xmtn-automate-with-session (nil root)
       (if revision-id
-          (xmtn--update-after-confirmation root (xmtn--revision-hash-id revision-id))
+          (xmtn--update root (xmtn--revision-hash-id revision-id))
 
         (let* ((branch (xmtn--tree-default-branch root))
                (heads (xmtn--heads root branch)))
           (case (length heads)
             (0 (assert nil))
             (1
-             (xmtn--update-after-confirmation root (first heads)))
+             (xmtn--update root (first heads)))
 
             (t
              ;; User can choose one head from a revlist, or merge them.
@@ -1334,18 +1298,25 @@ finished."
 
     (save-some-buffers t); conflicts file may be open.
 
-    (if (not (yes-or-no-p prompt))
-        (error "user abort"))
+    (if xmtn-confirm-operation
+        (if (not (yes-or-no-p prompt))
+            (error "user abort")))
 
     (lexical-let
         ((display-buffer (current-buffer))
          (msg (mapconcat (lambda (item) item) cmd " ")))
       (message "%s..." msg)
-      (xmtn--run-command-that-might-invoke-merger
-       root cmd
-       (lambda ()
-         (xmtn--refresh-status-header display-buffer)
-         (message "%s... done" msg))))))
+      (if xmtn-confirm-operation
+          (xmtn--run-command-that-might-invoke-merger
+           root cmd
+           (lambda ()
+             (xmtn--refresh-status-header display-buffer)
+             (message "%s... done" msg)))
+        (xmtn--run-command-sync
+           root cmd
+           :finished (lambda (output error status arguments)
+                       (xmtn--refresh-status-header display-buffer)
+                       (message "%s... done" msg)))))))
 
 ;;;###autoload
 (defun xmtn-dvc-merge (&optional other)
