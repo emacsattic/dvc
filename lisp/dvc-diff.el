@@ -46,7 +46,7 @@
 
 (defun dvc-dvc-search-file-in-diff (file)
   "Default for \"dvc-search-file-in-diff\". Place point on diff hunk for FILE."
-  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "\\(.+[0-9][0-9][0-9][0-9]\\)?$")))
+  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\|new-[^/\n]+\\)/" file "\\(.+[0-9][0-9][0-9][0-9]\\)?$")))
 
 (defun dvc-prepare-changes-buffer (base modified type path dvc)
   "Create and return a buffer to run command showing diffs.
@@ -551,7 +551,7 @@ interactively."
 
 (defun dvc-diff-find-file-name ()
   "Same as `diff-find-file-name', but works in more cases."
-  (cond ((re-search-backward "^\\+\\+\\+ \\(mod/\\|b/\\)?\\([^\n]*?\\)\\([ \t].*\\)?$" nil t)
+  (cond ((re-search-backward "^\\+\\+\\+ \\(mod/\\|b/\\|new-[^/\n]+/\\)?\\([^\n]*?\\)\\([ \t].*\\)?$" nil t)
          (match-string-no-properties 2))
         ((not (ewoc-locate dvc-fileinfo-ewoc (point))) ;; the buffer contains no diff
          "")
