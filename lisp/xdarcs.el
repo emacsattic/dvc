@@ -274,7 +274,7 @@ repository."
         (forward-line -2)
         (if (not (or (looking-back "^$")
                      (= (point) (point-min))))
-            (insert-string "\n")))
+            (insert "\n")))
 
         (with-current-buffer changes-buffer
           (ewoc-enter-last
