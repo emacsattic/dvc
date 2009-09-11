@@ -31,6 +31,7 @@
 
 (require 'dvc-core)
 (require 'dvc-utils)
+(require 'dvc-diff)
 (require 'xdarcs-core)
 
 (defun xdarcs-initialize (&optional dir)
@@ -255,7 +256,40 @@ repository."
 ;; diff
 ;; --------------------------------------------------------------------------------
 (defun xdarcs-parse-diff (changes-buffer)
-  nil)
+  (save-excursion
+    (while (re-search-forward
+            "^diff\\( -[^ ]*\\)* old-[^ ]* new-[^/]*/\\(.*\\)$" nil t)
+
+      (let* ((name (match-string-no-properties 2))
+             ; Darcs does not appear to provide any of this information via
+             ; "darcs diff". But maybe that won't always be the case?
+             ; Also, going forwards might help all the diffs to appear...
+             (added (progn (forward-line 1)
+                           (looking-at "^--- /dev/null")))
+             (removed (progn (forward-line 1)
+                             (looking-at "^\\+\\+\\+ /dev/null"))))
+
+      ; Darcs 2.30, at least, is not putting any blank lines between diffs...
+      (save-excursion
+        (forward-line -2)
+        (if (not (or (looking-back "^$")
+                     (= (point) (point-min))))
+            (insert-string "\n")))
+
+        (with-current-buffer changes-buffer
+          (ewoc-enter-last
+           dvc-fileinfo-ewoc
+           (make-dvc-fileinfo-legacy
+            :data (list 'file
+                        name
+                        (cond (added   "A")
+                              (removed "D")
+                              (t " "))
+                        (cond ((or added removed) " ")
+                              (t "M"))
+                        " "             ; dir. directories are not
+                                        ; tracked in git
+                        nil))))))))
 
 ;;;###autoload
 (defun xdarcs-dvc-diff (&optional against path dont-switch)
