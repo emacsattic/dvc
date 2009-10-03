@@ -218,7 +218,7 @@ PATH."
     ;; Filter for path
     (while tree
       (let* ((root (caar tree))
-             (index (string-match root true-path)))
+             (index (string-match (regexp-quote root) true-path)))
         (if (and index (= 0 index))
             (setq result (cons (car tree) result)))
         (setq tree (cdr tree))))
