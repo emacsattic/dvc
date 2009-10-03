@@ -356,9 +356,8 @@ the file before saving."
                    ;; commit was successful.  Let's not interfere with
                    ;; that.  (Calling `dvc-log-close' would.)
 
-                   ;; current-buffer is log-edit-buffer here, but
-                   ;; apparently dvc-diff-clear-buffers screws that up
-                   (kill-buffer (current-buffer))
+                   ;; we'd like to delete log-edit-buffer here, but
+                   ;; we can't do that from a process sentinel
 
                    (dvc-diff-clear-buffers 'xmtn
                                            default-directory
@@ -366,7 +365,6 @@ the file before saving."
                                            (xmtn--status-header
                                             default-directory
                                             (xmtn--get-base-revision-hash-id-or-null default-directory)))
-
                    ))
 
        ;; Show message _after_ spawning command to override DVC's

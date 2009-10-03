@@ -250,7 +250,6 @@ header."
                (setq xmtn-conflicts-resolved-internal-count (+ 1 xmtn-conflicts-resolved-internal-count))
                (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_internal)))
 
-               ;; dvc.stephe still paired with mtn that puts resolved_user here
               ((string= "resolved_user" symbol)
                (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_user (cadar value))))
 
@@ -524,7 +523,6 @@ header."
            (insert "resolved_keep_left \n"))
 
           (resolved_user
-           ;; dvc.stephe still paired with mtn that puts resolved_user here
            (xmtn-basic-io-write-str "resolved_user" (cadr (xmtn-conflicts-conflict-left_resolution conflict))))
           ))))
 
