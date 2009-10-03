@@ -250,8 +250,9 @@ header."
                (setq xmtn-conflicts-resolved-internal-count (+ 1 xmtn-conflicts-resolved-internal-count))
                (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_internal)))
 
-              ((string= "resolved_user_left" symbol)
-               (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_left_user (cadar value))))
+               ;; dvc.stephe still paired with mtn that puts resolved_user here
+              ((string= "resolved_user" symbol)
+               (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_user (cadar value))))
 
               (t
                (error "found %s" symbol)))))))
@@ -495,7 +496,8 @@ header."
   "Write EWOC-BUFFER header info in basic-io format to current buffer."
   (xmtn-basic-io-write-id "left" (with-current-buffer ewoc-buffer xmtn-conflicts-left-revision))
   (xmtn-basic-io-write-id "right" (with-current-buffer ewoc-buffer xmtn-conflicts-right-revision))
-  (xmtn-basic-io-write-id "ancestor" (with-current-buffer ewoc-buffer xmtn-conflicts-ancestor-revision))
+  (if xmtn-conflicts-ancestor-revision
+      (xmtn-basic-io-write-id "ancestor" (with-current-buffer ewoc-buffer xmtn-conflicts-ancestor-revision)))
   )
 
 (defun xmtn-conflicts-write-content (conflict)
@@ -522,7 +524,8 @@ header."
            (insert "resolved_keep_left \n"))
 
           (resolved_user
-           (xmtn-basic-io-write-str "resolved_user_left" (cadr (xmtn-conflicts-conflict-left_resolution conflict))))
+           ;; dvc.stephe still paired with mtn that puts resolved_user here
+           (xmtn-basic-io-write-str "resolved_user" (cadr (xmtn-conflicts-conflict-left_resolution conflict))))
           ))))
 
 (defun xmtn-conflicts-write-duplicate_name (conflict)
@@ -852,19 +855,25 @@ header."
     (setf (xmtn-conflicts-conflict-right_resolution conflict) (list 'resolved_drop))
     (ewoc-invalidate xmtn-conflicts-ewoc elem)))
 
-(defun xmtn-conflicts-resolve-user (side)
-  "Resolve the current conflict by user_SIDE."
+(defun xmtn-conflicts-resolve-user (resolve-side default-side)
+  "Resolve the current conflict by user_RESOLVE-SIDE. Default to file from DEFAULT-SIDE."
   (interactive)
-  ;; Right is the target workspace in a propagate, and also the current
-  ;; workspace in a merge. So default to right_name.
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
          (conflict (ewoc-data elem))
-         (result-file (read-file-name "resolution file: " "./" nil t
-                                      (xmtn-conflicts-conflict-right_name conflict))))
-    (ecase side
-      ('left
+         (result-file
+          (expand-file-name
+           (read-file-name "resolution file: "
+                           (ecase default-side
+                             (left (file-name-as-directory xmtn-conflicts-left-work))
+                             (right (file-name-as-directory xmtn-conflicts-right-work)))
+                           nil t
+                           (ecase default-side
+                             (left (xmtn-conflicts-conflict-left_name conflict))
+                             (right (xmtn-conflicts-conflict-right_name conflict)))))))
+    (ecase resolve-side
+      (left
        (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_user result-file)))
-      ('right
+      (right
         (setf (xmtn-conflicts-conflict-right_resolution conflict) (list 'resolved_user result-file)))
       )
     (ewoc-invalidate xmtn-conflicts-ewoc elem)))
@@ -987,32 +996,42 @@ header."
     ;; Don't need 'left' or 'right' in menu, since only one is
     ;; visible; then this works better for single file conflicts.
 
-    (define-key map [?9]  '(menu-item "9) drop"
+    (define-key map [?b]  '(menu-item "b) drop"
                                       xmtn-conflicts-resolve-drop_right
                                       :visible (xmtn-conflicts-resolve-drop_rightp)))
-    (define-key map [?8]  '(menu-item "8) rename"
+    (define-key map [?a]  '(menu-item "a) rename"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-rename 'right))
                                       :visible (xmtn-conflicts-resolve-rename_rightp)))
-    (define-key map [?7]  '(menu-item "7) file"
+    (define-key map [?9]  '(menu-item "9) right file"
                                       (lambda ()
                                         (interactive)
-                                        (xmtn-conflicts-resolve-user 'right))
+                                        (xmtn-conflicts-resolve-user 'right 'right))
                                       :visible (xmtn-conflicts-resolve-user_rightp)))
-    (define-key map [?6]  '(menu-item "6) keep"
+    (define-key map [?8]  '(menu-item "8) left file"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-user 'right 'left))
+                                      :visible (xmtn-conflicts-resolve-user_rightp)))
+    (define-key map [?7]  '(menu-item "7) keep"
                                       xmtn-conflicts-resolve-keep_right
                                       :visible (xmtn-conflicts-resolve-keep_rightp)))
-    (define-key map [?5]  '(menu-item "5) ediff"
+    (define-key map [?6]  '(menu-item "6) ediff"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-ediff 'right))
                                       :visible (xmtn-conflicts-resolve-user_rightp)))
 
-    (define-key map [?4]  '(menu-item "4) file"
+    (define-key map [?5]  '(menu-item "5) right file"
                                       (lambda ()
                                         (interactive)
-                                        (xmtn-conflicts-resolve-user 'left))
+                                        (xmtn-conflicts-resolve-user 'left 'right))
+                                      :visible (xmtn-conflicts-resolve-user_leftp)))
+    (define-key map [?4]  '(menu-item "4) left file"
+                                      (lambda ()
+                                        (interactive)
+                                        (xmtn-conflicts-resolve-user 'left 'left))
                                       :visible (xmtn-conflicts-resolve-user_leftp)))
     (define-key map [?3]  '(menu-item "3) drop"
                                       xmtn-conflicts-resolve-drop_left
@@ -1058,17 +1077,17 @@ non-nil, show log-edit buffer in other frame."
     (insert ": ")
     ))
 
-(defun xmtn-conflicts-do-propagate ()
+(defun xmtn-conflicts-do-propagate (&optional cached-branch)
   "Perform propagate on revisions in current conflict buffer."
   (interactive)
   (save-some-buffers t); log buffer
-  (xmtn-propagate-from xmtn-conflicts-left-branch))
+  (xmtn-propagate-from xmtn-conflicts-left-branch cached-branch))
 
 (defun xmtn-conflicts-do-merge ()
   "Perform merge on revisions in current conflict buffer."
   (interactive)
   (save-some-buffers t); log buffer
-  (xmtn-dvc-merge))
+  (xmtn-dvc-merge-1 default-directory nil))
 
 (defun xmtn-conflicts-ediff-resolution-ws ()
   "Ediff current resolution file against workspace."
@@ -1105,6 +1124,7 @@ non-nil, show log-edit buffer in other frame."
   "`xmtn-conflicts' menu"
   `("Mtn-conflicts"
     ["Clear resolution"     xmtn-conflicts-clear-resolution t]
+    ["Ediff resolution to ws" xmtn-conflicts-ediff-resolution-ws t]
     ["Propagate"            xmtn-conflicts-do-propagate t]
     ["Merge"                xmtn-conflicts-do-merge t]
     ["Update"               dvc-update t]
@@ -1137,13 +1157,15 @@ non-nil, show log-edit buffer in other frame."
 
 (defconst xmtn-conflicts-opts-file "_MTN/dvc-conflicts-opts")
 
-(defun xmtn-conflicts-save-opts (left-work right-work)
+(defun xmtn-conflicts-save-opts (left-work right-work &optional left-branch right-branch)
   "Store LEFT-WORK, RIGHT-WORK in `xmtn-conflicts-opts-file', for
 retrieval by `xmtn-conflicts-load-opts'."
   (let ((xmtn-conflicts-left-work left-work)
         (xmtn-conflicts-right-work right-work)
-        (xmtn-conflicts-left-branch (xmtn--tree-default-branch left-work))
-        (xmtn-conflicts-right-branch (xmtn--tree-default-branch right-work)))
+        (xmtn-conflicts-left-branch (or left-branch
+                                        (xmtn--tree-default-branch left-work)))
+        (xmtn-conflicts-right-branch (or right-branch
+                                         (xmtn--tree-default-branch right-work))))
 
   (dvc-save-state (list 'xmtn-conflicts-left-work
                         'xmtn-conflicts-left-branch
@@ -1174,19 +1196,17 @@ to right.  Stores conflict file in RIGHT-WORK/_MTN."
      'xmtn
      (list "conflicts" "store" left-rev right-rev)
      :finished (lambda (output error status arguments)
-                 (xmtn-dvc-log-clean)
                  (xmtn-conflicts-review default-directory))
 
      :error (lambda (output error status arguments)
-              (xmtn-dvc-log-clean)
               (pop-to-buffer error))
      )))
 
-(defun xmtn-check-workspace-for-propagate (work)
+(defun xmtn-check-workspace-for-propagate (work cached-branch)
   "Check that workspace WORK is ready for propagate.
 It must be merged, and should be at the head revision, and have no local changes."
   (let* ((default-directory work)
-         (heads (xmtn--heads default-directory nil))
+         (heads (xmtn--heads default-directory cached-branch))
          (base (xmtn--get-base-revision-hash-id-or-null default-directory)))
 
     (message "checking %s for multiple heads, base not head" work)
@@ -1250,17 +1270,20 @@ workspace."
   (setq left-work (dvc-read-project-tree-maybe "Propagate from (workspace directory): " left-work))
   (setq right-work (dvc-read-project-tree-maybe "to (workspace directory): " right-work))
 
-  (xmtn-check-workspace-for-propagate left-work)
-  (xmtn-check-workspace-for-propagate right-work)
+  (let ((left-branch (xmtn--tree-default-branch left-work))
+        (right-branch (xmtn--tree-default-branch right-work)))
 
-  (xmtn-check-propagate-needed left-work right-work)
+    (xmtn-check-workspace-for-propagate left-work left-branch)
+    (xmtn-check-workspace-for-propagate right-work right-branch)
 
-  (message "computing conflicts")
+    (xmtn-check-propagate-needed left-work right-work)
 
-  (xmtn-conflicts-1 left-work
-                    (car (xmtn--heads left-work nil))
+    (message "computing conflicts")
+
+    (xmtn-conflicts-1 left-work
+                    (car (xmtn--heads left-work left-branch))
                     right-work
-                    (car (xmtn--heads right-work nil))))
+                    (car (xmtn--heads right-work right-branch)))))
 
 ;;;###autoload
 (defun xmtn-conflicts-merge ()
@@ -1304,6 +1327,8 @@ workspace."
 
     (if (file-exists-p "_MTN/resolutions")
         (dired-delete-file "_MTN/resolutions" 'always))
+
+    (message "conflicts cleaned")
     ))
 
 (provide 'xmtn-conflicts)

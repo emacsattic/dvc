@@ -827,7 +827,7 @@ workspace version)."
          (diff-buffer (dvc-prepare-changes-buffer
                        base
                        modified
-                       'file-diff file 'bzr))
+                       'file-diff file dvc))
          (base-buffer
           (dvc-revision-get-file-in-buffer file base))
          (modified-buffer

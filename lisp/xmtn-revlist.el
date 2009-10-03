@@ -349,30 +349,47 @@ arg; root. Result is of the form:
   "If point is on a revision that has two parents, show conflicts
 from the merge."
   ;; IMPROVEME: We just use the xmtn conflicts machinery for now. It
-  ;; would be better if we had a read-only version of it. And a way to
-  ;; compare to the actual result.
+  ;; would be better if we had a read-only version of it.
   (interactive)
   (let ((changelog (car (xmtn--revlist-entry-changelogs (dvc-revlist-entry-patch-struct (dvc-revlist-current-patch)))))
-        left-start left-end left-rev right-start right-end right-rev)
+        start end left-branch left-rev right-branch right-rev)
     ;; string-match does _not_ set up match-strings properly, so we do this instead
     (cond
      ((string= (substring changelog 0 9) "propagate")
-      (setq left-start (+ 6 (string-match "(head" changelog)))
-      (setq left-end (string-match ")" changelog left-start))
-      (setq right-start (+ 6 (string-match "(head .*)" changelog left-start)))
-      (setq right-end (string-match ")" changelog right-start)))
+      (setq start (+ 1 (string-match "'" changelog)))
+      (setq end (string-match "'" changelog start))
+      (setq left-branch (substring changelog start end))
+
+      (setq start (+ 6 (string-match "(head" changelog end)))
+      (setq end (string-match ")" changelog start))
+      (setq left-rev (substring changelog start end))
+
+      (setq start (+ 1 (string-match "'" changelog end)))
+      (setq end (string-match "'" changelog start))
+      (setq right-branch (substring changelog start end))
+
+      (setq start (+ 6 (string-match "(head .*)" changelog end)))
+      (setq end (string-match ")" changelog start))
+      (setq right-rev (substring changelog start end)))
+
 
      ((string= (substring changelog 0 5) "merge")
-      (setq left-start (+ 4 (string-match "of" changelog)))
-      (setq left-end (string-match "'" changelog left-start))
-      (setq right-start (+ 5 (string-match "and" changelog left-start)))
-      (setq right-end (string-match "'" changelog right-start)))
+      (setq start (+ 4 (string-match "of" changelog)))
+      (setq end (string-match "'" changelog start))
+      (setq left-rev (substring changelog start (1- end)))
+
+      (setq start (+ 5 (string-match "and" changelog start)))
+      (setq end (string-match "'" changelog start))
+      (setq right-rev (substring changelog start (1- end))))
 
      (t
       (error "not on a two parent revision")))
 
-    (setq left-rev (substring changelog left-start (1- left-end)))
-    (setq right-rev (substring changelog right-start (1- right-end)))
+    (xmtn-conflicts-save-opts
+     (read-file-name "left work: ")
+     (read-file-name "right work: ")
+     left-branch
+     right-branch)
 
     (dvc-run-dvc-async
      'xmtn
@@ -380,11 +397,11 @@ from the merge."
      :finished (lambda (output error status arguments)
                  (let ((conflicts-buffer (dvc-get-buffer-create 'xmtn 'conflicts default-directory)))
                    (pop-to-buffer conflicts-buffer)
+                   (xmtn-conflicts-load-opts)
                    (set (make-local-variable 'after-insert-file-functions) '(xmtn-conflicts-after-insert-file))
                    (insert-file-contents "_MTN/conflicts" t)))
 
      :error (lambda (output error status arguments)
-              (xmtn-dvc-log-clean)
               (pop-to-buffer error)))))
 
 ;;;###autoload
@@ -599,7 +616,7 @@ To be invoked from an xmtn revlist buffer."
   (let* ((root (dvc-tree-root))
          (entry (dvc-revlist-current-patch-struct))
          (target-hash-id (xmtn--revlist-entry-revision-hash-id entry)))
-    (xmtn--update root target-hash-id)))
+    (xmtn--update root target-hash-id nil nil)))
 
 ;; Being able to conveniently disapprove whole batches of revisions
 ;; is going to be a lot of fun.
