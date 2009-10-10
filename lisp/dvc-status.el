@@ -203,9 +203,7 @@ conflicts, and/or ediff current files."
        (dvc-fileinfo-add-log-entry prefix))
 
       ((deleted rename-source rename-target)
-       ;; typically nothing to do; just need commit
-       (ding)
-       (dvc-fileinfo-next))
+       (dvc-status-ediff))
 
       (missing
        ;; File is in database, but not in workspace

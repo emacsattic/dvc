@@ -152,9 +152,27 @@ See file commentary for details."
                                   ,base-revision-hash-id
                                   ,(1- num))))))
 
+(defun xmtn--get-parent-revision-hash-id (root hash-id local-branch)
+  (check-type hash-id xmtn--hash-id)
+  (let ((parents (xmtn-automate-simple-command-output-lines root `("parents"
+                                                                   ,hash-id))))
+    (case (length parents)
+      (0 (error "Revision has no parents: %s" hash-id))
+      (1 (let ((parent (first parents)))
+           (assert (typep parent 'xmtn--hash-id))
+           parent))
+      (t
+       ;; If this revision is the result of a propagate, there are two parents, one of which is on the local branch
+       (let ((first-parent-branch (xmtn--branch-of root (first parents))))
+         (if (equal local-branch first-parent-branch)
+             (first parents)
+           (second parents)))
+       ))))
+
 (defun xmtn--resolve--previous-revision (root backend-id num)
   (check-type num (integer 0 *))
-  (let ((resolved-id (xmtn--resolve-backend-id root backend-id)))
+  (let ((local-branch (xmtn--tree-default-branch root))
+        (resolved-id (xmtn--resolve-backend-id root backend-id)))
     (if (zerop num)
         resolved-id
       (ecase (first resolved-id)
@@ -170,7 +188,7 @@ See file commentary for details."
            (check-type hash-id xmtn--hash-id)
            (loop repeat num
                  ;; If two parents of this rev, use parent on same branch as rev.
-                 do (setq hash-id (xmtn--get-parent-revision-hash-id root hash-id t)))
+                 do (setq hash-id (xmtn--get-parent-revision-hash-id root hash-id local-branch)))
            `(revision ,hash-id)))))))
 
 (defun xmtn--error-unless-revision-exists (root hash-id)
@@ -215,31 +233,6 @@ must be a workspace."
                           (add-to-list 'result (cadar value)))))
               )))))
     result))
-
-(defun xmtn--get-parent-revision-hash-id (root hash-id &optional multi-parent-use-local-branch)
-  (check-type hash-id xmtn--hash-id)
-  (let ((parents (xmtn-automate-simple-command-output-lines root `("parents"
-                                                                   ,hash-id))))
-    (case (length parents)
-      (0 (error "Revision has no parents: %s" hash-id))
-      (1 (let ((parent (first parents)))
-           (assert (typep parent 'xmtn--hash-id))
-           parent))
-      (t
-       (if multi-parent-use-local-branch
-           ;; If this revision is the result of a propagate, there are two parents, one of which is on the local branch
-           (let ((local-branch (xmtn--tree-default-branch root))
-                 (first-parent-branch (xmtn--branch-of root (first parents))))
-             (if (equal local-branch first-parent-branch)
-                 (first parents)
-               (second parents)))
-         ;; Otherwise, just error.  Depending on the context, we should
-         ;; prompt which parent is desired, or operate on all of them.
-         ;; This function is too low-level to decide what to do, though.
-         ;; Need to wait for use cases.
-         (error "Revision has more than one parent (%s): %s"
-                (length parents)
-                hash-id))))))
 
 (defun xmtn--get-base-revision-hash-id-or-null (root)
   (let ((hash-id (xmtn-automate-simple-command-output-line

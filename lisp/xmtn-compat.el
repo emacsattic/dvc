@@ -66,8 +66,10 @@
 
 (defmacro xmtn--set-process-query-on-exit-flag (process value)
   (if (fboundp 'set-process-query-on-exit-flag)
+      ;; emacs 22.2 and greater
       `(set-process-query-on-exit-flag ,process ,value)
     `(progn
+       ;; emacs 22.1
        (process-kill-without-query ,process ,value)
        ,value)))
 

@@ -59,10 +59,21 @@ A list of strings.")
        (save-match-data
          (string-match "\\`[0-9a-f]\\{40\\}\\'" thing))))
 
+(defun xmtn--filter-non-dir (dir)
+  "Return list of all directories in DIR, excluding '.', '..'."
+  (let ((default-directory dir)
+        (subdirs (directory-files dir)))
+    (setq subdirs
+          (mapcar (lambda (filename)
+                    (if (and (file-directory-p filename)
+                             (not (string= "." filename))
+                             (not (string= ".." filename)))
+                        filename))
+                  subdirs))
+    (delq nil subdirs)))
+
 (defvar xmtn--*enable-assertions* nil
   "Effective at macroexpansion time.")
-
-;; (setq xmtn--*enable-assertions* t)
 
 (defmacro xmtn--assert-for-effect (form &rest more-assert-args)
   (if xmtn--*enable-assertions*
