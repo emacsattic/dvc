@@ -1043,9 +1043,9 @@ Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
                         (dvc-default-finish-function output error status arguments)
                         (message "hg %s complete for %s" opt-string default-directory)))))
 
-(defun xhg-convert (source target)
+(defun xhg-convert (source target &optional revnum)
   "Convert a foreign SCM repository to a Mercurial one.
-
+With prefix arg prompt for REVNUM.
    Accepted source formats [identifiers]:(Mercurial-1.1.2)
     - Mercurial [hg]
     - CVS [cvs]
@@ -1063,14 +1063,17 @@ hgext.convert =
 Read also: hg help convert.
 "
   (interactive "DSource: \nsTarget: ")
-  (message "Started hg conversion of [%s] to [%s] ..." source target)
-  (dvc-run-dvc-async 'xhg (list "convert"
-                                (expand-file-name source)
-                                (expand-file-name target))
-                     :finished (dvc-capturing-lambda (output error status arguments)
-                                  (let ((default-directory (capture target)))
-                                    (xhg-update))
-                                  (message "hg: [%s] successfully converted to [%s]" (capture source) (capture target)))))
+  (let* ((src      (expand-file-name source))
+         (tget     (expand-file-name target))
+         (rev      (if current-prefix-arg (read-string "Revision: ") revnum))
+         (arg-list (if rev (list "convert" src tget "-r" rev) (list "convert" src tget))))
+    (message "HG conversion of `%s' to `%s' ..." source target)
+    (dvc-run-dvc-async 'xhg arg-list
+                       :finished (dvc-capturing-lambda (output error status arguments)
+                                   (let ((default-directory (capture target)))
+                                     (xhg-update))
+                                   (message "HG conversion of `%s' to `%s' ... done."
+                                            (capture source) (capture target))))))
 
 ;; --------------------------------------------------------------------------------
 ;; hg serve functionality
