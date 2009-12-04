@@ -369,7 +369,7 @@ options, cdr is command. Insert result into BUFFER."
       (xmtn-automate-command-check-for-and-report-error handle)
       (xmtn-automate-command-wait-until-finished handle)
       (with-current-buffer buffer
-        (xmtn--insert-buffer-substring-no-properties
+        (insert-buffer-substring-no-properties
          (xmtn-automate-command-buffer handle))))))
 
 (defun xmtn-automate-command-output-lines (handle)
@@ -411,17 +411,10 @@ Signals an error if output contains zero lines or more than one line."
 
 
 (defun xmtn-automate--set-process-session (process session)
-  (xmtn--assert-optional (typep session 'xmtn-automate--session) t)
-  (xmtn--process-put process 'xmtn-automate--session session))
+  (process-put process 'xmtn-automate--session session))
 
 (defun xmtn-automate--process-session (process)
-  (xmtn--assert-optional (processp process) t)
-  (let ((session (xmtn--process-get process 'xmtn-automate--session)))
-    ;; This seems to fail sometimes with session being nil.  Not sure
-    ;; why.  The problem seems to be reproducible by calling
-    ;; (dvc-dvc-revision-nth-ancestor `(xmtn (local-tree ,(dvc-tree-root))) 10).
-    (xmtn--assert-optional (typep session 'xmtn-automate--session) t)
-    session))
+  (process-get process 'xmtn-automate--session))
 
 (defstruct (xmtn-automate--decoder-state
             (:constructor xmtn-automate--%make-raw-decoder-state))
@@ -537,9 +530,8 @@ Signals an error if output contains zero lines or more than one line."
     (let ((process-connection-type nil)
           (default-directory root))
       (let ((process
-             (xmtn--with-environment-for-subprocess ()
-               (apply #'start-process name buffer xmtn-executable
-                      "automate" "stdio" xmtn-additional-arguments))))
+             (apply 'start-process name buffer xmtn-executable
+                    "automate" "stdio" xmtn-additional-arguments)))
         (xmtn-automate--set-process-session process session)
         (set-process-filter process 'xmtn-automate--process-filter)
         (set-process-sentinel process 'xmtn-automate--process-sentinel)
@@ -580,7 +572,7 @@ Signals an error if output contains zero lines or more than one line."
          (buffer (generate-new-buffer buffer-base-name)))
     (with-current-buffer buffer
       (buffer-disable-undo)
-      (xmtn--set-buffer-multibyte nil)
+      (set-buffer-multibyte nil)
       (setq buffer-read-only t))
     (setf (xmtn-automate--session-buffer session) buffer)
     buffer))
@@ -635,7 +627,7 @@ the buffer."
           (setq buffer (get-buffer-create buffer-name))
           (with-current-buffer buffer
             (buffer-disable-undo)
-            (xmtn--set-buffer-multibyte t)
+            (set-buffer-multibyte t)
             (setq buffer-read-only t)
             (let ((inhibit-read-only t))
               (when option-plist
@@ -687,7 +679,7 @@ car COMMAND is options, cdr is command."
                                           mtn-number session-number))
     (with-current-buffer buffer
       (buffer-disable-undo)
-      (xmtn--set-buffer-multibyte nil)
+      (set-buffer-multibyte nil)
       (setq buffer-read-only t)
       (xmtn--assert-optional (and (eql (point) (point-min))
                                   (eql (point) (point-max))))
@@ -742,9 +734,9 @@ car COMMAND is options, cdr is command."
                 (goto-char write-marker)
                 (let ((inhibit-read-only t)
                       deactivate-mark)
-                  (xmtn--insert-buffer-substring-no-properties session-buffer
-                                                               read-marker
-                                                               end))
+                  (insert-buffer-substring-no-properties session-buffer
+                                                         read-marker
+                                                         end))
                 (set-marker write-marker (point))))
             ;;(xmtn--debug-mark-text-processed session-buffer read-marker end nil)
             )
@@ -802,8 +794,9 @@ car COMMAND is options, cdr is command."
                  (xmtn-automate--decoder-state-last-p state))
             (xmtn--assert-optional command)
             (setf (xmtn-automate--command-handle-finished-p command) t)
-            (xmtn--with-no-warnings
-             (pop (xmtn-automate--session-remaining-command-handles session)))
+            (with-no-warnings
+              ;; discard result
+              (pop (xmtn-automate--session-remaining-command-handles session)))
             (setq tag 'check-for-more)
             (when (not (xmtn-automate--command-handle-may-kill-p command))
               (when (zerop (decf (xmtn-automate--session-must-not-kill-counter
@@ -919,7 +912,7 @@ car COMMAND is options, cdr is command."
              (message "Process %s died due to signal" (process-name process))
              (when (not (zerop (xmtn-automate--session-must-not-kill-counter
                                 session)))
-               (xmtn--lwarn
+               (lwarn
                 'xmtn ':error
                 "Process %s died due to signal during a critical operation"
                 (process-name process))))))))))

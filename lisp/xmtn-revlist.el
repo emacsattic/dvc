@@ -155,7 +155,7 @@ arg; root. Result is of the form:
           (if (> len last-n)
               (setq revision-hash-ids (nthcdr (- len last-n) revision-hash-ids)))))
     (setq revision-hash-ids (coerce revision-hash-ids 'vector))
-    (xmtn--dotimes-with-progress-reporter (i (length revision-hash-ids))
+    (dotimes-with-progress-reporter (i (length revision-hash-ids))
         (case (length revision-hash-ids)
           (1 "Setting up revlist buffer (1 revision)...")
           (t (format "Setting up revlist buffer (%s revisions)..."
@@ -287,29 +287,30 @@ arg; root. Result is of the form:
 (defun xmtn-dvc-changelog (&optional path)
   (xmtn--log-helper (dvc-tree-root) path nil nil))
 
+(defun xmtn--revlist--log-get-info (root)
+  (xmtn-automate-with-session (nil root)
+    (let ((branch (xmtn--tree-default-branch root)))
+      (list branch
+            (list
+             (if dvc-revlist-last-n
+                 (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
+               (format "Log for branch %s (all entries):" branch)))
+            '()
+            (xmtn--expand-selector
+             root
+             ;; This restriction to current branch is completely
+             ;; arbitrary.
+             (concat
+              "b:" ;; returns all revs for current branch
+              (xmtn--escape-branch-name-for-selector
+               branch)))))))
+
 (defun xmtn--log-helper (root path first-line-only-p last-n)
   (if path
       (xmtn-list-revisions-modifying-file path nil first-line-only-p last-n)
     (xmtn--setup-revlist
      root
-     (lambda (root)
-       (xmtn-automate-with-session
-           (nil root)
-         (let ((branch (xmtn--tree-default-branch root)))
-           (list branch
-                 (list
-                  (if dvc-revlist-last-n
-                      (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
-                    (format "Log for branch %s (all entries):" branch)))
-                 '()
-                 (xmtn--expand-selector
-                  root
-                  ;; This restriction to current branch is completely
-                  ;; arbitrary.
-                  (concat
-                   "b:" ;; returns all revs for current branch
-                   (xmtn--escape-branch-name-for-selector
-                    branch)))))))
+     'xmtn--revlist--log-get-info
      first-line-only-p
      last-n)))
 
@@ -617,29 +618,6 @@ To be invoked from an xmtn revlist buffer."
          (entry (dvc-revlist-current-patch-struct))
          (target-hash-id (xmtn--revlist-entry-revision-hash-id entry)))
     (xmtn--update root target-hash-id nil nil)))
-
-;; Being able to conveniently disapprove whole batches of revisions
-;; is going to be a lot of fun.
-(defun xmtn-revlist-disapprove ()
-  "Disapprove the marked revisions, or the revision at point if none marked.
-
-To be invoked from an xmtn revlist buffer."
-  (interactive)
-  (let* ((root (dvc-tree-root))
-         (entries (or (dvc-revision-marked-revisions)
-                      (list (dvc-revlist-current-patch-struct))))
-         (hash-ids (map 'vector #'xmtn--revlist-entry-revision-hash-id entries))
-         (description (case (length hash-ids)
-                        (0 (xmtn--assert-nil))
-                        (1 (format "revision %s" (elt hash-ids 0)))
-                        (t (format "%s revisions" (length hash-ids))))))
-    (assert (every #'xmtn--hash-id-p hash-ids))
-    (unless (yes-or-no-p (format "Disapprove %s? " description))
-      (error "Aborted disapprove"))
-    (xmtn--dotimes-with-progress-reporter (i (length hash-ids))
-        (format "Disapproving %s..." description)
-      (let ((hash-id (aref hash-ids i)))
-        (funcall (xmtn--do-disapprove-future root hash-id))))))
 
 (provide 'xmtn-revlist)
 

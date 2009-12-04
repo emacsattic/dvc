@@ -43,31 +43,19 @@
 
 (define-coding-system-alias 'xmtn--monotone-normal-form 'utf-8-unix)
 
-(defun xmtn--call-with-environment-for-subprocess (xmtn--thunk)
-  (let ((process-environment (list* "LC_ALL="
-                                    "LC_CTYPE=en_US.UTF-8"
-                                    "LC_MESSAGES=C"
-                                    process-environment)))
-    (funcall xmtn--thunk)))
-
-(defmacro* xmtn--with-environment-for-subprocess (() &body body)
-  (declare (indent 1) (debug (sexp body)))
-  `(xmtn--call-with-environment-for-subprocess (lambda () ,@body)))
-
 (defun* xmtn--run-command-sync (root arguments &rest dvc-run-keys &key)
   (xmtn--check-cached-command-version)
   (let ((default-directory (file-truename (or root default-directory))))
     (let ((coding-system-for-write 'xmtn--monotone-normal-form))
-      (xmtn--with-environment-for-subprocess ()
-        (apply #'dvc-run-dvc-sync
-               'xmtn
-               `(,@xmtn-additional-arguments
-                 ;; We don't pass the --root argument here; it is not
-                 ;; necessary since default-directory is set, and it
-                 ;; confuses the Cygwin version of mtn when run with a
-                 ;; non-Cygwin Emacs.
-                 ,@arguments)
-               dvc-run-keys)))))
+      (dvc-run-dvc-sync
+       'xmtn
+       `(,@xmtn-additional-arguments
+         ;; We don't pass the --root argument here; it is not
+         ;; necessary since default-directory is set, and it
+         ;; confuses the Cygwin version of mtn when run with a
+         ;; non-Cygwin Emacs.
+         ,@arguments)
+       dvc-run-keys))))
 
 ;;; The `dvc-run-dvc-*' functions use `call-process', which, for some
 ;;; reason, spawns the subprocess with a working directory with all
@@ -81,117 +69,15 @@
   (xmtn--check-cached-command-version)
   (let ((default-directory (file-truename (or root default-directory))))
     (let ((coding-system-for-write 'xmtn--monotone-normal-form))
-      (xmtn--with-environment-for-subprocess ()
-        (apply #'dvc-run-dvc-async
-               'xmtn
-               `(,@xmtn-additional-arguments
-                 ;; We don't pass the --root argument here; it is not
-                 ;; necessary since default-directory is set, and it
-                 ;; confuses the Cygwin version of mtn when run with a
-                 ;; non-Cygwin Emacs.
-                 ,@arguments)
-               dvc-run-keys)))))
-
-(defun* xmtn--command-append-to-buffer-async (buffer root arguments
-                                                     &rest dvc-run-keys
-                                                     &key finished)
-  (xmtn--check-cached-command-version)
-  (let ((default-directory (file-truename (or root default-directory))))
-    (let ((coding-system-for-write 'xmtn--monotone-normal-form))
-      (xmtn--with-environment-for-subprocess ()
-        (apply #'dvc-run-dvc-async
-               'xmtn
-               `(,@xmtn-additional-arguments
-                 ,@(if root `(,(concat "--root=" (file-truename root))))
-                 ,@arguments)
-               :finished (lexical-let ((buffer buffer)
-                                       (finished finished))
-                           (lambda (output error status arguments)
-                             (with-current-buffer buffer
-                               (save-excursion
-                                 (goto-char (point-max))
-                                 (let ((inhibit-read-only t))
-                                   (insert-buffer-substring output))))
-                             (funcall (or finished #'dvc-default-finish-function)
-                                      output error status arguments)))
-               :related-buffer buffer
-               dvc-run-keys)))))
-
-(defun* xmtn--command-lines-future (root which-buffer arguments)
-  (xmtn--check-cached-command-version)
-  (lexical-let ((got-output-p nil)
-                lines)
-    (lexical-let
-        ((process
-          (let ((default-directory (file-truename (or root
-                                                      default-directory))))
-            (let ((coding-system-for-write 'xmtn--monotone-normal-form))
-              (xmtn--with-environment-for-subprocess ()
-                (dvc-run-dvc-async
-                 'xmtn
-                 `(,@xmtn-additional-arguments
-                   ,@(if root `(,(concat "--root=" (file-truename root))))
-                   ,@arguments)
-                 :finished
-                 (lexical-let ((which-buffer which-buffer))
-                   (lambda (output error status arguments)
-                     (with-current-buffer (ecase which-buffer
-                                            (output output)
-                                            (error error))
-                       (save-excursion
-                         (goto-char (point-min))
-                         (setq lines
-                               (loop until (eobp)
-                                     collect
-                                     (buffer-substring-no-properties
-                                      (point)
-                                      (progn (end-of-line) (point)))
-                                     do (forward-line 1)))
-                         (setq got-output-p t)))
-                     nil))))))))
-      (lambda ()
-        (assert (member (process-status process) '(run exit signal)) t)
-        (while (and (eql (process-status process) 'run)
-                    (accept-process-output process)))
-        (assert (member (process-status process) '(exit signal)) t)
-        ;; This (including discarding input) is needed to allow the
-        ;; sentinel to run, at least on GNU Emacs 21.4.2 and on GNU
-        ;; Emacs 22.0.50.1 of 2006-06-13.  Sentinels are supposed to
-        ;; be run when `accept-process-output' is called, but they
-        ;; apparently aren't reliably.  I haven't investigated this
-        ;; further.
-        ;;
-        ;; Problems with the sentinel not running mostly seem to be
-        ;; reproducible (after commenting out the code below) by
-        ;; pressing C-x V c immediately followed by a few other keys,
-        ;; or by pressing C-x V c not followed by any further input,
-        ;; or by editing a file in the tree without saving it, then
-        ;; pressing C-x V c, waiting for the "Save buffer?" prompt and
-        ;; then pressing y immediately followed by a few other keys.
-        ;;
-        ;; I hate having to discard the input because it interferes
-        ;; with typing ahead while Emacs is still busy.  But hanging
-        ;; indefinitely waiting for `got-output-p' from a sentinel
-        ;; that never runs is even worse.
-        (while (and (eql (process-status process) 'exit)
-                    (eql (process-exit-status process) 0)
-                    (not got-output-p))
-          (discard-input)
-          (sit-for .01))
-        (unless got-output-p
-          (assert (not (and (eql (process-status process) 'exit)
-                            (eql (process-exit-status process) 0))))
-          (error "Process %s terminated abnormally, status=%s, exit code=%s"
-                 (process-name process)
-                 (process-status process)
-                 (process-exit-status process)))
-        lines))))
-
-(defun* xmtn--command-output-lines-future (root arguments)
-  (xmtn--command-lines-future root 'output arguments))
-
-(defun* xmtn--command-error-output-lines-future (root arguments)
-  (xmtn--command-lines-future root 'error arguments))
+      (apply #'dvc-run-dvc-async
+             'xmtn
+             `(,@xmtn-additional-arguments
+               ;; We don't pass the --root argument here; it is not
+               ;; necessary since default-directory is set, and it
+               ;; confuses the Cygwin version of mtn when run with a
+               ;; non-Cygwin Emacs.
+               ,@arguments)
+             dvc-run-keys))))
 
 (defun xmtn--command-output-lines (root arguments)
   "Run mtn in ROOT with ARGUMENTS and return its output as a list of strings."
@@ -199,22 +85,21 @@
   (let ((accu (list)))
     (let ((default-directory (file-truename (or root default-directory))))
       (let ((coding-system-for-write 'xmtn--monotone-normal-form))
-        (xmtn--with-environment-for-subprocess ()
-          (dvc-run-dvc-sync
-           'xmtn
-           `(,@xmtn-additional-arguments
-             ,@(if root `(,(concat "--root=" (file-truename root))))
-             ,@arguments)
-           :finished (lambda (output error status arguments)
-                       (with-current-buffer output
-                         (save-excursion
-                           (goto-char (point-min))
-                           (while (not (eobp))
-                             (push (buffer-substring-no-properties
-                                    (point)
-                                    (progn (end-of-line) (point)))
-                                   accu)
-                             (forward-line 1)))))))))
+        (dvc-run-dvc-sync
+         'xmtn
+         `(,@xmtn-additional-arguments
+           ,@(if root `(,(concat "--root=" (file-truename root))))
+           ,@arguments)
+         :finished (lambda (output error status arguments)
+                     (with-current-buffer output
+                       (save-excursion
+                         (goto-char (point-min))
+                         (while (not (eobp))
+                           (push (buffer-substring-no-properties
+                                  (point)
+                                  (progn (end-of-line) (point)))
+                                 accu)
+                           (forward-line 1))))))))
     (setq accu (nreverse accu))
     accu))
 

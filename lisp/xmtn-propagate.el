@@ -149,16 +149,20 @@ The elements must all be of class xmtn-propagate-data.")
                (insert (dvc-face-add "  need propagate\n" 'dvc-conflict)))))
 
       (if (eq 'at-head (xmtn-propagate-data-to-heads data))
-          (insert "  need clean\n"))
+          (insert (dvc-face-add "  need clean\n" 'dvc-conflict)))
       ))
   ;; ewoc ought to do this, but it doesn't
   (redisplay))
 
-(defun xmtn-kill-conflicts-buffer (data)
+(defun xmtn-propagate-kill-conflicts-buffer (data)
   (if (buffer-live-p (xmtn-propagate-data-conflicts-buffer data))
       (let ((buffer (xmtn-propagate-data-conflicts-buffer data)))
         (with-current-buffer buffer (save-buffer))
         (kill-buffer buffer))))
+
+(defun xmtn-propagate-save-conflicts-buffer (data)
+  (if (buffer-live-p (xmtn-propagate-data-conflicts-buffer data))
+      (with-current-buffer (xmtn-propagate-data-conflicts-buffer data) (save-buffer))))
 
 (defun xmtn-propagate-clean ()
   "Clean current workspace, delete from ewoc"
@@ -167,8 +171,8 @@ The elements must all be of class xmtn-propagate-data.")
          (data (ewoc-data elem)))
 
     ;; only one conflicts file and buffer
+    (xmtn-propagate-kill-conflicts-buffer data)
     (xmtn-conflicts-clean (xmtn-propagate-to-work data))
-    (xmtn-kill-conflicts-buffer data)
 
     (let ((inhibit-read-only t))
       (ewoc-delete xmtn-propagate-ewoc elem))))
@@ -229,6 +233,12 @@ The elements must all be of class xmtn-propagate-data.")
   (let* ((elem (ewoc-locate xmtn-propagate-ewoc))
          (data (ewoc-data elem)))
     (xmtn-propagate-need-refresh elem data)
+
+    (if (not (buffer-live-p (xmtn-propagate-data-conflicts-buffer data)))
+        ;; user deleted conflicts buffer after resolving conflicts; get it back
+        (setf (xmtn-propagate-data-conflicts-buffer data)
+              (xmtn-propagate-conflicts-buffer data)))
+
     (with-current-buffer (xmtn-propagate-data-conflicts-buffer data)
       (let ((xmtn-confirm-operation nil))
         (xmtn-conflicts-do-propagate (xmtn-propagate-data-to-branch data))))
@@ -274,7 +284,7 @@ The elements must all be of class xmtn-propagate-data.")
     ;; can't create log-edit buffer with both conflicts and status
     ;; buffer open, and we'll be killing this as part of the refresh
     ;; anyway.
-    (xmtn-kill-conflicts-buffer data)
+    (xmtn-propagate-kill-conflicts-buffer data)
 
     (setf (xmtn-propagate-data-to-local-changes data) 'ok)
     (xmtn-status (xmtn-propagate-to-work data))))
@@ -558,18 +568,24 @@ The elements must all be of class xmtn-propagate-data.")
 
 (defun xmtn-propagate-conflicts (data)
   "Return value for xmtn-propagate-data-conflicts for DATA."
-  ;; if conflicts-buffer is nil, this does the right thing.
+
+  (if (not (buffer-live-p (xmtn-propagate-data-conflicts-buffer data)))
+      ;; user may have deleted conflicts buffer after resolving
+      ;; conflicts; don't throw that away.
+      (setf (xmtn-propagate-data-conflicts-buffer data)
+            (xmtn-propagate-conflicts-buffer data)))
+
   (let ((revs-current
-         (and (buffer-live-p (xmtn-propagate-data-conflicts-buffer data))
-              (with-current-buffer (xmtn-propagate-data-conflicts-buffer data)
-                (and (string= (xmtn-propagate-data-from-head-rev data) xmtn-conflicts-left-revision)
-                     (string= (xmtn-propagate-data-to-head-rev data) xmtn-conflicts-right-revision))))))
+         (with-current-buffer (xmtn-propagate-data-conflicts-buffer data)
+           (and (string= (xmtn-propagate-data-from-head-rev data) xmtn-conflicts-left-revision)
+                (string= (xmtn-propagate-data-to-head-rev data) xmtn-conflicts-right-revision)))))
     (if revs-current
         (with-current-buffer (xmtn-propagate-data-conflicts-buffer data)
-          (xmtn-conflicts-update-counts))
+          (xmtn-conflicts-update-counts)
+          (save-buffer))
 
-      ;; recreate conflicts
-      (xmtn-kill-conflicts-buffer data)
+      ;; else recreate conflicts
+      (xmtn-propagate-kill-conflicts-buffer data)
 
       (xmtn-conflicts-clean (xmtn-propagate-to-work data))
 
@@ -638,10 +654,16 @@ The elements must all be of class xmtn-propagate-data.")
             (ok nil))))
 
     (if (xmtn-propagate-data-propagate-needed data)
-        ;; can't compute conflicts if propagate not needed
-        (setf (xmtn-propagate-data-conflicts data)
-              (xmtn-propagate-conflicts data))
+        (progn
+          (if refresh-local-changes
+              (progn
+                (xmtn-propagate-kill-conflicts-buffer data)
+                (xmtn-conflicts-clean (xmtn-propagate-to-work data))))
 
+          (setf (xmtn-propagate-data-conflicts data)
+                (xmtn-propagate-conflicts data)))
+
+      ;; can't compute conflicts if propagate not needed
       (setf (xmtn-propagate-data-conflicts data) 'need-scan))
 
     (setf (xmtn-propagate-data-need-refresh data) nil))
@@ -725,6 +747,8 @@ scanned and all common ones found are used."
         (from-session (xmtn-automate-cache-session from-work))
         (to-session (xmtn-automate-cache-session to-work)))
     (pop-to-buffer (get-buffer-create "*xmtn-propagate*"))
+    ;; default-directory is wrong if buffer is reused
+    (setq default-directory to-work)
     (setq xmtn-propagate-from-root (expand-file-name (concat (file-name-as-directory from-work) "../")))
     (setq xmtn-propagate-to-root (expand-file-name (concat (file-name-as-directory to-work) "../")))
     (setq xmtn-propagate-ewoc (ewoc-create 'xmtn-propagate-printer))
