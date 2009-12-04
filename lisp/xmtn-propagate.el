@@ -485,7 +485,8 @@ The elements must all be of class xmtn-propagate-data.")
                    (setq result 'ok)))
 
      :error (lambda (output error status arguments)
-              (pop-to-buffer error)))
+              (pop-to-buffer error)
+              (error "error checking %s for local changes" work)))
 
     (if (eq result 'ok)
         ;; check for unknown
