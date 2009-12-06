@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Daniel Dehennin <daniel.dehennin@baby-gnu.org>
 Build-Depends: cdbs (>= 0.4.50), debhelper
 Build-Depends-Indep: autoconf, emacs22 | emacs21 | xemacs21 | emacsen, texinfo
-Standards-Version: 3.8.0.1
+Standards-Version: 3.8.3
 Vcs-Bzr: http://bzr.xsteve.at/dvc/
 Homepage: http://download.gna.org/dvc/
 
