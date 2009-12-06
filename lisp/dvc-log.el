@@ -142,7 +142,7 @@ is reused."
           (set-buffer-modified-p nil))
         (rename-buffer buffer-name)
         (setq dvc-partner-buffer start-buffer)
-        (dvc-log-edit-mode)))))
+        (dvc-call "log-edit-mode")))))
 
 (defun dvc-log-edit-abort ()
   "Abort the current log edit."

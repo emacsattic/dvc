@@ -1163,23 +1163,26 @@ or in the same sublist"
 (defvar dvc-bookmarks-hidden-subtree nil
   "List of all hidden subtrees")
 
-(defun dvc-bookmarks-show-or-hide-subtree (&optional show)
-  "Hide subtree when called with no argument
-show subtree when called with prefix argument (C-u)"
-  (interactive "P")
+(defun dvc-bookmarks-show-or-hide-subtree ()
+  "Toggle subtree visibility."
+  (interactive)
   (let ((current-tree (aref (dvc-bookmarks-current-bookmark) 1))
-        (parent))
-    (when (member (assoc current-tree dvc-bookmark-alist) dvc-bookmark-alist) ;check if we are really on a tree
-      (if current-prefix-arg
+        (pos (point))
+        parent)
+    (when (member (assoc current-tree dvc-bookmark-alist)
+                  dvc-bookmark-alist) ; Check if we are really on a tree.
+      (if (member current-tree dvc-bookmarks-hidden-subtree)
           (progn
-            (setq dvc-bookmarks-hidden-subtree (remove current-tree dvc-bookmarks-hidden-subtree))
-            (dvc-bookmarks))
-        (add-to-list 'dvc-bookmarks-hidden-subtree current-tree))
-      (ewoc-filter dvc-bookmarks-cookie #'(lambda (x)
-                                            (setq parent (dvc-get-parent-elm (aref x 1) dvc-bookmark-alist))
-                                            (if (not (member parent dvc-bookmarks-hidden-subtree))
-                                                t
-                                              nil))))))
+            (setq dvc-bookmarks-hidden-subtree
+                  (remove current-tree dvc-bookmarks-hidden-subtree))
+              (dvc-bookmarks))
+          (add-to-list 'dvc-bookmarks-hidden-subtree current-tree))
+      (ewoc-filter dvc-bookmarks-cookie
+                   #'(lambda (x)
+                       (setq parent
+                             (dvc-get-parent-elm (aref x 1) dvc-bookmark-alist))
+                       (if (not (member parent dvc-bookmarks-hidden-subtree)) t nil))))
+    (goto-char pos)))
 
 (defvar dvc-bookmarks-tmp-yank-item '("hg" (local-tree "~/work/hg/hg")))
 

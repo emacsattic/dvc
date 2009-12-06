@@ -1,6 +1,6 @@
 ;;; xmtn-revlist.el --- Interactive display of revision histories for monotone
 
-;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2008, 2009 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -334,7 +334,7 @@ arg; root. Result is of the form:
          ,(format "Base   %s" base-revision-hash-id)
          ,(case (length heads)
             (1 "branch is merged")
-            (t "branch is not merged"))
+            (t (dvc-face-add (format "branch has %s heads; need merge" (length heads)) 'dvc-conflict)))
          nil
          ,(case (length difference)
             (0 "No revisions that are not in base revision")
@@ -345,6 +345,65 @@ arg; root. Result is of the form:
        '()
        difference))))
 
+(defun xmtn-revlist-show-conflicts ()
+  "If point is on a revision that has two parents, show conflicts
+from the merge."
+  ;; IMPROVEME: We just use the xmtn conflicts machinery for now. It
+  ;; would be better if we had a read-only version of it.
+  (interactive)
+  (let ((changelog (car (xmtn--revlist-entry-changelogs (dvc-revlist-entry-patch-struct (dvc-revlist-current-patch)))))
+        start end left-branch left-rev right-branch right-rev)
+    ;; string-match does _not_ set up match-strings properly, so we do this instead
+    (cond
+     ((string= (substring changelog 0 9) "propagate")
+      (setq start (+ 1 (string-match "'" changelog)))
+      (setq end (string-match "'" changelog start))
+      (setq left-branch (substring changelog start end))
+
+      (setq start (+ 6 (string-match "(head" changelog end)))
+      (setq end (string-match ")" changelog start))
+      (setq left-rev (substring changelog start end))
+
+      (setq start (+ 1 (string-match "'" changelog end)))
+      (setq end (string-match "'" changelog start))
+      (setq right-branch (substring changelog start end))
+
+      (setq start (+ 6 (string-match "(head .*)" changelog end)))
+      (setq end (string-match ")" changelog start))
+      (setq right-rev (substring changelog start end)))
+
+
+     ((string= (substring changelog 0 5) "merge")
+      (setq start (+ 4 (string-match "of" changelog)))
+      (setq end (string-match "'" changelog start))
+      (setq left-rev (substring changelog start (1- end)))
+
+      (setq start (+ 5 (string-match "and" changelog start)))
+      (setq end (string-match "'" changelog start))
+      (setq right-rev (substring changelog start (1- end))))
+
+     (t
+      (error "not on a two parent revision")))
+
+    (xmtn-conflicts-save-opts
+     (read-file-name "left work: ")
+     (read-file-name "right work: ")
+     left-branch
+     right-branch)
+
+    (dvc-run-dvc-async
+     'xmtn
+     (list "conflicts" "store" left-rev right-rev)
+     :finished (lambda (output error status arguments)
+                 (let ((conflicts-buffer (dvc-get-buffer-create 'xmtn 'conflicts default-directory)))
+                   (pop-to-buffer conflicts-buffer)
+                   (xmtn-conflicts-load-opts)
+                   (set (make-local-variable 'after-insert-file-functions) '(xmtn-conflicts-after-insert-file))
+                   (insert-file-contents "_MTN/conflicts" t)))
+
+     :error (lambda (output error status arguments)
+              (pop-to-buffer error)))))
+
 ;;;###autoload
 (defvar xmtn-revlist-mode-map
   (let ((map (make-sparse-keymap)))
@@ -354,6 +413,7 @@ arg; root. Result is of the form:
     (define-key map "CC" 'xmtn-conflicts-clean)
     (define-key map "MH" 'xmtn-view-heads-revlist)
     (define-key map "MP" 'xmtn-propagate-from)
+    (define-key map "MC" 'xmtn-revlist-show-conflicts)
     map))
 
 ;; items added here should probably also be added to xmtn-diff-mode-menu, -map in xmtn-dvc.el
@@ -361,7 +421,8 @@ arg; root. Result is of the form:
   "Mtn specific revlist menu."
   `("DVC-Mtn"
     ["View Heads"       xmtn-view-heads-revlist t]
-    ["Show merge conflicts" xmtn-conflicts-merge t]
+    ["Show merge conflicts before merge" xmtn-conflicts-merge t]
+    ["Show merge conflicts after merge" xmtn-revlist-show-conflicts t]
     ["Show propagate conflicts" xmtn-conflicts-propagate t]
     ["Review conflicts" xmtn-conflicts-review t]
     ["Propagate branch" xmtn-propagate-from t]
@@ -380,8 +441,14 @@ arg; root. Result is of the form:
     (xmtn--setup-revlist
      root
      'xmtn--revlist--missing-get-info
-     ;; Passing nil as first-line-only-p, last-n is arbitrary here.
-     nil nil))
+     ;; Passing nil as first-line-only-p is arbitrary here.
+     ;;
+     ;; When the missing revs are due to a propagate, there can be a
+     ;; lot of them, but we only really need to see the revs since the
+     ;; propagate. So dvc-log-last-n is appropriate. We use
+     ;; dvc-log-last-n, not dvc-revlist-last-n, because -log is user
+     ;; customizable.
+     nil dvc-log-last-n))
   nil)
 
 ;;;###autoload
@@ -549,7 +616,7 @@ To be invoked from an xmtn revlist buffer."
   (let* ((root (dvc-tree-root))
          (entry (dvc-revlist-current-patch-struct))
          (target-hash-id (xmtn--revlist-entry-revision-hash-id entry)))
-    (xmtn--update-after-confirmation root target-hash-id)))
+    (xmtn--update root target-hash-id nil nil)))
 
 ;; Being able to conveniently disapprove whole batches of revisions
 ;; is going to be a lot of fun.

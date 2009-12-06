@@ -6,7 +6,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -78,6 +78,7 @@
 
 ;;; Code:
 
+(require 'dired-x)
 (require 'dvc-register)
 (require 'dvc-core)
 (require 'dvc-defs)
@@ -129,7 +130,8 @@ to (dvc-current-file-list)."
 
 ;;;###autoload
 (defun dvc-remove-files (&rest files)
-  "Remove FILES for the currently active dvc."
+  "Remove FILES for the currently active dvc.
+Return t if files removed, nil if not (due to user confirm or error)."
   (interactive (dvc-current-file-list))
   (when (setq files (dvc-confirm-file-op "remove" files t))
     (dvc-apply "dvc-remove-files" files)))
@@ -282,15 +284,15 @@ If DONT-SWITCH is non-nil, just show the diff buffer, don't select it."
 ;;;###autoload
 (defun dvc-log (&optional path last-n)
   "Display the brief log for PATH (a file-name; default current
-buffer file name; nil means entire tree), LAST-N entries (default
-`dvc-log-last-n'; all if nil). LAST-N may be specified
-interactively. Use `dvc-changelog' for the full log."
-  (interactive (list (buffer-file-name)
-                     (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
+buffer file name; nil means entire tree; prefix arg means prompt
+for tree), LAST-N entries (default `dvc-log-last-n'; all if
+nil). Use `dvc-changelog' for the full log."
+  (interactive (list (if current-prefix-arg nil (buffer-file-name))
+                     dvc-log-last-n))
   (let ((default-directory
           (dvc-read-project-tree-maybe "DVC tree root (directory): "
                                        (when path (expand-file-name path))
-                                       t)))
+                                       (not current-prefix-arg))))
     ;; Since we have bound default-directory, we don't need to pass
     ;; 'root' to the back-end.
     (dvc-call "dvc-log" path last-n))
@@ -298,7 +300,9 @@ interactively. Use `dvc-changelog' for the full log."
 
 (defun dvc-apply-patch (patch-name)
   "Apply patch `patch-name' on current-tree."
-  (interactive "fPatch: ")
+  (interactive (list (read-from-minibuffer "Patch: "
+                                     nil nil nil nil
+                                     (dired-filename-at-point))))
   (let ((current-dvc (dvc-current-active-dvc)))
     (case current-dvc
       ('xgit (xgit-apply-patch patch-name))
@@ -437,17 +441,18 @@ reused. `default-directory' must be the tree root."
     (case (length log-edit-buffers)
       (0 ;; Need to create a new log-edit buffer. In the log-edit
        ;; buffer, dvc-partner-buffer must be set to a buffer with a
-       ;; mode that dvc-current-file-list supports. That is
-       ;; currently dvc-diff-mode or dired-mode; we don't have a way
-       ;; to find dired-mode buffers, so we ignore those.
-       (let ((diff-status-buffers
-              (append (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'diff default-directory)
-                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'status default-directory)
-                      (dvc-get-matching-buffers dvc-buffer-current-active-dvc 'conflicts default-directory)))
+       ;; mode that dvc-current-file-list supports.
+       ;; dvc-buffer-current-active-dvc could be nil here, so we have
+       ;; to use dvc-current-active-dvc, and let it prompt.
+       (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
+              (diff-status-buffers
+               (append (dvc-get-matching-buffers dvc-temp-current-active-dvc 'diff default-directory)
+                       (dvc-get-matching-buffers dvc-temp-current-active-dvc 'status default-directory)
+                       (dvc-get-matching-buffers dvc-temp-current-active-dvc 'conflicts default-directory)))
              (activated-from-bookmark-buffer (eq major-mode 'dvc-bookmarks-mode)))
          (case (length diff-status-buffers)
            (0 (if (not activated-from-bookmark-buffer)
-                  (error "Must have a DVC diff or status buffer before calling dvc-log-edit")
+                  (error "Must have a DVC diff, status, or conflict buffer before calling dvc-log-edit")
                 (dvc-call "dvc-log-edit" (dvc-tree-root) other-frame nil)))
            (1
             (set-buffer (nth 1 (car diff-status-buffers)))
@@ -461,9 +466,9 @@ reused. `default-directory' must be the tree root."
 
               ;; give up. IMPROVEME: could prompt
               (if dvc-buffer-current-active-dvc
-                  (error "More than one dvc-diff or dvc-status buffer for %s in %s; can't tell which to use. Please close some."
+                  (error "More than one diff, status, or conflict buffer for %s in %s; can't tell which to use. Please close some."
                          dvc-buffer-current-active-dvc default-directory)
-                (error "More than one dvc-diff or dvc-status buffer for %s; can't tell which to use. Please close some."
+                (error "More than one diff, status, or conflict buffer for %s; can't tell which to use. Please close some."
                        default-directory)))))))
 
       (1 ;; Just reuse the buffer. In this call, we can't use

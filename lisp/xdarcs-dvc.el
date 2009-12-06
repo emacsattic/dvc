@@ -40,6 +40,9 @@
 (defalias 'xdarcs-dvc-tree-root 'xdarcs-tree-root)
 
 ;;;###autoload
+(defalias 'xdarcs-dvc-log-edit-done 'xdarcs-log-edit-done)
+
+;;;###autoload
 (defalias 'xdarcs-dvc-command-version 'xdarcs-command-version)
 
 ;;;###autoload

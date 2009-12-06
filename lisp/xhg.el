@@ -6,7 +6,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -41,6 +41,8 @@
 ;;    Run 'hg add' to add all files to mercurial.
 ;;  `xhg-log'
 ;;    Run hg log.
+;;  `xhg-search-regexp-in-log'
+;;    Run hg log -k <pattern>
 ;;  `xhg-diff-1'
 ;;    Run hg diff.
 ;;  `xhg-dvc-diff'
@@ -51,6 +53,12 @@
 ;;    Run hg push.
 ;;  `xhg-clone'
 ;;    Run hg clone.
+;;  `xhg-dired-clone'
+;;    Run `xhg-clone' from dired.
+;;  `xhg-bundle'
+;;    Run hg bundle.
+;;  `xhg-unbundle'
+;;    Run hg unbundle.
 ;;  `xhg-incoming'
 ;;    Run hg incoming.
 ;;  `xhg-outgoing'
@@ -133,6 +141,7 @@
 
 ;;; Code:
 
+(require 'dired-x)
 (require 'dvc-core)
 (require 'dvc-diff)
 (require 'xhg-core)
@@ -341,6 +350,29 @@ negative : Don't show patches, limit to n revisions."
                                 (insert (format "hg log for %s\n\n" default-directory))
                                 (toggle-read-only 1)))))))))
 
+;;;###autoload
+(defun xhg-search-regexp-in-log ()
+  "Run hg log -k <pattern>"
+  (interactive)
+  (let* ((regex  (read-string "Pattern: "))
+         (args   `("log" "-k" ,regex))
+         (buffer (dvc-get-buffer-create 'xhg 'log)))
+    (dvc-switch-to-buffer-maybe buffer)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (xhg-log-mode)
+    (dvc-run-dvc-sync 'xhg args
+                      :finished
+                      (dvc-capturing-lambda (output error status arguments)
+                        (progn
+                          (with-current-buffer (capture buffer)
+                            (let ((inhibit-read-only t))
+                              (erase-buffer)
+                              (insert-buffer-substring output)
+                              (goto-char (point-min))
+                              (insert (format "hg log for %s\n\n" default-directory))
+                              (toggle-read-only 1))))))))
+
 (defun xhg-parse-diff (changes-buffer)
   (save-excursion
     (while (re-search-forward
@@ -521,12 +553,33 @@ If DONT-SWITCH, don't switch to the diff buffer"
 
 ;;;###autoload
 (defun xhg-dired-clone ()
+  "Run `xhg-clone' from dired."
   (interactive)
   (let* ((source (dired-filename-at-point))
          (target
           (read-string (format "Clone(%s)To: " (file-name-nondirectory source))
                        (file-name-directory source))))
     (xhg-clone source target)))
+
+;;;###autoload
+(defun xhg-bundle (name)
+  "Run hg bundle."
+  (interactive "sBundleName: ")
+  (let ((bundle-name (if (string-match ".*\.hg$" name)
+                         name
+                       (concat name ".hg"))))
+    (dvc-run-dvc-async 'xhg (list "bundle" "--base" "null" bundle-name))))
+
+;;;###autoload
+(defun xhg-unbundle (fname)
+  "Run hg unbundle."
+  (interactive "fBundleName: ")
+  (dvc-run-dvc-async 'xhg (list "unbundle" (expand-file-name fname))
+                     :finished
+                     (dvc-capturing-lambda (output error status arguments)
+                       (if (y-or-n-p "Update now?")
+                           (xhg-update)
+                         (message "Don't forget to update!")))))
 
 ;;;###autoload
 (defun xhg-incoming (&optional src show-patch no-merges)
@@ -990,9 +1043,9 @@ Called with two prefix-args run hg update -C <branch-name> (switch to branch)."
                         (dvc-default-finish-function output error status arguments)
                         (message "hg %s complete for %s" opt-string default-directory)))))
 
-(defun xhg-convert (source target)
+(defun xhg-convert (source target &optional revnum)
   "Convert a foreign SCM repository to a Mercurial one.
-
+With prefix arg prompt for REVNUM.
    Accepted source formats [identifiers]:(Mercurial-1.1.2)
     - Mercurial [hg]
     - CVS [cvs]
@@ -1010,14 +1063,17 @@ hgext.convert =
 Read also: hg help convert.
 "
   (interactive "DSource: \nsTarget: ")
-  (message "Started hg conversion of [%s] to [%s] ..." source target)
-  (dvc-run-dvc-async 'xhg (list "convert"
-                                (expand-file-name source)
-                                (expand-file-name target))
-                     :finished (dvc-capturing-lambda (output error status arguments)
-                                  (let ((default-directory (capture target)))
-                                    (xhg-update))
-                                  (message "hg: [%s] successfully converted to [%s]" (capture source) (capture target)))))
+  (let* ((src      (expand-file-name source))
+         (tget     (expand-file-name target))
+         (rev      (if current-prefix-arg (read-string "Revision: ") revnum))
+         (arg-list (if rev (list "convert" src tget "-r" rev) (list "convert" src tget))))
+    (message "HG conversion of `%s' to `%s' ..." source target)
+    (dvc-run-dvc-async 'xhg arg-list
+                       :finished (dvc-capturing-lambda (output error status arguments)
+                                   (let ((default-directory (capture target)))
+                                     (xhg-update))
+                                   (message "HG conversion of `%s' to `%s' ... done."
+                                            (capture source) (capture target))))))
 
 ;; --------------------------------------------------------------------------------
 ;; hg serve functionality

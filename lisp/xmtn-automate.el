@@ -1,6 +1,6 @@
 ;;; xmtn-automate.el --- Interface to monotone's "automate" functionality
 
-;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2008, 2009 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -257,6 +257,21 @@
 
 (defvar xmtn-automate--*sessions* '())
 
+(defun xmtn-automate-cache-session (root)
+  "Create a mtn automate session for workspace ROOT, store it in
+session cache, return it (for later kill)."
+  (let* ((default-directory (file-name-as-directory root))
+         (key (file-truename default-directory))
+         (session (xmtn-automate--make-session root key)))
+    (setq xmtn-automate--*sessions*
+          (acons key session xmtn-automate--*sessions*))
+    session))
+
+(defun xmtn-automate-get-cached-session (key)
+  "Return a session from the cache, or nil."
+  ;; separate function so we can debug it
+  (cdr (assoc key xmtn-automate--*sessions*)))
+
 (defmacro* xmtn-automate-with-session ((session-var-or-null root-form &key)
                                        &body body)
   "Call BODY, after ensuring an automate session for ROOT-FORM is active."
@@ -276,7 +291,7 @@
         (thunk (gensym)))
     `(let* ((,root (file-name-as-directory ,root-form))
             (,key (file-truename ,root))
-            (,session (cdr (assoc ,key xmtn-automate--*sessions*)))
+            (,session (xmtn-automate-get-cached-session ,key))
             (,thunk (lambda ()
                       (let ((,session-var ,session))
                         ,@body))))
@@ -286,6 +301,10 @@
              (progn
                (setq ,session (xmtn-automate--make-session ,root ,key))
                (let ((xmtn-automate--*sessions*
+               ;; note the let-binding here; these sessions are _not_
+               ;; available for later commands. use
+               ;; xmtn-automate-cache-session to get a persistent
+               ;; session.
                       (acons ,key ,session xmtn-automate--*sessions*)))
                  (funcall ,thunk)))
            (when ,session (xmtn-automate--close-session ,session)))))))
@@ -332,6 +351,9 @@ Then execute BODY."
   nil)
 
 (defun xmtn-automate-simple-command-output-string (root command)
+  "Send COMMAND (a list of strings, or cons of lists of strings)
+to current session. If car COMMAND is a list, car COMMAND is
+options, cdr is command. Return result as a string."
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
       (xmtn-automate-command-check-for-and-report-error handle)
@@ -351,24 +373,24 @@ options, cdr is command. Insert result into BUFFER."
          (xmtn-automate-command-buffer handle))))))
 
 (defun xmtn-automate-command-output-lines (handle)
+  ;; Return list of lines of output; first line output is first in
+  ;; list.
   (xmtn-automate-command-check-for-and-report-error handle)
   (xmtn-automate-command-wait-until-finished handle)
-  ;; Maybe a simple buffer-substring-no-properties and split-string
-  ;; would be more efficient.  I don't know.
   (save-excursion
     (set-buffer (xmtn-automate-command-buffer handle))
     (goto-char (point-min))
-    (loop while (< (point) (point-max))
-          collect (buffer-substring-no-properties (point)
-                                                  (progn (end-of-line)
-                                                         (point)))
-          do
-          (forward-line 1)
-          (xmtn--assert-optional (bolp)))))
+    (let (result)
+      (while (< (point) (point-max))
+        (setq result (cons (buffer-substring-no-properties
+                            (point)
+                            (progn (end-of-line) (point)))
+                           result))
+        (forward-line 1))
+      (nreverse result))))
 
-;; This one is useful.
 (defun xmtn-automate-simple-command-output-lines (root command)
-  "Return string containing output of COMMAND."
+  "Return list of strings containing output of COMMAND, one line per string."
   (xmtn-automate-with-session (session root)
     (xmtn-automate-with-command (handle session command)
       (xmtn-automate-command-output-lines handle))))
@@ -443,6 +465,7 @@ Signals an error if output contains zero lines or more than one line."
   nil)
 
 (defun xmtn-automate--make-session (root key)
+  (dvc-trace "new session %s" key)
   (let* ((name (format "xmtn automate session for %s" key)))
     (let ((session (xmtn-automate--%make-raw-session)))
       (xmtn-automate--initialize-session session :root root :name name)
@@ -476,8 +499,7 @@ Signals an error if output contains zero lines or more than one line."
       ;; Process died for some reason - most likely 'mtn not found in
       ;; path'. Don't warn if buffer hasn't been deleted; that
       ;; obscures the real error message
-      ;; FIXME: if that is the reason, this assert fails. Disable assertions for now, fix later
-      (xmtn--assert-optional (null (xmtn-automate--session-buffer session))))
+      nil)
      ((ecase (process-status process)
         (run nil)
         (exit t)
@@ -573,7 +595,7 @@ Signals an error if output contains zero lines or more than one line."
                  (exit nil)
                  (signal nil))
           (accept-process-output process))
-        ;;(dvc-trace "Process in root %s terminated" root)
+        (dvc-trace "Process in root %s terminated" root)
         ))
     (xmtn-automate--initialize-session
      session
@@ -976,7 +998,11 @@ Each element of the list is a list; key, signature, name, value, trust."
     accu))
 
 (defun xmtn--heads (root branch)
-  (xmtn-automate-simple-command-output-lines root `("heads" ,branch)))
+  ;; apparently stdio automate doesn't default arguments properly;
+  ;; this fails if branch is not passed to mtn.
+  (xmtn-automate-simple-command-output-lines root (list "heads"
+                                                        (or branch
+                                                            (xmtn--tree-default-branch root)))))
 
 (defun xmtn--tree-default-branch (root)
   (xmtn-automate-simple-command-output-line root `("get_option" "branch")))

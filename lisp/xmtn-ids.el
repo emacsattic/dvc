@@ -1,6 +1,6 @@
 ;;; xmtn-ids.el --- Resolver routines for xmtn revision ids
 
-;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2008, 2009 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -30,7 +30,7 @@
 ;; This way, previous-revision can contain any nested BACKEND-ID.
 ;; This simplifies the code and may be useful.
 ;;
-;; REVISION-ID :: (xmtn BACKEND-ID)
+;; REVISION-ID :: (xmtn BACKEND-ID) | "selector"
 ;;
 ;; BACKEND-ID :: BACKEND-REVISION
 ;;             | (revision BACKEND-REVISION)
@@ -82,50 +82,54 @@
   "Return the hash-id from a REVISION-ID"
   (car (cdadr revision-id)))
 
-(defun xmtn--resolve-revision-id (root revision-id)
-  "Resolve REVISION-ID to a RESOLVED-BACKEND-ID.
+(defun xmtn--resolve-revision-id-1 (root revision-id)
+  "Resolve dvc REVISION-ID to a RESOLVED-BACKEND-ID."
+  (ecase (car revision-id)
+    ('xmtn
+     (xmtn--resolve-backend-id root (cadr revision-id)))))
 
-See file commentary for details."
+(defun xmtn--resolve-revision-id (root revision-id)
+  "Resolve REVISION-ID to a RESOLVED-BACKEND-ID. REVISION-ID may
+be a dvc revision (list starting with 'xmtn) or a string
+containing a mtn selector."
   (unless root (setq root (dvc-tree-root)))
-  (xmtn-match revision-id
-    ((xmtn $backend-id)
-     (let ((resolved-backend-id (xmtn--resolve-backend-id root backend-id)))
-       resolved-backend-id))))
+  (cond
+   ((listp revision-id)
+    (xmtn--resolve-revision-id-1 root revision-id))
+   ((stringp revision-id)
+    (xmtn--resolve-revision-id-1
+     root
+     (list 'xmtn (list 'revision (car (xmtn--expand-selector root revision-id))))))
+   (t
+    (error "revision-id must be a list or string"))))
 
 (defun xmtn--resolve-backend-id (root backend-id)
   "Resolve BACKEND-ID to a RESOLVED-BACKEND-ID.
 
 See file commentary for details."
   (let ((resolved-backend-id
-         (xmtn-automate-with-session (nil root)
-           (etypecase backend-id
-             (xmtn--hash-id
-              (xmtn--resolve--revision root backend-id))
-             (list
-              (xmtn-match backend-id
-                ((revision $backend-revision)
-                 (xmtn--resolve--revision root backend-revision))
-                ((local-tree $path)
-                 (xmtn--resolve--local-tree root path))
-                ((last-revision $path $num)
-                 (xmtn--resolve--last-revision root path num))
-                ((previous-revision $base-backend-id . $optional-num)
-                 (destructuring-bind (&optional num) optional-num
-                   (unless num (setq num 1))
-                   (xmtn--resolve--previous-revision root
-                                                     base-backend-id
-                                                     num)))))))))
+         (etypecase backend-id
+           (xmtn--hash-id
+            (list 'revision backend-id))
+           (list
+            (xmtn-match backend-id
+              ((revision $backend-revision)
+               backend-id)
+              ((local-tree $path)
+               backend-id)
+              ((last-revision $path $num)
+               (xmtn--resolve--last-revision root path num))
+              ((previous-revision $base-backend-id . $optional-num)
+               (destructuring-bind (&optional num) optional-num
+                 (unless num (setq num 1))
+                 (xmtn--resolve--previous-revision root
+                                                   base-backend-id
+                                                   num))))))))
     ;; Small sanity check.  Also implicit documentation.
     (xmtn-match resolved-backend-id
       ((revision $hash-id) (assert (typep hash-id 'xmtn--hash-id)))
       ((local-tree $string) (assert (typep string 'string))))
     resolved-backend-id))
-
-(defun xmtn--resolve--revision (root hash-id)
-  (check-type hash-id xmtn--hash-id)
-  ;; I don't really know whether this is a good idea.
-  (xmtn--error-unless-revision-exists root hash-id)
-  `(revision ,hash-id))
 
 (defun xmtn--resolve--local-tree (root path)
   (check-type path string)
@@ -148,9 +152,27 @@ See file commentary for details."
                                   ,base-revision-hash-id
                                   ,(1- num))))))
 
+(defun xmtn--get-parent-revision-hash-id (root hash-id local-branch)
+  (check-type hash-id xmtn--hash-id)
+  (let ((parents (xmtn-automate-simple-command-output-lines root `("parents"
+                                                                   ,hash-id))))
+    (case (length parents)
+      (0 (error "Revision has no parents: %s" hash-id))
+      (1 (let ((parent (first parents)))
+           (assert (typep parent 'xmtn--hash-id))
+           parent))
+      (t
+       ;; If this revision is the result of a propagate, there are two parents, one of which is on the local branch
+       (let ((first-parent-branch (xmtn--branch-of root (first parents))))
+         (if (equal local-branch first-parent-branch)
+             (first parents)
+           (second parents)))
+       ))))
+
 (defun xmtn--resolve--previous-revision (root backend-id num)
   (check-type num (integer 0 *))
-  (let ((resolved-id (xmtn--resolve-backend-id root backend-id)))
+  (let ((local-branch (xmtn--tree-default-branch root))
+        (resolved-id (xmtn--resolve-backend-id root backend-id)))
     (if (zerop num)
         resolved-id
       (ecase (first resolved-id)
@@ -166,7 +188,7 @@ See file commentary for details."
            (check-type hash-id xmtn--hash-id)
            (loop repeat num
                  ;; If two parents of this rev, use parent on same branch as rev.
-                 do (setq hash-id (xmtn--get-parent-revision-hash-id root hash-id t)))
+                 do (setq hash-id (xmtn--get-parent-revision-hash-id root hash-id local-branch)))
            `(revision ,hash-id)))))))
 
 (defun xmtn--error-unless-revision-exists (root hash-id)
@@ -209,33 +231,8 @@ must be a workspace."
                   (xmtn-basic-io-parse-line
                       (if (string= symbol "value")
                           (add-to-list 'result (cadar value)))))
-              nil)))))
+              )))))
     result))
-
-(defun xmtn--get-parent-revision-hash-id (root hash-id &optional multi-parent-use-local-branch)
-  (check-type hash-id xmtn--hash-id)
-  (let ((parents (xmtn-automate-simple-command-output-lines root `("parents"
-                                                                   ,hash-id))))
-    (case (length parents)
-      (0 (error "Revision has no parents: %s" hash-id))
-      (1 (let ((parent (first parents)))
-           (assert (typep parent 'xmtn--hash-id))
-           parent))
-      (t
-       (if multi-parent-use-local-branch
-           ;; If this revision is the result of a propagate, there are two parents, one of which is on the local branch
-           (let ((local-branch (xmtn--tree-default-branch root))
-                 (first-parent-branch (xmtn--branch-of root (first parents))))
-             (if (equal local-branch first-parent-branch)
-                 (first parents)
-               (second parents)))
-         ;; Otherwise, just error.  Depending on the context, we should
-         ;; prompt which parent is desired, or operate on all of them.
-         ;; This function is too low-level to decide what to do, though.
-         ;; Need to wait for use cases.
-         (error "Revision has more than one parent (%s): %s"
-                (length parents)
-                hash-id))))))
 
 (defun xmtn--get-base-revision-hash-id-or-null (root)
   (let ((hash-id (xmtn-automate-simple-command-output-line

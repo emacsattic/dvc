@@ -1,12 +1,12 @@
 ;;; dvc-utils.el --- Utility functions for DVC
 
-;; Copyright (C) 2005 - 2008 by all contributors
+;; Copyright (C) 2005 - 2009 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -576,7 +576,7 @@ it is a valid project tree."
        (if (or directory (and prefer-current root))
            (if root
                root
-             (error "%s directory is not a DVC managed directory" directory))
+             (dvc-read-directory-name prompt))
          (dvc-read-directory-name prompt)))
 
       (sometimes (or root
@@ -652,30 +652,33 @@ merged by another revision in the same list."
 If optional FILTER is non-nil, skip elements for which FILTER
 returns non-nil. FILTER is called with one argument, the ewoc
 element. If optional NO-DING, don't ding if there is no next."
-     (let* ((current (ewoc-locate ,ewoc))
-            (cur-location (ewoc-location current))
-            (next (ewoc-next ,ewoc current)))
-       (cond
-        ((> cur-location (point))
-         ;; not exactly at an element; move there
-         (goto-char cur-location)
-         (dvc-ewoc-maybe-scroll ,ewoc current))
+     (let ((current (ewoc-locate ,ewoc)))
+       (if current
+           (let ((cur-location (ewoc-location current))
+                 (next (ewoc-next ,ewoc current)))
+             (cond
+              ((> cur-location (point))
+               ;; not exactly at an element; move there
+               (goto-char cur-location)
+               (dvc-ewoc-maybe-scroll ,ewoc current))
 
-        (next
-         (if filter
-             (progn
-               (while (and next
-                           (funcall filter next))
-                 (setq next (ewoc-next ,ewoc next)))
-               (if next
-                   (goto-char (ewoc-location next))
-                 (unless no-ding (ding))))
-           (goto-char (ewoc-location next))
-           (dvc-ewoc-maybe-scroll ,ewoc next)))
+              (next
+               (if filter
+                   (progn
+                     (while (and next
+                                 (funcall filter next))
+                       (setq next (ewoc-next ,ewoc next)))
+                     (if next
+                         (goto-char (ewoc-location next))
+                       (unless no-ding (ding))))
+                 (goto-char (ewoc-location next))
+                 (dvc-ewoc-maybe-scroll ,ewoc next)))
 
-        (t
-         ;; at last element
-         (unless no-ding (ding)))))))
+              (t
+               ;; at last element
+               (unless no-ding (ding)))))
+         ;; no elements
+         (unless no-ding (ding))))))
 
 (defmacro dvc-make-ewoc-prev (function-name ewoc)
   "Declare a function FUNCTION-NAME to move to the previous EWOC entry."
@@ -686,27 +689,30 @@ If optional FILTER is non-nil, skip elements for which FILTER
 returns non-nil. FILTER is called with one argument, the ewoc
 element. If optional NO-DING, don't ding if there is no next."
      (interactive)
-     (let* ((current (ewoc-locate ,ewoc))
-            (cur-location (ewoc-location current))
-            (prev (ewoc-prev ,ewoc current)))
-       (cond
-        ((> (point) cur-location)
-         (goto-char cur-location))
+     (let ((current (ewoc-locate ,ewoc)))
+       (if current
+           (let ((cur-location (ewoc-location current))
+                 (prev (ewoc-prev ,ewoc current)))
+             (cond
+              ((> (point) cur-location)
+               (goto-char cur-location))
 
-        (prev
-         (if filter
-             (progn
-               (while (and prev
-                           (funcall filter prev))
-                 (setq prev (ewoc-prev ,ewoc prev)))
-               (if prev
-                   (goto-char (ewoc-location prev))
-                 (unless no-ding (ding))))
-           (goto-char (ewoc-location prev))))
+              (prev
+               (if filter
+                   (progn
+                     (while (and prev
+                                 (funcall filter prev))
+                       (setq prev (ewoc-prev ,ewoc prev)))
+                     (if prev
+                         (goto-char (ewoc-location prev))
+                       (unless no-ding (ding))))
+                 (goto-char (ewoc-location prev))))
 
-        (t
-         ;; at first element
-         (unless no-ding (ding)))))))
+              (t
+               ;; at first element
+               (unless no-ding (ding)))))
+         ;; no elements
+         (unless no-ding (ding))))))
 
 (defun dvc-scroll-maybe (buffer up-or-down)
   "If BUFFER exists, show it, scroll and return non-nil.

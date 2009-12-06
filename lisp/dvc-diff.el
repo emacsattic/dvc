@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -46,7 +46,7 @@
 
 (defun dvc-dvc-search-file-in-diff (file)
   "Default for \"dvc-search-file-in-diff\". Place point on diff hunk for FILE."
-  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\)/" file "\\(.+[0-9][0-9][0-9][0-9]\\)?$")))
+  (re-search-forward (concat "^\\+\\+\\+ \\(b\\|mod\\|new-[^/\n]+\\)/" file "\\(.+[0-9][0-9][0-9][0-9]\\)?$")))
 
 (defun dvc-prepare-changes-buffer (base modified type path dvc)
   "Create and return a buffer to run command showing diffs.
@@ -57,6 +57,8 @@ MODIFIED.
 TYPE must be found in `dvc-buffer-type-alist'.
 
 PATH must match mode in `dvc-buffer-type-alist' for TYPE.
+
+DVC is the backend in effect.
 
 TYPE and PATH are passed to `dvc-get-buffer-create'."
   (with-current-buffer
@@ -143,7 +145,7 @@ Pretty-print ELEM."
     (define-key map [(meta return)]                           'dvc-diff-scroll-down-or-diff)
     (define-key map "\M-\C-m"                                 'dvc-diff-scroll-down-or-diff)
     (define-key map [?=]                                      'dvc-diff-diff)
-    (define-key map dvc-keyvec-add                            'dvc-add-files)
+    (define-key map dvc-keyvec-add                            'dvc-fileinfo-add-files)
     (define-key map "\M-d"                                    'dvc-diff-dtrt)
     (define-key map "E"                                       'dvc-fileinfo-toggle-exclude)
     (define-key map "\M-e"                                    'dvc-edit-exclude)
@@ -158,10 +160,10 @@ Pretty-print ELEM."
 
     (define-key map dvc-keyvec-next                           'dvc-diff-next)
     (define-key map dvc-keyvec-previous                       'dvc-diff-prev)
-    (define-key map dvc-keyvec-revert                         'dvc-revert-files)
+    (define-key map dvc-keyvec-revert                         'dvc-fileinfo-revert-files)
     (define-key map dvc-keyvec-quit                           'dvc-buffer-quit)
     (define-key map dvc-keyvec-remove                         'dvc-fileinfo-remove-files)
-    (define-key map [?d]                                      'dvc-remove-files) ; as in dired
+    (define-key map [?d]                                      'dvc-fileinfo-remove-files) ; as in dired
     (define-key map dvc-keyvec-mark                           'dvc-diff-mark-file)
     (define-key map dvc-keyvec-mark-all                       'dvc-fileinfo-mark-all)
     (define-key map dvc-keyvec-unmark                         'dvc-diff-unmark-file)
@@ -179,10 +181,10 @@ Pretty-print ELEM."
     (define-key map (dvc-prefix-buffer dvc-key-show-bookmark) 'dvc-bookmarks)
 
     ;; Ignore file handling
-    (define-key map (dvc-prefix-tagging-method ?i)            'dvc-ignore-files)
+    (define-key map (dvc-prefix-tagging-method ?i)            'dvc-fileinfo-ignore-files)
     (define-key map (dvc-prefix-tagging-method ?I)            'dvc-ignore-file-extensions)
     (define-key map (dvc-prefix-tagging-method ?e)            'dvc-edit-ignore-files)
-    (define-key map [?i]                                      'dvc-ignore-files)
+    (define-key map [?i]                                      'dvc-fileinfo-ignore-files)
     (define-key map [?I]                                      'dvc-ignore-file-extensions-in-dir)
     (define-key map "\M-I"                                    'dvc-ignore-file-extensions)
 
@@ -210,9 +212,9 @@ Pretty-print ELEM."
     ["Log (full tree)"                dvc-diff-log-tree       t]
     ["Log (single file)"              dvc-diff-log-single     t]
     "--"
-    ["Delete File"                    dvc-remove-files        t]
-    ["Delete File"                    dvc-remove-files        t]
-    ["Add File"                       dvc-add-files           t]
+    ["Delete File"                    dvc-fileinfo-remove-files t]
+    ["Revert File"                    dvc-fileinfo-revert-files t]
+    ["Add File"                       dvc-fileinfo-add-files    t]
     )
   "Used both in the global and the context menu of `dvc-diff-mode'.")
 
@@ -237,7 +239,7 @@ Pretty-print ELEM."
      ["Unmark all"  dvc-fileinfo-unmark-all t]
      )
     ("Ignore"
-     ["Ignore Files" dvc-ignore-files t]
+     ["Ignore Files" dvc-fileinfo-ignore-files t]
      ["Ignore File Extensions" dvc-ignore-file-extensions t]
      ["Edit Ignore File" dvc-edit-ignore-files t]
      )
@@ -292,7 +294,7 @@ Commands:
   (setq dvc-fileinfo-ewoc (ewoc-create 'dvc-fileinfo-printer))
   (setq dvc-buffer-marked-file-list nil)
   (dvc-install-buffer-menu)
-  (toggle-read-only 1)
+  (setq buffer-read-only t)
   (set-buffer-modified-p nil))
 
 (dvc-add-uniquify-directory-mode 'dvc-diff-mode)
@@ -339,7 +341,7 @@ file; otherwise visit the modified file."
       (diff-goto-source other-file))))
 
 (defun dvc-diff-scroll-or-diff (up-or-down)
-  "If file-diff buffer is visible, scroll. Otherwise, show it."
+  "If file-diff buffer is visible, call UP-OR-DOWN.  Otherwise, show it."
   (let ((file (dvc-get-file-info-at-point)))
     (unless file
       (error "No file at point."))
@@ -358,7 +360,7 @@ file; otherwise visit the modified file."
 (defun dvc-diff-diff-or-list ()
   "Jump between list entry and corresponding diff hunk.
 When in the list, jump to the corresponding
-diff. When on a diff, jump to the corresponding entry in the list."
+diff.  When on a diff, jump to the corresponding entry in the list."
   (interactive)
   (if (dvc-diff-in-ewoc-p)
       (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
@@ -405,9 +407,9 @@ If on a message, mark the group to the next message."
          (dvc-fileinfo-next))))))
 
 (defun dvc-diff-mark-group (&optional unmark)
-  "Mark a group of files.
+  "Mark (or UNMARK) a group of files.
 
-Must be called with the cursor on a 'message ewoc entry. Marks all
+Must be called with the cursor on a 'message ewoc entry.  Marks all
 files until the end of the ewoc, or the next ewoc entry which is not
 a 'file."
   (if (not (dvc-diff-in-ewoc-p))
@@ -446,7 +448,7 @@ a 'file."
 
 (defun dvc-diff-unmark-file (&optional up)
   "Unmark the file under point.
-If on a message, unmark the group to the next message. If
+If on a message, unmark the group to the next message.  If
 optional UP, move to previous file first; otherwise move to next
 file after."
   (interactive)
@@ -534,7 +536,7 @@ file after."
           (ediff-jump-to-difference hunk))))))
 
 (defun dvc-diff-log-single (&optional last-n)
-  "Show log for current file, LAST-N entries (default
+  "Show log for current file, LAST-N entries. (default
 `dvc-log-last-n'; all if nil). LAST-N may be specified
 interactively."
   (interactive (list (if current-prefix-arg (prefix-numeric-value current-prefix-arg) dvc-log-last-n)))
@@ -549,7 +551,7 @@ interactively."
 
 (defun dvc-diff-find-file-name ()
   "Same as `diff-find-file-name', but works in more cases."
-  (cond ((re-search-backward "^\\+\\+\\+ \\(mod/\\|b/\\)?\\([^\n]*?\\)\\([ \t].*\\)?$" nil t)
+  (cond ((re-search-backward "^\\+\\+\\+ \\(mod/\\|b/\\|new-[^/\n]+/\\)?\\([^\n]*?\\)\\([ \t].*\\)?$" nil t)
          (match-string-no-properties 2))
         ((not (ewoc-locate dvc-fileinfo-ewoc (point))) ;; the buffer contains no diff
          "")
@@ -642,7 +644,7 @@ CMD, if non-nil, is prepended to dvc-header."
           (with-current-buffer changes-buffer
             (ewoc-set-hf dvc-fileinfo-ewoc dvc-header footer)
             (if root (cd root)))))))
-  (toggle-read-only 1)
+  (setq buffer-read-only t)
   (if (progn (goto-char (point-min))
              (re-search-forward "^---" nil t))
       (when (or global-font-lock-mode font-lock-mode)
@@ -748,8 +750,8 @@ Useful to clear diff buffers after a commit."
          (dvc-fileinfo-same-status marked-elems)
          (ding)
          (dvc-offer-choices (concat (dvc-fileinfo-current-file) " does not exist in working directory")
-                            '((dvc-revert-files "revert")
-                              (dvc-remove-files "remove")
+                            '((dvc-fileinfo-revert-files "revert")
+                              (dvc-fileinfo-remove-files "remove")
                               (dvc-fileinfo-rename "rename"))))))
 
       (modified
@@ -775,9 +777,9 @@ Useful to clear diff buffers after a commit."
         (t
          (dvc-fileinfo-same-status marked-elems)
          (dvc-offer-choices nil
-                            '((dvc-add-files "add")
-                              (dvc-ignore-files "ignore")
-                              (dvc-remove-files "remove")
+                            '((dvc-fileinfo-add-files "add")
+                              (dvc-fileinfo-ignore-files "ignore")
+                              (dvc-fileinfo-remove-files "remove")
                               (dvc-fileinfo-rename "rename"))))))
       )))
 
@@ -803,7 +805,7 @@ Useful to clear diff buffers after a commit."
                     1)))))
       (with-current-buffer pristine-buffer
         (set-buffer-modified-p nil)
-        (toggle-read-only 1)
+        (setq buffer-read-only t)
         (let ((buffer-file-name file))
           (set-auto-mode t)))
       (dvc-ediff-buffers pristine-buffer file-buffer))))
@@ -822,10 +824,10 @@ workspace version)."
   (let* ((dvc (or (car base) (dvc-current-active-dvc)))
          (base (or base `(,dvc (last-revision ,file 1))))
          (modified (or modified `(,dvc (local-tree ,file))))
-         (diff-buffer (dvc-get-buffer-create
-                       dvc
-                       'file-diff
-                       (dvc-uniquify-file-name file)))
+         (diff-buffer (dvc-prepare-changes-buffer
+                       base
+                       modified
+                       'file-diff file dvc))
          (base-buffer
           (dvc-revision-get-file-in-buffer file base))
          (modified-buffer
@@ -857,9 +859,8 @@ workspace version)."
     (delete-file base-file)
     (delete-file modified-file)
     (message "")
-    (toggle-read-only 1)
     (goto-char (point-min))
-    (diff-mode)))
+    (setq buffer-read-only t)))
 
 (defun dvc-ediff-startup-hook ()
   "Passed as a startup hook for ediff.

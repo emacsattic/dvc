@@ -1,6 +1,6 @@
 ;;; bzr.el --- Support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -156,7 +156,11 @@ via bzr init-repository."
 (defun bzr-push (&optional repo-path)
   "Run bzr push.
 When called with a prefix argument, add the --remember option"
-  (interactive (list (read-string (format "Push %sto bzr repository: " (if current-prefix-arg "--remember " "")))))
+  (interactive (list (let ((push-branch (bzr-info-branchinfo "push")))
+		       (read-string (format "Push %sto bzr repository [%s]: "
+					    (if current-prefix-arg "--remember " "")
+					    push-branch)
+				    ))))
   (when (string= repo-path "")
     (setq repo-path nil))
   (dvc-run-dvc-async 'bzr (list "push" repo-path (when current-prefix-arg "--remember"))
@@ -367,23 +371,29 @@ TODO: DONT-SWITCH is currently ignored."
 
 TODO: dont-switch is currently ignored."
   (dvc-trace "bzr-delta: base=%S, modified=%S; dir=%S" base modified default-directory)
-  (let* ((base-str (bzr-revision-id-to-string base))
-         (modified-str (bzr-revision-id-to-string modified))
+  (let* ((base-str     (if (stringp base)
+                           base
+                         (bzr-revision-id-to-string base)))
+         (modified-str (if (stringp modified)
+                           modified
+                         (bzr-revision-id-to-string modified)))
          (extra-string (if extra-arg (format ", %s" extra-arg) ""))
          (buffer (dvc-prepare-changes-buffer
                   base modified
                   'revision-diff
-                  (concat (bzr-revision-id-to-string base)
+                  (concat base-str
                           ".."
-                          (bzr-revision-id-to-string modified)
+                          modified-str
                           extra-string)
                   'bzr)))
     (when dvc-switch-to-buffer-first
       (dvc-switch-to-buffer buffer))
     (let ((default-directory
-            (cond ((bzr-revision-id-is-local modified)
+            (cond ((and (consp modified)
+                        (bzr-revision-id-is-local modified))
                    (bzr-revision-id-location modified))
-                  ((bzr-revision-id-is-local base)
+                  ((and (consp base)
+                        (bzr-revision-id-is-local base))
                    (bzr-revision-id-location base))
                   (t default-directory))))
       (dvc-run-dvc-async
@@ -503,11 +513,13 @@ of the commit. Additionally the destination email address can be specified."
                  (setq current-status 'unknown))
                 ((string-equal msg "pending merges:")
                  (setq current-status nil))
+                ((string-equal msg "pending merge tips:")
+                 (setq current-status nil))
                 ((string-equal msg "renamed:")
                  ;; Rename case is handled explictly below
                  (setq current-status nil))
                 (t
-                 (error "unrecognized label %s in bzr-parse-status" msg)))))
+                 (error "unrecognized label '%s' in bzr-parse-status" msg)))))
 
             ((looking-at "^ +\\([^ ][^\n]*?\\)\\([/@]\\)? => \\([^\n]*?\\)\\([/@]\\)?$")
              ;; a renamed file
@@ -1033,10 +1045,25 @@ display the current one."
         (setq new-nick (read-string (format "Change nick from '%s' to: " nick) nil nil nick)))
       (dvc-run-dvc-sync 'bzr (list "nick" new-nick)))))
 
+;;;###autoload
 (defun bzr-info ()
   "Run bzr info."
   (interactive)
   (dvc-run-dvc-display-as-info 'bzr '("info")))
+
+(defun bzr-parse-info-key (kname)
+  "Parse the output of bzr info buffer and return value kname"
+  (progn
+   (re-search-forward (concat"\\s-+ " kname " branch: \\([^\n]*\\)?$") nil 't)
+   (match-string-no-properties 1)))
+
+(defun bzr-info-branchinfo (kname)
+  (dvc-run-dvc-sync 'bzr (list "info")
+		    :finished
+		    (dvc-capturing-lambda (output error status arguments)
+		      (with-current-buffer output
+			(goto-char (point-min))
+			(bzr-parse-info-key kname)))))
 
 (defun bzr-testament ()
   "Run bzr testament."
@@ -1227,6 +1254,12 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
     (bzr-switch-checkout target))
   )
 
+(defun bzr-goto-checkout-root ()
+  "Find the directory containing the checkout source branch"
+  (interactive)
+  (find-file (bzr-info-branchinfo "checkout of")))
+
+
 (defun bzr-create-bundle (rev file-name &optional extra-parameter-list)
   "Call bzr send --output to create a file containing a bundle"
   (interactive (list (bzr-read-revision "Create bundle for revision: ")
@@ -1301,7 +1334,9 @@ this function."
     (mml-attach-file file-name "text/x-patch")
     (goto-char (point-min))
     (mail-position-on-field "Subject")
-    (insert (concat "[PATCH] " summary))))
+    ;; Bundle Buggy, and possibly other tools, require [MERGE] in the
+    ;; subject line in order to detect Bzr merge requests.
+    (insert (concat "[MERGE] " summary))))
 
 ;; provide 'bzr before running bzr-ignore-setup, because bzr-ignore-setup
 ;; loads a file and this triggers the loading of bzr.

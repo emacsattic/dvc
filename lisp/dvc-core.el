@@ -1,6 +1,6 @@
 ;;; dvc-core.el --- Core functions for distributed version control
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions From:
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -152,6 +152,7 @@ The new function is named FUNCTION-by-mouse; and takes one argument,
 a mouse click event.
 Thew new function moves the point to the place where mouse is clicked
 then invoke FUNCTION."
+  (declare (debug (&define name :name -by-mouse)))
   `(defun ,(intern (concat (symbol-name function) "-by-mouse")) (event)
      ,(concat "`" (symbol-name function) "'" " with mouse interface.")
      (interactive "e")
@@ -194,7 +195,8 @@ Otherwise return the buffer file name."
 (defun dvc-current-file-list (&optional selection-mode)
   "Return a list of currently active files.
 When in dired mode, return the marked files or the file under point.
-In a DVC mode, return `dvc-buffer-marked-file-list' if non-nil;
+In a legacy DVC mode, return `dvc-buffer-marked-file-list' if non-nil.
+In a fileinfo DVC mode, return `dvc-fileinfo-marked-files'.
 otherwise the result depends on SELECTION-MODE:
 * When 'nil-if-none-marked, return nil.
 * When 'all-if-none-marked, return all files.
@@ -203,8 +205,9 @@ otherwise the result depends on SELECTION-MODE:
    ((eq major-mode 'dired-mode)
     (dired-get-marked-files))
 
-   ((dvc-derived-mode-p 'dvc-diff-mode)
+   ((dvc-derived-mode-p 'dvc-diff-mode 'dvc-status-mode)
     (or (remove nil dvc-buffer-marked-file-list)
+        (dvc-fileinfo-marked-files)
         (cond
          ((eq selection-mode 'nil-if-none-marked)
           nil)
@@ -389,7 +392,7 @@ Local to each buffer, not killed by kill-all-local-variables.")
   "Execute a body of code with keywords bound.
 Each keyword listed in KEYWORDS is bound to its value from PLIST, then
 BODY is evaluated."
-  (declare (indent 1) (debug (sexp sexp body)))
+  (declare (indent 1) (debug (sexp form body)))
   (flet ((keyword-to-symbol (keyword)
                             (intern (substring (symbol-name keyword) 1))))
     (let ((keyword (make-symbol "keyword"))
@@ -932,6 +935,7 @@ Else return t."
   "Define a FUNCTION for switching to the buffer associated with some event.
 ACCESSOR is a function for retrieving the appropriate buffer from a
 `dvc-event' structure."
+  (declare (debug (&define name symbolp)))
   `(defun ,function ()
      "In a log buffer, pops to the output or error buffer corresponding to the
 process at point"

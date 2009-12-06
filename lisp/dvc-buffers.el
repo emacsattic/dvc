@@ -1,6 +1,6 @@
 ;;; dvc-buffers.el --- Buffer management for DVC
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2009 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -51,6 +51,7 @@ Used to keep track of all the dvc related buffers.")
     (alog       "log*"      path)
     ;; alog for "absolute log", i.e., assume path supplied is already
     ;; the root path
+    (add-patch "add-patch*" path)
     (annotate  "annotate*"  path)
     (archives  "archives*"  single)
     (bookmark  "bookmarks*" single)
@@ -201,6 +202,7 @@ If DVC is nil, it matches any back-end. TYPE must match exactly.
 PATH matches if the entry in dvc-buffers-tree is a prefix of
 PATH."
   (let ((result nil)
+        (true-path (file-truename path))
         tree)
 
     (if dvc
@@ -216,7 +218,7 @@ PATH."
     ;; Filter for path
     (while tree
       (let* ((root (caar tree))
-             (index (string-match root path)))
+             (index (string-match (regexp-quote root) true-path)))
         (if (and index (= 0 index))
             (setq result (cons (car tree) result)))
         (setq tree (cdr tree))))
@@ -638,6 +640,24 @@ just bury it."
     (message "Killed %d buffer%s" number
              (if (> number 1) "s" "")))
   (setq dvc-buffers-tree nil))
+
+(defun dvc-kill-all-type (type)
+  "Kill all buffers of type TYPE."
+  (let ((number 0))
+    (dolist (dvc-kind dvc-buffers-tree)
+      (dolist (type-cons (cdr dvc-kind))
+        (if (equal type (car type-cons))
+            (dolist (path-buffer (cdr type-cons))
+              (setq number (1+ number))
+              (kill-buffer (cadr path-buffer))))))
+    (message "Killed %d buffer%s" number
+             (if (> number 1) "s" ""))))
+
+(defun dvc-kill-all-review ()
+  "Kill all buffers used in reviews; showing previous revisions."
+  (interactive)
+  (dvc-kill-all-type 'revision)
+  (dvc-kill-all-type 'last-revision))
 
 (defvar dvc-save-some-buffers-ignored-modes '(dvc-log-edit-mode))
 (defun dvc-save-some-buffers (&optional tree)

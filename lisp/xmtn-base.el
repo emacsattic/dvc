@@ -1,6 +1,7 @@
 ;;; xmtn-base.el --- Basic definitions for accessing monotone
 
-;; Copyright (C) 2006, 2007 Christian M. Ohler
+;; Copyright (C) 2009 Stephen Leake
+;; Copyright (C) 2006, 2007, 2009 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
 ;; Keywords: tools
@@ -45,6 +46,9 @@ cache.")
 
 A list of strings.")
 
+(defvar xmtn-confirm-operation t
+  "May be let-bound to nil to bypass confirmations.")
+
 (deftype xmtn--hash-id ()
   `(and string
         (satisfies xmtn--hash-id-p)))
@@ -55,10 +59,21 @@ A list of strings.")
        (save-match-data
          (string-match "\\`[0-9a-f]\\{40\\}\\'" thing))))
 
+(defun xmtn--filter-non-dir (dir)
+  "Return list of all directories in DIR, excluding '.', '..'."
+  (let ((default-directory dir)
+        (subdirs (directory-files dir)))
+    (setq subdirs
+          (mapcar (lambda (filename)
+                    (if (and (file-directory-p filename)
+                             (not (string= "." filename))
+                             (not (string= ".." filename)))
+                        filename))
+                  subdirs))
+    (delq nil subdirs)))
+
 (defvar xmtn--*enable-assertions* nil
   "Effective at macroexpansion time.")
-
-;; (setq xmtn--*enable-assertions* t)
 
 (defmacro xmtn--assert-for-effect (form &rest more-assert-args)
   (if xmtn--*enable-assertions*
