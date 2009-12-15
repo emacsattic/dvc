@@ -302,31 +302,6 @@ The elements must all be of class xmtn-status-data.")
 
   (set-buffer-modified-p nil))
 
-(defun xmtn-status-local-changes (work)
-  "Value for xmtn-status-data-local-changes for WORK."
-  (message "checking %s for local changes" work)
-  (let ((default-directory work))
-
-    (dvc-run-dvc-sync
-     'xmtn
-     (list "status")
-     :finished (lambda (output error status arguments)
-                 ;; we don't get an error status for not up-to-date,
-                 ;; so parse the output.
-                 ;; FIXME: add option to automate inventory to just return status; can return on first change
-                 ;; FIXME: 'patch' may be internationalized.
-
-                 (message "") ; clear minibuffer
-                 (set-buffer output)
-                 (goto-char (point-min))
-                 (if (search-forward "patch" (point-max) t)
-                     'need-commit
-                   'ok))
-
-     :error (lambda (output error status arguments)
-              (pop-to-buffer error))))
-  )
-
 (defun xmtn-status-conflicts (data)
   "Return value for xmtn-status-data-conflicts for DATA."
   ;; Can't check for "current heads", since there could be more than
@@ -393,7 +368,7 @@ The elements must all be of class xmtn-status-data.")
 
     (case (xmtn-status-data-local-changes data)
       (need-scan
-       (setf (xmtn-status-data-local-changes data) (xmtn-status-local-changes work)))
+       (setf (xmtn-status-data-local-changes data) (xmtn-automate-local-changes work)))
       (t nil))
 
     (case (xmtn-status-data-conflicts data)

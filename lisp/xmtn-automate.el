@@ -49,9 +49,9 @@
 ;; Once you have a session object, you can use
 ;; `xmtn-automate-new-command' to send commands to monotone.
 ;;
-;; A command is a list of strings (the command and its arguments), or
+;; A COMMAND is a list of strings (the command and its arguments), or
 ;; a cons of lists of strings. If car COMMAND is a list, car COMMAND is
-;; options, cdr is the command and arguments.
+;; options (without leading "--"), cdr is the command and arguments.
 ;;
 ;; `xmtn-automate-new-command' returns a command handle.  You use this
 ;; handle to check the error code of the command and obtain its
@@ -238,7 +238,6 @@ Signals an error if output contains zero lines or more than one line."
   (buffer nil)
   (process nil)
   (decoder-state)
-  (next-mtn-command-number)
   (next-command-number 0)
   (must-not-kill-counter)
   (remaining-command-handles)
@@ -356,7 +355,6 @@ Signals an error if output contains zero lines or more than one line."
                               (xmtn--assert-optional (eql (point-min) (point)) t)
                               (set-marker (make-marker)
                                           (point-min)))))
-        (setf (xmtn-automate--session-next-mtn-command-number session) 0)
         (setf (xmtn-automate--session-must-not-kill-counter session) 0)
         (setf (xmtn-automate--session-remaining-command-handles session) (list))
         (setf (xmtn-automate--session-sent-kill-p session) nil)
@@ -401,12 +399,10 @@ the buffer."
           (goto-char (point-max)))))
   nil)
 
-(defun xmtn-automate--send-command-string (session command option-plist
-                                                   mtn-number session-number)
+(defun xmtn-automate--send-command-string (session command option-plist session-number)
   "Send COMMAND and OPTION-PLIST to SESSION."
-  (let* ((buffer-name (format "*%s: input for command %s(%s)*"
+  (let* ((buffer-name (format "*%s: input for command %s*"
                               (xmtn-automate--session-name session)
-                              mtn-number
                               session-number))
          (buffer nil))
     (unwind-protect
@@ -442,14 +438,11 @@ the buffer."
 (defun xmtn-automate--new-command (session command may-kill-p)
   "Send COMMAND to SESSION."
   (xmtn-automate--ensure-process session)
-  (let* ((mtn-number (1- (incf (xmtn-automate--session-next-mtn-command-number
-                                session))))
-         (command-number
+  (let* ((command-number
           (1- (incf (xmtn-automate--session-next-command-number
                      session))))
-         (buffer-name (format "*%s: output for command %s(%s)*"
+         (buffer-name (format " *%s: output for command %s*"
                               (xmtn-automate--session-name session)
-                              mtn-number
                               command-number))
          (buffer
           (progn (when (get-buffer buffer-name)
@@ -461,10 +454,8 @@ the buffer."
                      (fundamental-mode)))
                  (get-buffer-create buffer-name))))
     (if (not (listp (car command)))
-        (xmtn-automate--send-command-string session command '()
-                                            mtn-number command-number)
-      (xmtn-automate--send-command-string session (cdr command) (car command)
-                                          mtn-number command-number))
+        (xmtn-automate--send-command-string session command '() command-number)
+      (xmtn-automate--send-command-string session (cdr command) (car command) command-number))
     (with-current-buffer buffer
       (buffer-disable-undo)
       (set-buffer-multibyte nil)
@@ -474,7 +465,6 @@ the buffer."
       (let ((handle (xmtn-automate--%make-raw-command-handle
                      :session session
                      :arguments command
-                     :mtn-command-number mtn-number
                      :session-command-number command-number
                      :may-kill-p may-kill-p
                      :buffer buffer
@@ -788,6 +778,18 @@ Each element of the list is a list; key, signature, name, value, trust."
 (defun xmtn--tree-default-branch (root)
   (xmtn-automate-simple-command-output-line root `("get_option" "branch")))
 
+(defun xmtn-automate-local-changes (work)
+  "Summary of status  for WORK; 'ok if no changes, 'need-commit if changes."
+  (message "checking %s for local changes" work)
+  (let ((default-directory work))
+
+    (let ((result (xmtn-automate-simple-command-output-string
+                   default-directory
+                   (list (list "no-unchanged" "no-ignored")
+                         "inventory"))))
+     (if (> (length result) 0)
+         'need-commit
+       'ok))))
 
 (provide 'xmtn-automate)
 

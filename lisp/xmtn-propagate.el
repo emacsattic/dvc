@@ -462,50 +462,6 @@ The elements must all be of class xmtn-propagate-data.")
   (xmtn-propagate-refresh)
   (xmtn-propagate-next nil t))
 
-(defun xmtn-propagate-local-changes (work)
-  "Value for xmtn-propagate-data-local-changes for WORK."
-  (message "checking %s for local changes" work)
-  (let ((default-directory work)
-        result)
-
-    (dvc-run-dvc-sync
-     'xmtn
-     (list "status")
-     :finished (lambda (output error status arguments)
-                 ;; we don't get an error status for not up-to-date,
-                 ;; so parse the output.
-                 ;; FIXME: add option to automate inventory to just return status; can return on first change
-                 ;; FIXME: 'patch' may be internationalized.
-
-                 (message "") ; clear minibuffer
-                 (set-buffer output)
-                 (goto-char (point-min))
-                 (if (search-forward "patch" (point-max) t)
-                     (setq result 'need-commit)
-                   (setq result 'ok)))
-
-     :error (lambda (output error status arguments)
-              (pop-to-buffer error)
-              (error "error checking %s for local changes" work)))
-
-    (if (eq result 'ok)
-        ;; check for unknown
-        (dvc-run-dvc-sync
-         'xmtn
-         (list "ls" "unknown")
-         :finished (lambda (output error status arguments)
-                 (message "") ; clear minibuffer
-                 (set-buffer output)
-                 (if (not (= (point-min) (point-max)))
-                     (setq result 'need-commit)
-                   (setq result 'ok)))
-
-         :error (lambda (output error status arguments)
-                  (pop-to-buffer error))))
-
-    result)
-  )
-
 (defun xmtn-propagate-needed (data)
   "t if DATA needs propagate."
   (let ((result t)
@@ -646,12 +602,12 @@ The elements must all be of class xmtn-propagate-data.")
         (progn
           (ecase (xmtn-propagate-data-from-local-changes data)
             ((need-scan need-commit)
-             (setf (xmtn-propagate-data-from-local-changes data) (xmtn-propagate-local-changes from-work)))
+             (setf (xmtn-propagate-data-from-local-changes data) (xmtn-automate-local-changes from-work)))
             (ok nil))
 
           (ecase (xmtn-propagate-data-to-local-changes data)
             ((need-scan need-commit)
-             (setf (xmtn-propagate-data-to-local-changes data) (xmtn-propagate-local-changes to-work)))
+             (setf (xmtn-propagate-data-to-local-changes data) (xmtn-automate-local-changes to-work)))
             (ok nil))))
 
     (if (xmtn-propagate-data-propagate-needed data)
