@@ -167,7 +167,8 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
     (define-key map "\C-y"   'dvc-bookmarks-yank)
     (define-key map "\C-k"   'dvc-bookmarks-kill)
     (define-key map "D"      'dvc-bookmarks-delete)
-    (define-key map "H"      'dvc-bookmarks-show-or-hide-subtree)
+    (define-key map "Hs"      'dvc-bookmarks-show-or-hide-subtree)
+    (define-key map "Ha"      'dvc-bookmarks-show-or-hide-all-subtrees)
     (define-key map "S"      'dvc-bookmarks-set-tree-properties)
     (define-key map "s"      'dvc-bookmarks-status)
     (define-key map "d"      'dvc-bookmarks-diff)
@@ -1183,6 +1184,18 @@ or in the same sublist"
                              (dvc-get-parent-elm (aref x 1) dvc-bookmark-alist))
                        (if (not (member parent dvc-bookmarks-hidden-subtree)) t nil))))
     (goto-char pos)))
+
+(defun dvc-bookmarks-show-or-hide-all-subtrees ()
+  "Toggle visibility of all subtrees."
+  (interactive)
+  (with-current-buffer "*dvc-bookmarks*"
+    (goto-char (point-min))
+    (save-excursion
+      (while (re-search-forward "^[^ ].+" nil t)
+        (dvc-bookmarks-show-or-hide-subtree)
+        (end-of-line)))
+    (forward-line 1)))
+    
 
 (defvar dvc-bookmarks-tmp-yank-item '("hg" (local-tree "~/work/hg/hg")))
 
