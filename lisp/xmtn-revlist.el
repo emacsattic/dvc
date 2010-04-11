@@ -148,78 +148,77 @@ arg; root. Result is of the form:
   (assert (every (lambda (x) (typep x 'xmtn--hash-id)) revision-hash-ids))
   (ewoc-set-hf ewoc header footer)
   (ewoc-filter ewoc (lambda (x) nil))   ; Clear it.
-  (xmtn-automate-with-session (session root)
-    (setq revision-hash-ids (xmtn--toposort root revision-hash-ids))
-    (if last-n
-        (let ((len (length revision-hash-ids)))
-          (if (> len last-n)
-              (setq revision-hash-ids (nthcdr (- len last-n) revision-hash-ids)))))
-    (setq revision-hash-ids (coerce revision-hash-ids 'vector))
-    (xmtn--dotimes-with-progress-reporter (i (length revision-hash-ids))
-        (case (length revision-hash-ids)
-          (1 "Setting up revlist buffer (1 revision)...")
-          (t (format "Setting up revlist buffer (%s revisions)..."
-                     (length revision-hash-ids))))
-      ;; Maybe also show parents and children?  (Could add toggle
-      ;; commands to show/hide these.)
-      (lexical-let ((rev (aref revision-hash-ids i))
-                    (branches (list))
-                    (authors (list))
-                    (dates (list))
-                    (changelogs (list))
-                    (tags (list)))
-        (xmtn--map-parsed-certs
-         root rev
-         (lambda (key signature name value trusted)
-           (declare (ignore key))
-           (unless (not trusted)
-             (cond ((equal name "author")
-                    (push value authors))
-                   ((equal name "date")
-                    (push value dates))
-                   ((equal name "changelog")
-                    (push value changelogs))
-                   ((equal name "branch")
-                    (push value branches))
-                   ((equal name "tag")
-                    (push value tags))
-                   (t
-                    (progn))))))
-        (setq authors (nreverse authors)
-              dates (nreverse dates)
-              changelogs (nreverse changelogs)
-              branches (nreverse branches)
-              tags (nreverse tags))
-        (let ((parent-hash-ids
-               (xmtn-automate-simple-command-output-lines root `("parents"
-                                                                 ,rev)))
-              (child-hash-ids
-               (xmtn-automate-simple-command-output-lines root `("children"
-                                                                 ,rev))))
-          (xmtn--assert-optional (every #'stringp authors))
-          (xmtn--assert-optional (every #'stringp dates))
-          (xmtn--assert-optional (every #'stringp changelogs))
-          (xmtn--assert-optional (every #'stringp branches))
-          (xmtn--assert-optional (every #'stringp tags))
-          (xmtn--assert-optional (every #'xmtn--hash-id-p parent-hash-ids))
-          (xmtn--assert-optional (every #'xmtn--hash-id-p child-hash-ids))
-          (ewoc-enter-last ewoc
-                           ;; Creating a list `(entry-patch
-                           ;; ,instance-of-dvc-revlist-entry-patch) seems
-                           ;; to be part of DVC's API.
-                           `(entry-patch
-                             ,(make-dvc-revlist-entry-patch
-                               :dvc 'xmtn
-                               :rev-id `(xmtn (revision ,rev))
-                               :struct (xmtn--make-revlist-entry
-                                        :revision-hash-id rev
-                                        :branches branches
-                                        :authors authors
-                                        :dates dates
-                                        :changelogs changelogs
-                                        :tags tags
-                                        :parent-hash-ids parent-hash-ids
-                                        :child-hash-ids child-hash-ids))))))))
+  (setq revision-hash-ids (xmtn--toposort root revision-hash-ids))
+  (if last-n
+      (let ((len (length revision-hash-ids)))
+        (if (> len last-n)
+            (setq revision-hash-ids (nthcdr (- len last-n) revision-hash-ids)))))
+  (setq revision-hash-ids (coerce revision-hash-ids 'vector))
+  (dotimes-with-progress-reporter (i (length revision-hash-ids))
+      (case (length revision-hash-ids)
+        (1 "Setting up revlist buffer (1 revision)...")
+        (t (format "Setting up revlist buffer (%s revisions)..."
+                   (length revision-hash-ids))))
+    ;; Maybe also show parents and children?  (Could add toggle
+    ;; commands to show/hide these.)
+    (lexical-let ((rev (aref revision-hash-ids i))
+                  (branches (list))
+                  (authors (list))
+                  (dates (list))
+                  (changelogs (list))
+                  (tags (list)))
+      (xmtn--map-parsed-certs
+       root rev
+       (lambda (key signature name value trusted)
+         (declare (ignore key))
+         (unless (not trusted)
+           (cond ((equal name "author")
+                  (push value authors))
+                 ((equal name "date")
+                  (push value dates))
+                 ((equal name "changelog")
+                  (push value changelogs))
+                 ((equal name "branch")
+                  (push value branches))
+                 ((equal name "tag")
+                  (push value tags))
+                 (t
+                  (progn))))))
+      (setq authors (nreverse authors)
+            dates (nreverse dates)
+            changelogs (nreverse changelogs)
+            branches (nreverse branches)
+            tags (nreverse tags))
+      (let ((parent-hash-ids
+             (xmtn-automate-simple-command-output-lines root `("parents"
+                                                               ,rev)))
+            (child-hash-ids
+             (xmtn-automate-simple-command-output-lines root `("children"
+                                                               ,rev))))
+        (xmtn--assert-optional (every #'stringp authors))
+        (xmtn--assert-optional (every #'stringp dates))
+        (xmtn--assert-optional (every #'stringp changelogs))
+        (xmtn--assert-optional (every #'stringp branches))
+        (xmtn--assert-optional (every #'stringp tags))
+        (xmtn--assert-optional (every #'xmtn--hash-id-p parent-hash-ids))
+        (xmtn--assert-optional (every #'xmtn--hash-id-p child-hash-ids))
+        (ewoc-enter-last ewoc
+                         ;; Creating a list `(entry-patch
+                         ;; ,instance-of-dvc-revlist-entry-patch) seems
+                         ;; to be part of DVC's API.
+                         `(entry-patch
+                           ,(make-dvc-revlist-entry-patch
+                             :dvc 'xmtn
+                             :rev-id `(xmtn (revision ,rev))
+                             :struct (xmtn--make-revlist-entry
+                                      :revision-hash-id rev
+                                      :branches branches
+                                      :authors authors
+                                      :dates dates
+                                      :changelogs changelogs
+                                      :tags tags
+                                      :parent-hash-ids parent-hash-ids
+                                      :child-hash-ids child-hash-ids)))))))
   nil)
 
 (defun xmtn-revision-st-message (entry)
@@ -257,14 +256,14 @@ arg; root. Result is of the form:
 (defun xmtn--setup-revlist (root info-generator-fn first-line-only-p last-n)
   ;; Adapted from `dvc-build-revision-list'.
   ;; info-generator-fn must return a list of back-end revision ids (strings)
-  (xmtn-automate-with-session (nil root)
-    (let ((dvc-temp-current-active-dvc 'xmtn)
-          (buffer (dvc-revlist-create-buffer
-                   'xmtn 'log root 'xmtn--revlist-refresh first-line-only-p last-n)))
-      (with-current-buffer buffer
-        (setq xmtn--revlist-*info-generator-fn* info-generator-fn)
-        (xmtn--revlist-refresh))
-      (xmtn--display-buffer-maybe buffer nil)))
+  (xmtn-automate-cache-session root)
+  (let ((dvc-temp-current-active-dvc 'xmtn)
+        (buffer (dvc-revlist-create-buffer
+                 'xmtn 'log root 'xmtn--revlist-refresh first-line-only-p last-n)))
+    (with-current-buffer buffer
+      (setq xmtn--revlist-*info-generator-fn* info-generator-fn)
+      (xmtn--revlist-refresh))
+    (xmtn--display-buffer-maybe buffer nil))
   nil)
 
 ;;;###autoload
@@ -293,57 +292,54 @@ arg; root. Result is of the form:
     (xmtn--setup-revlist
      root
      (lambda (root)
-       (xmtn-automate-with-session
-           (nil root)
-         (let ((branch (xmtn--tree-default-branch root)))
-           (list branch
-                 (list
-                  (if dvc-revlist-last-n
-                      (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
-                    (format "Log for branch %s (all entries):" branch)))
-                 '()
-                 (xmtn--expand-selector
-                  root
-                  ;; This restriction to current branch is completely
-                  ;; arbitrary.
-                  (concat
-                   "b:" ;; returns all revs for current branch
-                   (xmtn--escape-branch-name-for-selector
-                    branch)))))))
+       (let ((branch (xmtn--tree-default-branch root)))
+         (list branch
+               (list
+                (if dvc-revlist-last-n
+                    (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
+                  (format "Log for branch %s (all entries):" branch)))
+               '()
+               (xmtn--expand-selector
+                root
+                ;; This restriction to current branch is completely
+                ;; arbitrary.
+                (concat
+                 "b:" ;; returns all revs for current branch
+                 (xmtn--escape-branch-name-for-selector
+                  branch))))))
      first-line-only-p
      last-n)))
 
 (defun xmtn--revlist--missing-get-info (root)
-  (xmtn-automate-with-session (nil root)
-    (let* ((branch (xmtn--tree-default-branch root))
-           (heads (xmtn--heads root branch))
-           (base-revision-hash-id (xmtn--get-base-revision-hash-id root))
-           (difference
-            (delete-duplicates
-             (mapcan
-              (lambda (head)
-                (xmtn-automate-simple-command-output-lines
-                 root
-                 `("ancestry_difference"
-                   ,head ,base-revision-hash-id)))
-               heads))))
-      (list
-       branch
-       `(,(format "Tree   %s" root)
-         ,(format "Branch %s" branch)
-         ,(format "Base   %s" base-revision-hash-id)
-         ,(case (length heads)
-            (1 "branch is merged")
-            (t (dvc-face-add (format "branch has %s heads; need merge" (length heads)) 'dvc-conflict)))
-         nil
-         ,(case (length difference)
-            (0 "No revisions that are not in base revision")
-            (1 "1 revision that is not in base revision:")
-            (t (format
-                "%s revisions that are not in base revision:"
-                (length difference)))))
-       '()
-       difference))))
+  (let* ((branch (xmtn--tree-default-branch root))
+         (heads (xmtn--heads root branch))
+         (base-revision-hash-id (xmtn--get-base-revision-hash-id root))
+         (difference
+          (delete-duplicates
+           (mapcan
+            (lambda (head)
+              (xmtn-automate-simple-command-output-lines
+               root
+               `("ancestry_difference"
+                 ,head ,base-revision-hash-id)))
+            heads))))
+    (list
+     branch
+     `(,(format "Tree   %s" root)
+       ,(format "Branch %s" branch)
+       ,(format "Base   %s" base-revision-hash-id)
+       ,(case (length heads)
+          (1 "branch is merged")
+          (t (dvc-face-add (format "branch has %s heads; need merge" (length heads)) 'dvc-conflict)))
+       nil
+       ,(case (length difference)
+          (0 "No revisions that are not in base revision")
+          (1 "1 revision that is not in base revision:")
+          (t (format
+              "%s revisions that are not in base revision:"
+              (length difference)))))
+     '()
+     difference)))
 
 (defun xmtn-revlist-show-conflicts ()
   "If point is on a revision that has two parents, show conflicts
@@ -459,20 +455,19 @@ from the merge."
     (xmtn--setup-revlist
      root
      (lambda (root)
-       (xmtn-automate-with-session (nil root)
-         (let* ((branch (xmtn--tree-default-branch root))
-                (head-revision-hash-ids (xmtn--heads root branch))
-                (head-count (length head-revision-hash-ids)))
-           (list
-            branch
-            (list (format "Tree %s" root)
-                  (format "Branch %s" branch)
-                  (case head-count
-                    (0 "No head revisions (branch empty (or circular ;))")
-                    (1 "1 head revision:")
-                    (t (format "%s head revisions: " head-count))))
-            '()
-            head-revision-hash-ids))))
+       (let* ((branch (xmtn--tree-default-branch root))
+              (head-revision-hash-ids (xmtn--heads root branch))
+              (head-count (length head-revision-hash-ids)))
+         (list
+          branch
+          (list (format "Tree %s" root)
+                (format "Branch %s" branch)
+                (case head-count
+                  (0 "No head revisions (branch empty (or circular ;))")
+                  (1 "1 head revision:")
+                  (t (format "%s head revisions: " head-count))))
+          '()
+          head-revision-hash-ids)))
      ;; Passing nil as first-line-only-p, last-n is arbitrary here.
      nil nil))
   nil)
@@ -498,20 +493,19 @@ to the base revision of the current tree."
       (xmtn--setup-revlist
        root
        (lambda (root)
-         (xmtn-automate-with-session (nil root)
-           (let ((branch (xmtn--tree-default-branch root))
-                 (revision-hash-ids
-                  (mapcar #'first
-                          (xmtn--get-content-changed-closure
-                           root last-backend-id normalized-file dvc-revlist-last-n))))
-             (list
-              branch
-              (list
-               (if dvc-revlist-last-n
-                   (format "Log for %s (last %d entries)" file dvc-revlist-last-n)
-                 (format "Log for %s" file)))
-              '()
-              revision-hash-ids))))
+         (let ((branch (xmtn--tree-default-branch root))
+               (revision-hash-ids
+                (mapcar #'first
+                        (xmtn--get-content-changed-closure
+                         root last-backend-id normalized-file dvc-revlist-last-n))))
+           (list
+            branch
+            (list
+             (if dvc-revlist-last-n
+                 (format "Log for %s (last %d entries)" file dvc-revlist-last-n)
+               (format "Log for %s" file)))
+            '()
+            revision-hash-ids)))
        first-line-only-p
        last-n))))
 
@@ -530,25 +524,24 @@ to the base revision of the current tree."
       (xmtn--setup-revlist
        root
        (lambda (root)
-         (xmtn-automate-with-session (nil root)
-           (let* ((branch (xmtn--tree-default-branch root))
-                  (revision-hash-ids (xmtn--expand-selector root selector))
-                  (count (length revision-hash-ids)))
-             (list
-              branch
-              (list (format "Tree %s" root)
-                    (format "Default branch %s" branch)
-                    (if (with-syntax-table (standard-syntax-table)
-                          (string-match "\\`\\s *\\'" selector))
-                        "Blank selector"
-                      (format "Selector %s" selector))
-                    (case count
-                      (0 "No revisions matching selector")
-                      (1 "1 revision matching selector:")
-                      (t (format "%s revisions matching selector: "
-                                 count))))
-              '()
-              revision-hash-ids))))
+         (let* ((branch (xmtn--tree-default-branch root))
+                (revision-hash-ids (xmtn--expand-selector root selector))
+                (count (length revision-hash-ids)))
+           (list
+            branch
+            (list (format "Tree %s" root)
+                  (format "Default branch %s" branch)
+                  (if (with-syntax-table (standard-syntax-table)
+                        (string-match "\\`\\s *\\'" selector))
+                      "Blank selector"
+                    (format "Selector %s" selector))
+                  (case count
+                    (0 "No revisions matching selector")
+                    (1 "1 revision matching selector:")
+                    (t (format "%s revisions matching selector: "
+                               count))))
+            '()
+            revision-hash-ids)))
        ;; Passing nil as first-line-only-p is arbitrary here.
        nil
        ;; FIXME: it might be useful to specify last-n here
@@ -560,28 +553,26 @@ to the base revision of the current tree."
 ;;;###autoload
 (defun xmtn-dvc-revlog-get-revision (revision-id)
   (let ((root (dvc-tree-root)))
-    (xmtn-automate-with-session (nil root)
-      (let ((backend-id (xmtn--resolve-revision-id root revision-id)))
-        (xmtn-match backend-id
-          ((local-tree $path) (error "Not implemented"))
-          ((revision $revision-hash-id)
-           (with-output-to-string
-             (flet ((write-line (format &rest args)
-                      (princ (apply #'format format args))
-                      (terpri)))
-               (write-line "Revision %s" revision-hash-id)
-               ;; FIXME: It would be good to sort the standard certs
-               ;; like author, date, branch, tag and changelog into
-               ;; some canonical order and format changelog specially
-               ;; since it usually spans multiple lines.
-               (xmtn--map-parsed-certs
-                root revision-hash-id
-                (lambda (key signature name value trusted)
-                  (declare (ignore key))
-                  (if (not trusted)
-                      (write-line "Untrusted cert, name=%s" name)
-                    (write-line "%s: %s" name value))))))))))))
-
+    (let ((backend-id (xmtn--resolve-revision-id root revision-id)))
+      (xmtn-match backend-id
+        ((local-tree $path) (error "Not implemented"))
+        ((revision $revision-hash-id)
+         (with-output-to-string
+           (flet ((write-line (format &rest args)
+                              (princ (apply #'format format args))
+                              (terpri)))
+             (write-line "Revision %s" revision-hash-id)
+             ;; FIXME: It would be good to sort the standard certs
+             ;; like author, date, branch, tag and changelog into
+             ;; some canonical order and format changelog specially
+             ;; since it usually spans multiple lines.
+             (xmtn--map-parsed-certs
+              root revision-hash-id
+              (lambda (key signature name value trusted)
+                (declare (ignore key))
+                (if (not trusted)
+                    (write-line "Untrusted cert, name=%s" name)
+                  (write-line "%s: %s" name value)))))))))))
 
 (defun xmtn-revlist-explicit-merge ()
   "Run mtn explicit_merge on the two marked revisions.
@@ -617,29 +608,6 @@ To be invoked from an xmtn revlist buffer."
          (entry (dvc-revlist-current-patch-struct))
          (target-hash-id (xmtn--revlist-entry-revision-hash-id entry)))
     (xmtn--update root target-hash-id nil nil)))
-
-;; Being able to conveniently disapprove whole batches of revisions
-;; is going to be a lot of fun.
-(defun xmtn-revlist-disapprove ()
-  "Disapprove the marked revisions, or the revision at point if none marked.
-
-To be invoked from an xmtn revlist buffer."
-  (interactive)
-  (let* ((root (dvc-tree-root))
-         (entries (or (dvc-revision-marked-revisions)
-                      (list (dvc-revlist-current-patch-struct))))
-         (hash-ids (map 'vector #'xmtn--revlist-entry-revision-hash-id entries))
-         (description (case (length hash-ids)
-                        (0 (xmtn--assert-nil))
-                        (1 (format "revision %s" (elt hash-ids 0)))
-                        (t (format "%s revisions" (length hash-ids))))))
-    (assert (every #'xmtn--hash-id-p hash-ids))
-    (unless (yes-or-no-p (format "Disapprove %s? " description))
-      (error "Aborted disapprove"))
-    (xmtn--dotimes-with-progress-reporter (i (length hash-ids))
-        (format "Disapproving %s..." description)
-      (let ((hash-id (aref hash-ids i)))
-        (funcall (xmtn--do-disapprove-future root hash-id))))))
 
 (provide 'xmtn-revlist)
 

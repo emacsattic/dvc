@@ -93,7 +93,7 @@ Special commands:
   "Show `xhg-log' corresponding to current line in `xhg-annotate' buffer."
   (interactive)
   (let ((rev-number (xhg-annotate-get-rev-num-on-line))
-        (fname xhg-annotate-current-buffer))
+        (fname (buffer-file-name xhg-annotate-current-buffer)))
     (save-excursion
       (xhg-log rev-number rev-number t fname)
       (other-window 1))))

@@ -26,98 +26,39 @@
 ;; This library provides access to monotone's "automate" interface
 ;; from Emacs Lisp.
 ;;
-;; I found monotone's automate stdio mode (see
-;; http://www.venge.net/monotone/docs/Automation.html for details)
-;; rather intriguing, so I tried to make full use of it.  I don't know
-;; whether it is really significantly more efficient than spawning a
-;; new subprocess for each command.  But, in theory, feeding multiple
-;; commands to one process allows that process to do all kinds of
-;; smart caching, so it could make very large differences, even
-;; differences in orders of magnitude.  I don't know whether monotone
-;; currently does any caching, but at least this means we have an
-;; excuse for not doing any caching in Emacs.  (If it becomes clear
-;; that caching would be a good idea, it can be implemented in
-;; monotone instead of Emacs; this way, other front-ends to monotone
-;; can also benefit from it.)
+;; see http://www.monotone.ca/docs/Automation.html#Automation for
+;; details of the monotone automate command.
+;;
+;; mtn automate allows sending several commands to a single mtn
+;; process, and provides the results in a form that is easy to
+;; parse. It does some caching between command, and will do more in
+;; the future, so this is a significant speed-up over spawning a new
+;; subprocess for each command.
 ;;
 ;; To allow xmtn-automate to track how long an automate stdio process
-;; needs to be kept around, we introduce the concept of a session.  To
-;; the programmer using this library, a session is an opaque object
-;; that is needed to run automate commands.  Each session is
-;; associated with a monotone workspace ("root") that the commands
-;; will operate on.  (Using xmtn-auomate to run commands with no
-;; workspace is not currently part of the design.)  A session can be
-;; obtained using `xmtn-automate-with-session' and has dynamic extent.
-;; Note that `xmtn-automate-with-session' doesn't necessarily start a
-;; fresh monotone process; xmtn-automate may reuse existing session
-;; objects and processes, or launch the process only when the first
-;; command is sent to the session.  There is also no guarantee about
-;; how long xmtn-automate will keep the process running after
-;; `xmtn-automate-with-session' exits.  (The function
-;; `xmtn-automate-terminate-processes-in-root' can be used to tell
-;; xmtn-automate to terminate all processes in a given root as soon as
-;; possible, and wait until they terminate.  I imagine this could be
-;; necessary to free locks, but whether mtn automate stdio does any
-;; locking doesn't seem to be specified in monotone's manual.)  To put
-;; it another way, the mapping between `xmtn-automate-with-session'
-;; forms and monotone processes is not necessarily one-to-one.
-;;
-;; `xmtn-automate-with-session' forms can safely be nested.
+;; needs to be kept around, and to store meta data, we introduce the
+;; concept of a session.  To the programmer using this library, a
+;; session is an opaque object that is needed to run automate
+;; commands.  Each session is associated with a monotone workspace
+;; ("root") that the commands will operate on.  A session can be
+;; obtained using `xmtn-automate-cache-session'.  Note that
+;; `xmtn-automate-cache-session' doesn't necessarily start a fresh
+;; monotone process, if a session with that root already exists.  The
+;; process must be killed with `xmtn-automate-kill-session'.
 ;;
 ;; Once you have a session object, you can use
-;; `xmtn-automate-with-command' forms to send commands to monotone.
-;; Each such form gets you a so-called command-handle.  Again, this is
-;; an opaque object with dynamic extent.  You can use this handle to
-;; check the error code of the command and obtain its output.  Your
-;; Emacs Lisp code can also do other computation while the monotone
-;; command runs.  Allowing this kind of parallelism and incremental
-;; processing of command output is the main reason for introducing
-;; command handles.
+;; `xmtn-automate-new-command' to send commands to monotone.
 ;;
-;; The following operations are defined on command handles.
+;; A COMMAND is a list of strings (the command and its arguments), or
+;; a cons of lists of strings. If car COMMAND is a list, car COMMAND is
+;; options (without leading "--"), cdr is the command and arguments.
 ;;
-;;   * xmtn-automate-command-error-code (command-handle) --> 0, 1 or 2
-;;
-;;     Returns the error code of the command.  See monotone
-;;     documentation.  This operation blocks until the monotone process
-;;     has sent the error code.
-;;
-;;   * xmtn-automate-command-wait-until-finished (command-handle) -->
-;;     nil
-;;
-;;     Blocks until the command has finished (successfully or not).
-;;     After this operation returns, `xmtn-automate-command-finished-p'
-;;     will return true for this command.
-;;
-;;   * xmtn-automate-command-buffer (command-handle) --> buffer
-;;
-;;     Returns the so-called command buffer associated with the command
-;;     handle.  This is a buffer with the output that the command has
-;;     generated so far.  The buffer contents will be updated as new
-;;     output arrives.  The buffer has the same extent as the command
-;;     handle.  This operation does not block.
-;;
-;;   * xmtn-automate-command-write-marker-position (command-handle)
-;;     --> position
-;;
-;;     The position in the output buffer after the last character of
-;;     output the command has generated so far.  This is also where new
-;;     output will be inserted.  This operation does not block.
-;;
-;;   * xmtn-automate-command-finished-p (command-handle) --> boolean
-;;
-;;     Returns nil if the command is still running, non-nil if it has
-;;     finished (successfully or not).  If this function returns non-nil,
-;;     the full output of the command is available in the command buffer.
-;;     This operation does not block.
-;;
-;;   * xmtn-automate-command-accept-output (command-handle) -->
-;;     output-received-p
-;;
-;;     Allows Emacs to process more output from the command (and
-;;     possibly from other processes).  Blocks until more output has
-;;     been received from the command or the command has finished.
-;;     Returns non-nil if more output has been received.
+;; `xmtn-automate-new-command' returns a command handle.  You use this
+;; handle to check the error code of the command and obtain its
+;; output.  Your Emacs Lisp code can also do other computation while
+;; the monotone command runs.  Allowing this kind of parallelism and
+;; incremental processing of command output is the main reason for
+;; introducing command handles.
 ;;
 ;; The intention behind this protocol is to allow Emacs Lisp code to
 ;; process command output incrementally as it arrives instead of
@@ -127,87 +68,14 @@
 ;; hard to tune it, either.  So I'm not sure whether incremental
 ;; processing is useful.
 ;;
-;; In the output buffer, the "chunking" (the <command number>:<err
-;; code>:<last?>:<size>:<output> thing) that monotone automate stdio does
-;; has already been decoded and removed.  However, no other processing or
-;; parsing has been done.  The output buffer contains raw 8-bit data.
-;;
-;; Different automate commands generate data in different formats: For
-;; example, get_manifest generates basic_io; select generates a list
-;; of lines with one ID each, graph generates a list of lines with one
-;; or more IDs each; inventory and the packet_* commands generate
-;; different custom line-based formats; and get_file generates binary
-;; output.  Parsing these formats is not part of xmtn-automate.
-;;
-;; You shouldn't manually kill the output buffer; xmtn-automate will take
-;; care of it when the `xmtn-automate-with-command' form exits.
-;;
-;; Example:
-;;
-;; (xmtn-automate-with-session (session "/path/to/workspace")
-;;   ;; The variable `session' now holds a session object associated
-;;   ;; with the workspace.
-;;   (xmtn-automate-with-command (handle session '("get_base_revision_id"))
-;;     ;; The variable `handle' now holds a command handle.
-;;     ;; Check that the command was successful (not described above);
-;;     ;; generate a default error message otherwise and abort.
-;;     (xmtn-automate-command-check-for-and-report-error handle)
-;;     ;; Wait until the entire output of the command has arrived.
-;;     (xmtn-automate-command-wait-until-finished handle)
-;;     ;; Process output (in command buffer).
-;;     (message "Base revision id is %s"
-;;              (with-current-buffer (xmtn-automate-command-buffer handle)
-;;                (buffer-substring (point-min)
-;;                                  ;; Ignore final newline.
-;;                                  (1- (point-max)))))))
-;;
-;; There are some utility functions built on top of this general
-;; interface that help express common uses more concisely; for
-;; example,
-;;
-;; (message "Base revision id is %s"
-;;          (xmtn-automate-simple-command-output-line
-;;           "/path/to/workspace" '("get_base_revision_id")))
-;;
-;; does the same thing as the above code.
-;;
-;; If multiple "simple" automate commands are run in succession on the
-;; same workspace, it's a good idea to wrap an
-;; `xmtn-automate-with-session' form around them so xmtn knows that it
-;; should reuse the same process.
-;;
-;; (xmtn-automate-with-session (nil "/path/to/workspace")
-;;   (message "Base revision id is %s, current revision is %s"
-;;            (xmtn-automate-simple-command-output-line
-;;             "/path/to/workspace" '("get_base_revision_id"))
-;;            (xmtn-automate-simple-command-output-line
-;;             "/path/to/workspace" '("get_current_revision_id")))
-;;
-;; Here, the session object is not explicitly passed to the functions
-;; that actually feed commands to monotone.  But, since the containing
-;; session is still open after the first command, xmtn knows that it
-;; should keep the process alive, and it is smart enough to reuse the
-;; process for the second command.
-;;
-;; The fact that `xmtn-automate-with-command' always forces commands
-;; to either happen in sequence or properly nested can be a
-;; limitation.  For example, it's not possible to write a
-;; (non-recursive) loop that runs N automate commands and processes
-;; their output, always launching the (k+1)th automate command ahead
-;; of time to run in parallel with the kth iteration.  (Some of the
-;; revlist and cert-parsing code really wants to do this, I think.)
-;; (But maybe writing this recursively wouldn't be all that bad...  It
-;; is asymptotically less (stack-!)space-efficient but makes it
-;; impossible to get the cleanup wrong.)  Providing the two halves of
-;; `xmtn-automate-with-command' as two functions
-;; `xmtn-automate-open-command' and `xmtn-automate-close-command' that
-;; always need to be called in pairs would be more flexible.  (Common
-;; Lisp also has with-open-file but also open and close.)
+;; In the output buffer, the mtn stdio output header (<command
+;; number>:<err code>:<last?>:<size>:<data>) has been processed;
+;; only the data is present.
+
+;; There are some notes on the design of xmtn in
+;; docs/xmtn-readme.txt.
 
 ;;; Code:
-
-;;; There are some notes on the design of xmtn in
-;;; docs/xmtn-readme.txt.
 
 (eval-and-compile
   (require 'cl)
@@ -255,92 +123,36 @@
                                  (xmtn-automate-command-finished-p handle))))
   nil)
 
-(defvar xmtn-automate--*sessions* '())
+(defvar xmtn-automate--*sessions* '()
+  "Assoc list of sessions, indexed by uniquified root directory.")
 
 (defun xmtn-automate-cache-session (root)
-  "Create a mtn automate session for workspace ROOT, store it in
-session cache, return it (for later kill)."
-  (let* ((default-directory (file-name-as-directory root))
-         (key (file-truename default-directory))
-         (session (xmtn-automate--make-session root key)))
-    (setq xmtn-automate--*sessions*
-          (acons key session xmtn-automate--*sessions*))
-    session))
+  "If necessary, create a mtn automate session for workspace
+ROOT, store it in session cache. Return session."
+  ;; we require an explicit root argument here, rather than relying on
+  ;; default-directory, because one application is to create several
+  ;; sessions for several workspaces, and operate on them as a group
+  ;; (see xmtn-multi-status.el, for example).
+  (let* ((default-directory (dvc-uniquify-file-name root))
+         (session (xmtn-automate-get-cached-session default-directory)))
+    (or session
+        (progn
+          (setq session (xmtn-automate--make-session default-directory default-directory))
+          (setq xmtn-automate--*sessions*
+                (acons default-directory session xmtn-automate--*sessions*))
+          session))))
 
 (defun xmtn-automate-get-cached-session (key)
-  "Return a session from the cache, or nil."
-  ;; separate function so we can debug it
+  "Return a session from the cache, or nil. KEY is uniquified
+workspace root."
   (cdr (assoc key xmtn-automate--*sessions*)))
-
-(defmacro* xmtn-automate-with-session ((session-var-or-null root-form &key)
-                                       &body body)
-  "Call BODY, after ensuring an automate session for ROOT-FORM is active."
-  (declare (indent 1) (debug (sexp body)))
-  ;; I would prefer to factor out a function
-  ;; `xmtn-automate--call-with-session' here, but that would make
-  ;; profiler output unreadable, since every function would only
-  ;; appear to call `xmtn-automate--call-with-session', and that
-  ;; function would appear to do all computation.
-  ;;
-  ;; mtn automate stdio requires a valid database, so we require a
-  ;; root directory here.
-  (let ((session (gensym))
-        (session-var (or session-var-or-null (gensym)))
-        (root (gensym))
-        (key (gensym))
-        (thunk (gensym)))
-    `(let* ((,root (file-name-as-directory ,root-form))
-            (,key (file-truename ,root))
-            (,session (xmtn-automate-get-cached-session ,key))
-            (,thunk (lambda ()
-                      (let ((,session-var ,session))
-                        ,@body))))
-       (if ,session
-           (funcall ,thunk)
-         (unwind-protect
-             (progn
-               (setq ,session (xmtn-automate--make-session ,root ,key))
-               (let ((xmtn-automate--*sessions*
-               ;; note the let-binding here; these sessions are _not_
-               ;; available for later commands. use
-               ;; xmtn-automate-cache-session to get a persistent
-               ;; session.
-                      (acons ,key ,session xmtn-automate--*sessions*)))
-                 (funcall ,thunk)))
-           (when ,session (xmtn-automate--close-session ,session)))))))
-
-(defmacro* xmtn-automate-with-command ((handle-var session-form command-form
-                                                   &key ((:may-kill-p
-                                                          may-kill-p-form)))
-                                       &body body)
-  "Send COMMAND_FORM (a list of strings, or cons of lists of
-strings) to session SESSION_FORM (current if nil). If car
-COMMAND_FORM is a list, car COMMAND_FORM is options, cdr is command.
-Then execute BODY."
-  (declare (indent 1) (debug (sexp body)))
-  (let ((session (gensym))
-        (command (gensym))
-        (may-kill-p (gensym))
-        (handle (gensym)))
-    `(let ((,session ,session-form)
-           (,command ,command-form)
-           (,may-kill-p ,may-kill-p-form)
-           (,handle nil))
-       (unwind-protect
-           (progn
-             (setq ,handle (xmtn-automate--new-command ,session
-                                                       ,command
-                                                       ,may-kill-p))
-             (xmtn--assert-optional (xmtn-automate--command-handle-p ,handle))
-             (let ((,handle-var ,handle))
-               ,@body))
-         (when ,handle
-           (xmtn-automate--cleanup-command ,handle))))))
 
 (defun xmtn-automate--command-output-as-string-ignoring-exit-code (handle)
   (xmtn-automate-command-wait-until-finished handle)
   (with-current-buffer (xmtn-automate-command-buffer handle)
-    (buffer-substring-no-properties (point-min) (point-max))))
+    (prog1
+        (buffer-substring-no-properties (point-min) (point-max))
+      (xmtn-automate--cleanup-command handle))))
 
 (defun xmtn-automate-command-check-for-and-report-error (handle)
   (unless (eql (xmtn-automate-command-error-code handle) 0)
@@ -351,30 +163,27 @@ Then execute BODY."
   nil)
 
 (defun xmtn-automate-simple-command-output-string (root command)
-  "Send COMMAND (a list of strings, or cons of lists of strings)
-to current session. If car COMMAND is a list, car COMMAND is
-options, cdr is command. Return result as a string."
-  (xmtn-automate-with-session (session root)
-    (xmtn-automate-with-command (handle session command)
-      (xmtn-automate-command-check-for-and-report-error handle)
-      (xmtn-automate--command-output-as-string-ignoring-exit-code handle))))
+  "Send COMMAND to session for ROOT. Return result as a string."
+  (let* ((session (xmtn-automate-cache-session root))
+         (command-handle (xmtn-automate--new-command session command nil)))
+    (xmtn-automate-command-check-for-and-report-error command-handle)
+    (xmtn-automate--command-output-as-string-ignoring-exit-code command-handle)))
 
 (defun xmtn-automate-simple-command-output-insert-into-buffer
   (root buffer command)
-  "Send COMMAND (a list of strings, or cons of lists of strings)
-to current session. If car COMMAND is a list, car COMMAND is
-options, cdr is command. Insert result into BUFFER."
-  (xmtn-automate-with-session (session root)
-    (xmtn-automate-with-command (handle session command)
-      (xmtn-automate-command-check-for-and-report-error handle)
-      (xmtn-automate-command-wait-until-finished handle)
-      (with-current-buffer buffer
-        (xmtn--insert-buffer-substring-no-properties
-         (xmtn-automate-command-buffer handle))))))
+  "Send COMMAND to session for ROOT, insert result into BUFFER."
+  (let* ((session (xmtn-automate-cache-session root))
+         (command-handle (xmtn-automate--new-command session command nil)))
+    (xmtn-automate-command-check-for-and-report-error command-handle)
+    (xmtn-automate-command-wait-until-finished command-handle)
+    (with-current-buffer buffer
+      (insert-buffer-substring-no-properties
+       (xmtn-automate-command-buffer command-handle)))
+    (xmtn-automate--cleanup-command command-handle)))
 
 (defun xmtn-automate-command-output-lines (handle)
-  ;; Return list of lines of output; first line output is first in
-  ;; list.
+  "Return list of lines of output in HANDLE; first line output is
+first in list."
   (xmtn-automate-command-check-for-and-report-error handle)
   (xmtn-automate-command-wait-until-finished handle)
   (save-excursion
@@ -387,16 +196,16 @@ options, cdr is command. Insert result into BUFFER."
                             (progn (end-of-line) (point)))
                            result))
         (forward-line 1))
+      (xmtn-automate--cleanup-command handle)
       (nreverse result))))
 
 (defun xmtn-automate-simple-command-output-lines (root command)
-  "Return list of strings containing output of COMMAND, one line per string."
-  (xmtn-automate-with-session (session root)
-    (xmtn-automate-with-command (handle session command)
-      (xmtn-automate-command-output-lines handle))))
+  "Return list of strings containing output of COMMAND, one line per
+string."
+  (let* ((session (xmtn-automate-cache-session root))
+         (command-handle (xmtn-automate--new-command session command nil)))
+    (xmtn-automate-command-output-lines command-handle)))
 
-;; This one is used twice.  I think the error checking it provides is
-;; a reasonable simplification for its callers.
 (defun xmtn-automate-simple-command-output-line (root command)
   "Return the one line output from mtn automate as a string.
 
@@ -409,19 +218,11 @@ Signals an error if output contains zero lines or more than one line."
              command))
     (first lines)))
 
-
 (defun xmtn-automate--set-process-session (process session)
-  (xmtn--assert-optional (typep session 'xmtn-automate--session) t)
-  (xmtn--process-put process 'xmtn-automate--session session))
+  (process-put process 'xmtn-automate--session session))
 
 (defun xmtn-automate--process-session (process)
-  (xmtn--assert-optional (processp process) t)
-  (let ((session (xmtn--process-get process 'xmtn-automate--session)))
-    ;; This seems to fail sometimes with session being nil.  Not sure
-    ;; why.  The problem seems to be reproducible by calling
-    ;; (dvc-dvc-revision-nth-ancestor `(xmtn (local-tree ,(dvc-tree-root))) 10).
-    (xmtn--assert-optional (typep session 'xmtn-automate--session) t)
-    session))
+  (process-get process 'xmtn-automate--session))
 
 (defstruct (xmtn-automate--decoder-state
             (:constructor xmtn-automate--%make-raw-decoder-state))
@@ -437,8 +238,7 @@ Signals an error if output contains zero lines or more than one line."
   (buffer nil)
   (process nil)
   (decoder-state)
-  (next-mtn-command-number)
-  (next-session-command-number 0)
+  (next-command-number 0)
   (must-not-kill-counter)
   (remaining-command-handles)
   (sent-kill-p)
@@ -492,6 +292,7 @@ Signals an error if output contains zero lines or more than one line."
   nil)
 
 (defun xmtn-automate--close-session (session)
+  "Kill session process, buffer."
   (setf (xmtn-automate--session-closed-p session) t)
   (let ((process (xmtn-automate--session-process session)))
     (cond
@@ -537,9 +338,8 @@ Signals an error if output contains zero lines or more than one line."
     (let ((process-connection-type nil)
           (default-directory root))
       (let ((process
-             (xmtn--with-environment-for-subprocess ()
-               (apply #'start-process name buffer xmtn-executable
-                      "automate" "stdio" xmtn-additional-arguments))))
+             (apply 'start-process name buffer xmtn-executable
+                    "automate" "stdio" xmtn-additional-arguments)))
         (xmtn-automate--set-process-session process session)
         (set-process-filter process 'xmtn-automate--process-filter)
         (set-process-sentinel process 'xmtn-automate--process-sentinel)
@@ -555,13 +355,13 @@ Signals an error if output contains zero lines or more than one line."
                               (xmtn--assert-optional (eql (point-min) (point)) t)
                               (set-marker (make-marker)
                                           (point-min)))))
-        (setf (xmtn-automate--session-next-mtn-command-number session) 0)
         (setf (xmtn-automate--session-must-not-kill-counter session) 0)
         (setf (xmtn-automate--session-remaining-command-handles session) (list))
         (setf (xmtn-automate--session-sent-kill-p session) nil)
         process))))
 
 (defun xmtn-automate--ensure-process (session)
+  "Ensure SESSION has an active process; restart it if it died."
   (let ((process (xmtn-automate--session-process session)))
     (when (or (null process)
               (ecase (process-status process)
@@ -575,32 +375,15 @@ Signals an error if output contains zero lines or more than one line."
     process))
 
 (defun xmtn-automate--new-buffer (session)
-  (let* ((buffer-base-name (format "*%s: session*"
+  (let* ((buffer-base-name (format " *%s: session*"
                                    (xmtn-automate--session-name session)))
          (buffer (generate-new-buffer buffer-base-name)))
     (with-current-buffer buffer
       (buffer-disable-undo)
-      (xmtn--set-buffer-multibyte nil)
+      (set-buffer-multibyte nil)
       (setq buffer-read-only t))
     (setf (xmtn-automate--session-buffer session) buffer)
     buffer))
-
-(defun xmtn-automate-terminate-processes-in-root (root)
-  (xmtn-automate-with-session (session root)
-    (xmtn-automate--close-session session)
-    (let ((process (xmtn-automate--session-process session)))
-      (when process
-        (while (ecase (process-status process)
-                 (run t)
-                 (exit nil)
-                 (signal nil))
-          (accept-process-output process))
-        (dvc-trace "Process in root %s terminated" root)
-        ))
-    (xmtn-automate--initialize-session
-     session
-     :root (xmtn-automate--session-root session)
-     :name (xmtn-automate--session-name session))))
 
 (defun xmtn-automate--append-encoded-strings (strings)
   "Encode STRINGS (a list of strings or nil) in automate stdio format,
@@ -616,12 +399,10 @@ the buffer."
           (goto-char (point-max)))))
   nil)
 
-(defun xmtn-automate--send-command-string (session command option-plist
-                                                   mtn-number session-number)
+(defun xmtn-automate--send-command-string (session command option-plist session-number)
   "Send COMMAND and OPTION-PLIST to SESSION."
-  (let* ((buffer-name (format "*%s: input for command %s(%s)*"
+  (let* ((buffer-name (format "*%s: input for command %s*"
                               (xmtn-automate--session-name session)
-                              mtn-number
                               session-number))
          (buffer nil))
     (unwind-protect
@@ -635,7 +416,7 @@ the buffer."
           (setq buffer (get-buffer-create buffer-name))
           (with-current-buffer buffer
             (buffer-disable-undo)
-            (xmtn--set-buffer-multibyte t)
+            (set-buffer-multibyte t)
             (setq buffer-read-only t)
             (let ((inhibit-read-only t))
               (when option-plist
@@ -655,22 +436,14 @@ the buffer."
           (kill-buffer buffer))))))
 
 (defun xmtn-automate--new-command (session command may-kill-p)
-  "Send COMMAND (a list of strings, or cons of lists of strings)
-to the current automate stdio session. If car COMMAND is a list,
-car COMMAND is options, cdr is command."
-  ;; For debugging.
-  ;;(xmtn-automate-terminate-processes-in-root
-  ;; (xmtn-automate--session-root session))
+  "Send COMMAND to SESSION."
   (xmtn-automate--ensure-process session)
-  (let* ((mtn-number (1- (incf (xmtn-automate--session-next-mtn-command-number
-                                session))))
-         (session-number
-          (1- (incf (xmtn-automate--session-next-session-command-number
+  (let* ((command-number
+          (1- (incf (xmtn-automate--session-next-command-number
                      session))))
-         (buffer-name (format "*%s: output for command %s(%s)*"
+         (buffer-name (format " *%s: output for command %s*"
                               (xmtn-automate--session-name session)
-                              mtn-number
-                              session-number))
+                              command-number))
          (buffer
           (progn (when (get-buffer buffer-name)
                    ;; Make sure no local variables or mode changes
@@ -681,21 +454,18 @@ car COMMAND is options, cdr is command."
                      (fundamental-mode)))
                  (get-buffer-create buffer-name))))
     (if (not (listp (car command)))
-        (xmtn-automate--send-command-string session command '()
-                                            mtn-number session-number)
-      (xmtn-automate--send-command-string session (cdr command) (car command)
-                                          mtn-number session-number))
+        (xmtn-automate--send-command-string session command '() command-number)
+      (xmtn-automate--send-command-string session (cdr command) (car command) command-number))
     (with-current-buffer buffer
       (buffer-disable-undo)
-      (xmtn--set-buffer-multibyte nil)
+      (set-buffer-multibyte nil)
       (setq buffer-read-only t)
       (xmtn--assert-optional (and (eql (point) (point-min))
                                   (eql (point) (point-max))))
       (let ((handle (xmtn-automate--%make-raw-command-handle
                      :session session
                      :arguments command
-                     :mtn-command-number mtn-number
-                     :session-command-number session-number
+                     :session-command-number command-number
                      :may-kill-p may-kill-p
                      :buffer buffer
                      :write-marker (set-marker (make-marker) (point)))))
@@ -742,9 +512,9 @@ car COMMAND is options, cdr is command."
                 (goto-char write-marker)
                 (let ((inhibit-read-only t)
                       deactivate-mark)
-                  (xmtn--insert-buffer-substring-no-properties session-buffer
-                                                               read-marker
-                                                               end))
+                  (insert-buffer-substring-no-properties session-buffer
+                                                         read-marker
+                                                         end))
                 (set-marker write-marker (point))))
             ;;(xmtn--debug-mark-text-processed session-buffer read-marker end nil)
             )
@@ -802,8 +572,9 @@ car COMMAND is options, cdr is command."
                  (xmtn-automate--decoder-state-last-p state))
             (xmtn--assert-optional command)
             (setf (xmtn-automate--command-handle-finished-p command) t)
-            (xmtn--with-no-warnings
-             (pop (xmtn-automate--session-remaining-command-handles session)))
+            (with-no-warnings
+              ;; discard result
+              (pop (xmtn-automate--session-remaining-command-handles session)))
             (setq tag 'check-for-more)
             (when (not (xmtn-automate--command-handle-may-kill-p command))
               (when (zerop (decf (xmtn-automate--session-must-not-kill-counter
@@ -919,7 +690,7 @@ car COMMAND is options, cdr is command."
              (message "Process %s died due to signal" (process-name process))
              (when (not (zerop (xmtn-automate--session-must-not-kill-counter
                                 session)))
-               (xmtn--lwarn
+               (lwarn
                 'xmtn ':error
                 "Process %s died due to signal during a critical operation"
                 (process-name process))))))))))
@@ -1007,6 +778,18 @@ Each element of the list is a list; key, signature, name, value, trust."
 (defun xmtn--tree-default-branch (root)
   (xmtn-automate-simple-command-output-line root `("get_option" "branch")))
 
+(defun xmtn-automate-local-changes (work)
+  "Summary of status  for WORK; 'ok if no changes, 'need-commit if changes."
+  (message "checking %s for local changes" work)
+  (let ((default-directory work))
+
+    (let ((result (xmtn-automate-simple-command-output-string
+                   default-directory
+                   (list (list "no-unchanged" "no-ignored")
+                         "inventory"))))
+     (if (> (length result) 0)
+         'need-commit
+       'ok))))
 
 (provide 'xmtn-automate)
 
