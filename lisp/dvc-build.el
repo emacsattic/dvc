@@ -335,6 +335,9 @@ fixed in Emacs after 21.3."
     ;; Insert some preload forms into the autoload file.
     (with-temp-file --autoloads-filename
       (insert-file-contents --autoloads-filename)
+      ;; Prevent "changed on disk query"
+      (if (not (null (find-buffer-visiting --autoloads-filename)))
+	  (kill-buffer (find-buffer-visiting --autoloads-filename)))
       (let ((blurb ";;; DVC PRELOAD\n"))
         (unless (save-excursion
                   ;; The preload forms are not guaranteed to be at beginning
