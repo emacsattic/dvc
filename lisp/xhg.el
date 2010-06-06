@@ -327,11 +327,15 @@ negative : Don't show patches, limit to n revisions."
       (setq command-list (append command-list (list "-p"))))
     ;; be verbose or not
     (setq xhg-log-remember-last-args command-list)
-    (setq xhg-log-remember-func-args (list r1 r2 show-patch file))
     (if (and xhg-log-remember-last-args
              xhg-log-verbose)
         (setq command-list (append '("-v") xhg-log-remember-last-args))
         (setq command-list xhg-log-remember-last-args))
+
+    (setf file (expand-file-name (or file (buffer-file-name) default-directory)))
+    (setq command-list (append command-list (list file)))
+    (setq xhg-log-remember-func-args (list r1 r2 show-patch file))
+
     (dvc-switch-to-buffer-maybe buffer)
     (let ((inhibit-read-only t))
       (erase-buffer))
