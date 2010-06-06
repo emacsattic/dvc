@@ -1,6 +1,6 @@
 ;;; xmtn-run.el --- Functions for runnning monotone commands
 
-;; Copyright (C) 2008 - 2009 Stephen Leake
+;; Copyright (C) 2008 - 2010 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -43,7 +43,7 @@
 
 (define-coding-system-alias 'xmtn--monotone-normal-form 'utf-8-unix)
 
-(defun* xmtn--run-command-sync (root arguments &rest dvc-run-keys &key)
+(defun* xmtn--run-command-sync (root arguments)
   (xmtn--check-cached-command-version)
   (let ((default-directory (file-truename (or root default-directory))))
     (dvc-run-dvc-sync
@@ -53,8 +53,7 @@
        ;; necessary since default-directory is set, and it
        ;; confuses the Cygwin version of mtn when run with a
        ;; non-Cygwin Emacs.
-       ,@arguments)
-     dvc-run-keys)))
+       ,@arguments))))
 
 ;;; The `dvc-run-dvc-*' functions use `call-process', which, for some
 ;;; reason, spawns the subprocess with a working directory with all
@@ -112,7 +111,8 @@ Signals an error if more (or fewer) than one line is output."
              arguments))
     (first lines)))
 
-(defconst xmtn--minimum-required-command-version '(0 45))
+(defconst xmtn--minimum-required-command-version '(0 46))
+(defconst xmtn--required-automate-format-version "2")
 
 (defun xmtn--have-no-ignore ()
   "Non-nil if mtn automate inventory supports --no-ignore, --no-unknown, --no-unchanged options."

@@ -219,7 +219,7 @@ See file commentary for details."
 must be a workspace."
   (let* (result
          (session (xmtn-automate-cache-session default-directory))
-         (handle (xmtn-automate--new-command session `("certs" ,hash-id) nil)))
+         (handle (xmtn-automate--new-command session `("certs" ,hash-id))))
     (xmtn-automate-command-wait-until-finished handle)
     (with-current-buffer (xmtn-automate-command-buffer handle)
       ;; now in buffer containing basic_io certs; find the branch certs

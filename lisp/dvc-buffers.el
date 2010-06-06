@@ -1,6 +1,6 @@
 ;;; dvc-buffers.el --- Buffer management for DVC
 
-;; Copyright (C) 2005-2009 by all contributors
+;; Copyright (C) 2005-2010 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -658,6 +658,19 @@ just bury it."
   (interactive)
   (dvc-kill-all-type 'revision)
   (dvc-kill-all-type 'last-revision))
+
+(defun dvc-kill-all-workspace (workspace)
+  "Kill all buffers whose files are in the WORKSPACE tree."
+  (interactive "Dkill buffers in workspace: ")
+  (let ((workspace (expand-file-name workspace))
+        (count 0))
+    (dolist (buffer (buffer-list))
+      (let ((file-name (buffer-file-name buffer)))
+        (and file-name ;; some buffers don't have a file name
+             (string= workspace (substring file-name 0 (min (length file-name) (length workspace))))
+             (kill-buffer buffer)
+             (setq count (+ 1 count)))))
+    (message "killed %d buffers" count)))
 
 (defvar dvc-save-some-buffers-ignored-modes '(dvc-log-edit-mode))
 (defun dvc-save-some-buffers (&optional tree)

@@ -1,7 +1,7 @@
 ;;; dvc-fileinfo.el --- An ewoc structure for displaying file information
 ;;; for DVC
 
-;; Copyright (C) 2007 - 2009 by all contributors
+;; Copyright (C) 2007 - 2010 by all contributors
 
 ;; Author: Stephen Leake, <stephen_leake@stephe-leake.org>
 
@@ -63,7 +63,8 @@ The elements must all be of class dvc-fileinfo-root.")
   (indexed t)   ;; Whether changes made to the file have been recorded
                 ;; in the index.  Use t if the back-end does not
                 ;; support an index.
-  more-status   ;; String; whatever else the backend has to say
+  more-status   ;; String. If status is rename-*, this is the other name.
+                ;; Otherwise whatever else the backend has to say
   )
 
 (defun dvc-fileinfo-status-image-full (status)
@@ -190,6 +191,12 @@ indicate statuses."
            (progn
              (newline)
              (insert "      ")
+             (ecase (dvc-fileinfo-file-status fileinfo)
+               (rename-source
+                (insert "to "))
+               (rename-target
+                (insert "from "))
+               (t nil))
              (insert (dvc-fileinfo-file-more-status fileinfo))))))
 
     (dvc-fileinfo-legacy
@@ -289,11 +296,36 @@ containing a 'file."
 (defun dvc-fileinfo-current-file ()
   "Return a string giving the filename (including path from root)
 of the file element on the line at point. Throws an error if
-point is not on a file element line."
+point is not on a file element line. If file status is
+`rename-*', this is the modified (or target) name."
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo
       (dvc-fileinfo-file                ; also matches dvc-fileinfo-dir
-       (dvc-fileinfo-path fileinfo))
+       (ecase (dvc-fileinfo-file-status fileinfo)
+         (rename-source
+          ;; target name is in more-status
+          (dvc-fileinfo-file-more-status fileinfo))
+         (t
+          (concat (dvc-fileinfo-file-dir fileinfo)
+                  (dvc-fileinfo-file-file fileinfo)))))
+
+      (dvc-fileinfo-legacy
+       (cadr (dvc-fileinfo-legacy-data fileinfo))))))
+
+(defun dvc-fileinfo-base-file ()
+  "Return a string giving the filename in the base revision.
+Includes path from root). Different from
+dvc-fileinfo-current-file only for renamed files."
+  (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
+    (etypecase fileinfo                ; also matches dvc-fileinfo-dir
+      (dvc-fileinfo-file
+       (ecase (dvc-fileinfo-file-status fileinfo)
+         (rename-target
+          ;; source name is in more-status, and it includes the path
+          (dvc-fileinfo-file-more-status fileinfo))
+         (t
+          (concat (dvc-fileinfo-file-dir fileinfo)
+                  (dvc-fileinfo-file-file fileinfo)))))
 
       (dvc-fileinfo-legacy
        (cadr (dvc-fileinfo-legacy-data fileinfo))))))
