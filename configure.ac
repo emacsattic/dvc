@@ -56,7 +56,6 @@ AC_CONFIG_FILES([Makefile lisp/Makefile texinfo/Makefile dvc-load.el lisp/dvc-si
 # Common system utilities checking:
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
-AC_PROG_MKDIR_P
 
 # External programs checking:
 

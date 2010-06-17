@@ -1,6 +1,6 @@
 ;;; xmtn-conflicts.el --- conflict resolution for DVC backend for monotone
 
-;; Copyright (C) 2008 - 2009 Stephen Leake
+;; Copyright (C) 2008 - 2010 Stephen Leake
 
 ;; Author: Stephen Leake
 ;; Keywords: tools
@@ -73,7 +73,7 @@
 
 (defvar xmtn-conflicts-ancestor-revision ""
   "Buffer-local variable holding ancestor revision id.")
-(make-variable-buffer-local 'xmtn-conflicts-ancestor-revision-spec)
+(make-variable-buffer-local 'xmtn-conflicts-ancestor-revision)
 
 (defvar xmtn-conflicts-total-count nil
   "Total count of conflicts.")
@@ -226,7 +226,7 @@ header."
   ;;       right_name "1553/gds-hardware-bus_1553-iru_honeywell-user_guide-symbols.tex"
   ;;    right_file_id [d1eee768379694a59b2b015dd59a61cf67505182]
   ;;
-  ;; optional resolution: {resolved_internal | resolved_user}
+  ;; optional resolution: {resolved_internal | resolved_user_left}
   (let ((conflict (make-xmtn-conflicts-conflict)))
     (setf (xmtn-conflicts-conflict-conflict_type conflict) 'content)
     (xmtn-basic-io-check-line "node_type"
@@ -250,7 +250,7 @@ header."
                (setq xmtn-conflicts-resolved-internal-count (+ 1 xmtn-conflicts-resolved-internal-count))
                (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_internal)))
 
-              ((string= "resolved_user" symbol)
+              ((string= "resolved_user_left" symbol)
                (setf (xmtn-conflicts-conflict-left_resolution conflict) (list 'resolved_user (cadar value))))
 
               (t
@@ -523,7 +523,7 @@ header."
            (insert "resolved_keep_left \n"))
 
           (resolved_user
-           (xmtn-basic-io-write-str "resolved_user" (cadr (xmtn-conflicts-conflict-left_resolution conflict))))
+           (xmtn-basic-io-write-str "resolved_user_left" (cadr (xmtn-conflicts-conflict-left_resolution conflict))))
           ))))
 
 (defun xmtn-conflicts-write-duplicate_name (conflict)
@@ -735,9 +735,7 @@ header."
   (ediff-dispose-of-variant-according-to-user ediff-buffer-A 'A nil nil)
   (ediff-dispose-of-variant-according-to-user ediff-buffer-B 'B nil nil)
   (ediff-dispose-of-variant-according-to-user ediff-ancestor-buffer 'Ancestor nil nil)
-  (save-excursion
-    (set-buffer ediff-buffer-C)
-    (save-buffer))
+  (with-current-buffer ediff-buffer-C (save-buffer))
   (ediff-kill-buffer-carefully ediff-buffer-C)
 
   (let ((control-buffer ediff-control-buffer))
@@ -763,13 +761,13 @@ header."
       (set-window-configuration window-config)
       (set-buffer control-buffer))))
 
-(defun xmtn-conflicts-get-file (file-id dir file-name)
+(defun xmtn-conflicts-get-file (work file-id dir file-name)
   "Get contents of FILE-ID into DIR/FILE-NAME. Return full file name."
   (let ((file (concat (file-name-as-directory dir) file-name)))
     (setq dir (file-name-directory file))
     (unless (file-exists-p dir)
       (make-directory dir t))
-    (xmtn--get-file-by-id default-directory file-id file)
+    (xmtn--get-file-by-id work file-id file)
     file))
 
 (defun xmtn-conflicts-resolve-ediff (side)
@@ -791,13 +789,16 @@ header."
     ;;
     ;; duplicate_name conflicts have no ancestor.
     (let ((file-ancestor (and (xmtn-conflicts-conflict-ancestor_file_id conflict)
-                              (xmtn-conflicts-get-file (xmtn-conflicts-conflict-ancestor_file_id conflict)
+                              (xmtn-conflicts-get-file default-directory
+						       (xmtn-conflicts-conflict-ancestor_file_id conflict)
                                                        "_MTN/resolutions/ancestor"
                                                        (xmtn-conflicts-conflict-ancestor_name conflict))))
-          (file-left (xmtn-conflicts-get-file (xmtn-conflicts-conflict-left_file_id conflict)
+          (file-left (xmtn-conflicts-get-file xmtn-conflicts-left-work
+					      (xmtn-conflicts-conflict-left_file_id conflict)
                                               xmtn-conflicts-left-root
                                               (xmtn-conflicts-conflict-left_name conflict)))
-          (file-right (xmtn-conflicts-get-file (xmtn-conflicts-conflict-right_file_id conflict)
+          (file-right (xmtn-conflicts-get-file xmtn-conflicts-right-work
+					       (xmtn-conflicts-conflict-right_file_id conflict)
                                                xmtn-conflicts-right-root
                                                (xmtn-conflicts-conflict-right_name conflict)))
 

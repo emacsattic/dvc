@@ -1,6 +1,6 @@
 ;;; xmtn-status.el --- manage actions for multiple projects
 
-;; Copyright (C) 2009 Stephen Leake
+;; Copyright (C) 2009 - 2010 Stephen Leake
 
 ;; Author: Stephen Leake
 ;; Keywords: tools
@@ -107,15 +107,26 @@ The elements must all be of class xmtn-status-data.")
   (if (buffer-live-p (xmtn-status-data-conflicts-buffer data))
       (with-current-buffer (xmtn-status-data-conflicts-buffer data) (save-buffer))))
 
+(defun xmtn-status-clean-1 (data)
+  "Clean DATA workspace."
+  (xmtn-automate-kill-session (xmtn-status-work data))
+  (xmtn-status-kill-conflicts-buffer data)
+  (xmtn-conflicts-clean (xmtn-status-work data)))
+
 (defun xmtn-status-clean ()
   "Clean current workspace, delete from ewoc"
   (interactive)
   (let* ((elem (ewoc-locate xmtn-status-ewoc))
          (data (ewoc-data elem))
          (inhibit-read-only t))
-    (xmtn-status-kill-conflicts-buffer data)
-    (xmtn-conflicts-clean (xmtn-status-work data))
+    (xmtn-status-clean-1 data)
     (ewoc-delete xmtn-status-ewoc elem)))
+
+(defun xmtn-status-quit ()
+  "Clean all remaining workspaces, kill automate sessions, kill buffer."
+  (interactive)
+  (ewoc-map 'xmtn-status-clean-1 xmtn-status-ewoc)
+  (kill-buffer))
 
 (defun xmtn-status-cleanp ()
   "Non-nil if clean & quit is appropriate for current workspace."
@@ -181,7 +192,10 @@ The elements must all be of class xmtn-status-data.")
          (data (ewoc-data elem)))
     (xmtn-status-need-refresh elem data)
     (setf (xmtn-status-data-local-changes data) 'ok)
-    (xmtn-status (xmtn-status-work data))))
+    (xmtn-status (xmtn-status-work data))
+    ;; IMPROVEME: create a log-edit buffer now, since we have both a
+    ;; status and conflict buffer, and that confuses dvc-log-edit
+    ))
 
 (defun xmtn-status-status-ok ()
   "Ignore local changes in current workspace."
@@ -223,9 +237,10 @@ The elements must all be of class xmtn-status-data.")
   (let* ((elem (ewoc-locate xmtn-status-ewoc))
          (data (ewoc-data elem))
          (default-directory (xmtn-status-work data)))
-    (xmtn-status-need-refresh elem data)
     (xmtn-status-save-conflicts-buffer data)
-    (xmtn-dvc-merge-1 default-directory nil)))
+    (xmtn-dvc-merge-1 default-directory nil)
+    (xmtn-status-refresh-one data nil)
+    (ewoc-invalidate xmtn-status-ewoc elem)))
 
 (defun xmtn-status-heads ()
   "Run xmtn-heads on current workspace."
@@ -256,16 +271,16 @@ The elements must all be of class xmtn-status-data.")
     (define-key map [?5]  '(menu-item "5) update"
                                       xmtn-status-update
                                       :visible (xmtn-status-updatep)))
-    (define-key map [?4]  '(menu-item "4) xmtn-merge"
+    (define-key map [?4]  '(menu-item "4) merge"
                                       xmtn-status-merge
                                       :visible (xmtn-status-headsp)))
-    (define-key map [?3]  '(menu-item "3) xmtn-heads"
+    (define-key map [?3]  '(menu-item "3) show heads"
                                       xmtn-status-heads
                                       :visible (xmtn-status-headsp)))
     (define-key map [?2]  '(menu-item "2) resolve conflicts"
                                       xmtn-status-resolve-conflicts
                                       :visible (xmtn-status-resolve-conflictsp)))
-    (define-key map [?1]  '(menu-item "1) dvc-missing"
+    (define-key map [?1]  '(menu-item "1) show missing"
                                       xmtn-status-missing
                                       :visible (xmtn-status-missingp)))
     (define-key map [?0]  '(menu-item "0) status"
@@ -283,7 +298,7 @@ The elements must all be of class xmtn-status-data.")
     (define-key map [?g]  'xmtn-status-refresh)
     (define-key map [?n]  'xmtn-status-next)
     (define-key map [?p]  'xmtn-status-prev)
-    (define-key map [?q]  (lambda () (interactive) (kill-buffer (current-buffer))))
+    (define-key map [?q]  'xmtn-status-quit)
     map)
   "Keymap used in `xmtn-multiple-status-mode'.")
 
@@ -430,14 +445,15 @@ The elements must all be of class xmtn-status-data.")
   "Show actions to update WORK."
   (interactive "DStatus for (workspace): ")
   (pop-to-buffer (get-buffer-create "*xmtn-multi-status*"))
-  (setq default-directory work)
-  (setq xmtn-status-root (expand-file-name (concat (file-name-as-directory work) "../")))
+  ;; allow WORK to be relative, and ensure it is a workspace root
+  (setq default-directory (xmtn-tree-root (expand-file-name work)))
+  (setq xmtn-status-root (expand-file-name (concat (file-name-as-directory default-directory) "../")))
   (setq xmtn-status-ewoc (ewoc-create 'xmtn-status-printer))
   (let ((inhibit-read-only t)) (delete-region (point-min) (point-max)))
   (ewoc-set-hf xmtn-status-ewoc (format "Root : %s\n" xmtn-status-root) "")
   (ewoc-enter-last xmtn-status-ewoc
                    (make-xmtn-status-data
-                    :work (file-name-nondirectory (directory-file-name work))
+                    :work (file-name-nondirectory (directory-file-name default-directory))
                     :branch (xmtn--tree-default-branch default-directory)
                     :need-refresh t
                     :heads 'need-scan))
