@@ -1,6 +1,6 @@
 ;;; xmtn-dvc.el --- DVC backend for monotone
 
-;; Copyright (C) 2008 - 2009 Stephen Leake
+;; Copyright (C) 2008 - 2010 Stephen Leake
 ;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -71,26 +71,23 @@
 (dvc-register-dvc 'xmtn "monotone")
 
 (defmacro* xmtn--with-automate-command-output-basic-io-parser
-    ((parser root-form command-form &key ((:may-kill-p may-kill-p-form)))
+    ((parser root-form command-form)
      &body body)
   (declare (indent 1) (debug (sexp body)))
-  (let ((parser-tmp (gensym))
-        (root (gensym))
+  (let ((root (gensym))
         (command (gensym))
-        (may-kill-p (gensym))
         (session (gensym))
         (handle (gensym)))
     `(let ((,root ,root-form)
-           (,command ,command-form)
-           (,may-kill-p ,may-kill-p-form))
+           (,command ,command-form))
        (let* ((,session (xmtn-automate-cache-session ,root))
-              (,handle (xmtn-automate--new-command ,session ,command ,may-kill-p)))
-         (xmtn-automate-command-check-for-and-report-error ,handle)
+              (,handle (xmtn-automate--new-command ,session ,command)))
          (xmtn-automate-command-wait-until-finished ,handle)
-         (xmtn-basic-io-with-stanza-parser (,parser
-                                            (xmtn-automate-command-buffer
-                                             ,handle))
-           ,@body)))))
+         (prog1
+             (xmtn-basic-io-with-stanza-parser
+                 (,parser (xmtn-automate-command-buffer ,handle))
+               ,@body)
+           (xmtn-automate--cleanup-command ,handle))))))
 
 ;;;###autoload
 (defun xmtn-dvc-log-edit-file-name-func (&optional root)
@@ -136,7 +133,7 @@ the file before saving."
         (concat "--message-file=" log-edit-file))))
 
 ;;;###autoload
-(defun xmtn-dvc-log-edit-done ()
+(defun xmtn-dvc-log-edit-done (&optional prompt-branch)
   (let* ((root default-directory)
          (files (or (with-current-buffer dvc-partner-buffer
                       (dvc-current-file-list 'nil-if-none-marked))
@@ -153,7 +150,14 @@ the file before saving."
          (excluded-files
           (with-current-buffer dvc-partner-buffer
             (xmtn--normalize-file-names root (dvc-fileinfo-excluded-files))))
-         (branch (xmtn--tree-default-branch root)))
+         (branch (if prompt-branch
+                     (progn
+                       ;; an automate session caches the original
+                       ;; options, and will not use the new branch.
+                       (let ((session (xmtn-automate-get-cached-session (dvc-uniquify-file-name root))))
+                         (if session (xmtn-automate--close-session session)))
+                       (read-from-minibuffer "branch: " (xmtn--tree-default-branch root)))
+                   (xmtn--tree-default-branch root))))
     ;; Saving the buffer will automatically delete any log edit hints.
     (save-buffer)
     (dvc-save-some-buffers root)
@@ -167,7 +171,7 @@ the file before saving."
     ;; We used to check for things that would make commit fail;
     ;; missing files, nothing to commit. But that just slows things
     ;; down in the typical case; better to just handle the error
-    ;; message, which is way more informative anyway.
+    ;; message, which is nicely informative anyway.
     (lexical-let* ((progress-message
                     (case normalized-files
                       (all (format "Committing all files in %s" root))
@@ -183,6 +187,7 @@ the file before saving."
        root
        `("commit" ,(xmtn-dvc-log-message)
          ,(concat "--branch=" branch)
+         "--non-interactive"
          ,@(case normalized-files
              (all
               (if excluded-files
@@ -206,8 +211,11 @@ the file before saving."
                    ;; commit was successful.  Let's not interfere with
                    ;; that.  (Calling `dvc-log-close' would.)
 
-                   ;; we'd like to delete log-edit-buffer here, but
-                   ;; we can't do that from a process sentinel
+                   ;; we'd like to delete log-edit-buffer here, but we
+                   ;; can't do that from a process sentinel. And we'd
+                   ;; have to find it; it may not be current buffer,
+                   ;; if log-edit-done was invoked from the ediff
+                   ;; window.
 
                    (dvc-diff-clear-buffers 'xmtn
                                            default-directory
@@ -293,11 +301,7 @@ the file before saving."
                   :dir (file-name-directory path)
                   :file (file-name-nondirectory path)
                   :status status
-                  :more-status (if orig-path
-                                   (if (eq status 'rename-target)
-                                       (concat "from " orig-path)
-                                     (concat "to " orig-path))
-                                 ""))))))
+                  :more-status (or orig-path ""))))))
            (likely-dir-p (path) (string-match "/\\'" path)))
 
       ;; First parse the basic_io contained in dvc-header, if any.
@@ -1070,7 +1074,7 @@ finished."
   ;; the user won't see. So check that here - it's fast.
   ;; Don't throw an error; upper level might be doing other directories as well.
   (if (and check-id-p
-           (equal (xmtn--get-base-revision-hash-id root) target-revision-hash-id))
+           (equal (xmtn--get-base-revision-hash-id-or-null root) target-revision-hash-id))
       (progn
         (unless no-ding (ding))
         (message "Tree %s is already based on target revision %s"
@@ -1087,7 +1091,9 @@ finished."
       (let* ((branch (xmtn--tree-default-branch root))
              (heads (xmtn--heads root branch)))
         (case (length heads)
-          (0 (assert nil))
+          (0
+           (error "branch %s has no revisions" branch))
+
           (1
            (xmtn--update root (first heads) t no-ding))
 
@@ -1133,24 +1139,20 @@ finished."
            (lambda ()
              (xmtn--refresh-status-header display-buffer)
              (message "%s... done" msg)))
-        (xmtn--run-command-sync
-           root cmd
-           :finished (lambda (output error status arguments)
-                       (xmtn--refresh-status-header display-buffer)
-                       (message "%s... done" msg)))))))
+        (xmtn--run-command-sync root cmd)
+        (xmtn--refresh-status-header display-buffer)
+        (message "%s... done" msg)))))
 
 (defun xmtn-dvc-merge-1 (root refresh-status)
-  (lexical-let ((refresh-status refresh-status))
-    (xmtn--run-command-async
-     root
-     (list
-      "merge"
-      (if (file-exists-p (concat root "/_MTN/conflicts"))
-          "--resolve-conflicts-file=_MTN/conflicts")
-      (xmtn-dvc-log-message))
-     :finished (lambda (output error status arguments)
-                 (if refresh-status
-                     (xmtn--refresh-status-header (current-buffer)))))))
+  (xmtn--run-command-sync
+   root
+   (list
+    "merge"
+    (if (file-exists-p (concat root "/_MTN/conflicts"))
+        "--resolve-conflicts-file=_MTN/conflicts")
+    (xmtn-dvc-log-message)))
+  (if refresh-status
+      (xmtn--refresh-status-header (current-buffer))))
 
 ;;;###autoload
 (defun xmtn-dvc-merge (&optional other)
@@ -1193,20 +1195,16 @@ finished."
   (let ((root (dvc-tree-root)))
     (assert (not (endp file-names)))
     (dvc-save-some-buffers root)
-    (let ((normalized-file-names (xmtn--normalize-file-names root file-names)))
-      (lexical-let
-          ((root root)
-           (progress-message
-            (if (eql (length file-names) 1)
-                (format "Reverting file %s" (first file-names))
-              (format "Reverting %s files" (length file-names)))))
-        (message "%s..." progress-message)
-        (xmtn--run-command-sync root `("revert" "--"
-                                       ,@normalized-file-names)
-                                :finished
-                                (lambda (output error status arguments)
-                                  (message "%s... done" progress-message)))
-        (dvc-revert-some-buffers root))))
+    (let ((normalized-file-names (xmtn--normalize-file-names root file-names))
+          (progress-message
+           (if (eql (length file-names) 1)
+               (format "Reverting file %s" (first file-names))
+             (format "Reverting %s files" (length file-names)))))
+      (message "%s..." progress-message)
+      (xmtn--run-command-sync root `("revert" "--"
+                                     ,@normalized-file-names))
+      (message "%s... done" progress-message))
+    (dvc-revert-some-buffers root))
   nil)
 
 ;;;###autoload
@@ -1222,48 +1220,38 @@ finished."
   (xmtn--revision-get-file-helper file `(revision ,@stuff)))
 
 (defun xmtn--revision-get-file-helper (file backend-id)
-  "Fill current buffer with the contents of FILE revision BACKEND-ID."
+  "Fill current buffer with the contents of FILE in revision BACKEND-ID."
   (let ((root (dvc-tree-root)))
-    (let* ((normalized-file (xmtn--normalize-file-name root file))
-           (corresponding-file
-            (xmtn--get-corresponding-path root normalized-file
-                                          `(local-tree ,root) backend-id)))
-      (if (null corresponding-file)
-          ;; File doesn't exist.  Since this function is (as far
-          ;; as I know) only called from diff-like functions, a
-          ;; missing file is not an error but just means the diff
-          ;; should be computed against an empty file.  So just
-          ;; leave the buffer empty.
-          (progn)
-        (let ((temp-dir nil))
-          (unwind-protect
-              (progn
-                (setq temp-dir (make-temp-file
-                                "xmtn--revision-get-file-" t))
-                ;; Going through a temporary file and using
-                ;; `insert-file-contents' in conjunction with as
-                ;; much of the original file name as possible seems
-                ;; to be the best way to make sure that Emacs'
-                ;; entire file coding system detection logic is
-                ;; applied.  Functions like
-                ;; `find-operation-coding-system' and
-                ;; `find-file-name-handler' are not a complete
-                ;; replacement since they don't look at the contents
-                ;; at all.
-                (let ((temp-file (concat temp-dir "/" corresponding-file)))
-                  (make-directory (file-name-directory temp-file) t)
-                  (with-temp-file temp-file
-                    (set-buffer-multibyte nil)
-                    (setq buffer-file-coding-system 'binary)
-                    (xmtn--insert-file-contents-by-name root backend-id corresponding-file (current-buffer)))
-                  (let ((output-buffer (current-buffer)))
-                    (with-temp-buffer
-                      (insert-file-contents temp-file)
-                      (let ((input-buffer (current-buffer)))
-                        (with-current-buffer output-buffer
-                          (insert-buffer-substring input-buffer)))))))
-            (when temp-dir
-              (dvc-delete-recursively temp-dir))))))))
+    (let ((normalized-file (xmtn--normalize-file-name root file))
+          (temp-dir nil))
+      (unwind-protect
+          (progn
+            (setq temp-dir (make-temp-file
+                            "xmtn--revision-get-file-" t))
+            ;; Going through a temporary file and using
+            ;; `insert-file-contents' in conjunction with as
+            ;; much of the original file name as possible seems
+            ;; to be the best way to make sure that Emacs'
+            ;; entire file coding system detection logic is
+            ;; applied.  Functions like
+            ;; `find-operation-coding-system' and
+            ;; `find-file-name-handler' are not a complete
+            ;; replacement since they don't look at the contents
+            ;; at all.
+            (let ((temp-file (concat temp-dir "/" normalized-file)))
+              (make-directory (file-name-directory temp-file) t)
+              (with-temp-file temp-file
+                (set-buffer-multibyte nil)
+                (setq buffer-file-coding-system 'binary)
+                (xmtn--insert-file-contents-by-name root backend-id normalized-file (current-buffer)))
+              (let ((output-buffer (current-buffer)))
+                (with-temp-buffer
+                  (insert-file-contents temp-file)
+                  (let ((input-buffer (current-buffer)))
+                    (with-current-buffer output-buffer
+                      (insert-buffer-substring input-buffer)))))))
+        (when temp-dir
+          (dvc-delete-recursively temp-dir))))))
 
 (defun xmtn--get-file-by-id (root file-id save-as)
   "Store contents of FILE-ID in file SAVE-AS."
@@ -1341,25 +1329,12 @@ finished."
                           `(,id ,normalized-file))))
        last-n))))
 
-(defun xmtn--get-corresponding-path-raw (root normalized-file-name
-                                              source-revision-hash-id
-                                              target-revision-hash-id)
-  (check-type normalized-file-name string)
-  (xmtn--with-automate-command-output-basic-io-parser
-      (next-stanza root `("get_corresponding_path"
-                          ,source-revision-hash-id
-                          ,normalized-file-name
-                          ,target-revision-hash-id))
-    (xmtn-match (funcall next-stanza)
-      (nil nil)
-      ((("file" (string $result)))
-       (assert (null (funcall next-stanza)))
-       result))))
-
-
 (defun xmtn--get-corresponding-path (root normalized-file-name
                                           source-revision-backend-id
                                           target-revision-backend-id)
+  ;; normalized-file-name is a file in
+  ;; source-revision-backend-id. Return its name in
+  ;; target-revision-backend-id.
   (block get-corresponding-path
     (let (source-revision-hash-id
           target-revision-hash-id
@@ -1382,9 +1357,11 @@ finished."
                    ((local-tree $target-path)
                     (assert (xmtn--same-tree-p path target-path))
                     (return-from get-corresponding-path normalized-file-name)))
+               ;; Handle an uncommitted rename in the current workspace
                (setq normalized-file-name (xmtn--get-rename-in-workspace-to
                                            path normalized-file-name))
                (setq source-revision-hash-id base-revision-hash-id)))))
+
         (xmtn-match resolved-target-revision
           ((revision $hash-id)
            (setq target-revision-hash-id hash-id))
@@ -1394,8 +1371,9 @@ finished."
                   (xmtn--get-base-revision-hash-id-or-null path)))
              (if (null base-revision-hash-id)
                  (return-from get-corresponding-path nil)
-               (setq target-revision-hash-id base-revision-hash-id
-                     file-name-postprocessor
+               (setq target-revision-hash-id base-revision-hash-id)
+               ;; Handle an uncommitted rename in the current workspace
+               (setq file-name-postprocessor
                      (lexical-let ((path path))
                        (lambda (file-name)
                          (xmtn--get-rename-in-workspace-from path
@@ -1409,6 +1387,9 @@ finished."
           (funcall file-name-postprocessor result))))))
 
 (defun xmtn--get-rename-in-workspace-from (root normalized-source-file-name)
+  ;; Given a workspace ROOT and a file name
+  ;; NORMALIZED-SOURCE-FILE-NAME in the base revision of the
+  ;; workspace, return the current name of that file in the workspace.
   ;; FIXME: need a better way to implement this
   (check-type normalized-source-file-name string)
   (block parse
@@ -1424,6 +1405,10 @@ finished."
     normalized-source-file-name))
 
 (defun xmtn--get-rename-in-workspace-to (root normalized-target-file-name)
+  ;; Given a workspace ROOT and a file name
+  ;; NORMALIZED-TARGET-FILE-NAME in the current revision of the
+  ;; workspace, return the name of that file in the base revision of
+  ;; the workspace.
   ;; FIXME: need a better way to implement this
   (check-type normalized-target-file-name string)
   (block parse

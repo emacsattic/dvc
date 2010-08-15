@@ -1,6 +1,6 @@
 ;;; dvc-diff.el --- A generic diff mode for DVC
 
-;; Copyright (C) 2005-2009 by all contributors
+;; Copyright (C) 2005-2010 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -509,15 +509,17 @@ file after."
   (unless (and (car dvc-diff-base)
                (car dvc-diff-modified))
     (error "No revision information to base ediff on"))
-  (let ((on-modified-file (dvc-get-file-info-at-point))
+  (let ((modified-file (dvc-get-file-info-at-point))
         (loc (point)))
 
-    (if (and on-modified-file
+    (if (and modified-file
              (dvc-diff-in-ewoc-p))
         ;; on ewoc item; just ediff
-        (dvc-file-ediff-revisions on-modified-file
+        (dvc-file-ediff-revisions modified-file
                                   dvc-diff-base
-                                  dvc-diff-modified)
+                                  dvc-diff-modified
+                                  (dvc-fileinfo-base-file))
+
       ;; in diff section; find hunk index, so we can jump to it in the ediff.
       (end-of-line)
       (dvc-trace "loc=%S" loc)
@@ -530,7 +532,7 @@ file after."
           (setq hunk (1+ hunk)))
         (goto-char loc)
         (with-current-buffer
-            (dvc-file-ediff-revisions on-modified-file
+            (dvc-file-ediff-revisions modified-file
                                       dvc-diff-base
                                       dvc-diff-modified)
           (ediff-jump-to-difference hunk))))))
@@ -560,7 +562,8 @@ interactively."
 
 (defun dvc-diff-get-file-at-point ()
   "Return filename for file at point.
-Throw an error when not on a file."
+Throw an error when not on a file. If file is renamed, this is
+the modified name."
   (if (dvc-diff-in-ewoc-p)
       (dvc-fileinfo-current-file)
     (save-excursion
@@ -810,11 +813,12 @@ Useful to clear diff buffers after a commit."
           (set-auto-mode t)))
       (dvc-ediff-buffers pristine-buffer file-buffer))))
 
-(defun dvc-file-ediff-revisions (file base modified)
-  "View changes in FILE between BASE and MODIFIED using ediff."
+(defun dvc-file-ediff-revisions (file base-rev modified-rev &optional base-file)
+  "View changes in FILE between BASE-REV and MODIFIED-REV using ediff.
+Optional BASE-FILE is filename in BASE-REV if different from FILE."
   (dvc-ediff-buffers
-   (dvc-revision-get-file-in-buffer file base)
-   (dvc-revision-get-file-in-buffer file modified)))
+   (dvc-revision-get-file-in-buffer (or base-file file) base-rev)
+   (dvc-revision-get-file-in-buffer file modified-rev)))
 
 ;;;###autoload
 (defun dvc-dvc-file-diff (file &optional base modified dont-switch)

@@ -1,6 +1,6 @@
 ;;; dvc-core.el --- Core functions for distributed version control
 
-;; Copyright (C) 2005-2009 by all contributors
+;; Copyright (C) 2005-2010 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions From:
@@ -109,7 +109,9 @@ This function may be useful to find \{arch\} and/or _darcs directories."
 Calls `dvc-find-tree-root-file-first', shows a message when
 called interactively, and manages no-error.
 
-If LOCATION is nil, the tree root is returned, and it is
+If LOCATION is nil, `default-directory' is used instead.
+
+The tree root is returned, and it is
 guaranteed to end in a \"/\" character.
 
 MSG must be of the form \"%S is not a ...-managed tree\"."

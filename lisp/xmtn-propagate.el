@@ -1,6 +1,6 @@
 ;;; xmtn-propagate.el --- manage multiple propagations for DVC backend for monotone
 
-;; Copyright (C) 2009 Stephen Leake
+;; Copyright (C) 2009, 2010 Stephen Leake
 
 ;; Author: Stephen Leake
 ;; Keywords: tools
@@ -53,8 +53,6 @@ The elements must all be of class xmtn-propagate-data.")
   to-name            ;
   from-branch        ; branch name (assumed never changes)
   to-branch          ;
-  from-session       ; mtn automate session
-  to-session         ;
   need-refresh       ; nil | t; if an async process was started that invalidates state data
   from-head-rev      ; nil | mtn rev string; current head revision; nil if multiple heads
   to-head-rev        ;
@@ -164,18 +162,28 @@ The elements must all be of class xmtn-propagate-data.")
   (if (buffer-live-p (xmtn-propagate-data-conflicts-buffer data))
       (with-current-buffer (xmtn-propagate-data-conflicts-buffer data) (save-buffer))))
 
+(defun xmtn-propagate-clean-1 (data)
+  "Clean DATA workspace"
+  (xmtn-automate-kill-session (xmtn-propagate-from-work data))
+  (xmtn-automate-kill-session (xmtn-propagate-to-work data))
+  (xmtn-propagate-kill-conflicts-buffer data)
+  (xmtn-conflicts-clean (xmtn-propagate-to-work data)))
+
 (defun xmtn-propagate-clean ()
   "Clean current workspace, delete from ewoc"
   (interactive)
   (let* ((elem (ewoc-locate xmtn-propagate-ewoc))
          (data (ewoc-data elem)))
 
-    ;; only one conflicts file and buffer
-    (xmtn-propagate-kill-conflicts-buffer data)
-    (xmtn-conflicts-clean (xmtn-propagate-to-work data))
-
+    (xmtn-propagate-clean-1 data)
     (let ((inhibit-read-only t))
       (ewoc-delete xmtn-propagate-ewoc elem))))
+
+(defun xmtn-propagate-quit ()
+  "Clean all remaining workspaces, kill automate sessions, kill buffer."
+  (interactive)
+  (ewoc-map 'xmtn-propagate-clean-1 xmtn-propagate-ewoc)
+  (kill-buffer))
 
 (defun xmtn-propagate-cleanp ()
   "Non-nil if clean is appropriate for current workspace."
@@ -406,10 +414,10 @@ The elements must all be of class xmtn-propagate-data.")
     (define-key map [?8]  '(menu-item (concat "8) ignore local changes " (xmtn-propagate-from-name))
                                       xmtn-propagate-status-from-ok
                                       :visible (xmtn-propagate-status-fromp)))
-    (define-key map [?7]  '(menu-item (concat "7) dvc-missing " (xmtn-propagate-to-name))
+    (define-key map [?7]  '(menu-item (concat "7) show missing " (xmtn-propagate-to-name))
                                       xmtn-propagate-missing-to
                                       :visible (xmtn-propagate-missing-top)))
-    (define-key map [?6]  '(menu-item (concat "6) dvc-missing " (xmtn-propagate-from-name))
+    (define-key map [?6]  '(menu-item (concat "6) show missing " (xmtn-propagate-from-name))
                                       xmtn-propagate-missing-from
                                       :visible (xmtn-propagate-missing-fromp)))
     (define-key map [?5]  '(menu-item (concat "5) update " (xmtn-propagate-to-name))
@@ -424,10 +432,10 @@ The elements must all be of class xmtn-propagate-data.")
     (define-key map [?2]  '(menu-item (concat "2) commit " (xmtn-propagate-from-name))
                                       xmtn-propagate-status-from
                                       :visible (xmtn-propagate-status-fromp)))
-    (define-key map [?1]  '(menu-item (concat "1) xmtn-heads " (xmtn-propagate-to-name))
+    (define-key map [?1]  '(menu-item (concat "1) show heads " (xmtn-propagate-to-name))
                                       xmtn-propagate-heads-to
                                       :visible (xmtn-propagate-heads-top)))
-    (define-key map [?0]  '(menu-item (concat "0) xmtn-heads " (xmtn-propagate-from-name))
+    (define-key map [?0]  '(menu-item (concat "0) show heads " (xmtn-propagate-from-name))
                                       xmtn-propagate-heads-from
                                       :visible (xmtn-propagate-heads-fromp)))
     map)
@@ -442,7 +450,7 @@ The elements must all be of class xmtn-propagate-data.")
     (define-key map [?g]  'xmtn-propagate-refresh)
     (define-key map [?n]  'xmtn-propagate-next)
     (define-key map [?p]  'xmtn-propagate-prev)
-    (define-key map [?q]  (lambda () (interactive) (kill-buffer (current-buffer))))
+    (define-key map [?q]  'xmtn-propagate-quit)
     map)
   "Keymap used in `xmtn-propagate-mode'.")
 
@@ -639,10 +647,7 @@ The elements must all be of class xmtn-propagate-data.")
 (defun xmtn-propagate-make-data (from-workspace to-workspace from-name to-name)
   "FROM-WORKSPACE, TO-WORKSPACE are relative names"
     (let* ((from-work (concat xmtn-propagate-from-root from-workspace))
-           ;; cached sessions not working (yet)
-           ;;(from-session (xmtn-automate-cache-session from-work))
            (to-work (concat xmtn-propagate-to-root to-workspace))
-           ;;(to-session (xmtn-automate-cache-session to-work))
            )
 
       (ewoc-enter-last
@@ -654,8 +659,6 @@ The elements must all be of class xmtn-propagate-data.")
         :to-name to-name
         :from-branch (xmtn--tree-default-branch from-work)
         :to-branch (xmtn--tree-default-branch to-work)
-        :from-session nil ;; from-session
-        :to-session nil ;; to-session
         :need-refresh t))))
 
 ;;;###autoload
@@ -700,9 +703,7 @@ scanned and all common ones found are used."
   (interactive "DPropagate all from (workspace): \nDto (workspace): ")
   (setq from-work (substitute-in-file-name from-work))
   (setq to-work (substitute-in-file-name to-work))
-  (let ((default-directory to-work)
-        (from-session (xmtn-automate-cache-session from-work))
-        (to-session (xmtn-automate-cache-session to-work)))
+  (let ((default-directory to-work))
     (pop-to-buffer (get-buffer-create "*xmtn-propagate*"))
     ;; default-directory is wrong if buffer is reused
     (setq default-directory to-work)

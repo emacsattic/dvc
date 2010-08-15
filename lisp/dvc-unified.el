@@ -284,15 +284,22 @@ If DONT-SWITCH is non-nil, just show the diff buffer, don't select it."
 ;;;###autoload
 (defun dvc-log (&optional path last-n)
   "Display the brief log for PATH (a file-name; default current
-buffer file name; nil means entire tree; prefix arg means prompt
-for tree), LAST-N entries (default `dvc-log-last-n'; all if
-nil). Use `dvc-changelog' for the full log."
-  (interactive (list (if current-prefix-arg nil (buffer-file-name))
-                     dvc-log-last-n))
-  (let ((default-directory
-          (dvc-read-project-tree-maybe "DVC tree root (directory): "
-                                       (when path (expand-file-name path))
-                                       (not current-prefix-arg))))
+buffer file name; nil means entire tree; negative prefix arg
+means prompt for tree depending on value of
+dvc-read-project-tree-mode), LAST-N entries (default
+`dvc-log-last-n'; all if nil, positive prefix value means that
+many entries). Use `dvc-changelog' for the full log."
+  (interactive "i\nP")
+  (let* ((allentries (or (eq last-n nil)
+			 (< (prefix-numeric-value last-n) 0)))
+	 (last-n (prefix-numeric-value last-n))
+	 (path (if (< last-n 0)
+		   nil (buffer-file-name)))
+	 (last-n (if allentries nil last-n))
+	 (default-directory
+	   (dvc-read-project-tree-maybe "DVC tree root (directory): "
+					(when path (expand-file-name path))
+					path)))
     ;; Since we have bound default-directory, we don't need to pass
     ;; 'root' to the back-end.
     (dvc-call "dvc-log" path last-n))
