@@ -45,7 +45,7 @@ dvc-verbose:
 dvc-pkg.el: $(srcdir)/config.status
 	@echo Creating $@
 	@( echo ';;; $@ (ELPA generated installer file -- do not edit!)' ; \
-	   echo '(define-package dvc "$(PACKAGE_VERSION)"'  \
+	   echo '(define-package "dvc" "$(PACKAGE_VERSION)"'  \
 	   	'  "The Emacs interface to Distributed Version Control Systems")' ) \
 	 > $@
 
