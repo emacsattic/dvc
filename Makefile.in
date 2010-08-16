@@ -42,6 +42,16 @@ dvc:
 dvc-verbose:
 	cd lisp; $(MAKE) all-verbose
 
+dvc-pkg.el: $(srcdir)/config.status
+	@echo Creating $@
+	@( echo ';;; $@ (ELPA generated installer file -- do not edit!)' ; \
+	   echo '(define-package dvc "$(PACKAGE_VERSION)"'  \
+	   	'  "The Emacs interface to Distributed Version Control Systems")' ) \
+	 > $@
+
+lisp/dvc-version.el:
+	cd lisp; $(MAKE) dvc-version.el
+
 %-recursive:
 	@for dir in $(SUBDIRS) ; do ( cd $$dir; $(MAKE) $* ) ; done
 
@@ -58,7 +68,7 @@ clean: clean-recursive
 	rm -f dvc-load.el dvc-load-install.el
 
 distclean: clean distclean-recursive
-	rm -rf configure config.status config.log autom4te.cache/ Makefile
+	rm -rf configure config.status config.log autom4te.cache/ Makefile $(distdir) $(distdir).tar*
 
 maintainer-clean: maintainer-clean-recursive
 
@@ -94,7 +104,18 @@ tarball:
 	  distdir=$(PACKAGE_TARNAME)-snapshot	\
 	  extradist='debian/* docs/* scripts/*'
 
+package: dvc-pkg.el info lisp/dvc-version.el
+	rm -rf $(distdir) $(distdir).tar
+	mkdir $(distdir)
+	cp -r docs $(distdir)
+	cp COPYING $(distdir)
+	cp dvc-pkg.el lisp/*el texinfo/dvc.info $(distdir)
+	install-info --info-dir=$(distdir) $(distdir)/dvc.info
+	$(TAR) cf $(distdir).tar $(distdir)
+
+.INTERMEDIATE: dvc-pkg.el
+
 .PHONY: all info pdf dvi html dvc dvc-verbose \
 	install uninstall \
 	clean distclean maintainer-clean \
-	dist tarball
+	dist tarball package
