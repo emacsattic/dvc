@@ -68,7 +68,7 @@ clean: clean-recursive
 	rm -f dvc-load.el dvc-load-install.el
 
 distclean: clean distclean-recursive
-	rm -rf configure config.status config.log autom4te.cache/ Makefile
+	rm -rf configure config.status config.log autom4te.cache/ Makefile $(distdir) $(distdir).tar*
 
 maintainer-clean: maintainer-clean-recursive
 
