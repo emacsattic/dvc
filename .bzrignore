@@ -5,6 +5,7 @@ configure
 ./tmp
 ./dvc-load-install.el
 ./dvc-load.el
+./dvc-pkg.el
 lisp/dvc-autoloads.el
 lisp/dvc-site.el
 lisp/dvc-version.el
