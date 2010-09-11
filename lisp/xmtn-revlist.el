@@ -1,6 +1,6 @@
 ;;; xmtn-revlist.el --- Interactive display of revision histories for monotone
 
-;; Copyright (C) 2008, 2009 Stephen Leake
+;; Copyright (C) 2008 - 2010 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -341,6 +341,33 @@ arg; root. Result is of the form:
      '()
      difference)))
 
+(defun xmtn--revlist--review-update-info (root)
+  (let* ((branch (xmtn--tree-default-branch root))
+         (last-update
+	  (xmtn-automate-simple-command-output-line
+	   root
+	   (list "select" "u:")))
+         (base-revision-hash-id (xmtn--get-base-revision-hash-id root))
+         (difference
+	  ;; FIXME: replace with automate log
+	  (xmtn-automate-simple-command-output-lines
+	   root
+	   (list "ancestry_difference" base-revision-hash-id last-update))))
+    (list
+     branch
+     `(,(format "Tree   %s" root)
+       ,(format "Branch %s" branch)
+       ,(format "Base   %s" base-revision-hash-id)
+       nil
+       ,(case (length difference)
+          (0 "No revisions in last update")
+          (1 "1 revision in last update:")
+          (t (format
+              "%s revisions in last update:"
+              (length difference)))))
+     '()
+     difference)))
+
 (defun xmtn-revlist-show-conflicts ()
   "If point is on a revision that has two parents, show conflicts
 from the merge."
@@ -445,6 +472,17 @@ from the merge."
      ;; dvc-log-last-n, not dvc-revlist-last-n, because -log is user
      ;; customizable.
      nil dvc-log-last-n))
+  nil)
+
+;;;###autoload
+(defun xmtn-review-update (root)
+  "Review revisions in last update of ROOT workspace."
+  (interactive "D")
+  (xmtn--setup-revlist
+   root
+   'xmtn--revlist--review-update-info
+   nil ;; first-line-only-p
+   dvc-log-last-n)
   nil)
 
 ;;;###autoload

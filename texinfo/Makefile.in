@@ -34,7 +34,7 @@ ii = install-info
 
 install: uninstall info
 	$(MKDIR_P) -m 0755 $(info_dir)
-	@for i in dvc.info* ; do		\
+	@for i in dvc.info* dvc-intro.info* ; do	\
 	  echo Installing $$i ;			\
           $(INSTALL_DATA) $$i $(info_dir) ;	\
 	done
@@ -48,12 +48,15 @@ install: uninstall info
 uninstall:
 	rm -f $(info_dir)/dvc.info*
 
-info: dvc.info
+info: dvc.info dvc-intro.info
 
 alldeps = $(srcdir)/dvc.texinfo dvc-version.texinfo
 
 dvc.info: $(alldeps)
 	$(MAKEINFO) $(srcdir)/dvc.texinfo
+
+dvc-intro.info: $(alldeps)
+	$(MAKEINFO) $(srcdir)/dvc-intro.texinfo
 
 dvc.html: $(alldeps)
 	$(MAKEINFO) --html --no-split $(srcdir)/dvc.texinfo

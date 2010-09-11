@@ -1,6 +1,6 @@
 ;;; xmtn-base.el --- Basic definitions for accessing monotone
 
-;; Copyright (C) 2009 Stephen Leake
+;; Copyright (C) 2009, 2010 Stephen Leake
 ;; Copyright (C) 2006, 2007, 2009 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -35,11 +35,7 @@
   (require 'cl))
 
 (defvar xmtn-executable "mtn"
-  "*The monotone executable command.
-
-After changing the value of this variable, be sure to run
-`xmtn-check-command-version' to clear xmtn's command version
-cache.")
+  "*The monotone executable command.")
 
 (defvar xmtn-additional-arguments '()
   "*Additional arguments to pass to monotone.
@@ -59,15 +55,16 @@ A list of strings.")
        (save-match-data
          (string-match "\\`[0-9a-f]\\{40\\}\\'" thing))))
 
-(defun xmtn--filter-non-dir (dir)
-  "Return list of all directories in DIR, excluding '.', '..'."
+(defun xmtn--filter-non-ws (dir)
+  "Return list of all mtn workspaces in DIR."
   (let ((default-directory dir)
         (subdirs (directory-files dir)))
     (setq subdirs
           (mapcar (lambda (filename)
                     (if (and (file-directory-p filename)
                              (not (string= "." filename))
-                             (not (string= ".." filename)))
+                             (not (string= ".." filename))
+			     (file-directory-p (concat filename "/_MTN")))
                         filename))
                   subdirs))
     (delq nil subdirs)))

@@ -554,10 +554,11 @@ used to get more info about the process.")
 (defun dvc-build-dvc-command (dvc list-args)
   "Build a shell command to run DVC with args LIST-ARGS.
 DVC can be one of 'baz, 'xhg, ..."
-  (let ((executable (executable-find (dvc-variable dvc "executable"))))
+  (let* ((name (dvc-variable dvc "executable"))
+	 (executable (executable-find name)))
     ;; 'executable-find' allows leading ~
     (if (not executable)
-        (error "executable for %s not found" (symbol-name dvc)))
+	(error "executable %s for %s not found" name (symbol-name dvc)))
     (mapconcat 'shell-quote-argument
                (cons executable
                      (remq nil list-args))
