@@ -20,7 +20,7 @@
 ;; the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
 ;; Boston, MA  02110-1301  USA.
 
-(eval-and-compile
+(eval-when-compile
   ;; these have macros we use
   (require 'cl)
   (require 'dvc-utils)
@@ -29,7 +29,7 @@
   (require 'xmtn-ids)
   (require 'xmtn-run))
 
-(eval-when-compile
+(eval-and-compile
   ;; these have functions we use
   (require 'dired))
 
@@ -103,8 +103,8 @@
 (defstruct (xmtn-conflicts-conflict
             (:copier nil))
   ;; not worth splitting this into a type hierarchy; differences are
-  ;; minor some fields are nil for some conflict types
-  ;; single file conflicts only set left_resolution
+  ;; minor. Some fields are nil for some conflict types.
+  ;; Single file conflicts only set left_resolution
 
   conflict_type ;; 'content | 'duplicate_name | 'orphaned_node
   ancestor_name
@@ -278,6 +278,16 @@ header."
   ;; right_type "added directory"
   ;; right_name "utils"
   ;;
+  ;;         conflict duplicate_name
+  ;;        left_type "added file"
+  ;;        left_name "build/x86_gnu_windows_release/gds_mms_test.gpr"
+  ;;     left_file_id [8d5d8fd099442bfb5d636d6435c241c8cd83f4f9]
+  ;;       right_type "renamed file"
+  ;;    ancestor_name "build/x86_gnu_windows_release/gds_test.gpr"
+  ;; ancestor_file_id [e2eb7393d9cda23a467622744a392adde63fc850]
+  ;;       right_name "build/x86_gnu_windows_release/gds_mms_test.gpr"
+  ;;    right_file_id [cec70e80402418bb95dcdeb6abe1356084ff5ece]
+  ;;
   ;; optional left and right resolutions:
   ;; resolved_keep{_left | _right}
   ;; resolved_drop{_left | _right}
@@ -286,24 +296,39 @@ header."
   (let ((conflict (make-xmtn-conflicts-conflict)))
     (setf (xmtn-conflicts-conflict-conflict_type conflict) 'duplicate_name)
     (xmtn-basic-io-check-line "left_type" (setf (xmtn-conflicts-conflict-left_type conflict) (cadar value)))
-    (xmtn-basic-io-check-line "left_name" (setf (xmtn-conflicts-conflict-left_name conflict) (cadar value)))
-    (xmtn-basic-io-parse-line
-        (cond
-          ((string= "left_file_id" symbol)
-           (setf (xmtn-conflicts-conflict-left_file_id conflict) (cadar value))
-           (xmtn-basic-io-check-line "right_type"
-             (setf (xmtn-conflicts-conflict-right_type conflict) (cadar value)))
-           (xmtn-basic-io-check-line "right_name"
-             (setf (xmtn-conflicts-conflict-right_name conflict) (cadar value)))
-           (xmtn-basic-io-check-line "right_file_id"
-             (setf (xmtn-conflicts-conflict-right_file_id conflict) (cadar value))))
+    (cond
+     ((string= "added file" (xmtn-conflicts-conflict-left_type conflict))
+      (xmtn-basic-io-check-line "left_name" (setf (xmtn-conflicts-conflict-left_name conflict) (cadar value)))
+      (xmtn-basic-io-check-line "left_file_id" (setf (xmtn-conflicts-conflict-left_file_id conflict) (cadar value))))
 
-          ((string= "right_type" symbol)
-           (setf (xmtn-conflicts-conflict-right_type conflict) (cadar value))
-           (xmtn-basic-io-check-line "right_name"
-             (setf (xmtn-conflicts-conflict-right_name conflict) (cadar value))))
-          (t
-           (error "found %s" symbol))))
+     ((string= "added directory" (xmtn-conflicts-conflict-left_type conflict))
+      (xmtn-basic-io-check-line "left_name" (setf (xmtn-conflicts-conflict-left_name conflict) (cadar value))))
+
+     ((string= "renamed file" (xmtn-conflicts-conflict-left_type conflict))
+      (xmtn-basic-io-check-line "ancestor_name" (setf (xmtn-conflicts-conflict-ancestor_name conflict) (cadar value)))
+      (xmtn-basic-io-check-line "ancestor_file_id" (setf (xmtn-conflicts-conflict-ancestor_file_id conflict) (cadar value)))
+      (xmtn-basic-io-check-line "left_name" (setf (xmtn-conflicts-conflict-left_name conflict) (cadar value)))
+      (xmtn-basic-io-check-line "left_file_id" (setf (xmtn-conflicts-conflict-left_file_id conflict) (cadar value))))
+
+     (t
+      (error "unsupported left_type %s" (xmtn-conflicts-conflict-left_type conflict))))
+
+    (xmtn-basic-io-check-line "right_type" (setf (xmtn-conflicts-conflict-right_type conflict) (cadar value)))
+    (cond
+     ((string= "added file" (xmtn-conflicts-conflict-right_type conflict))
+      (xmtn-basic-io-check-line "right_name" (setf (xmtn-conflicts-conflict-right_name conflict) (cadar value)))
+      (xmtn-basic-io-check-line "right_file_id" (setf (xmtn-conflicts-conflict-right_file_id conflict) (cadar value))))
+
+     ((string= "added directory" (xmtn-conflicts-conflict-right_type conflict))
+      (xmtn-basic-io-check-line "right_name" (setf (xmtn-conflicts-conflict-right_name conflict) (cadar value))))
+
+     ((string= "renamed file" (xmtn-conflicts-conflict-right_type conflict))
+      (xmtn-basic-io-check-line "ancestor_name" (setf (xmtn-conflicts-conflict-ancestor_name conflict) (cadar value)))
+      (xmtn-basic-io-check-line "ancestor_file_id" (setf (xmtn-conflicts-conflict-ancestor_file_id conflict) (cadar value)))
+      (xmtn-basic-io-check-line "right_name" (setf (xmtn-conflicts-conflict-right_name conflict) (cadar value)))
+      (xmtn-basic-io-check-line "right_file_id" (setf (xmtn-conflicts-conflict-right_file_id conflict) (cadar value))))
+     (t
+      (error "unsupported right_type %s" (xmtn-conflicts-conflict-right_type conflict))))
 
     ;; look for a left resolution
     (case (xmtn-basic-io--peek)
@@ -531,13 +556,38 @@ header."
   (insert ?\n)
   (xmtn-basic-io-write-sym "conflict" "duplicate_name")
   (xmtn-basic-io-write-str "left_type" (xmtn-conflicts-conflict-left_type conflict))
-  (xmtn-basic-io-write-str "left_name" (xmtn-conflicts-conflict-left_name conflict))
-  (if (xmtn-conflicts-conflict-left_file_id conflict)
-      (xmtn-basic-io-write-id "left_file_id" (xmtn-conflicts-conflict-left_file_id conflict)))
+  (cond
+   ((string= "added file" (xmtn-conflicts-conflict-left_type conflict))
+    (xmtn-basic-io-write-str "left_name" (xmtn-conflicts-conflict-left_name conflict))
+    (xmtn-basic-io-write-id "left_file_id" (xmtn-conflicts-conflict-left_file_id conflict)))
+
+   ((string= "added directory" (xmtn-conflicts-conflict-left_type conflict))
+    (xmtn-basic-io-write-str "left_name" (xmtn-conflicts-conflict-left_name conflict)))
+
+   ((string= "renamed file" (xmtn-conflicts-conflict-left_type conflict))
+    (xmtn-basic-io-write-str "ancestor_name" (xmtn-conflicts-conflict-ancestor_name conflict))
+    (xmtn-basic-io-write-id "ancestor_file_id" (xmtn-conflicts-conflict-ancestor_file_id conflict))
+    (xmtn-basic-io-write-str "left_name" (xmtn-conflicts-conflict-left_name conflict))
+    (xmtn-basic-io-write-id "left_file_id" (xmtn-conflicts-conflict-left_file_id conflict)))
+   (t
+    (error "unsupported left_type %s" (xmtn-conflicts-conflict-left_type conflict))))
+
   (xmtn-basic-io-write-str "right_type" (xmtn-conflicts-conflict-right_type conflict))
-  (xmtn-basic-io-write-str "right_name" (xmtn-conflicts-conflict-right_name conflict))
-  (if (xmtn-conflicts-conflict-right_file_id conflict)
-      (xmtn-basic-io-write-id "right_file_id" (xmtn-conflicts-conflict-right_file_id conflict)))
+  (cond
+   ((string= "added file" (xmtn-conflicts-conflict-right_type conflict))
+    (xmtn-basic-io-write-str "right_name" (xmtn-conflicts-conflict-right_name conflict))
+    (xmtn-basic-io-write-id "right_file_id" (xmtn-conflicts-conflict-right_file_id conflict)))
+
+   ((string= "added directory" (xmtn-conflicts-conflict-right_type conflict))
+    (xmtn-basic-io-write-str "right_name" (xmtn-conflicts-conflict-right_name conflict)))
+
+   ((string= "renamed file" (xmtn-conflicts-conflict-right_type conflict))
+    (xmtn-basic-io-write-str "ancestor_name" (xmtn-conflicts-conflict-ancestor_name conflict))
+    (xmtn-basic-io-write-id "ancestor_file_id" (xmtn-conflicts-conflict-ancestor_file_id conflict))
+    (xmtn-basic-io-write-str "right_name" (xmtn-conflicts-conflict-right_name conflict))
+    (xmtn-basic-io-write-id "right_file_id" (xmtn-conflicts-conflict-right_file_id conflict)))
+   (t
+    (error "unsupported right_type %s" (xmtn-conflicts-conflict-right_type conflict))))
 
   (if (xmtn-conflicts-conflict-left_resolution conflict)
       (ecase (car (xmtn-conflicts-conflict-left_resolution conflict))
@@ -987,6 +1037,17 @@ header."
          ;; if no file_id, it's a directory; can't drop if not empty
          (xmtn-conflicts-conflict-right_file_id conflict))))
 
+(defun xmtn-conflicts-left-label ()
+  "Return 'left: ' or '' as appropriate for current conflict."
+  (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
+         (type (xmtn-conflicts-conflict-conflict_type conflict)))
+
+    ;; duplicate_name is the only conflict type that needs a right
+    ;; resolution, and thus a 'left' label
+    (if (equal type 'duplicate_name)
+	"left: "
+      "")))
+
 (defvar xmtn-conflicts-resolve-map
   (let ((map (make-sparse-keymap "resolution")))
     (define-key map [?c]  '(menu-item "c) clear resolution"
@@ -995,55 +1056,55 @@ header."
     ;; Don't need 'left' or 'right' in menu, since only one is
     ;; visible; then this works better for single file conflicts.
 
-    (define-key map [?b]  '(menu-item "b) drop"
+    (define-key map [?b]  '(menu-item "b) right: drop"
                                       xmtn-conflicts-resolve-drop_right
                                       :visible (xmtn-conflicts-resolve-drop_rightp)))
-    (define-key map [?a]  '(menu-item "a) rename"
+    (define-key map [?a]  '(menu-item "a) right: rename"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-rename 'right))
                                       :visible (xmtn-conflicts-resolve-rename_rightp)))
-    (define-key map [?9]  '(menu-item "9) right file"
+    (define-key map [?9]  '(menu-item "9) right: right file"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-user 'right 'right))
                                       :visible (xmtn-conflicts-resolve-user_rightp)))
-    (define-key map [?8]  '(menu-item "8) left file"
+    (define-key map [?8]  '(menu-item "8) right: left file"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-user 'right 'left))
                                       :visible (xmtn-conflicts-resolve-user_rightp)))
-    (define-key map [?7]  '(menu-item "7) keep"
+    (define-key map [?7]  '(menu-item "7) right: keep"
                                       xmtn-conflicts-resolve-keep_right
                                       :visible (xmtn-conflicts-resolve-keep_rightp)))
-    (define-key map [?6]  '(menu-item "6) ediff"
+    (define-key map [?6]  '(menu-item "6) right: ediff"
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-ediff 'right))
                                       :visible (xmtn-conflicts-resolve-user_rightp)))
 
-    (define-key map [?5]  '(menu-item "5) right file"
+    (define-key map [?5]  '(menu-item (concat "5) " (xmtn-conflicts-left-label) "right file")
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-user 'left 'right))
                                       :visible (xmtn-conflicts-resolve-user_leftp)))
-    (define-key map [?4]  '(menu-item "4) left file"
+    (define-key map [?4]  '(menu-item (concat "4) " (xmtn-conflicts-left-label) "left file")
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-user 'left 'left))
                                       :visible (xmtn-conflicts-resolve-user_leftp)))
-    (define-key map [?3]  '(menu-item "3) drop"
+    (define-key map [?3]  '(menu-item (concat "3) " (xmtn-conflicts-left-label) "drop")
                                       xmtn-conflicts-resolve-drop_left
                                       :visible (xmtn-conflicts-resolve-drop_leftp)))
-    (define-key map [?2]  '(menu-item "2) rename"
+    (define-key map [?2]  '(menu-item (concat "2) " (xmtn-conflicts-left-label) "rename")
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-rename 'left))
                                       :visible (xmtn-conflicts-resolve-rename_leftp)))
-    (define-key map [?1]  '(menu-item "1) keep"
+    (define-key map [?1]  '(menu-item (concat "1) " (xmtn-conflicts-left-label) "keep")
                                       xmtn-conflicts-resolve-keep_left
                                       :visible (xmtn-conflicts-resolve-keep_leftp)))
-    (define-key map [?0]  '(menu-item "0) ediff"
+    (define-key map [?0]  '(menu-item (concat "0) " (xmtn-conflicts-left-label) "ediff")
                                       (lambda ()
                                         (interactive)
                                         (xmtn-conflicts-resolve-ediff 'left))
@@ -1146,10 +1207,6 @@ non-nil, show log-edit buffer in other frame."
 
   ;; Arrange for `revert-buffer' to do the right thing
   (set (make-local-variable 'after-insert-file-functions) '(xmtn-conflicts-after-insert-file))
-
-  ;; don't do normal clean up stuff
-  (set (make-local-variable 'before-save-hook) nil)
-  (set (make-local-variable 'write-file-functions) nil)
 
   (dvc-install-buffer-menu)
   (setq buffer-read-only t)

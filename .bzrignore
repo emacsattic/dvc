@@ -32,3 +32,4 @@ patches/
 ./debian/*debhelper*
 ./debian/files
 ./debian/dvc
+./texinfo/dvc-intro.info
