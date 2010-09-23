@@ -460,15 +460,17 @@ If DONT-SWITCH, don't switch to the diff buffer"
 (defun xhg-dvc-status ()
   "Run hg status."
   (let* ((window-conf (current-window-configuration))
-         (root (xhg-tree-root))
+         ;;(root (xhg-tree-root))
+         (root default-directory) ;; default-directory is setup by the caller...
          (buffer (dvc-prepare-changes-buffer
                   `(xhg (last-revision ,root 1))
                   `(xhg (local-tree ,root))
                   'status root 'xhg)))
+    ;; (message "xhg-dvc-status root: %s" root)
     (dvc-switch-to-buffer-maybe buffer)
     (dvc-buffer-push-previous-window-config window-conf)
     (dvc-save-some-buffers root)
-    (dvc-run-dvc-sync 'xhg '("status")
+    (dvc-run-dvc-sync 'xhg '("status" ".")
                       :finished
                       (dvc-capturing-lambda (output error status arguments)
                         (with-current-buffer (capture buffer)

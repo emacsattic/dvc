@@ -271,7 +271,7 @@ If DONT-SWITCH is non-nil, just show the diff buffer, don't select it."
   (interactive)
   (let ((default-directory
           (dvc-read-project-tree-maybe "DVC status (directory): "
-                                       (when path (expand-file-name path)))))
+                                       (when path (expand-file-name path)) (not current-prefix-arg))))
     ;; Since we have bound default-directory, we don't need to pass
     ;; `path' to the back-end.
     (dvc-save-some-buffers default-directory)
