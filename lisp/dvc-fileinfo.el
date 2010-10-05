@@ -762,7 +762,7 @@ fileinfos, just call `dvc-remove-files'."
 
             (dvc-fileinfo-legacy
              ;; Assume files are known
-             (add-to-list 'known-files fileinfo))
+             (add-to-list 'known-files (car elems)))
 
             (otherwise
              ;; just ignore
