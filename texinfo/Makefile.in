@@ -17,6 +17,7 @@ TEXI2DVI = texi2dvi
 datarootdir = @datarootdir@
 prefix = @prefix@
 info_dir = @info_dir@
+DATE_FLAVOR = @DATE_FLAVOR@
 
 ##############################################################################
 all: info dvc.dvi  dvc.html dvc.pdf
@@ -81,8 +82,18 @@ maintainer-clean:
 
 dvc-version.texinfo: $(top_srcdir)/configure
 	@echo Creating $@
-	@( echo @set VERSION $(PACKAGE_VERSION) ; \
-	   date '+@set UPDATED %F' -r $< ) > $@
+	@if test "${DATE_FLAVOR}" = "GNU"; then               \
+		( echo @set VERSION $(PACKAGE_VERSION) ;    \
+		date '+@set UPDATED %F' -r $< ) > $@ ;      \
+	elif test "${DATE_FLAVOR}" = "BSD"; then              \
+		( echo @set VERSION $(PACKAGE_VERSION) ;    \
+		stat -t'%F' -f'@set UPDATED %Sm' $< ) > $@; \
+	else                                                \
+		echo "Uknown date flavor: ${DATE_FLAVOR}";    \
+		false;                                      \
+	fi
+
+
 
 .PHONY: all dvi pdf html info \
 	install uninstall \
