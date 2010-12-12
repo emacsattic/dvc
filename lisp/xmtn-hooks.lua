@@ -21,20 +21,79 @@
 -- the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
 -- Boston, MA  02110-1301  USA.
 
-function get_mtn_command(host)
-   -- Return a mtn command line for the remote host. 
-   -- 
-   -- If the remote host is a Windows machine (ie file: on a Windows
-   -- machine), we need the Cygwin mtn executable, since the Win32
-   -- executable does not support file: or ssh:.
-   --
-   -- But we have no way to tell what the remote machine is. So we let
-   -- the lisp code figure that out from user options, and it provides
-   -- the mtn command to this hook by defining the XMTN_SYNC_MTN
-   -- environment variable.
+function get_netsync_connect_command(uri, args)
 
-   return os.getenv("XMTN_SYNC_MTN");
+    local argv = nil
+
+    if uri["scheme"] == "ssh" then
+        argv = { "ssh" }
+
+        if uri["user"] then
+            table.insert(argv, "-l")
+            table.insert(argv, uri["user"])
+        end
+        if uri["port"] then
+            table.insert(argv, "-p")
+            table.insert(argv, uri["port"])
+        end
+
+        table.insert(argv, uri["host"])
+
+        if xmtn_sync_ssh_exec then
+            if xmtn_sync_ssh_exec [uri["host"]] then
+               table.insert(argv, xmtn_sync_ssh_exec [uri["host"]])
+            else
+               table.insert(argv, "mtn")
+            end
+        else
+            table.insert(argv, "mtn")
+        end
+        
+        if args["debug"] then
+            table.insert(argv, "--verbose")
+        else
+            table.insert(argv, "--quiet")
+        end
+
+        table.insert(argv, "--db")
+        table.insert(argv, uri["path"])
+        table.insert(argv, "serve")
+        table.insert(argv, "--stdio")
+        table.insert(argv, "--no-transport-auth")
+
+
+    elseif uri["scheme"] == "file" then
+        if xmtn_sync_file_exec then
+            argv = { xmtn_sync_file_exec }
+        else
+            if string.sub(get_ostype(), 1, 6) == "CYGWIN" then
+                -- assume Cygwin mtn is not first in path
+                argv = { "c:/bin/mtn" }
+            else
+                -- otherwise assume first mtn in path is correct
+                argv = { "mtn" }
+            end
+        end
+
+        if args["debug"] then
+            table.insert(argv, "--verbose")
+        else
+            table.insert(argv, "--quiet")
+        end
+
+        table.insert(argv, "--db")
+        table.insert(argv, uri["path"])
+        table.insert(argv, "serve")
+        table.insert(argv, "--stdio")
+        table.insert(argv, "--no-transport-auth")
+
+    elseif uri["scheme"] == "mtn" then
+        argv = {}
+
+    else
+        error(uri["scheme"] .. " not supported")
+    end
+    return argv
 end
-
 
 -- end of file

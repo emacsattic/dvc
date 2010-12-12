@@ -1,6 +1,6 @@
 ;;; xmtn-basic-io.el --- A parser for monotone's basic_io output format
 
-;; Copyright (C) 2008 Stephen Leake
+;; Copyright (C) 2008, 2010 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -177,8 +177,9 @@ Possible classes are `string', `null-id', `id', `symbol'."
                   (nreverse accu))))
     stanza))
 
-(defun xmtn-basic-io--next-parsed-line-notinline ()
-  (xmtn-basic-io--next-parsed-line))
+(defun xmtn-basic-io-skip-stanza ()
+  "Skip to end of stanza at point."
+  (while (not (memq (xmtn-basic-io--next-parsed-line) '(empty eof)))))
 
 (eval-and-compile
   (defun xmtn-basic-io--generate-body-for-with-parser-form (parser-fn
@@ -199,7 +200,7 @@ Possible classes are `string', `null-id', `id', `symbol'."
   (eq 'eof (xmtn-basic-io--peek)))
 
 (defmacro xmtn-basic-io-parse-line (body)
-  "Read next basic-io line at point. Error if it is `empty' or
+  "Read basic-io line at point. Error if it is `empty' or
 `eof'. Otherwise execute BODY with `symbol' bound to key (a
 string), `value' bound to list containing parsed rest of line.
 List is of form ((category value) ...)."
@@ -212,22 +213,37 @@ List is of form ((category value) ...)."
          ,body))))
 
 (defmacro xmtn-basic-io-optional-line (expected-key body-present)
-  "Read next basic-io line at point. If its key is
+  "Read basic-io line at point. If its key is
 EXPECTED-KEY (a string), execute BODY-PRESENT with `value' bound
-to list containing parsed rest of line. List is of
+to list containing parsed rest of line, and return t. List is of
 form ((category value) ...). Else reset to parse the same line
-again."
+again, and return nil."
   (declare (indent 1) (debug (sexp body)))
   `(let ((line (xmtn-basic-io--next-parsed-line)))
      (if (and (not (member line '(empty eof)))
               (string= (car line) ,expected-key))
          (let ((value (cdr line)))
-           ,body-present)
-       (beginning-of-line 0)
+           ,body-present
+	   t)
+       (beginning-of-line 0) ;; returns nil
+       )))
+
+(defmacro xmtn-basic-io-optional-line-2 (expected body-present)
+  "Read basic-io line at point. If its contents equal EXPECTED (a
+list of (category value) pairs), execute BODY-PRESENT, and return
+t. Else reset to parse the same line again, and return nil."
+  (declare (indent 1) (debug (sexp body)))
+  `(let ((line (xmtn-basic-io--next-parsed-line)))
+     (if (and (not (member line '(empty eof)))
+              (equal line ,expected))
+	 (progn
+	   ,body-present
+	   t)
+       (beginning-of-line 0) ;; returns nil
        )))
 
 (defmacro xmtn-basic-io-check-line (expected-key body)
-  "Read next basic-io line at point. Error if it is `empty' or
+  "Read basic-io line at point. Error if it is `empty' or
 `eof', or if its key is not EXPECTED-KEY (a string). Otherwise
 execute BODY with `value' bound to list containing parsed rest of
 line. List is of form ((category value) ...)."
@@ -238,6 +254,26 @@ line. List is of form ((category value) ...)."
          (error "expecting \"%s\", found %s" ,expected-key line)
        (let ((value (cdr line)))
          ,body))))
+
+(defun xmtn-basic-io-skip-line (expected-key)
+  "Read basic-io line at point. Error if it is `empty' or
+`eof', or if its key is not EXPECTED-KEY (a string). Otherwise
+skip do nothing."
+  (let ((line (xmtn-basic-io--next-parsed-line)))
+    (if (or (member line '(empty eof))
+	    (not (string= (car line) expected-key)))
+	(error "expecting \"%s\", found %s" expected-key line))))
+
+(defun xmtn-basic-io-optional-skip-line (expected-key)
+  "Read basic-io line at point. If its key is EXPECTED-KEY (a
+string) return t. Else reset to parse the same line again, and
+return nil."
+  (let ((line (xmtn-basic-io--next-parsed-line)))
+    (if (and (not (member line '(empty eof)))
+	     (string= (car line) expected-key))
+	t
+      (beginning-of-line 0) ;; returns nil
+      )))
 
 (defun xmtn-basic-io-check-empty ()
   "Read next basic-io line at point. Error if it is not `empty' or `eof'."
@@ -282,7 +318,7 @@ and must not be called any more."
    ;; Use a notinline variant to avoid copying the full parser into
    ;; every user of this macro.  The performance advantage of this
    ;; would be small.
-   'xmtn-basic-io--next-parsed-line-notinline
+   'xmtn-basic-io--next-parsed-line
    line-parser buffer-form body))
 
 (defmacro* xmtn-basic-io-with-stanza-parser ((stanza-parser buffer-form)

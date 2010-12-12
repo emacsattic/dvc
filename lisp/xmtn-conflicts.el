@@ -23,15 +23,15 @@
 (eval-when-compile
   ;; these have macros we use
   (require 'cl)
-  (require 'dvc-utils)
-  (require 'xmtn-automate)
-  (require 'xmtn-basic-io)
-  (require 'xmtn-ids)
-  (require 'xmtn-run))
+  (require 'dvc-utils))
 
 (eval-and-compile
   ;; these have functions we use
-  (require 'dired))
+  (require 'dired)
+  (require 'xmtn-automate)
+  (require 'xmtn-basic-io)
+  (require 'xmtn-run)
+  (require 'xmtn-ids))
 
 (defvar xmtn-conflicts-left-revision ""
   "Buffer-local variable holding left revision id.")
@@ -530,7 +530,10 @@ header."
   (xmtn-basic-io-write-sym "conflict" "content")
   (xmtn-basic-io-write-str "node_type" "file")
   (xmtn-basic-io-write-str "ancestor_name" (xmtn-conflicts-conflict-ancestor_name conflict))
-  (xmtn-basic-io-write-id "ancestor_file_id" (xmtn-conflicts-conflict-ancestor_file_id conflict))
+  ;; ancestor can be null if this is a new file
+  (if (xmtn-conflicts-conflict-ancestor_file_id conflict)
+      (xmtn-basic-io-write-id "ancestor_file_id" (xmtn-conflicts-conflict-ancestor_file_id conflict))
+    (xmtn-basic-io-write-id "ancestor_file_id" ""))
   (xmtn-basic-io-write-str "left_name" (xmtn-conflicts-conflict-left_name conflict))
   (xmtn-basic-io-write-id "left_file_id" (xmtn-conflicts-conflict-left_file_id conflict))
   (xmtn-basic-io-write-str "right_name" (xmtn-conflicts-conflict-right_name conflict))
@@ -1235,9 +1238,9 @@ retrieval by `xmtn-conflicts-load-opts'."
   ))
 
 (defun xmtn-conflicts-load-opts ()
-  "Load options saved by
-`xmtn-conflicts-save-opts'. `default-directory' must be workspace
-root where options file is stored."
+  "Load options saved by `xmtn-conflicts-save-opts'.
+`default-directory' must be workspace root where options file is
+stored."
   (let ((opts-file (concat default-directory xmtn-conflicts-opts-file)))
     (if (file-exists-p opts-file)
         (load opts-file)

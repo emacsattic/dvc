@@ -300,7 +300,7 @@ Returns a list of strings"
       (setq list-cmds (cons (buffer-substring-no-properties (point)
                                                             (line-end-position))
                             list-cmds))
-      (previous-line 1))
+      (forward-line -1))
     list-cmds
     ))
 

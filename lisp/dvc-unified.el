@@ -1,6 +1,6 @@
 ;;; dvc-unified.el --- The unification layer for dvc
 
-;; Copyright (C) 2005-2009 by all contributors
+;; Copyright (C) 2005-2010 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -100,7 +100,7 @@ Note: this function is only useful when called interactively."
           (working-dir (dvc-uniquify-file-name default-directory))
           (dvc))
       ;; hide backends that don't provide an init function
-      (mapcar '(lambda (elem)
+      (mapc '(lambda (elem)
                 (setq supported-variants (delete elem supported-variants)))
               '("xdarcs" "xmtn" "baz"))
       (add-to-list 'supported-variants "bzr-repo")
@@ -290,10 +290,12 @@ dvc-read-project-tree-mode), LAST-N entries (default
 `dvc-log-last-n'; all if nil, positive prefix value means that
 many entries). Use `dvc-changelog' for the full log."
   (interactive "i\nP")
-  (let* ((allentries (or (eq last-n nil)
+  (let* ((last-n (if last-n
+		     (prefix-numeric-value last-n)
+		   dvc-log-last-n))
+	 (allentries (or (eq last-n nil)
 			 (< (prefix-numeric-value last-n) 0)))
-	 (last-n (prefix-numeric-value last-n))
-	 (path (if (< last-n 0)
+	 (path (if (and last-n (< last-n 0))
 		   nil (buffer-file-name)))
 	 (last-n (if allentries nil last-n))
 	 (default-directory

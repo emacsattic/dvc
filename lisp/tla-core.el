@@ -1029,7 +1029,7 @@ callback afterwards."
                      (setq summary (buffer-substring-no-properties
                                     (point)
                                     (progn (re-search-forward "^\\([^ \t]\\|$\\)")
-                                           (previous-line 1)
+                                           (forward-line -1)
                                            (end-of-line)
                                            (point))))
                      (forward-line 1)

@@ -33,3 +33,4 @@ patches/
 ./debian/files
 ./debian/dvc
 ./texinfo/dvc-intro.info
+./config.status.lineno

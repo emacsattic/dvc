@@ -33,7 +33,7 @@
 ;;; docs/xmtn-readme.txt.
 
 (eval-and-compile
-  (require 'cl)
+  (require 'cl) ;; yes, we are using cl at runtime; we're working towards eliminating that.
   (require 'dvc-unified)
   (require 'xmtn-basic-io)
   (require 'xmtn-base)
@@ -762,7 +762,8 @@ otherwise newer."
                     (current-buffer) error)))))))
 
 (defun xmtn--status-inventory-sync (root)
-  "Create a status buffer for ROOT; return (buffer status), where status is 'ok or 'need-commit."
+  "Create or reuse a status buffer for ROOT; return `(buffer status)',
+where `status' is 'ok or 'need-commit."
   (let*
       ((orig-buffer (current-buffer))
        (msg (concat "running inventory for " root " ..."))
@@ -936,9 +937,7 @@ otherwise newer."
        root
        (let ((default-directory root))
          (mapcan (lambda (file-name)
-                   (if (or (file-symlink-p file-name)
-                           (not (file-directory-p file-name)))
-                       (list (xmtn--perl-regexp-for-file-name file-name))))
+		   (list (xmtn--perl-regexp-for-file-name file-name)))
                  normalized-file-names))
        t))))
 
@@ -1076,21 +1075,6 @@ finished."
 ;;; don't have the same contract with respect to
 ;;; synchronousness/asynchronousness, progress messages and return
 ;;; value.
-
-(defun xmtn--do-explicit-merge (root left-revision-hash-id right-revision-hash-id
-                                     destination-branch-name)
-  (check-type root string)
-  (check-type left-revision-hash-id xmtn--hash-id)
-  (check-type right-revision-hash-id xmtn--hash-id)
-  (check-type destination-branch-name string)
-  (xmtn--run-command-that-might-invoke-merger root
-                                              `("explicit_merge"
-                                                "--"
-                                                ,left-revision-hash-id
-                                                ,right-revision-hash-id
-                                                ,destination-branch-name)
-                                              nil)
-  nil)
 
 (defun xmtn--do-update (root target-revision-hash-id post-update-p)
   (check-type root string)
@@ -1312,74 +1296,8 @@ finished."
     (setq buffer-file-coding-system 'binary)
     (xmtn--insert-file-contents root file-id (current-buffer))))
 
-(defun xmtn--revision-parents (root revision-hash-id)
-  (xmtn-automate-simple-command-output-lines root
-                                             `("parents" ,revision-hash-id)))
-
-(defun xmtn--get-content-changed (root backend-id normalized-file)
-  (xmtn-match (xmtn--resolve-backend-id root backend-id)
-    ((local-tree $path) (error "Not implemented"))
-    ((revision $revision-hash-id)
-     (xmtn--with-automate-command-output-basic-io-parser
-         (parser root `("get_content_changed" ,revision-hash-id
-                        ,normalized-file))
-       (loop for stanza = (funcall parser)
-             while stanza
-             collect (xmtn-match stanza
-                       ((("content_mark" (id $previous-id)))
-                        previous-id)))))))
-
 (defun xmtn--limit-length (list n)
   (or (null n) (<= (length list) n)))
-
-(defun xmtn--close-set (fn initial-set last-n)
-  (let ((new-elements initial-set)
-        (current-set nil))
-    (while (and new-elements (xmtn--limit-length current-set last-n))
-      (let ((temp-elements nil)
-            (next-elements nil)
-            (new-element nil))
-        (while new-elements
-          (setq new-element (car new-elements))
-          (setq temp-elements (funcall fn new-element))
-          (setq current-set (append (set-difference temp-elements current-set :test #'equal) current-set))
-          (setq next-elements (append temp-elements next-elements))
-          (setq new-elements (cdr new-elements)))
-        (setq new-elements next-elements)))
-    current-set))
-
-(defun xmtn--get-content-changed-closure (root backend-id normalized-file last-n)
-  (lexical-let ((root root))
-    (labels ((changed-self-or-ancestors (entry)
-               (destructuring-bind (hash-id file-name) entry
-                 (check-type file-name string)
-                 ;; get-content-changed can return one or two revisions
-                 (loop for next-change-id in (xmtn--get-content-changed
-                                              root `(revision ,hash-id)
-                                              file-name)
-                       for corresponding-path =
-                       (xmtn--get-corresponding-path-raw root file-name
-                                                         hash-id next-change-id)
-                       when corresponding-path
-                       collect `(,next-change-id ,corresponding-path))))
-             (changed-proper-ancestors (entry)
-                                       (destructuring-bind (hash-id file-name) entry
-                                         (check-type file-name string)
-                                         ;; revision-parents can return one or two revisions
-                                         (loop for parent-id in (xmtn--revision-parents root hash-id)
-                                               for path-in-parent =
-                                               (xmtn--get-corresponding-path-raw root file-name
-                                                                                 hash-id parent-id)
-                                               when path-in-parent
-                                               append (changed-self-or-ancestors
-                                                       `(,parent-id ,path-in-parent))))))
-      (xmtn--close-set
-       #'changed-proper-ancestors
-       (xmtn-match (xmtn--resolve-backend-id root backend-id)
-         ((local-tree $path) (error "Not implemented"))
-         ((revision $id) (changed-self-or-ancestors
-                          `(,id ,normalized-file))))
-       last-n))))
 
 (defun xmtn--get-corresponding-path (root normalized-file-name
                                           source-revision-backend-id
@@ -1480,27 +1398,6 @@ finished."
   (check-type content-hash-id xmtn--hash-id)
   (xmtn-automate-simple-command-output-string
    root `("get_file" ,content-hash-id)))
-
-(defun xmtn--insert-file-contents (root content-hash-id buffer)
-  (check-type content-hash-id xmtn--hash-id)
-  (xmtn-automate-command-output-buffer
-   root buffer `("get_file" ,content-hash-id)))
-
-(defun xmtn--insert-file-contents-by-name (root backend-id normalized-file-name buffer)
-  (let* ((resolved-id (xmtn--resolve-backend-id root backend-id))
-         (hash-id (case (car resolved-id)
-                    (local-tree nil)
-                    (revision (cadr resolved-id)))))
-    (case (car backend-id)
-      ((local-tree last-revision)
-       ;;  file may have been renamed but not committed
-       (setq normalized-file-name (xmtn--get-rename-in-workspace-to root normalized-file-name)))
-      (t nil))
-
-    (let ((cmd (if hash-id
-                  (cons (list "revision" hash-id) (list "get_file_of" normalized-file-name))
-                (list "get_file_of" normalized-file-name))))
-      (xmtn-automate-command-output-buffer root buffer cmd))))
 
 (defun xmtn--same-tree-p (a b)
   (equal (file-truename a) (file-truename b)))

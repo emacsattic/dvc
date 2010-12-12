@@ -20,13 +20,13 @@ info_dir = @info_dir@
 DATE_FLAVOR = @DATE_FLAVOR@
 
 ##############################################################################
-all: info dvc.dvi  dvc.html dvc.pdf
+all: info dvc.dvi  dvc.html dvc-intro.html dvc.pdf
 
 dvi: dvc.dvi
 
 pdf: dvc.pdf
 
-html: dvc.html
+html: dvc.html dvc-intro.html
 
 Makefile: $(srcdir)/Makefile.in ../config.status
 	cd ..; ./config.status
@@ -51,7 +51,7 @@ uninstall:
 
 info: dvc.info dvc-intro.info
 
-alldeps = $(srcdir)/dvc.texinfo dvc-version.texinfo
+alldeps = $(srcdir)/dvc.texinfo dvc-version.texinfo dvc-intro.texinfo
 
 dvc.info: $(alldeps)
 	$(MAKEINFO) $(srcdir)/dvc.texinfo
@@ -61,6 +61,9 @@ dvc-intro.info: $(alldeps)
 
 dvc.html: $(alldeps)
 	$(MAKEINFO) --html --no-split $(srcdir)/dvc.texinfo
+
+dvc-intro.html: $(alldeps)
+	$(MAKEINFO) --html --no-split $(srcdir)/dvc-intro.texinfo
 
 dvc.dvi: $(alldeps)
 	$(TEXI2DVI) -o $@ $(srcdir)/dvc.texinfo
