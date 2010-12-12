@@ -324,8 +324,20 @@ dvc-fileinfo-current-file only for renamed files."
           ;; source name is in more-status, and it includes the path
           (dvc-fileinfo-file-more-status fileinfo))
          (t
-          (concat (dvc-fileinfo-file-dir fileinfo)
-                  (dvc-fileinfo-file-file fileinfo)))))
+	  ;; see if there is a rename for this file in the ewoc
+	  (let ((found-data
+		 (ewoc-collect
+		  dvc-fileinfo-ewoc
+		  (lambda (data)
+		    (and (eq 'rename-target (dvc-fileinfo-file-status data))
+			 (string= (dvc-fileinfo-file-dir fileinfo)
+				  (dvc-fileinfo-file-dir data))
+			 (string= (dvc-fileinfo-file-file fileinfo)
+				  (dvc-fileinfo-file-file data)))))))
+	    (if found-data
+		(dvc-fileinfo-file-more-status (car found-data))
+	      (concat (dvc-fileinfo-file-dir fileinfo)
+		      (dvc-fileinfo-file-file fileinfo)))))))
 
       (dvc-fileinfo-legacy
        (cadr (dvc-fileinfo-legacy-data fileinfo))))))
@@ -372,9 +384,7 @@ marked legacy fileinfos."
       ;; legacy files
       nil)))
 
-(defun dvc-fileinfo-mark-dir-1 (fileinfo mark)
-  ;; `dir-compare' must be let-bound to the directory being marked.
-  ;; It can't be a normal parameter because this is called via ewoc-map.
+(defun dvc-fileinfo-mark-dir-1 (fileinfo mark dir-compare)
   ;; Note that fileinfo will only be fileinfo-file or fileinfo-dir
   (if (string-equal dir-compare (dvc-fileinfo-file-dir fileinfo))
       (let ((file (dvc-fileinfo-path fileinfo)))
@@ -399,17 +409,17 @@ marked legacy fileinfos."
 
 (defun dvc-fileinfo-mark-dir (dir mark)
   "Set the mark for all files in DIR to MARK, recursively."
-  (let ((dir-compare (file-name-as-directory dir)))
-    (ewoc-map (lambda (fileinfo)
-                (etypecase fileinfo
-                  (dvc-fileinfo-file    ; also matches dvc-fileinfo-dir
-                   (dvc-fileinfo-mark-dir-1 fileinfo mark))
+  (ewoc-map (lambda (fileinfo dir-compare)
+	      (etypecase fileinfo
+		(dvc-fileinfo-file    ; also matches dvc-fileinfo-dir
+		 (dvc-fileinfo-mark-dir-1 fileinfo mark dir-compare))
 
-                  (dvc-fileinfo-message nil)
+		(dvc-fileinfo-message nil)
 
-                  (dvc-fileinfo-legacy
-                   (error "dvc-fileinfo-mark-dir not implemented for legacy back-ends"))))
-              dvc-fileinfo-ewoc)))
+		(dvc-fileinfo-legacy
+		 (error "dvc-fileinfo-mark-dir not implemented for legacy back-ends"))))
+	    dvc-fileinfo-ewoc
+	    (file-name-as-directory dir)))
 
 (defun dvc-fileinfo-mark-file-1 (mark)
   "Set the mark for file under point to MARK. If a directory, mark all files

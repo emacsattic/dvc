@@ -1933,7 +1933,7 @@ MODIFIED)."
            ;; the buffer is "* changeset report"
            (save-excursion
              (goto-char (point-max))
-             (previous-line 1)
+             (forward-line -1)
              (beginning-of-line)
              (looking-at "^* changeset report"))))
       (if no-changes
@@ -9523,7 +9523,7 @@ If on a message field, delete all the files below this message."
                                  "Delete file: "
                                  nil nil nil
                                  'yes-or-no-p)))
-  (mapcar 'delete-file files)
+  (mapc 'delete-file files)
   (tla-tree-lint default-directory))
 
 (defun tla-tree-lint-regenerate-id (files)
@@ -9535,7 +9535,7 @@ If on a message field, delete all the files below this message."
                                  "Not regenerating ID for any file"
                                  "Regenerate ID for file: "
                                  t)))
-  (mapcar 'tla-regenerate-id-for-file files)
+  (mapc 'tla-regenerate-id-for-file files)
   (tla-tree-lint default-directory))
 
 (defun tla-tree-lint-make-junk (files)
@@ -9571,7 +9571,7 @@ If on a message field, make all the files below this message precious."
 (defun tla-tree-lint-put-file-prefix (files prefix)
   "Rename FILES with adding prefix PREFIX.
 Visited buffer associations also updated."
-  (mapcar
+  (mapc
    (lambda (from)
      (let* ((buf (find-buffer-visiting from))
             (to (concat

@@ -48,6 +48,7 @@ Invoking
 
 * xmtn-status-one::
 * xmtn-propagate-one::
+* xmtn-sync-sync::
 
 Key bindings
 
@@ -289,11 +290,16 @@ Summarizes the status of several workspaces
 @item xmtn-propagate-multiple
 Supervises propagating several workspaces
 
+@item xmtn-sync-sync
+Syncs a local database with a remote database, displays branches that
+have been transferred.
+
 @end table
 
 @menu
 * xmtn-status-one::
 * xmtn-propagate-one::
+* xmtn-sync-sync::
 @end menu
 
 @node xmtn-status-one
@@ -402,6 +408,91 @@ workspaces for local changes.
 @item clean/delete
 Delete conflicts and conflict resolution files, and delete
 the workspace from the display.
+
+@end table
+
+@node xmtn-sync-sync
+@section xmtn-sync-sync
+@command{xmtn-sync-sync} supervises the process of updating local
+workspaces after synchronizing the local and remote databases.
+
+@command{xmtn-sync-sync} takes several arguments, all strings:
+@table @command
+@item local-db
+The local database.
+
+@item scheme
+Either @code{"file"} or @code{"ssh"}.
+
+@item remote-host
+The remote host; an empty string for @code{"file"}, the user name and
+IP name for @code{"ssh"}.
+
+@item remote-db
+Absolute path to the remote database, and a pattern of branches to
+transfer.
+@end table
+
+Most users will want to define local Emacs functions to invoke common
+syncs. For example:
+
+@verbatim
+(defun mtn_sync_sdoasist1 ()
+  (xmtn-sync-sync
+     "~/monotone-dbs/gds.db"           ;; local-db
+     "ssh"                             ;; scheme
+     "stephe@sdoasist1.gsfc.nasa.gov"  ;; remote-host
+     "/home/gds/monotone-dbs/gds.db?*" ;; remote-db
+))
+
+(defun mtn_sync_usb ()
+  (xmtn-sync-sync "~/monotone-dbs/gds.db" "file" "" "/cygdrive/e/gds.db?*"))
+@end verbatim
+
+After the sync completes, the display shows each branch that was
+transferred, with a count of how many revisions were sent and
+received.
+
+Actions on branches are invoked with @key{M-d}.
+
+The possible branch actions are:
+@table @command
+@item status
+Start an @dfn{xmtn-multi-status} buffer for the workspace assoicated
+with the specified branch, to allow commit, update followed by update
+review, or merge with conflict resolution.
+
+The user may specify a function @code{xmtn-sync-guess-workspace} that
+returns a workspace given a branch. Otherwise, the user is prompted
+for the workspace location; the location is cached for future use.
+
+@itemx brief
+Show the first line of the changelog for each revision received.
+
+@itemx full
+Show the complete changelog for each revision received.
+
+@item clean
+Delete the branch from the display.
+
+Branches that are not cleaned are cached; they will reappear the next
+time @code{xmtn-sync-sync} is run.
+
+@end table
+
+In addition, there are global actions:
+@table @command
+@item next
+Move to the next branch
+
+@item prev
+Move to the previous branch
+
+@item save-quit
+Save the displayed branches, quit.
+
+@item save
+Save the displayed branches.
 
 @end table
 

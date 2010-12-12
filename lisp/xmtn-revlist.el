@@ -32,7 +32,7 @@
 ;;; docs/xmtn-readme.txt.
 
 (eval-and-compile
-  (require 'cl)
+  (require 'cl) ;; yes, we are using cl at runtime; we're working towards eliminating that.
   (require 'dvc-unified)
   (require 'dvc-revlist)
   (require 'xmtn-ids)
@@ -46,27 +46,14 @@
 "Buffer-local variable pointing to a function that generates a
 list of revisions to display in a revlist buffer. Called with one
 arg; root. Result is of the form:
-    (branch
-     (header-lines)
+    ((header-lines)
      (footer-lines)
      (revisions))"
 (make-variable-buffer-local 'xmtn--revlist-*info-generator-fn*)
 
-(defvar xmtn--revlist-*merge-destination-branch* nil)
-(make-variable-buffer-local 'xmtn--revlist-*merge-destination-branch*)
-
-(defun xmtn--escape-branch-name-for-selector (branch-name)
-  ;; FIXME.  The monotone manual refers to "shell wildcards" but
-  ;; doesn't define what they are, or how to escape them.  So just a
-  ;; heuristic here.
-  (assert (not (position ?* branch-name)))
-  (assert (not (position ?? branch-name)))
-  (assert (not (position ?\\ branch-name)))
-  (assert (not (position ?{ branch-name)))
-  (assert (not (position ?} branch-name)))
-  (assert (not (position ?[ branch-name)))
-          (assert (not (position ?] branch-name)))
-  branch-name)
+(defvar xmtn--revlist-*path* nil)
+"Buffer-local variable containing path argument for log"
+(make-variable-buffer-local 'xmtn--revlist-*path*)
 
 (defstruct (xmtn--revlist-entry (:constructor xmtn--make-revlist-entry))
   revision-hash-id
@@ -226,10 +213,8 @@ arg; root. Result is of the form:
 
 (defun xmtn--revlist-refresh ()
   (let ((root default-directory))
-    (destructuring-bind (merge-destination-branch
-                         header-lines footer-lines revision-hash-ids)
+    (destructuring-bind (header-lines footer-lines revision-hash-ids)
         (funcall xmtn--revlist-*info-generator-fn* root)
-      (setq xmtn--revlist-*merge-destination-branch* merge-destination-branch)
       (let ((ewoc dvc-revlist-cookie))
         (xmtn--revlist-setup-ewoc root ewoc
                                   (with-temp-buffer
@@ -253,15 +238,16 @@ arg; root. Result is of the form:
           (ewoc-goto-node ewoc (ewoc-nth ewoc 0))))))
   nil)
 
-(defun xmtn--setup-revlist (root info-generator-fn first-line-only-p last-n)
+(defun xmtn--setup-revlist (root info-generator-fn path first-line-only-p last-n)
   ;; Adapted from `dvc-build-revision-list'.
-  ;; info-generator-fn must return a list of back-end revision ids (strings)
+  ;; See xmtn--revlist-*info-generator-fn*
   (xmtn-automate-cache-session root)
   (let ((dvc-temp-current-active-dvc 'xmtn)
         (buffer (dvc-revlist-create-buffer
                  'xmtn 'log root 'xmtn--revlist-refresh first-line-only-p last-n)))
     (with-current-buffer buffer
       (setq xmtn--revlist-*info-generator-fn* info-generator-fn)
+      (setq xmtn--revlist-*path* (when path (file-relative-name path root)))
       (xmtn--revlist-refresh))
     (xmtn--display-buffer-maybe buffer nil))
   nil)
@@ -270,7 +256,12 @@ arg; root. Result is of the form:
 (defun xmtn-dvc-log (path last-n)
   ;; path may be nil or a file. The front-end ensures that
   ;; 'default-directory' is set to a tree root.
-  (xmtn--log-helper default-directory path t last-n))
+  (xmtn--setup-revlist
+   default-directory
+   'xmtn--log-generator
+   path
+   t ;; first-line-only-p
+   last-n))
 
 ;;;###autoload
 (defun xmtn-log (&optional path last-n)
@@ -284,89 +275,36 @@ arg; root. Result is of the form:
 
 ;;;###autoload
 (defun xmtn-dvc-changelog (&optional path)
-  (xmtn--log-helper (dvc-tree-root) path nil nil))
+  (xmtn--setup-revlist
+   (dvc-tree-root)
+   'xmtn--log-generator
+   path
+   nil ;; first-line-only-p
+   nil ;; last-n
+   ))
 
-(defun xmtn--log-helper (root path first-line-only-p last-n)
-  (if path
-      (xmtn-list-revisions-modifying-file path nil first-line-only-p last-n)
-    (xmtn--setup-revlist
-     root
-     (lambda (root)
-       (let ((branch (xmtn--tree-default-branch root)))
-         (list branch
-               (list
-                (if dvc-revlist-last-n
-                    (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
-                  (format "Log for branch %s (all entries):" branch)))
-               '()
-               (xmtn--expand-selector
-                root
-                ;; This restriction to current branch is completely
-                ;; arbitrary.
-                (concat
-                 "b:" ;; returns all revs for current branch
-                 (xmtn--escape-branch-name-for-selector
-                  branch))))))
-     first-line-only-p
-     last-n)))
-
-(defun xmtn--revlist--missing-get-info (root)
-  (let* ((branch (xmtn--tree-default-branch root))
-         (heads (xmtn--heads root branch))
-         (base-revision-hash-id (xmtn--get-base-revision-hash-id root))
-         (difference
-          (delete-duplicates
-           (mapcan
-            (lambda (head)
-              (xmtn-automate-simple-command-output-lines
-               root
-               `("ancestry_difference"
-                 ,head ,base-revision-hash-id)))
-            heads))))
-    (list
-     branch
-     `(,(format "Tree   %s" root)
-       ,(format "Branch %s" branch)
-       ,(format "Base   %s" base-revision-hash-id)
-       ,(case (length heads)
-          (1 "branch is merged")
-          (t (dvc-face-add (format "branch has %s heads; need merge" (length heads)) 'dvc-conflict)))
-       nil
-       ,(case (length difference)
-          (0 "No revisions that are not in base revision")
-          (1 "1 revision that is not in base revision:")
-          (t (format
-              "%s revisions that are not in base revision:"
-              (length difference)))))
-     '()
-     difference)))
-
-(defun xmtn--revlist--review-update-info (root)
-  (let* ((branch (xmtn--tree-default-branch root))
-         (last-update
-	  (xmtn-automate-simple-command-output-line
-	   root
-	   (list "select" "u:")))
-         (base-revision-hash-id (xmtn--get-base-revision-hash-id root))
-         (difference
-	  ;; FIXME: replace with automate log
-	  (xmtn-automate-simple-command-output-lines
-	   root
-	   (list "ancestry_difference" base-revision-hash-id last-update))))
-    (list
-     branch
-     `(,(format "Tree   %s" root)
-       ,(format "Branch %s" branch)
-       ,(format "Base   %s" base-revision-hash-id)
-       nil
-       ,(case (length difference)
-          (0 "No revisions in last update")
-          (1 "1 revision in last update:")
-          (t (format
-              "%s revisions in last update:"
-              (length difference)))))
-     '()
-     difference)))
+(defun xmtn--log-generator (root)
+  (let ((branch (xmtn--tree-default-branch root)))
+    (let
+	((header
+	  (list
+	   (if dvc-revlist-last-n
+	       (format "Log for branch %s (last %d entries):" branch dvc-revlist-last-n)
+	     (format "Log for branch %s (all entries):" branch))))
+	 (options
+	  (if dvc-revlist-last-n
+	      (list "last" (format "%d" dvc-revlist-last-n))))
+	 (command
+	  (if xmtn--revlist-*path*
+	      (list "log" xmtn--revlist-*path*)
+	    (list "log")))
+	 )
+      ;; See xmtn--revlist-*info-generator-fn* for result format
+      (list header
+	    '() ;; footer
+	    (xmtn-automate-simple-command-output-lines ;; revisions
+	     root
+	     (cons options command))))))
 
 (defun xmtn-revlist-show-conflicts ()
   "If point is on a revision that has two parents, show conflicts
@@ -460,18 +398,40 @@ from the merge."
 ;;;###autoload
 (defun xmtn-dvc-missing (&optional other)
   ;; `other', if non-nil, designates a remote repository (see bzr); mtn doesn't support that.
-  (let ((root (dvc-tree-root)))
+  (let* ((root (dvc-tree-root))
+	 (branch (xmtn--tree-default-branch root))
+         (heads (xmtn--heads root branch)))
+    (if (/= 1 (length heads))
+      (error "%d heads, need merge; use `xmtn-status-one'" (length heads)))
+
     (xmtn--setup-revlist
      root
-     'xmtn--revlist--missing-get-info
-     ;; Passing nil as first-line-only-p is arbitrary here.
-     ;;
+     (lambda (root)
+       (let ((revs
+	      ;; first rev is w:, don't display that
+	      (cdr (xmtn-automate-simple-command-output-lines
+		    root
+		    (cons (list "from" "w:" "to" "h:") (list "log"))))))
+	 (list
+	  (list ;; header
+	   (format "workspace %s" root)
+	   nil ;; blank line
+	   (case (length revs)
+	     (0 "No revisions that are not in base revision")
+	     (1 "1 revision that is not in base revision:")
+	     (t (format
+		 "%s revisions that are not in base revision:"
+		 (length revs)))))
+	  '() ;; footer
+	  revs)))
+     nil ;; path
+     nil ;; first-line-only-p
      ;; When the missing revs are due to a propagate, there can be a
      ;; lot of them, but we only really need to see the revs since the
      ;; propagate. So dvc-log-last-n is appropriate. We use
      ;; dvc-log-last-n, not dvc-revlist-last-n, because -log is user
      ;; customizable.
-     nil dvc-log-last-n))
+     dvc-log-last-n))
   nil)
 
 ;;;###autoload
@@ -480,7 +440,24 @@ from the merge."
   (interactive "D")
   (xmtn--setup-revlist
    root
-   'xmtn--revlist--review-update-info
+   (lambda (root)
+     (let ((revs
+	    (xmtn-automate-simple-command-output-lines
+	     root
+	     (cons (list "from" "u:" "to" "w:") (list "log")))))
+       (list
+	(list ;; header
+	 (format "workspace %s" root)
+	 nil ;; blank line
+	 (case (length revs)
+	   (0 "No revisions in last update")
+	   (1 "1 revision in last update:")
+	   (t (format
+	       "%s revisions in last update:"
+	       (length revs)))))
+	'() ;; footer
+	revs)))
+   nil ;; path
    nil ;; first-line-only-p
    dvc-log-last-n)
   nil)
@@ -497,55 +474,18 @@ from the merge."
               (head-revision-hash-ids (xmtn--heads root branch))
               (head-count (length head-revision-hash-ids)))
          (list
-          branch
-          (list (format "Tree %s" root)
-                (format "Branch %s" branch)
+          (list (format "workspace %s" root)
                 (case head-count
                   (0 "No head revisions (branch empty (or circular ;))")
                   (1 "1 head revision:")
                   (t (format "%s head revisions: " head-count))))
           '()
           head-revision-hash-ids)))
-     ;; Passing nil as first-line-only-p, last-n is arbitrary here.
-     nil nil))
+     nil ;; path
+     nil ;; first-line-only-p
+     nil ;; last-n
+     ))
   nil)
-
-;;;###autoload
-;; This function doesn't quite offer the interface I really want: From
-;; the resulting revlist buffer, there's no way to request a diff
-;; restricted to the file in question.  But it's still handy.
-(defun xmtn-list-revisions-modifying-file (file &optional last-backend-id first-line-only-p last-n)
-  "Display a revlist buffer showing the revisions that modify FILE.
-
-Only ancestors of revision LAST-BACKEND-ID will be considered.
-FILE is a file name in revision LAST-BACKEND-ID, which defaults
-to the base revision of the current tree."
-  (interactive "FList revisions modifying file: ")
-  (let* ((root (dvc-tree-root))
-         (normalized-file (xmtn--normalize-file-name root file)))
-    (unless last-backend-id
-      (setq last-backend-id `(last-revision ,root 1)))
-    (lexical-let ((last-backend-id last-backend-id)
-                  (file file)
-                  (normalized-file normalized-file))
-      (xmtn--setup-revlist
-       root
-       (lambda (root)
-         (let ((branch (xmtn--tree-default-branch root))
-               (revision-hash-ids
-                (mapcar #'first
-                        (xmtn--get-content-changed-closure
-                         root last-backend-id normalized-file dvc-revlist-last-n))))
-           (list
-            branch
-            (list
-             (if dvc-revlist-last-n
-                 (format "Log for %s (last %d entries)" file dvc-revlist-last-n)
-               (format "Log for %s" file)))
-            '()
-            revision-hash-ids)))
-       first-line-only-p
-       last-n))))
 
 (defvar xmtn--*selector-history* nil)
 
@@ -562,13 +502,10 @@ to the base revision of the current tree."
       (xmtn--setup-revlist
        root
        (lambda (root)
-         (let* ((branch (xmtn--tree-default-branch root))
-                (revision-hash-ids (xmtn--expand-selector root selector))
+         (let* ((revision-hash-ids (xmtn--expand-selector root selector))
                 (count (length revision-hash-ids)))
            (list
-            branch
-            (list (format "Tree %s" root)
-                  (format "Default branch %s" branch)
+            (list (format "workspace %s" root)
                   (if (with-syntax-table (standard-syntax-table)
                         (string-match "\\`\\s *\\'" selector))
                       "Blank selector"
@@ -580,10 +517,10 @@ to the base revision of the current tree."
                                count))))
             '()
             revision-hash-ids)))
-       ;; Passing nil as first-line-only-p is arbitrary here.
-       nil
-       ;; FIXME: it might be useful to specify last-n here
-       nil)))
+       nil ;; path
+       nil ;; first-line-only-p
+       nil ;; last-n
+       )))
   nil)
 
 ;; This generates the output shown when the user hits RET on a
@@ -611,31 +548,6 @@ to the base revision of the current tree."
                 (if (not trusted)
                     (write-line "Untrusted cert, name=%s" name)
                   (write-line "%s: %s" name value)))))))))))
-
-(defun xmtn-revlist-explicit-merge ()
-  "Run mtn explicit_merge on the two marked revisions.
-
-To be invoked from an xmtn revlist buffer."
-  (interactive)
-  (let ((entries (dvc-revision-marked-revisions))
-        (root (dvc-tree-root)))
-    (unless (eql (length entries) 2)
-      (error "Precisely 2 revisions must be marked for merge, not %s"
-             (length entries)))
-    (let ((hash-ids (mapcar #'xmtn--revlist-entry-revision-hash-id entries))
-          (destination-branch-name xmtn--revlist-*merge-destination-branch*))
-      ;; FIXME: Does it make any difference which one we choose as
-      ;; "left" and which one we choose as "right"?  (If it does, we
-      ;; should also make their selection in the UI asymmetrical: For
-      ;; example, require precisely one marked revision and use the
-      ;; one at point as the other.)
-      (destructuring-bind (left right) hash-ids
-        (unless (yes-or-no-p
-                 (format "Merge revisions %s and %s onto branch %s? "
-                         left right destination-branch-name))
-          (error "Aborted merge"))
-        (xmtn--do-explicit-merge root left right destination-branch-name))))
-  nil)
 
 (defun xmtn-revlist-update ()
   "Update current tree to the revision at point.

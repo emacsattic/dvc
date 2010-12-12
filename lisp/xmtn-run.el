@@ -111,7 +111,7 @@ Signals an error if more (or fewer) than one line is output."
              arguments))
     (first lines)))
 
-(defconst xmtn--minimum-required-command-version '(0 46))
+(defconst xmtn--minimum-required-command-version '(0 99))
 ;; see also xmtn-sync.el xmtn-sync-required-command-version
 (defconst xmtn--required-automate-format-version "2")
 
@@ -126,6 +126,7 @@ Signals an error if more (or fewer) than one line is output."
   (version-list-<= required (butlast (xmtn--cached-command-version) 2)))
 
 (defun xmtn--clear-command-version-cache ()
+  (interactive)
   (setq xmtn--*command-version-cached-for-executable* nil
         ;; This is redundant but neater.
         xmtn--*cached-command-version* nil))
@@ -158,7 +159,7 @@ id."
         (xmtn-executable executable))
     (let ((string (xmtn--command-output-line nil '("--version"))))
       (unless (string-match
-               (concat "\\`monotone \\([0-9]+\\)\\.\\([0-9]+\\)\\(dev\\)?"
+               (concat "\\`monotone \\([0-9]+\\)\\.\\([0-9]+\\)\\(\\.[0-9]+\\)?\\(dev\\)?"
                        " (base revision: \\(unknown\\|\\([0-9a-f]\\{40\\}\\)\\))\\'")
                string)
         (error (concat "Version output from monotone --version"
