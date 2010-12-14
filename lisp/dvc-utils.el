@@ -1,6 +1,6 @@
 ;;; dvc-utils.el --- Utility functions for DVC
 
-;; Copyright (C) 2005 - 2009 by all contributors
+;; Copyright (C) 2005 - 2010 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -275,16 +275,35 @@ means the two items are the same."
       (setq pos (1+ pos)))
     (when seq-int pos)))
 
-(defun dvc-uniquify-file-name (path)
-  "Return a unique string designating PATH.
+(defun dvc-uniquify-file-name (path &optional resolve-symlinks)
+  "Return a string containing an absolute path to PATH, which is relative to `default-directory'.
 If PATH is a directory,the returned contains one and exactly one trailing
-slash.  If PATH is nil, then nil is returned."
+slash.  If PATH is nil, then nil is returned.
+If RESOLVE-SYMLINKS is non-nil (default nil), resolve symlinks in path."
+  ;; We normally _don'_ want 'file-truename' here, since that
+  ;; eliminates symlinks. We assume the user has configured symlinks
+  ;; the way they want within the workspace, so the view from the
+  ;; current default directory is correct.
+  ;;
+  ;; This may cause problems with the path to the workspace root;
+  ;; `call-process' spawns the backend process with symlinks in the
+  ;; working directory expanded. Most backends get the workspace root
+  ;; from the working directory; if DVC passes the workspace root
+  ;; explicitly to the backend explicitly, it must resolve symlinks at
+  ;; that point.
+  ;;
+  ;; Another case is DVC status buffers (and similar buffers); we
+  ;; don't want to create two buffers to the same workspace with
+  ;; different paths.
+  ;;
+  ;; In these cases, set resolve-symlinks t at the call point.
   (and path
-       (let ((expanded (file-truename
-                        (expand-file-name
+       (let ((expanded (expand-file-name
                          (if (file-directory-p path)
                              (file-name-as-directory path)
-                           path)))))
+                           path))))
+	 (if resolve-symlinks
+	     (setq expanded (file-truename expanded)))
          (if (featurep 'xemacs)
              (replace-regexp-in-string "/+$" "/" expanded)
            expanded))))

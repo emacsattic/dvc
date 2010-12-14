@@ -329,11 +329,14 @@ dvc-fileinfo-current-file only for renamed files."
 		 (ewoc-collect
 		  dvc-fileinfo-ewoc
 		  (lambda (data)
-		    (and (eq 'rename-target (dvc-fileinfo-file-status data))
-			 (string= (dvc-fileinfo-file-dir fileinfo)
-				  (dvc-fileinfo-file-dir data))
-			 (string= (dvc-fileinfo-file-file fileinfo)
-				  (dvc-fileinfo-file-file data)))))))
+		    (etypecase data
+		      (dvc-fileinfo-file
+		       (and (eq 'rename-target (dvc-fileinfo-file-status data))
+			    (string= (dvc-fileinfo-file-dir fileinfo)
+				     (dvc-fileinfo-file-dir data))
+			    (string= (dvc-fileinfo-file-file fileinfo)
+				     (dvc-fileinfo-file-file data))))
+		      (t nil))))))
 	    (if found-data
 		(dvc-fileinfo-file-more-status (car found-data))
 	      (concat (dvc-fileinfo-file-dir fileinfo)

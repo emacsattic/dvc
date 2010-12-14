@@ -55,24 +55,19 @@
        ;; non-Cygwin Emacs.
        ,@arguments))))
 
-;;; The `dvc-run-dvc-*' functions use `call-process', which, for some
-;;; reason, spawns the subprocess with a working directory with all
-;;; symlinks expanded.  (Or maybe it's the shell that expands the
-;;; symlinks.)  If the path to the root directory looks different from
-;;; the current working directory, monotone rejects it even if it is
-;;; the same via symlinks.  Therefore, we need to resolve symlinks
-;;; here in strategic places.  Hence the calls to `file-truename'.
-
 (defun* xmtn--run-command-async (root arguments &rest dvc-run-keys &key)
   (xmtn--check-cached-command-version)
-  (let ((default-directory (file-truename (or root default-directory))))
+  (let ((default-directory (or root default-directory)))
     (apply #'dvc-run-dvc-async
            'xmtn
            `(,@xmtn-additional-arguments
              ;; We don't pass the --root argument here; it is not
              ;; necessary since default-directory is set, and it
              ;; confuses the Cygwin version of mtn when run with a
-             ;; non-Cygwin Emacs.
+             ;; non-Cygwin Emacs. It also confuses other versions of
+             ;; mtn when there are symlinks in the path to the root;
+             ;; `call-process' spawns the subprocess with a working
+             ;; directory with all symlinks expanded.
              ,@arguments)
            dvc-run-keys)))
 
