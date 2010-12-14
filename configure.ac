@@ -56,6 +56,7 @@ AC_CONFIG_FILES([Makefile lisp/Makefile texinfo/Makefile dvc-load.el lisp/dvc-si
 # Common system utilities checking:
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
+AC_PROG_MKDIR_P
 
 # External programs checking:
 
@@ -169,6 +170,15 @@ if test "x${HAS_TREE_WIDGET}" = "xno" ; then
   AC_MSG_WARN([*** Provide the path to tree-widget with --with-other-dirs])
   AC_MSG_WARN([*** if tree-widget.el is already present on your system])
 fi
+
+AC_MSG_CHECKING([for the date utility flavor])
+if date --version 2>/dev/null | grep GNU ; then
+   DATE_FLAVOR="GNU"
+else
+   DATE_FLAVOR="BSD"
+fi
+AC_MSG_RESULT([${DATE_FLAVOR}])
+AC_SUBST([DATE_FLAVOR])
 
 AC_OUTPUT
 
