@@ -294,6 +294,14 @@ Supervises propagating several workspaces
 Syncs a local database with a remote database, displays branches that
 have been transferred.
 
+@item xmtn-sync-review
+Reviews saved output of an external @command{mtn automate sync},
+displays branches that have been transferred. This is useful for syncs
+that take a long time, because external commands display the tickers
+much better than DVC does.
+
+The external sync should redirect stdout to @file{~/.dvc/sync.basic_io}.
+
 @end table
 
 @menu

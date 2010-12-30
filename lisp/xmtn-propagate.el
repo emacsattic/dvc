@@ -255,14 +255,15 @@ The elements must all be of class xmtn-propagate-data.")
   (let* ((elem (ewoc-locate xmtn-propagate-ewoc))
          (data (ewoc-data elem)))
     (xmtn-propagate-need-refresh elem data)
-    (setf (xmtn-propagate-data-to-local-changes data) 'ok)
+    (if (not (buffer-live-p (xmtn-propagate-data-to-status-buffer data)))
+	(xmtn-propagate-create-to-status-buffer data))
     (pop-to-buffer (xmtn-propagate-data-to-status-buffer data))))
 
 (defun xmtn-propagate-commit-top ()
   "Non-nil if commit is appropriate for current `to' workspace."
   (let* ((data (ewoc-data (ewoc-locate xmtn-propagate-ewoc))))
     (and (not (xmtn-propagate-data-need-refresh data))
-	 (eq (xmtn-propagate-data-to-local-changes data) 'need-commit))))
+	 (member (xmtn-propagate-data-to-local-changes data) '(need-commit need-scan)))))
 
 (defun xmtn-propagate-commit-from ()
   "Show commit buffer for `from' workspace, so it can be committed, updated, or merged."
@@ -270,14 +271,15 @@ The elements must all be of class xmtn-propagate-data.")
   (let* ((elem (ewoc-locate xmtn-propagate-ewoc))
          (data (ewoc-data elem)))
     (xmtn-propagate-need-refresh elem data)
-    (setf (xmtn-propagate-data-from-local-changes data) 'ok)
+    (if (not (buffer-live-p (xmtn-propagate-data-from-status-buffer data)))
+	(xmtn-propagate-create-from-status-buffer data))
     (pop-to-buffer (xmtn-propagate-data-from-status-buffer data))))
 
 (defun xmtn-propagate-commit-fromp ()
   "Non-nil if commit is appropriate for current `from' workspace."
   (let* ((data (ewoc-data (ewoc-locate xmtn-propagate-ewoc))))
     (and (not (xmtn-propagate-data-need-refresh data))
-	 (eq (xmtn-propagate-data-from-local-changes data) 'need-commit))))
+	 (member (xmtn-propagate-data-from-local-changes data) '(need-commit need-scan)))))
 
 (defun xmtn-propagate-update-to ()
   "Update current `to' workspace."

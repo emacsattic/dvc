@@ -151,7 +151,7 @@ BUFFER should be the buffer to add."
     (current-buffer)))
 
 (defun dvc-get-buffer-create (dvc type &optional path)
-  "Get a buffer of type TYPE for the path PATH.
+  "Get a buffer of type TYPE for the path PATH (default `default-directory').
 
 Maybe reuse one if it exists, according to the value of
 `dvc-buffer-type-alist' (see its docstring), or, call
@@ -159,21 +159,19 @@ Maybe reuse one if it exists, according to the value of
 
 See also `dvc-get-buffer'"
   ;; Inspired from `cvs-get-buffer-create'
+  ;;
+  ;; For 'root buffers, make sure we don't create two buffers to the
+  ;; same absolute path, even in the presence of symlinks.
   (let ((return-buffer
-         (let* ((path (or path default-directory))
-                (elem (assoc type dvc-buffer-type-alist))
-                (mode (car (cddr elem))))
+         (let* ((elem (assoc type dvc-buffer-type-alist))
+                (mode (car (cddr elem)))
+		(path (if (eq mode 'root)
+			  (dvc-tree-root (dvc-uniquify-file-name (or path default-directory) t))
+			(or path default-directory))))
+
            (or (dvc-get-buffer dvc type path mode)
                ;; Buffer couldn't be reused. Create one
-               (let ((path (cond
-                            ((eq mode 'root)
-                             (dvc-uniquify-file-name
-                              (dvc-tree-root path)))
-                            ((or (eq mode 'string)
-                                 (eq mode 'string-multiple))
-                             path)
-                            (t (dvc-uniquify-file-name path))))
-                     (name (concat "*" (symbol-name dvc) "-"
+               (let ((name (concat "*" (symbol-name dvc) "-"
                                    (cadr (assoc type dvc-buffer-type-alist)))))
                  (let ((buffer
                         (if (or (eq mode 'string)
@@ -202,7 +200,7 @@ If DVC is nil, it matches any back-end. TYPE must match exactly.
 PATH matches if the entry in dvc-buffers-tree is a prefix of
 PATH."
   (let ((result nil)
-        (true-path (file-truename path))
+        (true-path (dvc-uniquify-file-name path))
         tree)
 
     (if dvc

@@ -1,6 +1,6 @@
 ;;; xmtn-ids.el --- Resolver routines for xmtn revision ids
 
-;; Copyright (C) 2008, 2009 Stephen Leake
+;; Copyright (C) 2008 - 2010 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -130,15 +130,6 @@ See file commentary for details."
       ((revision $hash-id) (assert (typep hash-id 'xmtn--hash-id)))
       ((local-tree $string) (assert (typep string 'string))))
     resolved-backend-id))
-
-(defun xmtn--resolve--local-tree (root path)
-  (check-type path string)
-  (let ((path-root (xmtn-tree-root path t)))
-    (unless (and path-root
-                 (equal (file-truename path-root)
-                        (file-truename path)))
-      (error "Path is not the root of a monotone tree: %S" `(local-tree ,path))))
-  `(local-tree ,path))
 
 (defun xmtn--resolve--last-revision (root path num)
   (check-type path string)

@@ -60,7 +60,10 @@ Called with a string containing the mtn branch name; return a workspace root or 
 
 ;;; Internal variables
 (defconst xmtn-sync-save-file "sync"
-  "File to save sync results for later review; relative to `dvc-config-directory'.")
+  "File to save sync review state for later; relative to `dvc-config-directory'.")
+
+(defconst xmtn-sync-review-file "sync.basic_io"
+  "File to save shell sync basic_io output for input by `xmtn-sync-review'; relative to `dvc-config-directory'.")
 
 (defconst xmtn-sync-branch-file "branches"
   "File associating branch name with workspace root; relative to `dvc-config-directory'.")
@@ -385,8 +388,8 @@ The elements must all be of type xmtn-sync-sync.")
     (xmtn-basic-io-skip-blank-lines)
     (while (xmtn-basic-io-optional-skip-line keyword))))
 
-(defun xmtn-sync-parse (begin end)
-  "Parse region BEGIN END in current buffer, fill in `xmtn-sync-ewoc', erase BEGIN END."
+(defun xmtn-sync-parse (begin)
+  "Parse current buffer starting at BEGIN, fill in `xmtn-sync-ewoc' in current buffer, erase parsed text."
   (set-syntax-table xmtn-basic-io--*syntax-table*)
   (goto-char begin)
 
@@ -444,7 +447,7 @@ The elements must all be of type xmtn-sync-sync.")
   (xmtn-sync-parse-revisions 'send)
   (xmtn-sync-parse-keys 'send)
 
-  (delete-region begin end)
+  (delete-region begin (point))
   )
 
 (defun xmtn-sync-load-file (&optional noerror)
@@ -477,7 +480,6 @@ Remote-db should include branch pattern in URI syntax."
   ;; parsed. `xmtn-sync-mode' creates the ewoc at point.
 
   (let ((opts xmtn-sync-automate-args)
-	parse-end
 	(remote-uri (concat scheme "://" remote-host remote-db))
 	(msg "Running mtn sync ..."))
 
@@ -510,7 +512,6 @@ Remote-db should include branch pattern in URI syntax."
     (message (concat msg " done"))
 
     (goto-char (point-max))
-    (setq parse-end (point-max))
 
     ;; don't lose what was saved from last sync; may not have been reviewed yet
     (xmtn-sync-mode)
@@ -524,7 +525,7 @@ Remote-db should include branch pattern in URI syntax."
       (format "remote db: %s\n" remote-uri))
      "") ;; footer
 
-    (xmtn-sync-parse (point-min) parse-end)
+    (xmtn-sync-parse (point-min))
     (setq buffer-read-only t)
     (set-buffer-modified-p nil)
     (xmtn-sync-save)
@@ -553,14 +554,28 @@ Remote-db should include branch pattern in URI syntax."
      (expand-file-name xmtn-sync-save-file dvc-config-directory))))
 
 ;;;###autoload
-(defun xmtn-sync-review ()
-  "Display sync results in `xmtn-sync-save-file'."
+(defun xmtn-sync-review (&optional file)
+  "Display sync results in FILE (defaults to `xmtn-sync-review-file'), appended to content of `xmtn-sync-save-file'.
+FILE should be output of 'automate sync'. (external sync handles tickers better)."
   (interactive)
+  ;; first load xmtn-sync-save-file
   (pop-to-buffer (get-buffer-create "*xmtn-sync*"))
   (setq buffer-read-only nil)
   (delete-region (point-min) (point-max))
   (xmtn-sync-mode)
-  (xmtn-sync-load-file))
+  (xmtn-sync-load-file)
+
+  ;; now add file
+  (setq file (or file
+		 (expand-file-name xmtn-sync-review-file dvc-config-directory)))
+  (if (file-exists-p file)
+      (progn
+	(goto-char (point-min))
+	(setq buffer-read-only nil)
+	(insert-file-contents-literally file)
+	(xmtn-sync-parse (point-min))
+	(setq buffer-read-only t)
+	(delete-file file))))
 
 (provide 'xmtn-sync)
 

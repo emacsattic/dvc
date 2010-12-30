@@ -61,14 +61,15 @@ The elements must all be of class xmtn-status-data.")
 (defun xmtn-status-work (data)
   (concat xmtn-status-root (xmtn-status-data-work data)))
 
-(defun xmtn-status-need-refresh (elem data)
+(defun xmtn-status-need-refresh (elem data local-changes)
   ;; The user has selected an action that will change the state of the
-  ;; workspace via mtn actions; set our data to reflect that. We
-  ;; assume the user will not be creating new files or editing
-  ;; existing ones.
+  ;; workspace via mtn actions; set our data to reflect that. If
+  ;; local-changes is non-nil, xmtn-status-data-local-changes is set
+  ;; to that value.
   (setf (xmtn-status-data-need-refresh data) t)
   (setf (xmtn-status-data-heads data) 'need-scan)
   (setf (xmtn-status-data-conflicts data) 'need-scan)
+  (if local-changes (setf (xmtn-status-data-local-changes data) local-changes))
   (ewoc-invalidate xmtn-status-ewoc elem))
 
 (defun xmtn-status-printer (data)
@@ -172,7 +173,7 @@ The elements must all be of class xmtn-status-data.")
   (interactive)
   (let* ((elem (ewoc-locate xmtn-status-ewoc))
          (data (ewoc-data elem)))
-    (xmtn-status-need-refresh elem data)
+    (xmtn-status-need-refresh elem data nil)
     (setf (xmtn-status-data-update-review data) 'need-review)
     (let ((default-directory (xmtn-status-work data)))
       (xmtn-dvc-update))
@@ -190,7 +191,7 @@ The elements must all be of class xmtn-status-data.")
   (interactive)
   (let* ((elem (ewoc-locate xmtn-status-ewoc))
          (data (ewoc-data elem)))
-    (xmtn-status-need-refresh elem data)
+    (xmtn-status-need-refresh elem data nil)
     (setf (xmtn-status-data-conflicts data) 'resolved)
     (pop-to-buffer (xmtn-status-data-conflicts-buffer data))))
 
@@ -206,8 +207,8 @@ The elements must all be of class xmtn-status-data.")
   (interactive)
   (let* ((elem (ewoc-locate xmtn-status-ewoc))
          (data (ewoc-data elem)))
-    (xmtn-status-need-refresh elem data)
-    (setf (xmtn-status-data-local-changes data) 'ok)
+    ;; assume they are doing a checkin
+    (xmtn-status-need-refresh elem data 'ok)
     (pop-to-buffer (xmtn-status-data-status-buffer data))
     ;; IMPROVEME: create a log-edit buffer now, since we have both a
     ;; status and conflict buffer, and that confuses dvc-log-edit
@@ -233,7 +234,8 @@ The elements must all be of class xmtn-status-data.")
   (interactive)
   (let* ((elem (ewoc-locate xmtn-status-ewoc))
          (data (ewoc-data elem)))
-    (xmtn-status-need-refresh elem data)
+    ;; assume they are adding FIXMEs
+    (xmtn-status-need-refresh elem data 'need-scan)
     (setf (xmtn-status-data-update-review data) 'done)
     (xmtn-review-update (xmtn-status-work data))))
 
@@ -260,7 +262,7 @@ The elements must all be of class xmtn-status-data.")
   (let* ((elem (ewoc-locate xmtn-status-ewoc))
          (data (ewoc-data elem))
          (default-directory (xmtn-status-work data)))
-    (xmtn-status-need-refresh elem data)
+    (xmtn-status-need-refresh elem data nil)
     (xmtn-view-heads-revlist)))
 
 (defun xmtn-status-headsp ()
