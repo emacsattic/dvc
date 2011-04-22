@@ -51,7 +51,7 @@ uninstall:
 
 info: dvc.info dvc-intro.info
 
-alldeps = $(srcdir)/dvc.texinfo dvc-version.texinfo dvc-intro.texinfo
+alldeps = $(srcdir)/dvc.texinfo dvc-version.texinfo $(srcdir)/dvc-intro.texinfo
 
 dvc.info: $(alldeps)
 	$(MAKEINFO) $(srcdir)/dvc.texinfo

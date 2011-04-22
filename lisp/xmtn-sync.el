@@ -1,6 +1,6 @@
 ;;; xmtn-sync.el --- database sync handling for DVC backend for monotone
 ;;
-;; Copyright (C) 2010 Stephen Leake
+;; Copyright (C) 2010, 2011 Stephen Leake
 ;;
 ;; Author: Stephen Leake
 ;; Keywords: tools
@@ -58,6 +58,12 @@ overrides xmtn-automate-arguments.")
   "User-supplied function to guess workspace location given branch.
 Called with a string containing the mtn branch name; return a workspace root or nil.")
 
+(defvar xmtn-sync-sort nil
+  "User-supplied function to sort branches.
+Called with a string containing the mtn branch name; return
+'(node key) where node is the ewoc node to insert before (nil to
+insert at end), key is the sort-key. Sync buffer is current.")
+
 ;;; Internal variables
 (defconst xmtn-sync-save-file "sync"
   "File to save sync review state for later; relative to `dvc-config-directory'.")
@@ -105,6 +111,7 @@ The elements must all be of type xmtn-sync-sync.")
   rev-alist ;; alist of '(revid (date author changelog)) for received revs
   send-count ;; integer count of sent revs
   print-mode ;; 'summary | 'brief | 'full | 'started
+  sort-key ;; for use by xmtn-sync-sort
   )
 
 (defun xmtn-sync-print-rev (rev print-mode)
@@ -121,7 +128,10 @@ The elements must all be of type xmtn-sync-sync.")
 
 (defun xmtn-sync-printer (branch)
   "Print an ewoc element; BRANCH must be of type xmtn-sync-branch."
-  (insert (dvc-face-add (xmtn-sync-branch-name branch) 'dvc-keyword))
+  ;; sometimes mtn will allow a revision with no branch!
+  (if (xmtn-sync-branch-name branch)
+      (insert (dvc-face-add (xmtn-sync-branch-name branch) 'dvc-keyword))
+    (insert (dvc-face-add "<no branch>" 'dvc-keyword)))
   (insert (format " rx %d tx %d\n"
 		  (length (xmtn-sync-branch-rev-alist branch))
 		  (xmtn-sync-branch-send-count branch)))
@@ -196,18 +206,22 @@ The elements must all be of type xmtn-sync-sync.")
 	   (list 'xmtn-sync-branch-alist)
 	   (expand-file-name xmtn-sync-branch-file dvc-config-directory))))))
 
+(defun xmtn-sync-update ()
+  "Start xmtn-status-on for current ewoc element, do update if possible."
+  (interactive)
+  (xmtn-sync-status)
+  (if (xmtn-status-updatep)
+      (xmtn-status-update)))
+
 (defun xmtn-sync-clean ()
   "Clean and delete current ewoc element."
   (interactive)
   (let* ((elem (ewoc-locate xmtn-sync-ewoc))
+	 (status-buffer (get-buffer-create "*xmtn-multi-status*"))
          (inhibit-read-only t))
+    (if (buffer-live-p status-buffer)
+	(kill-buffer status-buffer))
     (ewoc-delete xmtn-sync-ewoc elem)))
-
-(defun xmtn-sync-save-quit ()
-  "Save state, quit buffer."
-  (interactive)
-  (xmtn-sync-save)
-  (kill-buffer))
 
 (dvc-make-ewoc-next xmtn-sync-next xmtn-sync-ewoc)
 (dvc-make-ewoc-prev xmtn-sync-prev xmtn-sync-ewoc)
@@ -219,6 +233,7 @@ The elements must all be of type xmtn-sync-sync.")
     (define-key map [?f]  '(menu-item "f) full" xmtn-sync-full))
     (define-key map [?b]  '(menu-item "b) brief" xmtn-sync-brief))
     (define-key map [?s]  '(menu-item "s) status" xmtn-sync-status))
+    (define-key map [?u]  '(menu-item "u) update" xmtn-sync-update))
     map)
   "Keyboard menu keymap used in `xmtn-sync-mode'.")
 
@@ -230,8 +245,9 @@ The elements must all be of type xmtn-sync-sync.")
     (define-key map [?f]  'xmtn-sync-full)
     (define-key map [?n]  'xmtn-sync-next)
     (define-key map [?p]  'xmtn-sync-prev)
-    (define-key map [?q]  'xmtn-sync-save-quit)
+    (define-key map [?q]  'dvc-buffer-quit)
     (define-key map [?s]  'xmtn-sync-status)
+    (define-key map [?u]  'xmtn-sync-update)
     (define-key map [?S]  'xmtn-sync-save)
     map)
   "Keymap used in `xmtn-sync-mode'.")
@@ -241,11 +257,12 @@ The elements must all be of type xmtn-sync-sync.")
   `("Xmtn-sync"
     ;; first item is top in display
     ["Status"        xmtn-sync-status t]
+    ["Update"        xmtn-sync-update t]
     ["Brief display" xmtn-sync-brief t]
     ["Full display"  xmtn-sync-full t]
     ["Clean/delete"  xmtn-sync-clean t]
     ["Save"          xmtn-sync-save t]
-    ["Save and Quit" xmtn-sync-save-quit t]
+    ["Save and Quit" (lambda () (kill-buffer (current-buffer))) t]
     ))
 
 (define-derived-mode xmtn-sync-mode fundamental-mode "xmtn-sync"
@@ -254,7 +271,12 @@ The elements must all be of type xmtn-sync-sync.")
   (setq xmtn-sync-ewoc (ewoc-create 'xmtn-sync-printer))
   (setq dvc-buffer-refresh-function nil)
   (dvc-install-buffer-menu)
-  (buffer-disable-undo))
+  (add-hook 'kill-buffer-hook 'xmtn-sync-save nil t)
+  (buffer-disable-undo)
+  (unless xmtn-sync-branch-alist
+    (let ((branch-file (expand-file-name xmtn-sync-branch-file dvc-config-directory)))
+      (if (file-exists-p branch-file)
+	  (load branch-file)))))
 
 (defun xmtn-sync-parse-revision-certs (direction)
   "Parse certs associated with a revision; return (branch changelog date author)."
@@ -315,21 +337,29 @@ The elements must all be of type xmtn-sync-sync.")
      xmtn-sync-ewoc)
 
     (if (not old-branch)
-	(ewoc-enter-last
-	 xmtn-sync-ewoc
-	 (ecase direction
-	   ('receive
-	    (make-xmtn-sync-branch
-	     :name branch
-	     :rev-alist (list (list revid (list date author changelog)))
-	     :send-count 0
-	     :print-mode 'summary))
-	   ('send
-	    (make-xmtn-sync-branch
-	     :name branch
-	     :rev-alist nil
-	     :send-count 1
-	     :print-mode 'summary)))))))
+	(let*
+	    ((node-key (and (functionp xmtn-sync-sort)
+			    (funcall xmtn-sync-sort branch)))
+	     (data
+	      (ecase direction
+		('receive
+		 (make-xmtn-sync-branch
+		  :name branch
+		  :rev-alist (list (list revid (list date author changelog)))
+		  :send-count 0
+		  :print-mode 'summary
+		  :sort-key (nth 1 node-key)))
+		('send
+		 (make-xmtn-sync-branch
+		  :name branch
+		  :rev-alist nil
+		  :send-count 1
+		  :print-mode 'summary
+		  :sort-key (nth 1 node-key))))))
+	  (if (nth 0 node-key)
+	      (ewoc-enter-before xmtn-sync-ewoc (nth 0 node-key) data)
+	    (ewoc-enter-last xmtn-sync-ewoc data))
+	  ))))
 
 (defun xmtn-sync-parse-revisions (direction)
   "Parse revisions with associated certs."
@@ -349,7 +379,6 @@ The elements must all be of type xmtn-sync-sync.")
 
 (defun xmtn-sync-parse-certs (direction)
   "Parse certs not associated with revisions."
-  ;; The only case we care about is a new branch created from an existing revision.
   (let ((keyword (ecase direction
 		   ('receive "receive_cert")
 		   ('send    "send_cert")))
@@ -358,12 +387,14 @@ The elements must all be of type xmtn-sync-sync.")
 	branch
 	(date "")
 	(author "")
-	(changelog "create branch\n")
+	(changelog "create or propagate branch\n")
 	old-branch)
 
     (while (xmtn-basic-io-optional-line keyword (setq cert-label (cadar value)))
       (cond
        ((string= cert-label "branch")
+	;; This happens when a new branch is created, or a branch is
+	;; propagated without any conflicts.
 	(xmtn-basic-io-check-line "value" (setq branch (cadar value)))
 	(xmtn-basic-io-skip-line "key")
 	(xmtn-basic-io-check-line "revision" (setq revid (cadar value)))
@@ -389,7 +420,8 @@ The elements must all be of type xmtn-sync-sync.")
     (while (xmtn-basic-io-optional-skip-line keyword))))
 
 (defun xmtn-sync-parse (begin)
-  "Parse current buffer starting at BEGIN, fill in `xmtn-sync-ewoc' in current buffer, erase parsed text."
+  "Parse current buffer starting at BEGIN, fill in `xmtn-sync-ewoc' in current buffer, erase parsed text.
+Return non-nil if anything parsed."
   (set-syntax-table xmtn-basic-io--*syntax-table*)
   (goto-char begin)
 
@@ -447,7 +479,9 @@ The elements must all be of type xmtn-sync-sync.")
   (xmtn-sync-parse-revisions 'send)
   (xmtn-sync-parse-keys 'send)
 
-  (delete-region begin (point))
+  (let ((result (not (= begin (point)))))
+    (delete-region begin (point))
+    result)
   )
 
 (defun xmtn-sync-load-file (&optional noerror)
@@ -460,9 +494,7 @@ The elements must all be of type xmtn-sync-sync.")
 	  (setq buffer-read-only nil)
 	  (dolist (data stuff) (ewoc-enter-last xmtn-sync-ewoc data))
 	  (setq buffer-read-only t)
-	  (set-buffer-modified-p nil))
-      (unless noerror
-	(error "%s file not found" save-file)))))
+	  (set-buffer-modified-p nil)))))
 
 ;;;###autoload
 (defun xmtn-sync-sync (local-db scheme remote-host remote-db)
@@ -529,10 +561,6 @@ Remote-db should include branch pattern in URI syntax."
     (setq buffer-read-only t)
     (set-buffer-modified-p nil)
     (xmtn-sync-save)
-    (unless xmtn-sync-branch-alist
-      (let ((branch-file (expand-file-name xmtn-sync-branch-file dvc-config-directory)))
-	(if (file-exists-p branch-file)
-	    (load branch-file))))
     ))
 
 (defun xmtn-sync-save ()
@@ -558,14 +586,18 @@ Remote-db should include branch pattern in URI syntax."
   "Display sync results in FILE (defaults to `xmtn-sync-review-file'), appended to content of `xmtn-sync-save-file'.
 FILE should be output of 'automate sync'. (external sync handles tickers better)."
   (interactive)
-  ;; first load xmtn-sync-save-file
-  (pop-to-buffer (get-buffer-create "*xmtn-sync*"))
-  (setq buffer-read-only nil)
-  (delete-region (point-min) (point-max))
-  (xmtn-sync-mode)
-  (xmtn-sync-load-file)
+  (if (buffer-live-p (get-buffer "*xmtn-sync*"))
+      (progn
+	(pop-to-buffer "*xmtn-sync*")
+	(xmtn-sync-save))
+    ;; else create
+    (pop-to-buffer (get-buffer-create "*xmtn-sync*"))
+    (setq buffer-read-only nil)
+    (delete-region (point-min) (point-max))
+    (xmtn-sync-mode)
+    (xmtn-sync-load-file file))
 
-  ;; now add file
+  ;; now add FILE
   (setq file (or file
 		 (expand-file-name xmtn-sync-review-file dvc-config-directory)))
   (if (file-exists-p file)
@@ -573,8 +605,12 @@ FILE should be output of 'automate sync'. (external sync handles tickers better)
 	(goto-char (point-min))
 	(setq buffer-read-only nil)
 	(insert-file-contents-literally file)
-	(xmtn-sync-parse (point-min))
+
+	;; user may have run several syncs, dumping each output into FILE; loop thru each.
+	(while (xmtn-sync-parse (point-min)))
 	(setq buffer-read-only t)
+	(set-buffer-modified-p nil)
+	(xmtn-sync-save)
 	(delete-file file))))
 
 (provide 'xmtn-sync)

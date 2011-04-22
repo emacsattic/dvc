@@ -1,6 +1,6 @@
 ;;; dvc-log.el --- Manipulation of the log before committing
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2008, 2010 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -121,7 +121,7 @@ is reused."
         (current-window-configuration))
   (let ((start-buffer (current-buffer)))
     (dvc-switch-to-buffer
-     (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit)
+     (dvc-get-buffer-create (dvc-current-active-dvc) 'log-edit root)
      other-frame)
     ;; `no-init' is somewhat misleading here. It is set to t in
     ;; dvc-add-log-entry, and nil in dvc-log-edit. That prevents

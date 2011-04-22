@@ -287,17 +287,14 @@ If DONT-SWITCH is non-nil, just show the diff buffer, don't select it."
 buffer file name; nil means entire tree; negative prefix arg
 means prompt for tree depending on value of
 dvc-read-project-tree-mode), LAST-N entries (default
-`dvc-log-last-n'; all if nil, positive prefix value means that
-many entries). Use `dvc-changelog' for the full log."
+`dvc-log-last-n'; all if nil, prefix value means that
+many entries (absolute value)). Use `dvc-changelog' for the full log."
   (interactive "i\nP")
-  (let* ((last-n (if last-n
-		     (prefix-numeric-value last-n)
-		   dvc-log-last-n))
-	 (allentries (or (eq last-n nil)
-			 (< (prefix-numeric-value last-n) 0)))
-	 (path (if (and last-n (< last-n 0))
+  (let* ((path (if (and last-n (< (prefix-numeric-value last-n) 0))
 		   nil (buffer-file-name)))
-	 (last-n (if allentries nil last-n))
+	 (last-n (if last-n
+		     (abs (prefix-numeric-value last-n))
+		   dvc-log-last-n))
 	 (default-directory
 	   (dvc-read-project-tree-maybe "DVC tree root (directory): "
 					(when path (expand-file-name path))
