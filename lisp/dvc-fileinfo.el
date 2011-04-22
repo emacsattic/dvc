@@ -1,7 +1,7 @@
 ;;; dvc-fileinfo.el --- An ewoc structure for displaying file information
 ;;; for DVC
 
-;; Copyright (C) 2007 - 2010 by all contributors
+;; Copyright (C) 2007 - 2011 by all contributors
 
 ;; Author: Stephen Leake, <stephen_leake@stephe-leake.org>
 
@@ -546,42 +546,8 @@ in that directory. Then move to previous ewoc entry."
       (otherwise
        (error "not on a file or directory")))))
 
-(defun dvc-fileinfo-next (&optional no-ding)
-  "Move to the next ewoc entry. If optional NO-DING, don't ding
-if there is no next."
-  (interactive)
-  (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
-         (cur-location (ewoc-location current))
-         (next (ewoc-next dvc-fileinfo-ewoc current)))
-    (cond
-     ((> cur-location (point))
-      ;; not exactly at an element; move there
-      (goto-char cur-location))
-
-     (next
-      (goto-char (ewoc-location next)))
-
-     (t
-      ;; at last element
-      (unless no-ding (ding))))))
-
-(defun dvc-fileinfo-prev (&optional no-ding)
-  "Move to the previous ewoc entry. If optional NO-DING, don't ding
-if there is no prev."
-  (interactive)
-  (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
-         (cur-location (ewoc-location current))
-         (prev (ewoc-prev dvc-fileinfo-ewoc current)))
-    (cond
-     ((> (point) cur-location)
-      (goto-char cur-location))
-
-     (prev
-      (goto-char (ewoc-location prev)))
-
-     (t
-      ;; at first element
-      (unless no-ding (ding))))))
+(dvc-make-ewoc-next dvc-fileinfo-next dvc-fileinfo-ewoc)
+(dvc-make-ewoc-prev dvc-fileinfo-prev dvc-fileinfo-ewoc)
 
 (defun dvc-fileinfo-find-file (file)
   "Return ewoc element for FILE (full path)."

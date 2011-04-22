@@ -1,6 +1,6 @@
 ;;; xmtn-dvc.el --- DVC backend for monotone
 
-;; Copyright (C) 2008 - 2010 Stephen Leake
+;; Copyright (C) 2008 - 2011 Stephen Leake
 ;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -95,26 +95,9 @@
           "_MTN/log"))
 
 (defun xmtn--toposort (root revision-hash-ids)
-  (xmtn-automate-simple-command-output-lines root
+  (xmtn-automate-command-output-lines root
                                              `("toposort"
                                                ,@revision-hash-ids)))
-
-(add-to-list 'format-alist
-             '(xmtn--log-file
-               "This format automatically removes xmtn's log edit hints from
-the file before saving."
-               nil
-               xmtn--log-file-format-from-fn
-               xmtn--log-file-format-to-fn
-               t
-               nil
-               nil))
-
-(defun xmtn--log-file-format-from-fn (begin end)
-  (xmtn--assert-nil))
-
-(defun xmtn--log-file-format-to-fn (begin end buffer)
-  (dvc-log-flush-commit-file-list))
 
 ;;;###autoload
 (defun xmtn-dvc-log-edit (root other-frame no-init)
@@ -122,8 +105,7 @@ the file before saving."
       (dvc-dvc-log-edit root other-frame no-init)
     (progn
       (dvc-dvc-log-edit root other-frame nil)
-      (setq buffer-file-coding-system 'xmtn--monotone-normal-form) ;; FIXME: move this into dvc-get-buffer-create?
-      (add-to-list 'buffer-file-format 'xmtn--log-file) ;; FIXME: generalize to dvc--log-file
+      (setq buffer-file-coding-system 'xmtn--monotone-normal-form)
       )))
 
 (defun xmtn-dvc-log-message ()
@@ -158,7 +140,6 @@ the file before saving."
                          (if session (xmtn-automate--close-session session)))
                        (read-from-minibuffer "branch: " (xmtn--tree-default-branch root)))
                    (xmtn--tree-default-branch root))))
-    ;; Saving the buffer will automatically delete any log edit hints.
     (save-buffer)
     (dvc-save-some-buffers root)
 
@@ -229,6 +210,48 @@ the file before saving."
        ;; debugging message.
        (message "%s... " progress-message))
     (set-window-configuration dvc-pre-commit-window-configuration)))
+
+(defun xmtn-show-commit ()
+  "Show commit command for use on command line"
+  (interactive)
+  (let ((excluded-files
+	 (with-current-buffer dvc-partner-buffer
+	   (xmtn--normalize-file-names default-directory (dvc-fileinfo-excluded-files)))))
+
+    (save-buffer)
+    (dvc-save-some-buffers default-directory)
+
+    ;; check that the first line says something; it should be a summary of the rest
+    (goto-char (point-min))
+    (forward-line)
+    (if (= (point) (1+ (point-min)))
+        (error "Please put a summary comment on the first line"))
+
+    (message
+     (concat
+      "mtn commit "
+      (xmtn-dvc-log-message)
+      " "
+      (if excluded-files
+	  (mapconcat (lambda (file) (concat "--exclude=" file)) excluded-files " "))))
+    (pop-to-buffer "*Messages*")))
+
+;; Add xmtn-show-commit to dvc-log-edit menu
+(defvar xmtn-log-edit-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [(control ?c) (control ?s)] 'xmtn-show-commit)
+    map))
+
+(easy-menu-define xmtn-log-edit-mode-menu xmtn-log-edit-mode-map
+  "Mtn specific log-edit menu."
+  `("DVC-Mtn"
+    ["Show commit command" xmtn-show-commit t]
+    ))
+
+(define-derived-mode xmtn-log-edit-mode dvc-log-edit-mode "xmtn-log-edit"
+  "Add back-end-specific commands for dvc-log-edit.")
+
+(dvc-add-uniquify-directory-mode 'xmtn-log-edit-mode)
 
 ;; The term "normalization" here has nothing to do with Unicode
 ;; normalization.
@@ -357,20 +380,6 @@ the file before saving."
 
 
 ;;;###autoload
-(defun xmtn-dvc-search-file-in-diff (file)
-  (re-search-forward
-   (let ((quoted-file (regexp-quote file)))
-     (concat "^\\(\\("
-             "\\+\\+\\+ " quoted-file
-             "\\)\\|\\("
-             ;; FIXME: What `dvc-diff-diff-or-list' does doesn't work
-             ;; for this case, since `diff-hunk-next' doesn't recognize
-             ;; mtn's output for this case as a diff hunk.
-             "# " quoted-file " is binary"
-             "\\)\\)$"))))
-
-
-;;;###autoload
 (defun xmtn-dvc-diff (&optional rev path dont-switch)
   ;; If rev is an ancestor of base-rev of path, then rev is from, path
   ;; is 'to', and vice versa.
@@ -383,7 +392,7 @@ the file before saving."
     (if (string= rev-string base)
         ;; local changes in workspace are 'to'
         (xmtn-dvc-delta rev workspace dont-switch)
-      (let ((descendents (xmtn-automate-simple-command-output-lines path (list "descendents" base)))
+      (let ((descendents (xmtn-automate-command-output-lines path (list "descendents" base)))
             (done nil))
         (while descendents
           (if (string= rev-string (car descendents))
@@ -396,45 +405,14 @@ the file before saving."
             ;; rev is ancestor of workspace; workspace is 'to'
             (xmtn-dvc-delta rev workspace dont-switch))))))
 
-(defvar xmtn-diff-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "CM" 'xmtn-conflicts-merge)
-    (define-key map "CP" 'xmtn-conflicts-propagate)
-    (define-key map "CR" 'xmtn-conflicts-review)
-    (define-key map "CC" 'xmtn-conflicts-clean)
-    (define-key map "MH" 'xmtn-view-heads-revlist)
-    (define-key map "MP" 'xmtn-propagate-from)
-    map))
-
-;; items added here should probably also be added to xmtn-revlist-mode-menu, -map in xmtn-revlist.el
-(easy-menu-define xmtn-diff-mode-menu xmtn-diff-mode-map
-  "Mtn specific diff menu."
-  `("DVC-Mtn"
-    ["View Heads" xmtn-view-heads-revlist t]
-    ["Show propagate conflicts" xmtn-conflicts-propagate t]
-    ["Review conflicts" xmtn-conflicts-review t]
-    ["Propagate branch" xmtn-propagate-from t]
-    ["Clean conflicts resolutions" xmtn-conflicts-clean t]
-    ))
-
-(define-derived-mode xmtn-diff-mode dvc-diff-mode "xmtn-diff"
-  "Add back-end-specific commands for dvc-diff.")
-
-(dvc-add-uniquify-directory-mode 'xmtn-diff-mode)
-
 (defun xmtn--rev-to-option (resolved from)
-  "Return a string contaiing the mtn diff command-line option for RESOLVED-REV.
-If FROM is non-nil, RESOLVED-REV is assumed older than workspace;
+  "Return a string contaiing the mtn diff command-line option for RESOLVED.
+If FROM is non-nil, RESOLVED is assumed older than workspace;
 otherwise newer."
   (ecase (car resolved)
     ('local-tree
      (if from
-         (progn
-           ;; FIXME: --reverse is not in mtn 0.44; bump overall
-           ;; required version on new mtn release
-           (let ((xmtn--minimum-required-command-version '(0 45)))
-             (xmtn--check-cached-command-version)
-             "--reverse"))
+	 "--reverse"
        ""))
     ('revision (concat "--revision=" (cadr resolved)))))
 
@@ -466,32 +444,6 @@ otherwise newer."
       ;; The call site in `dvc-revlist-diff' needs this return value.
       diff-buffer)))
 
-(defvar xmtn-status-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "CM" 'xmtn-conflicts-merge)
-    (define-key map "CP" 'xmtn-conflicts-propagate)
-    (define-key map "CR" 'xmtn-conflicts-review)
-    (define-key map "CC" 'xmtn-conflicts-clean)
-    (define-key map "MP" 'xmtn-propagate-from)
-    (define-key map "MH" 'xmtn-view-heads-revlist)
-    map))
-
-(easy-menu-define xmtn-status-mode-menu xmtn-status-mode-map
-  "Mtn specific status menu."
-  `("DVC-Mtn"
-    ["View Heads" xmtn-view-heads-revlist t]
-    ["Show merge conflicts" xmtn-conflicts-merge t]
-    ["Show propagate conflicts" xmtn-conflicts-propagate t]
-    ["Review conflicts" xmtn-conflicts-review t]
-    ["Propagate branch" xmtn-propagate-from t]
-    ["Clean conflicts resolutions" xmtn-conflicts-clean t]
-    ))
-
-(define-derived-mode xmtn-status-mode dvc-status-mode "xmtn-status"
-  "Add back-end-specific commands for dvc-status.")
-
-(add-to-list 'uniquify-list-buffers-directory-modes 'xmtn-status-mode)
-
 (defun xmtn--remove-content-hashes-from-diff ()
   ;; Hack: Remove mtn's file content hashes from diff headings since
   ;; `dvc-diff-diff-or-list' and `dvc-diff-find-file-name' gets
@@ -513,16 +465,6 @@ otherwise newer."
 ;;;###autoload
 (defun xmtn-dvc-command-version ()
   (fourth (xmtn--command-version xmtn-executable)))
-
-(defvar xmtn-dvc-automate-version nil
-  "Cached value of mtn automate interface version.")
-
-(defun xmtn-dvc-automate-version ()
-  "Return mtn automate version as a number."
-  (if xmtn-dvc-automate-version
-      xmtn-dvc-automate-version
-    (setq xmtn-dvc-automate-version
-          (string-to-number (xmtn--command-output-line nil '("automate" "interface_version"))))))
 
 (defun xmtn--changes-image (change)
   (ecase change
@@ -702,7 +644,6 @@ otherwise newer."
         (dvc-status-prepare-buffer
          'xmtn
          root
-         ;; FIXME: just pass header
          ;; base-revision
          (if base-revision (format "%s" base-revision) "none")
          ;; branch
@@ -746,8 +687,7 @@ otherwise newer."
                                            :text (concat " no changes in workspace")))
                          (ewoc-refresh dvc-fileinfo-ewoc)))))
        :error (lambda (output error status arguments)
-                ;; FIXME: need `dvc-status-error-in-process', or change name.
-                (dvc-diff-error-in-process
+                (dvc-diff-error-in-process ;; correct for status-mode as well
                  status-buffer
                  (format "Error running mtn with arguments %S" arguments)
                  output error))
@@ -930,7 +870,6 @@ where `status' is 'ok or 'need-commit."
                 (1 (format "%s" (first normalized-file-names)))
                 (t (format "%s files/directories"
                            (length normalized-file-names))))))
-    ;; FIXME: confirm should be in upper level DVC code.
     (when (or (not dvc-confirm-ignore)
               (y-or-n-p (format "Ignore %s in monotone tree %s? " msg root)))
       (xmtn--add-patterns-to-mtnignore
@@ -969,7 +908,7 @@ where `status' is 'ok or 'need-commit."
   (xmtn--add-files (dvc-tree-root) files))
 
 ;; Appears redundant, given that there is `xmtn-dvc-add-files'.  But
-;; it's part of the DVC API.  FIXME.
+;; it's part of the DVC API.
 ;;;###autoload
 (defun xmtn-dvc-add (file)
   (xmtn--add-files (dvc-tree-root) (list file)))
@@ -1140,7 +1079,9 @@ finished."
   nil)
 
 (defun xmtn-propagate-from (other &optional cached-branch)
-  "Propagate from OTHER branch to local tree branch."
+  "Propagate from OTHER branch to CACHED-BRANCH (default local tree branch).
+Conflict resolution taken from `default-directory', which must be
+a workspace for CACHED-BRANCH."
   (interactive "MPropagate from branch: ")
   (let*
       ((root (dvc-tree-root))
@@ -1216,7 +1157,7 @@ finished."
     ;; mtn progress messages are put to stderr, and there is typically
     ;; nothing written to stdout from this command, so put both in the
     ;; same buffer.
-    ;; FIXME: this output is not useful; need to use automation
+    ;; This output is not useful; xmtn-sync, xmtn-sync-review is much better
     (xmtn--run-command-async root `("pull" ,other)
                              :output-buffer name
                              :error-buffer name
@@ -1393,7 +1334,7 @@ finished."
 
 (defun xmtn--file-contents-as-string (root content-hash-id)
   (check-type content-hash-id xmtn--hash-id)
-  (xmtn-automate-simple-command-output-string
+  (xmtn-automate-command-output-string
    root `("get_file" ,content-hash-id)))
 
 (defstruct (xmtn--revision (:constructor xmtn--make-revision))

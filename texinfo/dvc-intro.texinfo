@@ -14,7 +14,7 @@ distributed version control systems.
 
 @smallexample
 @group
-  Copyright (C) 2007, 2008, 2009, 2010 Stephen Leake
+  Copyright (C) 2007 - 2011 Stephen Leake
   Permission is granted to copy, distribute and/or modify this document
   under the terms of the GNU Free Documentation License, Version 1.2
   or any later version published by the Free Software Foundation;
@@ -48,7 +48,7 @@ Invoking
 
 * xmtn-status-one::
 * xmtn-propagate-one::
-* xmtn-sync-sync::
+* xmtn-sync-review::
 
 Key bindings
 
@@ -103,6 +103,9 @@ and managing branches require command line operations.
 This manual describes the DVC user interface, and gives examples of
 some required command line operations, using the monotone backend.
 
+It also describes some DVC extensions that are specific to the
+monotone backend.
+
 @menu
 * Basic DVC::
 * Compare to CVS::
@@ -117,7 +120,7 @@ use DVC, and providing common terminology.
 
 Each backend will have its own documentation, and terminology that
 differs from this. The terms here are taken mostly from the monotone
-backend, since it has the most readable user manual.
+backend.
 
 Let's start with some definitions:
 
@@ -145,9 +148,10 @@ The user interacts with the remote database in order to retrieve other
 user's files, or deliver files to them.
 
 @item revision
-A set of changes to files that are applied together. Most operations
-on the database involve revisions, and all changes to files are part
-of a revision.
+The state of the entire workspace, usually including the set of
+changes to the workspace that transform it from the previous
+revision. Most operations on the database involve revisions, and all
+changes to files are part of a revision.
 
 @item branch
 A label for distinct trees of revisions. There are two main uses for
@@ -160,7 +164,7 @@ A database can store any number of branches.
 
 @item heads
 The revisions that are the leaves of the history tree on a single
-branch. In monotone, there can be any number of heads (see
+branch. In monotone, there can be any number of heads on a branch (see
 @ref{Merging}).
 
 @item merge
@@ -191,7 +195,7 @@ The name of the buffer is not literally @dfn{*dvc-status*}; instead,
 @dfn{*dvc-status*}.
 
 @item *dvc-diff* buffer
-Another main user interface buffer. It shows the files involved in a
+Another main user interface buffer. It shows the files changed in a
 particular revision, together with the diffs of the changes. Single
 keystrokes invoke various operations.
 
@@ -285,29 +289,26 @@ Similar to @command{xmtn-status-one}, but shows all workspaces
 immediately under a root directory.
 
 @item xmtn-propagate-one
-Summarizes the status of several workspaces
+Supervises propagating one workspace.
 
 @item xmtn-propagate-multiple
-Supervises propagating several workspaces
+Supervises propagating several workspaces.
 
 @item xmtn-sync-sync
-Syncs a local database with a remote database, displays branches that
-have been transferred.
+Syncs the local database with a remote database, then runs
+xmtn-sync-review.
 
 @item xmtn-sync-review
-Reviews saved output of an external @command{mtn automate sync},
+Reviews saved output of a command-line @command{mtn automate sync},
 displays branches that have been transferred. This is useful for syncs
-that take a long time, because external commands display the tickers
-much better than DVC does.
-
-The external sync should redirect stdout to @file{~/.dvc/sync.basic_io}.
-
+that take a long time, because the command-line displays progress
+tickers.
 @end table
 
 @menu
 * xmtn-status-one::
 * xmtn-propagate-one::
-* xmtn-sync-sync::
+* xmtn-sync-review::
 @end menu
 
 @node xmtn-status-one
@@ -343,9 +344,13 @@ Perform the merge, using the conflict resolutions.
 @item update
 Update the workspace to the current head revision (must be merged).
 
-@item review update
-Open an @dfn{*xmtn-revlist*} buffer to review the revisions in the
-most recent update.
+@item update preview
+Open an @dfn{*xmtn-revlist*} buffer to review the revisions that will
+be included in the next update.
+
+@item update review
+Open an @dfn{*xmtn-revlist*} buffer to review the revisions that were
+included in the most recent update.
 
 @item ignore local changes
 Don't show @dfn{commit}.
@@ -373,10 +378,6 @@ propagation of all workspaces immediately under two root
 directories. This is useful when several related projects branch
 together.
 
-Before displaying actions, each branch pair is examined to see if
-propagate is necessary. If it is not, the workspace is not examined
-for changes (since that can take a long time).
-
 In the list of actions, ``from'' stands for the name of the source
 branch, ``to'' the name of the destination branch.
 
@@ -387,18 +388,18 @@ The possible actions are:
 @item status ``from''
 @itemx status ``to''
 Start an @dfn{xmtn-multi-status} buffer for the specified workspace,
-to allow commit, update followed by update review, or merge with
+to allow commit, update preview, or merge with
 conflict resolution.
 
 @itemx update ``to''
 Update the specified workspace to the current head revision (must be
 merged). This bypasses the @dfn{xmtn-multi-status} buffer, and
-therefore does not provide for update review. Useful when you don't
-need to review the changes, which is the typical case for propagate.
+therefore does not provide for update preview. It does allow for
+update review.
 
 @item ignore local changes ``from''
 @item ignore local changes ``to''
-Don't show @dfn{local changes unknown}; assume the workspace is
+Don't show @dfn{need commit}; assume the workspace is
 committed. Useful when you know that any local changes won't interfere
 with the propagate.
 
@@ -419,47 +420,26 @@ the workspace from the display.
 
 @end table
 
-@node xmtn-sync-sync
-@section xmtn-sync-sync
-@command{xmtn-sync-sync} supervises the process of updating local
-workspaces after synchronizing the local and remote databases.
+@node xmtn-sync-review
+@section xmtn-sync-review
+@command{xmtn-sync-review} supervises the process of updating local
+workspaces after a command line operation that synchronizes the local
+and remote databases.
 
-@command{xmtn-sync-sync} takes several arguments, all strings:
-@table @command
-@item local-db
-The local database.
+The command line operation should redirect stdout to
+@file{~/.dvc/sync.basic_io}. Most users will want to define shell
+functions to invoke common syncs. For example:
 
-@item scheme
-Either @code{"file"} or @code{"ssh"}.
+@example
+    mtn --db ~/monotone-dbs/gds.db automate sync --ticker=count "ssh:user@@host/gds.db?*" >> ~/.dvc/sync.basic_io
+@end example
 
-@item remote-host
-The remote host; an empty string for @code{"file"}, the user name and
-IP name for @code{"ssh"}.
-
-@item remote-db
-Absolute path to the remote database, and a pattern of branches to
-transfer.
-@end table
-
-Most users will want to define local Emacs functions to invoke common
-syncs. For example:
-
-@verbatim
-(defun mtn_sync_sdoasist1 ()
-  (xmtn-sync-sync
-     "~/monotone-dbs/gds.db"           ;; local-db
-     "ssh"                             ;; scheme
-     "stephe@sdoasist1.gsfc.nasa.gov"  ;; remote-host
-     "/home/gds/monotone-dbs/gds.db?*" ;; remote-db
-))
-
-(defun mtn_sync_usb ()
-  (xmtn-sync-sync "~/monotone-dbs/gds.db" "file" "" "/cygdrive/e/gds.db?*"))
-@end verbatim
-
-After the sync completes, the display shows each branch that was
+The @command{xmtn-sync-review} display shows each branch that was
 transferred, with a count of how many revisions were sent and
 received.
+
+The user may set the variable @code{xmtn-sync-sort} to a function that
+indicates how to order the branches in the display.
 
 Actions on branches are invoked with @key{M-d}.
 
@@ -467,12 +447,19 @@ The possible branch actions are:
 @table @command
 @item status
 Start an @dfn{xmtn-multi-status} buffer for the workspace assoicated
-with the specified branch, to allow commit, update followed by update
-review, or merge with conflict resolution.
+with the specified branch, to allow commit, update preview, update
+followed by update review, or merge with conflict resolution.
 
-The user may specify a function @code{xmtn-sync-guess-workspace} that
-returns a workspace given a branch. Otherwise, the user is prompted
-for the workspace location; the location is cached for future use.
+The user may set the variable @code{xmtn-sync-guess-workspace} to a
+function that returns a workspace given a branch. Otherwise, the user
+is prompted for the workspace location; the location is cached for
+future use.
+
+@item update
+Start an @dfn{xmtn-multi-status} buffer for the workspace assoicated
+with the specified branch, then perform @command{update} (if
+appropriate). This is often convenient when you know the workspace has
+no local changes.
 
 @itemx brief
 Show the first line of the changelog for each revision received.
@@ -484,7 +471,7 @@ Show the complete changelog for each revision received.
 Delete the branch from the display.
 
 Branches that are not cleaned are cached; they will reappear the next
-time @code{xmtn-sync-sync} is run.
+time @code{xmtn-sync-review} is run.
 
 @end table
 

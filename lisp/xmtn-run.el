@@ -1,6 +1,6 @@
 ;;; xmtn-run.el --- Functions for runnning monotone commands
 
-;; Copyright (C) 2008 - 2010 Stephen Leake
+;; Copyright (C) 2008 - 2011 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -43,6 +43,11 @@
 
 (define-coding-system-alias 'xmtn--monotone-normal-form 'utf-8-unix)
 
+(defun xmtn-dvc-prepare-environment (env)
+  "Prepare the environment to run mtn."
+  ;; DVC expects monotone messages in the C locale
+  (cons "LC_MESSAGES=C" env))
+
 (defun* xmtn--run-command-sync (root arguments)
   (xmtn--check-cached-command-version)
   (let ((default-directory (file-truename (or root default-directory))))
@@ -70,41 +75,6 @@
              ;; directory with all symlinks expanded.
              ,@arguments)
            dvc-run-keys)))
-
-(defun xmtn--command-output-lines (root arguments)
-  "Run mtn in ROOT with ARGUMENTS and return its output as a list of strings."
-  (xmtn--check-cached-command-version)
-  (let ((accu (list)))
-    (let ((default-directory (file-truename (or root default-directory))))
-      (dvc-run-dvc-sync
-       'xmtn
-       `(,@xmtn-additional-arguments
-         ,@(if root `(,(concat "--root=" (file-truename root))))
-         ,@arguments)
-       :finished (lambda (output error status arguments)
-                   (with-current-buffer output
-                     (save-excursion
-                       (goto-char (point-min))
-                       (while (not (eobp))
-                         (push (buffer-substring-no-properties
-                                (point)
-                                (progn (end-of-line) (point)))
-                               accu)
-                         (forward-line 1)))))))
-    (setq accu (nreverse accu))
-    accu))
-
-(defun xmtn--command-output-line (root arguments)
-  "Run mtn in ROOT with ARGUMENTS and return the one line of output as string.
-
-Signals an error if more (or fewer) than one line is output."
-  (let ((lines (xmtn--command-output-lines root arguments)))
-    (unless (eql (length lines) 1)
-      (error "Expected precisely one line of output from monotone, got %s: %s %S"
-             (length lines)
-             xmtn-executable
-             arguments))
-    (first lines)))
 
 (defconst xmtn--minimum-required-command-version '(0 99))
 ;; see also xmtn-sync.el xmtn-sync-required-command-version
@@ -140,30 +110,30 @@ Sets cache if not already set."
 (defun xmtn--command-version (executable)
   "Return EXECUTABLE's version as a list (MAJOR MINOR REVISION VERSION-STRING).
 
-VERSION-STRING is the string printed by mtn --version (with no
+VERSION-STRING is the string printed by `mtn version' (with no
 trailing newline).  MAJOR and MINOR are integers, a parsed
 representation of the version number.  REVISION is the revision
 id."
-  (let (
-        ;; Cache a fake version number to avoid infinite mutual
-        ;; recursion.
-        (xmtn--*cached-command-version*
-         (append xmtn--minimum-required-command-version
-                 '("xmtn-dummy" "xmtn-dummy")))
-        (xmtn--*command-version-cached-for-executable* executable)
-        (xmtn-executable executable))
-    (let ((string (xmtn--command-output-line nil '("--version"))))
-      (unless (string-match
-               (concat "\\`monotone \\([0-9]+\\)\\.\\([0-9]+\\)\\(\\.[0-9]+\\)?\\(dev\\)?"
-                       " (base revision: \\(unknown\\|\\([0-9a-f]\\{40\\}\\)\\))\\'")
-               string)
-        (error (concat "Version output from monotone --version"
-                       " did not match expected pattern: %S")
-               string))
-      (let ((major (parse-integer string (match-beginning 1) (match-end 1)))
-            (minor (parse-integer string (match-beginning 2) (match-end 2)))
-            (revision (match-string 4 string)))
-        (list major minor revision string)))))
+  (let ((version-string))
+    (dvc-run-dvc-sync
+     'xmtn
+     '("version")
+     :finished
+     (lambda (output error status arguments)
+       (with-current-buffer output
+	 (setq version-string (buffer-substring-no-properties (point-min) (1- (point-max)))))))
+
+    (unless (string-match
+	     (concat "\\`monotone \\([0-9]+\\)\\.\\([0-9]+\\)\\(\\.[0-9]+\\)?\\(dev\\)?"
+		     " (base revision: \\(unknown\\|\\([0-9a-f]\\{40\\}\\)\\))\\'")
+	     version-string)
+      (error (concat "Version output from monotone version"
+		     " did not match expected pattern: %S")
+	     version-string))
+    (let ((major (parse-integer version-string (match-beginning 1) (match-end 1)))
+	  (minor (parse-integer version-string (match-beginning 2) (match-end 2)))
+	  (revision (match-string 4 version-string)))
+      (list major minor revision version-string))))
 
 (defun xmtn--check-cached-command-version ()
   (let ((minimum-version xmtn--minimum-required-command-version)

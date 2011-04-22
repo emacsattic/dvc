@@ -53,6 +53,7 @@ install: all
 	  echo Installing $$elc ;			\
 	  $(INSTALL_DATA) $$elc "$(lispdir)" ;		\
 	done
+	$(INSTALL_DATA) xmtn-hooks.lua $(lispdir)
 
 clean:
 	rm -f *.elc dvc-site.el \

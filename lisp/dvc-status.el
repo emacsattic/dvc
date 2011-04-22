@@ -1,6 +1,6 @@
 ;;; dvc-status.el --- A generic status mode for DVC
 
-;; Copyright (C) 2007 - 2009 by all contributors
+;; Copyright (C) 2007 - 2009, 2011 by all contributors
 
 ;; Author: Stephen Leake, <stephen_leake@stephe-leake.org>
 
@@ -32,12 +32,12 @@
 (require 'uniquify)
 
 (defcustom dvc-status-display-known nil
-  "If non-nil, display files with 'known' status in xmtn-status buffer."
+  "If non-nil, display files with 'known' status in dvc-status buffer."
   :type 'boolean
   :group 'dvc)
 
 (defcustom dvc-status-display-ignored nil
-  "If non-nil, display files with 'ignored' status in xmtn-status buffer."
+  "If non-nil, display files with 'ignored' status in dvc-status buffer."
   :type 'boolean
   :group 'dvc)
 
@@ -126,8 +126,7 @@
 ;; "<back-end>-status-mode", if defined, will be used instead of this
 ;; one. If so, it should be derived from dvc-status-mode (via
 ;; `define-derived-mode'), and rely on it for as many features as
-;; possible (one can, for example, extend the menu and keymap). See
-;; `xmtn-status-mode' in xmtn-dvc.el for a good example.
+;; possible (one can, for example, extend the menu and keymap).
 ;; Remember to add the new mode to uniquify-list-buffers-directory-modes
 (define-derived-mode dvc-status-mode fundamental-mode "dvc-status"
   "Major mode to display workspace status."

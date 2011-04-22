@@ -1,6 +1,6 @@
 ;;; dvc-buffers.el --- Buffer management for DVC
 
-;; Copyright (C) 2005-2010 by all contributors
+;; Copyright (C) 2005-2011 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -178,8 +178,9 @@ See also `dvc-get-buffer'"
                                 (eq mode 'string-multiple))
                             (generate-new-buffer (format name path))
                           (let ((default-directory
-                                  (or (file-name-directory path)
-                                      default-directory)))
+                                  (if (file-name-directory path)
+				      (expand-file-name (file-name-directory path))
+				    default-directory)))
                             (dvc-create-buffer name)))))
                    (with-current-buffer buffer
                      (if (featurep 'xemacs)

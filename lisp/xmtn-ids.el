@@ -1,6 +1,6 @@
 ;;; xmtn-ids.el --- Resolver routines for xmtn revision ids
 
-;; Copyright (C) 2008 - 2010 Stephen Leake
+;; Copyright (C) 2008 - 2011 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -145,7 +145,7 @@ See file commentary for details."
 
 (defun xmtn--get-parent-revision-hash-id (root hash-id local-branch)
   (check-type hash-id xmtn--hash-id)
-  (let ((parents (xmtn-automate-simple-command-output-lines root `("parents"
+  (let ((parents (xmtn-automate-command-output-lines root `("parents"
                                                                    ,hash-id))))
     (case (length parents)
       (0 (error "Revision has no parents: %s" hash-id))
@@ -192,7 +192,7 @@ See file commentary for details."
   nil)
 
 (defun xmtn--expand-selector (root selector)
-  (xmtn-automate-simple-command-output-lines root `("select" ,selector)))
+  (xmtn-automate-command-output-lines root `("select" ,selector)))
 
 (defun xmtn--branch-of (root hash-id)
   (let ((certs (xmtn--list-parsed-certs root hash-id))
@@ -227,7 +227,7 @@ must be a workspace."
     result))
 
 (defun xmtn--get-base-revision-hash-id-or-null (root)
-  (let ((hash-id (xmtn-automate-simple-command-output-line
+  (let ((hash-id (xmtn-automate-command-output-line
                   root `("get_base_revision_id"))))
     (when (equal hash-id "") (setq hash-id nil))
     (assert (typep hash-id '(or xmtn--hash-id null)))

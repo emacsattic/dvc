@@ -1,6 +1,6 @@
 ;;; xmtn-propagate.el --- manage multiple propagations for DVC backend for monotone
 
-;; Copyright (C) 2009 - 2010 Stephen Leake
+;; Copyright (C) 2009 - 2011 Stephen Leake
 
 ;; Author: Stephen Leake
 ;; Keywords: tools
@@ -56,8 +56,8 @@ The elements must all be of class xmtn-propagate-data.")
   from-branch        ; branch name (assumed never changes)
   to-branch          ;
   need-refresh       ; nil | t; if an async process was started that invalidates state data
-  from-head-rev      ; nil | mtn rev string; current head revision; nil if multiple heads
-  to-head-rev        ;
+  from-head-revs     ; mtn rev string; current head revision or (left right) if multiple heads
+  to-head-revs       ;
   conflicts-buffer   ; *xmtn-conflicts* buffer for this propagation
   from-status-buffer ; *xmtn-status* buffer for commit in from
   to-status-buffer   ; *xmtn-status* buffer for commit in to
@@ -69,7 +69,7 @@ The elements must all be of class xmtn-propagate-data.")
   (to-local-changes
    'need-scan)       ;
   (conflicts
-   'need-scan)       ; 'need-scan | 'need-resolve | 'need-review-resolve-internal | 'ok
+   'need-scan)       ; 'need-scan | 'need-resolve | 'need-review-resolve-internal | 'resolved | 'none
 		     ; for propagate
   )
 
@@ -105,14 +105,14 @@ The elements must all be of class xmtn-propagate-data.")
       (insert (dvc-face-add "  need refresh\n" 'dvc-conflict))
 
     (ecase (xmtn-propagate-data-from-local-changes data)
-      (need-scan (insert "  local changes unknown " (xmtn-propagate-data-from-name data) "\n"))
+      (need-scan (insert "  local changes not checked " (xmtn-propagate-data-from-name data) "\n"))
       (need-commit
        (insert (dvc-face-add (concat "  need commit " (xmtn-propagate-data-from-name data) "\n")
                              'dvc-header)))
       (ok nil))
 
     (ecase (xmtn-propagate-data-to-local-changes data)
-      (need-scan (insert "  local changes unknown " (xmtn-propagate-data-to-name data) "\n"))
+      (need-scan (insert "  local changes not checked " (xmtn-propagate-data-to-name data) "\n"))
       (need-commit
        (insert (dvc-face-add (concat "  need commit " (xmtn-propagate-data-to-name data) "\n")
                              'dvc-header)))
@@ -124,7 +124,7 @@ The elements must all be of class xmtn-propagate-data.")
        (insert (dvc-face-add (concat "  need update " (xmtn-propagate-data-from-name data) "\n")
                              'dvc-conflict)))
       (need-merge
-       (insert (dvc-face-add (concat "  need merge " (xmtn-propagate-data-from-name data) "\n")
+       (insert (dvc-face-add (concat "  need status for merge " (xmtn-propagate-data-from-name data) "\n")
                              'dvc-conflict))))
 
     (ecase (xmtn-propagate-data-to-heads data)
@@ -133,7 +133,7 @@ The elements must all be of class xmtn-propagate-data.")
        (insert (dvc-face-add (concat "  need update " (xmtn-propagate-data-to-name data) "\n")
                              'dvc-conflict)))
       (need-merge
-       (insert (dvc-face-add (concat "  need merge " (xmtn-propagate-data-to-name data) "\n")
+       (insert (dvc-face-add (concat "  need status for merge " (xmtn-propagate-data-to-name data) "\n")
                                    'dvc-conflict))))
 
     (if (xmtn-propagate-data-propagate-needed data)
@@ -148,7 +148,7 @@ The elements must all be of class xmtn-propagate-data.")
               (need-review-resolve-internal
                (insert (dvc-face-add "  need review resolve internal\n" 'dvc-header))
                (insert (dvc-face-add "  need propagate\n" 'dvc-conflict)))
-              (ok
+              ((resolved none)
                (insert (dvc-face-add "  need propagate\n" 'dvc-conflict)))))
 
       (if (eq 'at-head (xmtn-propagate-data-to-heads data))
@@ -169,29 +169,15 @@ The elements must all be of class xmtn-propagate-data.")
 
 (defun xmtn-propagate-create-to-status-buffer (data)
   "Create to-status buffer for DATA"
-  (if (buffer-live-p (xmtn-propagate-data-to-status-buffer data))
-      (with-current-buffer (xmtn-propagate-data-to-status-buffer data)
-	(xmtn-dvc-status)
-	(setf (xmtn-propagate-data-to-local-changes data)
-	      (if (not (ewoc-locate dvc-fileinfo-ewoc))
-		  'ok
-		'need-commit)))
-    (let ((result (xmtn--status-inventory-sync (xmtn-propagate-to-work data))))
-      (setf (xmtn-propagate-data-to-status-buffer data) (car result)
-	    (xmtn-propagate-data-to-local-changes data) (cadr result))) ))
+  (let ((result (xmtn--status-inventory-sync (xmtn-propagate-to-work data))))
+    (setf (xmtn-propagate-data-to-status-buffer data) (car result)
+	  (xmtn-propagate-data-to-local-changes data) (cadr result))))
 
 (defun xmtn-propagate-create-from-status-buffer (data)
   "Create from-status buffer for DATA"
-  (if (buffer-live-p (xmtn-propagate-data-from-status-buffer data))
-      (with-current-buffer (xmtn-propagate-data-from-status-buffer data)
-	(xmtn-dvc-status)
-	(setf (xmtn-propagate-data-from-local-changes data)
-	      (if (not (ewoc-locate dvc-fileinfo-ewoc))
-		  'ok
-		'need-commit)))
-    (let ((result (xmtn--status-inventory-sync (xmtn-propagate-from-work data))))
-      (setf (xmtn-propagate-data-from-status-buffer data) (car result)
-	    (xmtn-propagate-data-from-local-changes data) (cadr result))) ))
+  (let ((result (xmtn--status-inventory-sync (xmtn-propagate-from-work data))))
+    (setf (xmtn-propagate-data-from-status-buffer data) (car result)
+	  (xmtn-propagate-data-from-local-changes data) (cadr result))))
 
 (defun xmtn-propagate-kill-status-buffers (data)
   (if (buffer-live-p (xmtn-propagate-data-from-status-buffer data))
@@ -199,29 +185,30 @@ The elements must all be of class xmtn-propagate-data.")
   (if (buffer-live-p (xmtn-propagate-data-to-status-buffer data))
       (kill-buffer (xmtn-propagate-data-to-status-buffer data))))
 
-(defun xmtn-propagate-clean-1 (data)
-  "Clean DATA workspace"
+(defun xmtn-propagate-clean-1 (data save-conflicts)
+  "Clean DATA workspace, kill associated automate session.
+If SAVE-CONFLICTS non-nil, don't delete conflicts files."
   (xmtn-automate-kill-session (xmtn-propagate-from-work data))
   (xmtn-automate-kill-session (xmtn-propagate-to-work data))
   (xmtn-propagate-kill-conflicts-buffer data)
   (xmtn-propagate-kill-status-buffers data)
-  (xmtn-conflicts-clean (xmtn-propagate-to-work data)))
+  (unless save-conflicts
+    (xmtn-conflicts-clean (xmtn-propagate-to-work data))))
 
 (defun xmtn-propagate-clean ()
-  "Clean current workspace, delete from ewoc"
+  "Clean current workspace, delete from ewoc."
   (interactive)
   (let* ((elem (ewoc-locate xmtn-propagate-ewoc))
          (data (ewoc-data elem)))
 
-    (xmtn-propagate-clean-1 data)
+    (xmtn-propagate-clean-1 data nil)
     (let ((inhibit-read-only t))
       (ewoc-delete xmtn-propagate-ewoc elem))))
 
-(defun xmtn-propagate-quit ()
-  "Clean all remaining workspaces, kill automate sessions, kill buffer."
+(defun xmtn-propagate-clean-all (&optional save-conflicts)
+  "Clean all remaining workspaces."
   (interactive)
-  (ewoc-map 'xmtn-propagate-clean-1 xmtn-propagate-ewoc)
-  (kill-buffer))
+  (ewoc-map 'xmtn-propagate-clean-1 xmtn-propagate-ewoc save-conflicts))
 
 (defun xmtn-propagate-cleanp ()
   "Non-nil if clean is appropriate for current workspace."
@@ -255,6 +242,8 @@ The elements must all be of class xmtn-propagate-data.")
   (let* ((elem (ewoc-locate xmtn-propagate-ewoc))
          (data (ewoc-data elem)))
     (xmtn-propagate-need-refresh elem data)
+    ;; assume the commit is successful
+    (setf (xmtn-propagate-data-to-local-changes data) 'ok)
     (if (not (buffer-live-p (xmtn-propagate-data-to-status-buffer data)))
 	(xmtn-propagate-create-to-status-buffer data))
     (pop-to-buffer (xmtn-propagate-data-to-status-buffer data))))
@@ -271,6 +260,8 @@ The elements must all be of class xmtn-propagate-data.")
   (let* ((elem (ewoc-locate xmtn-propagate-ewoc))
          (data (ewoc-data elem)))
     (xmtn-propagate-need-refresh elem data)
+    ;; assume the commit is successful
+    (setf (xmtn-propagate-data-from-local-changes data) 'ok)
     (if (not (buffer-live-p (xmtn-propagate-data-from-status-buffer data)))
 	(xmtn-propagate-create-from-status-buffer data))
     (pop-to-buffer (xmtn-propagate-data-from-status-buffer data))))
@@ -288,7 +279,7 @@ The elements must all be of class xmtn-propagate-data.")
          (data (ewoc-data elem)))
     (xmtn-propagate-need-refresh elem data)
     (xmtn--update (xmtn-propagate-to-work data)
-                  (xmtn-propagate-data-to-head-rev data)
+                  (xmtn-propagate-data-to-head-revs data)
                   nil t)
     (xmtn-propagate-refresh-one data nil)
     (ewoc-invalidate xmtn-propagate-ewoc elem)))
@@ -300,6 +291,25 @@ The elements must all be of class xmtn-propagate-data.")
 	 (eq (xmtn-propagate-data-to-heads data)
 	     'need-update))))
 
+(defun xmtn-propagate-update-from ()
+  "Update current `from' workspace."
+  (interactive)
+  (let* ((elem (ewoc-locate xmtn-propagate-ewoc))
+         (data (ewoc-data elem)))
+    (xmtn-propagate-need-refresh elem data)
+    (xmtn--update (xmtn-propagate-from-work data)
+                  (xmtn-propagate-data-from-head-revs data)
+                  nil t)
+    (xmtn-propagate-refresh-one data nil)
+    (ewoc-invalidate xmtn-propagate-ewoc elem)))
+
+(defun xmtn-propagate-update-fromp ()
+  "Non-nil if update is appropriate for current `from' workspace."
+  (let* ((data (ewoc-data (ewoc-locate xmtn-propagate-ewoc))))
+    (and (not (xmtn-propagate-data-need-refresh data))
+	 (eq (xmtn-propagate-data-from-heads data)
+	     'need-update))))
+
 (defun xmtn-propagate-propagate ()
   "Propagate current workspace."
   (interactive)
@@ -309,12 +319,17 @@ The elements must all be of class xmtn-propagate-data.")
 
     (if (not (buffer-live-p (xmtn-propagate-data-conflicts-buffer data)))
         ;; user deleted conflicts buffer after resolving conflicts; get it back
-        (setf (xmtn-propagate-data-conflicts-buffer data)
-              (xmtn-propagate-conflicts-buffer data)))
+	(xmtn-propagate-conflicts data))
 
     (with-current-buffer (xmtn-propagate-data-conflicts-buffer data)
       (let ((xmtn-confirm-operation nil))
-        (xmtn-conflicts-do-propagate (xmtn-propagate-data-to-branch data))))
+	(save-some-buffers t); log buffer
+	;; save-some-buffers does not save the conflicts buffer, which is the current buffer
+	(save-buffer)
+	(xmtn-propagate-from
+	 (xmtn-propagate-data-from-branch data) ; = left
+	 (xmtn-propagate-data-to-branch data) ; = right
+	 )))
     (xmtn-propagate-refresh-one data nil)
     (ewoc-invalidate xmtn-propagate-ewoc elem)))
 
@@ -326,7 +341,7 @@ The elements must all be of class xmtn-propagate-data.")
          (eq 'at-head (xmtn-propagate-data-from-heads data))
          (eq 'at-head (xmtn-propagate-data-to-heads data))
          (member (xmtn-propagate-data-conflicts data)
-                 '(ok need-review-resolve-internal)))))
+                 '(need-review-resolve-internal resolved none)))))
 
 (defun xmtn-propagate-resolve-conflicts ()
   "Resolve conflicts for current workspace."
@@ -386,7 +401,7 @@ The elements must all be of class xmtn-propagate-data.")
     (xmtn-status-one-1
      xmtn-propagate-to-root
      (xmtn-propagate-data-to-work data)
-     (xmtn-propagate-data-to-head-rev data)
+     (xmtn-propagate-data-to-head-revs data)
      (xmtn-propagate-data-to-status-buffer data)
      (xmtn-propagate-data-to-heads data)
      (xmtn-propagate-data-to-local-changes data))
@@ -413,7 +428,7 @@ The elements must all be of class xmtn-propagate-data.")
     (xmtn-status-one-1
      xmtn-propagate-from-root
      (xmtn-propagate-data-from-work data)
-     (xmtn-propagate-data-from-head-rev data)
+     (xmtn-propagate-data-from-head-revs data)
      (xmtn-propagate-data-from-status-buffer data)
      (xmtn-propagate-data-from-heads data)
      (xmtn-propagate-data-from-local-changes data))
@@ -428,6 +443,13 @@ The elements must all be of class xmtn-propagate-data.")
 		  '(need-update need-merge))
 	  (eq (xmtn-propagate-data-from-local-changes data) 'need-commit)))))
 
+(defun xmtn-propagate-quit-save ()
+  "Quit, but save conflicts files for later resume."
+  (interactive)
+  (remove-hook 'kill-buffer-hook 'xmtn-propagate-clean-all t)
+  (xmtn-propagate-clean-all t)
+  (kill-buffer))
+
 (defvar xmtn-propagate-actions-map
   (let ((map (make-sparse-keymap "actions")))
     (define-key map [?c]  '(menu-item "c) clean/delete"
@@ -436,15 +458,18 @@ The elements must all be of class xmtn-propagate-data.")
     (define-key map [?g]  '(menu-item "g) refresh"
                                       xmtn-propagate-do-refresh-one
                                       :visible (xmtn-propagate-refreshp)))
-    (define-key map [?8]  '(menu-item (concat "8) update " (xmtn-propagate-to-name))
+    (define-key map [?9]  '(menu-item (concat "9) status " (xmtn-propagate-to-name))
+                                      xmtn-propagate-status-to
+                                      :visible (xmtn-propagate-status-top)))
+    (define-key map [?8]  '(menu-item (concat "8) status " (xmtn-propagate-from-name))
+                                      xmtn-propagate-status-from
+                                      :visible (xmtn-propagate-status-fromp)))
+    (define-key map [?7]  '(menu-item (concat "7) update " (xmtn-propagate-to-name))
                                       xmtn-propagate-update-to
                                       :visible (xmtn-propagate-update-top)))
-    (define-key map [?7]  '(menu-item (concat "7) commit " (xmtn-propagate-to-name))
-                                      xmtn-propagate-commit-to
-                                      :visible (xmtn-propagate-commit-top)))
-    (define-key map [?6]  '(menu-item (concat "6) commit " (xmtn-propagate-from-name))
-                                      xmtn-propagate-commit-from
-                                      :visible (xmtn-propagate-commit-fromp)))
+    (define-key map [?6]  '(menu-item (concat "6) update " (xmtn-propagate-from-name))
+                                      xmtn-propagate-update-from
+                                      :visible (xmtn-propagate-update-fromp)))
     (define-key map [?5]  '(menu-item "5) propagate"
                                       xmtn-propagate-propagate
                                       :visible (xmtn-propagate-propagatep)))
@@ -457,12 +482,12 @@ The elements must all be of class xmtn-propagate-data.")
     (define-key map [?2]  '(menu-item (concat "2) ignore local changes " (xmtn-propagate-from-name))
                                       xmtn-propagate-local-changes-from-ok
                                       :visible (xmtn-propagate-local-changes-fromp)))
-    (define-key map [?1]  '(menu-item (concat "1) status " (xmtn-propagate-to-name))
-                                      xmtn-propagate-status-to
-                                      :visible (xmtn-propagate-status-top)))
-    (define-key map [?0]  '(menu-item (concat "0) status " (xmtn-propagate-from-name))
-                                      xmtn-propagate-status-from
-                                      :visible (xmtn-propagate-status-fromp)))
+    (define-key map [?1]  '(menu-item (concat "1) commit " (xmtn-propagate-to-name))
+                                      xmtn-propagate-commit-to
+                                      :visible (xmtn-propagate-commit-top)))
+    (define-key map [?0]  '(menu-item (concat "0) commit " (xmtn-propagate-from-name))
+                                      xmtn-propagate-commit-from
+                                      :visible (xmtn-propagate-commit-fromp)))
     map)
   "Keyboard menu keymap used to manage propagates.")
 
@@ -475,9 +500,18 @@ The elements must all be of class xmtn-propagate-data.")
     (define-key map [?g]  'xmtn-propagate-refresh)
     (define-key map [?n]  'xmtn-propagate-next)
     (define-key map [?p]  'xmtn-propagate-prev)
-    (define-key map [?q]  'xmtn-propagate-quit)
+    (define-key map [?s]  'xmtn-propagate-quit-save)
+    (define-key map [?q]  'dvc-buffer-quit)
     map)
   "Keymap used in `xmtn-propagate-mode'.")
+
+(easy-menu-define xmtn-propagate-mode-menu xmtn-propagate-mode-map
+  "Mtn specific status menu."
+  `("DVC-Mtn"
+    ["Do the right thing"    xmtn-status-actions-map t]
+    ["Quit, clean conflicts" dvc-buffer-quit t]
+    ["Quit, save conflicts"  xmtn-propagate-quit-save t]
+    ))
 
 (define-derived-mode xmtn-propagate-mode nil "xmtn-propagate"
   "Major mode to propagate multiple workspaces."
@@ -489,6 +523,7 @@ The elements must all be of class xmtn-propagate-data.")
   (set (make-local-variable 'write-file-functions) nil)
 
   (dvc-install-buffer-menu)
+  (add-hook 'kill-buffer-hook 'xmtn-propagate-clean-all nil t)
   (setq buffer-read-only t)
   (buffer-disable-undo)
   (set-buffer-modified-p nil)
@@ -499,21 +534,22 @@ The elements must all be of class xmtn-propagate-data.")
   "t if DATA needs propagate."
   (let ((result t)
         (from-work (xmtn-propagate-from-work data))
-        (from-head-rev (xmtn-propagate-data-from-head-rev data))
-        (to-head-rev   (xmtn-propagate-data-to-head-rev data)))
+        (from-head-rev (xmtn-propagate-data-from-head-revs data))
+        (to-head-rev   (xmtn-propagate-data-to-head-revs data)))
 
-    (if (or (not from-head-rev)
-            (not to-head-rev))
+    (if (or (listp from-head-rev)
+            (listp to-head-rev))
         ;; multiple heads; can't propagate
         (setq result nil)
 
+      ;; cases:
       ;; 1) to branched off earlier, and propagate is needed
       ;; 2) propagate was just done but required no changes; no propagate needed
       ;;
       (if (string= from-head-rev to-head-rev)
           ;; case 2
           (setq result nil)
-        (let ((descendents (xmtn-automate-simple-command-output-lines from-work (list "descendents" from-head-rev)))
+        (let ((descendents (xmtn-automate-command-output-lines from-work (list "descendents" from-head-rev)))
               done)
           (if (not descendents)
               ;; case 1
@@ -527,68 +563,21 @@ The elements must all be of class xmtn-propagate-data.")
     result
   ))
 
-(defun xmtn-propagate-conflicts-buffer (data)
-  "Return a conflicts buffer for DATA (an xmtn-propagate struct)."
-  (let ((from-work (xmtn-propagate-from-work data))
-        (from-head-rev (xmtn-propagate-data-from-head-rev data))
-        (to-work (xmtn-propagate-to-work data))
-        (to-head-rev (xmtn-propagate-data-to-head-rev data)))
-
-    (or (dvc-get-buffer 'xmtn 'conflicts to-work)
-        (let ((default-directory to-work))
-          (if (not (file-exists-p "_MTN/conflicts"))
-              (progn
-                ;; create conflicts file
-                (xmtn-conflicts-save-opts
-                 from-work
-                 to-work
-                 (xmtn-propagate-data-from-branch data)
-                 (xmtn-propagate-data-to-branch data))
-                (dvc-run-dvc-sync
-                 'xmtn
-                 (list "conflicts" "store" from-head-rev to-head-rev)
-
-                 :error (lambda (output error status arguments)
-                          (pop-to-buffer error)))))
-          ;; create conflicts buffer
-          (save-excursion
-            (let ((dvc-switch-to-buffer-first nil))
-              (xmtn-conflicts-review to-work)
-              (current-buffer)))))))
-
 (defun xmtn-propagate-conflicts (data)
   "Return value for xmtn-propagate-data-conflicts for DATA."
-
-  (if (not (buffer-live-p (xmtn-propagate-data-conflicts-buffer data)))
-      ;; user may have deleted conflicts buffer after resolving
-      ;; conflicts; don't throw that away.
-      (setf (xmtn-propagate-data-conflicts-buffer data)
-            (xmtn-propagate-conflicts-buffer data)))
-
-  (let ((revs-current
-         (with-current-buffer (xmtn-propagate-data-conflicts-buffer data)
-           (and (string= (xmtn-propagate-data-from-head-rev data) xmtn-conflicts-left-revision)
-                (string= (xmtn-propagate-data-to-head-rev data) xmtn-conflicts-right-revision)))))
-    (if revs-current
-        (with-current-buffer (xmtn-propagate-data-conflicts-buffer data)
-          (xmtn-conflicts-update-counts)
-          (save-buffer))
-
-      ;; else recreate conflicts
-      (xmtn-propagate-kill-conflicts-buffer data)
-
-      (xmtn-conflicts-clean (xmtn-propagate-to-work data))
-
-      (setf (xmtn-propagate-data-conflicts-buffer data)
-            (xmtn-propagate-conflicts-buffer data))
-      )
-
-    (with-current-buffer (xmtn-propagate-data-conflicts-buffer data)
-      (if (= xmtn-conflicts-total-count xmtn-conflicts-resolved-count)
-          (if (< 0 xmtn-conflicts-resolved-internal-count)
-              'need-review-resolve-internal
-            'ok)
-        'need-resolve))))
+  ;; Only called if neither side needs merge. See
+  ;; xmtn-propagate-propagate for assignment of 'left' = 'from'.
+  (let ((result (xmtn-conflicts-status
+		 (xmtn-propagate-data-conflicts-buffer data) ; buffer
+		 (xmtn-propagate-from-work data) ; left-work
+		 (xmtn-propagate-data-from-head-revs data) ; left-rev
+		 (xmtn-propagate-to-work data) ; right-work
+		 (xmtn-propagate-data-to-head-revs data) ; right-rev
+		 (xmtn-propagate-data-from-branch data) ; left-branch
+		 (xmtn-propagate-data-to-branch data) ; right-branch
+		 )))
+    (setf (xmtn-propagate-data-conflicts-buffer data) (car result))
+    (cadr result)))
 
 (defun xmtn-propagate-refresh-one (data refresh-local-changes)
   "Refresh DATA."
@@ -601,24 +590,24 @@ The elements must all be of class xmtn-propagate-data.")
           (from-base-rev (xmtn--get-base-revision-hash-id-or-null from-work)))
       (case (length heads)
         (1
-         (setf (xmtn-propagate-data-from-head-rev data) (nth 0 heads))
-         (if (string= (xmtn-propagate-data-from-head-rev data) from-base-rev)
+         (setf (xmtn-propagate-data-from-head-revs data) (nth 0 heads))
+         (if (string= (xmtn-propagate-data-from-head-revs data) from-base-rev)
                (setf (xmtn-propagate-data-from-heads data) 'at-head)
              (setf (xmtn-propagate-data-from-heads data) 'need-update)))
         (t
-         (setf (xmtn-propagate-data-from-head-rev data) nil)
+         (setf (xmtn-propagate-data-from-head-revs data) (list (nth 0 heads) (nth 1 heads)))
          (setf (xmtn-propagate-data-from-heads data) 'need-merge))))
 
     (let ((heads (xmtn--heads to-work (xmtn-propagate-data-to-branch data)))
           (to-base-rev (xmtn--get-base-revision-hash-id-or-null to-work)))
       (case (length heads)
         (1
-         (setf (xmtn-propagate-data-to-head-rev data) (nth 0 heads))
-         (if (string= (xmtn-propagate-data-to-head-rev data) to-base-rev)
+         (setf (xmtn-propagate-data-to-head-revs data) (nth 0 heads))
+         (if (string= (xmtn-propagate-data-to-head-revs data) to-base-rev)
                (setf (xmtn-propagate-data-to-heads data) 'at-head)
              (setf (xmtn-propagate-data-to-heads data) 'need-update)))
         (t
-         (setf (xmtn-propagate-data-to-head-rev data) nil)
+         (setf (xmtn-propagate-data-to-head-revs data) (list (nth 0 heads) (nth 1 heads)))
          (setf (xmtn-propagate-data-to-heads data) 'need-merge))))
 
     (setf (xmtn-propagate-data-propagate-needed data)
@@ -629,19 +618,15 @@ The elements must all be of class xmtn-propagate-data.")
           (setf (xmtn-propagate-data-from-local-changes data) 'need-scan)
           (setf (xmtn-propagate-data-to-local-changes data) 'need-scan)))
 
-    (if (or refresh-local-changes
-            (xmtn-propagate-data-propagate-needed data))
-        ;; these checks are slow, so don't do them if they probably are not needed.
-        (progn
-          (ecase (xmtn-propagate-data-from-local-changes data)
-            (need-scan
-             (xmtn-propagate-create-from-status-buffer data))
-            (t nil))
+    (ecase (xmtn-propagate-data-from-local-changes data)
+      (need-scan
+       (xmtn-propagate-create-from-status-buffer data))
+      (t nil))
 
-          (ecase (xmtn-propagate-data-to-local-changes data)
-            (need-scan
-             (xmtn-propagate-create-to-status-buffer data))
-            (t nil))))
+    (ecase (xmtn-propagate-data-to-local-changes data)
+      (need-scan
+       (xmtn-propagate-create-to-status-buffer data))
+      (t nil))
 
     (if (xmtn-propagate-data-propagate-needed data)
         (progn
