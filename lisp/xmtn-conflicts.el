@@ -830,7 +830,7 @@ header."
 (defun xmtn-conflicts-resolve-ediff (side)
   "Resolve the current conflict via ediff SIDE."
   (interactive)
-  (if xmtn-conflicts-current-conflict-buffer
+  (if (buffer-live-p xmtn-conflicts-current-conflict-buffer)
       (error "another conflict resolution is already in progress."))
 
   (let* ((elem (ewoc-locate xmtn-conflicts-ewoc))
@@ -953,16 +953,26 @@ header."
         )
       (ewoc-invalidate xmtn-conflicts-ewoc elem)))
 
+(defun xmtn-conflicts-left_resolution-needed (conflict)
+  (let ((res (xmtn-conflicts-conflict-left_resolution conflict)))
+    (or (not res)
+      (eq (car res) 'resolved_internal))))
+
 (defun xmtn-conflicts-resolve-user_leftp ()
   "Non-nil if user_left resolution is appropriate for current conflict."
   (let* ((conflict (ewoc-data (ewoc-locate xmtn-conflicts-ewoc)))
          (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
-    (and (not (xmtn-conflicts-conflict-left_resolution conflict))
+    (and (xmtn-conflicts-left_resolution-needed conflict)
          (or (equal type 'content)
              (and (equal type 'duplicate_name)
                   ;; if no file_id, it's a directory
                   (xmtn-conflicts-conflict-left_file_id conflict))) )))
+
+(defun xmtn-conflicts-right_resolution-needed (conflict)
+  (let ((res (xmtn-conflicts-conflict-right_resolution conflict)))
+    (or (not res)
+      (eq (car res) 'resolved_internal))))
 
 (defun xmtn-conflicts-resolve-user_rightp ()
   "Non-nil if user_right resolution is appropriate for current conflict."
@@ -970,7 +980,7 @@ header."
          (type (xmtn-conflicts-conflict-conflict_type conflict)))
 
     ;; duplicate_name is the only conflict type that needs a right resolution
-    (and (xmtn-conflicts-conflict-left_resolution conflict)
+    (and (xmtn-conflicts-right_resolution-needed conflict)
          (not (xmtn-conflicts-conflict-right_resolution conflict))
          (equal type 'duplicate_name)
          ;; if no file_id, it's a directory

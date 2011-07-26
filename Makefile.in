@@ -82,6 +82,8 @@ miscfiles	= Makefile.in COPYING INSTALL* install-sh \
 		  dvc-load.el.in dvc-load-install.el.in \
 		  lisp/dvc-version.el \
 		  texinfo/dvc-version.texinfo \
+		  texinfo/dvc-intro.texinfo \
+		  texinfo/fdl.texinfo \
 		  configure.ac configure
 extradist	=
 
