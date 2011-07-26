@@ -347,7 +347,7 @@ Signals an error if output contains zero lines or more than one line."
 			   "-c"
 			   (mapconcat
 			    'concat
-			    (append (list xmtn-executable "automate" "stdio")
+			    (append (list xmtn-executable "--db=:memory:" "automate" "stdio")
 				    xmtn-automate-arguments
 				    (list "2>"
 					  (xmtn-automate--session-error-file session)))
@@ -804,11 +804,9 @@ Each element of the list is a list; key, signature, name, value, trust."
 (defun xmtn--heads (root branch)
   (xmtn-automate-command-output-lines
    root
-   (cons
-    (list "ignore-suspend-certs" "")
     (list "heads"
 	  (or branch
-	      (xmtn--tree-default-branch root))))))
+	      (xmtn--tree-default-branch root)))))
 
 (defun xmtn--rev-author (root rev)
   "Return first author of REV"

@@ -499,7 +499,7 @@ Return non-nil if anything parsed."
 ;;;###autoload
 (defun xmtn-sync-sync (local-db scheme remote-host remote-db)
   "Sync LOCAL-DB with using SCHEME to connect to REMOTE-HOST REMOTE-DB, display sent and received branches.
-Remote-db should include branch pattern in URI syntax."
+Remote-db should include branch pattern in URI syntax. Uses `xmtn-sync-executable' to run sync."
   (interactive "flocal db: \nMscheme: \nMremote-host: \nMremote-db: ")
 
   (pop-to-buffer (get-buffer-create "*xmtn-sync*"))
