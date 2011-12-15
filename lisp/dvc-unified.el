@@ -79,6 +79,7 @@
 ;;; Code:
 
 (require 'dired-x)
+(require 'ffap)
 (require 'dvc-register)
 (require 'dvc-core)
 (require 'dvc-defs)
