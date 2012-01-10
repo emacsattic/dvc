@@ -1,6 +1,6 @@
 ;;; xhg-dvc.el --- The dvc layer for xhg
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2012 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -111,6 +111,8 @@ This is done via setting `xhg-dvc-commit-extra-parameters'."
   "Shows the changelog in the current Mercurial tree.
 ARG is passed as prefix argument"
   (call-interactively 'xhg-log))
+
+(defalias 'xhg-dvc-prepare-environment 'xhg-prepare-environment)
 
 ;; deactivated at them moment, use dvc-dvc-files-to-commit to allow selecting files to commit
 ;; (defun xhg-dvc-files-to-commit ()

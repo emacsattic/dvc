@@ -1,6 +1,6 @@
 ;;; xhg-core.el --- Common definitions for mercurial support in DVC
 
-;; Copyright (C) 2005-2006 by all contributors
+;; Copyright (C) 2005-2012 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -60,6 +60,11 @@ mercurial managed tree (but return nil)."
 (defun xhg-read-revision (prompt)
   "Read a revision for the actual mercurial working copy."
   (read-string prompt (xhg-log-revision-at-point)))
+
+(defun xhg-prepare-environment (env)
+  "Prepare the environment to run hg."
+  ;; DVC expects hg messages in the C locale
+  (cons "LC_MESSAGES=C" env))
 
 (provide 'xhg-core)
 ;;; xhg-core.el ends here
