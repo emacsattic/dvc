@@ -1,6 +1,6 @@
 ;;; bzr.el --- Support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2009 by all contributors
+;; Copyright (C) 2005-2012 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -168,6 +168,21 @@ When called with a prefix argument, add the --remember option"
                      (dvc-capturing-lambda
                          (output error status arguments)
                        (message "bzr push finished => %s"
+                                (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
+
+;;;###autoload
+(defun bzr-upload (&optional repo-path)
+  "Run bzr upload. This command requires the bzr-upload plugin
+When called with a prefix argument, add the --remember option"
+  (interactive (list (read-string (format "Upload %sto bzr working copy: "
+                                          (if current-prefix-arg "--remember " "")))))
+  (when (string= repo-path "")
+    (setq repo-path nil))
+  (dvc-run-dvc-async 'bzr (list "upload" repo-path (when current-prefix-arg "--remember"))
+                     :finished
+                     (dvc-capturing-lambda
+                         (output error status arguments)
+                       (message "bzr upload finished => %s"
                                 (concat (dvc-buffer-content error) (dvc-buffer-content output))))))
 
 ;;;###autoload
