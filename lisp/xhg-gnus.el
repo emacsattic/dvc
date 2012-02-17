@@ -1,6 +1,6 @@
 ;;; xhg-gnus.el --- dvc integration to gnus
 
-;; Copyright (C) 2003-2007 by all contributors
+;; Copyright (C) 2003-2012 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -93,7 +93,7 @@ outstanding uncommitted changes."
           ('xhg (xhg-import patch-file-name xhg-gnus-import-patch-force))
           ('xgit (xgit-apply-patch patch-file-name))
           ;; TODO Add here new backend
-          (t (error "Unknow backend")))))
+          (t (error "Unknown backend in xhg-gnus-import-patch: %s" current-dvc)))))
     (delete-file patch-file-name)
     (kill-buffer (current-buffer)) ;; the patch file
     (set-window-configuration window-conf)
