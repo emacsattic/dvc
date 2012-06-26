@@ -726,7 +726,7 @@ fileinfos, just call `dvc-remove-files'."
     (let ((elems (or (dvc-fileinfo-marked-elems)
                      (list (ewoc-locate dvc-fileinfo-ewoc))))
           (inhibit-read-only t)
-          known-files)
+          known-files unknown-files)
 
       (while elems
         (let ((fileinfo (ewoc-data (car elems))))
@@ -734,8 +734,7 @@ fileinfos, just call `dvc-remove-files'."
             (dvc-fileinfo-file
              (if (equal 'unknown (dvc-fileinfo-file-status fileinfo))
                  (progn
-                   (delete-file (dvc-fileinfo-path fileinfo))
-                   (dvc-ewoc-delete dvc-fileinfo-ewoc (car elems)))
+                   (push (car elems) unknown-files))
                ;; `add-to-list' gets a stack overflow here
                (setq known-files (cons (car elems) known-files))))
 
@@ -765,7 +764,13 @@ fileinfos, just call `dvc-remove-files'."
                    (dvc-fileinfo-legacy
                     ;; Don't have enough info to update this
                     nil))))
-             known-files))))))
+             known-files)))
+      (when unknown-files
+        (let ((names (mapcar (lambda (x) (dvc-fileinfo-path (ewoc-data x)))
+                              unknown-files)))
+          (when (dvc-confirm-file-op "remove unknown" names t)
+            (mapcar 'delete-file names)
+            (apply 'ewoc-delete dvc-fileinfo-ewoc unknown-files)))))))
 
 (defun dvc-fileinfo-revert-files ()
   "Revert current files."
