@@ -618,12 +618,12 @@ If SAVE-CONFLICTS non-nil, don't delete conflicts files."
           (setf (xmtn-propagate-data-from-local-changes data) 'need-scan)
           (setf (xmtn-propagate-data-to-local-changes data) 'need-scan)))
 
-    (ecase (xmtn-propagate-data-from-local-changes data)
+    (case (xmtn-propagate-data-from-local-changes data)
       (need-scan
        (xmtn-propagate-create-from-status-buffer data))
       (t nil))
 
-    (ecase (xmtn-propagate-data-to-local-changes data)
+    (case (xmtn-propagate-data-to-local-changes data)
       (need-scan
        (xmtn-propagate-create-to-status-buffer data))
       (t nil))

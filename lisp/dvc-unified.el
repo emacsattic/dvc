@@ -78,7 +78,9 @@
 
 ;;; Code:
 
-(require 'dired-x)
+(condition-case nil
+    (require 'dired-x)
+  (error nil))
 (require 'ffap)
 (require 'dvc-register)
 (require 'dvc-core)

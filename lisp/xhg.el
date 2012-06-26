@@ -141,7 +141,9 @@
 
 ;;; Code:
 
-(require 'dired-x)
+(condition-case nil
+    (require 'dired-x)
+  (error nil))
 (require 'dvc-core)
 (require 'dvc-diff)
 (require 'xhg-core)

@@ -191,7 +191,7 @@ indicate statuses."
            (progn
              (newline)
              (insert "      ")
-             (ecase (dvc-fileinfo-file-status fileinfo)
+             (case (dvc-fileinfo-file-status fileinfo)
                (rename-source
                 (insert "to "))
                (rename-target
@@ -301,7 +301,7 @@ point is not on a file element line. If file status is
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo
       (dvc-fileinfo-file                ; also matches dvc-fileinfo-dir
-       (ecase (dvc-fileinfo-file-status fileinfo)
+       (case (dvc-fileinfo-file-status fileinfo)
          (rename-source
           ;; target name is in more-status
           (dvc-fileinfo-file-more-status fileinfo))
@@ -319,7 +319,7 @@ dvc-fileinfo-current-file only for renamed files."
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo                ; also matches dvc-fileinfo-dir
       (dvc-fileinfo-file
-       (ecase (dvc-fileinfo-file-status fileinfo)
+       (case (dvc-fileinfo-file-status fileinfo)
          (rename-target
           ;; source name is in more-status, and it includes the path
           (dvc-fileinfo-file-more-status fileinfo))

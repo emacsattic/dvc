@@ -140,7 +140,8 @@
   (buffer-disable-undo)
   (set-buffer-modified-p nil))
 
-(add-to-list 'uniquify-list-buffers-directory-modes 'dvc-status-mode)
+(when (boundp 'uniquify-list-buffers-directory-modes)
+	(add-to-list 'uniquify-list-buffers-directory-modes 'dvc-status-mode))
 
 (defun dvc-status-prepare-buffer (dvc root base-revision branch header-more refresh)
   "Prepare and return a status buffer. Should be called by <back-end>-dvc-status.
