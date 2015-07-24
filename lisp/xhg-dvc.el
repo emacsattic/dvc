@@ -1,6 +1,6 @@
 ;;; xhg-dvc.el --- The dvc layer for xhg
 
-;; Copyright (C) 2005-2012 by all contributors
+;; Copyright (C) 2005-2008, 2013 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -161,13 +161,10 @@ ARG is passed as prefix argument"
       (insert (format "\\.%s$\n" (regexp-quote ext-name))))
     (save-buffer)))
 
-(defun xhg-dvc-missing (&optional other)
-  "Run hg incoming to show the missing patches for this tree.
-When `last-command' was `dvc-pull', run `xhg-missing'."
+(defun xhg-dvc-missing ()
+  "For `dvc-missing'."
   (interactive)
-  (if (eq last-command 'dvc-pull)
-      (xhg-missing-1)
-    (xhg-incoming other t)))
+  (xhg-missing-1))
 
 (defun xhg-dvc-update ()
   (interactive)

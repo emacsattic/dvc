@@ -1,6 +1,6 @@
 ;;; dvc-bookmarks.el --- The bookmark system for DVC
 
-;; Copyright (C) 2006-2008 by all contributors
+;; Copyright (C) 2006-2008, 2013 by all contributors
 
 ;; Authors: Stefan Reichoer, <stefan@xsteve.at>
 ;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>
@@ -92,9 +92,9 @@
 
 ;;; Code:
 (require 'dvc-core)
-(require 'dvc-state)
+(require 'dvc-persistence)
 (require 'ewoc)
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-macs))
 
 ;; this were the settings used for tla
 ;; ;; Generated file. Do not edit!!!
@@ -226,7 +226,7 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
 
 ;; This data structure represents a single entry in the bookmarks
 ;; list.  There is one of these associated with each ewoc node.
-(defstruct dvc-bookmark
+(cl-defstruct dvc-bookmark
   name                                  ; a string
   indent                                ; an integer
   elem)                                 ; the cdr is an alist
@@ -238,14 +238,14 @@ Must be non-nil for some featurs of dvc-bookmarks to work.")
   `(setcdr (dvc-bookmark-elem ,bookmark) ,val))
 
 ;; This data structure represents a partner of a bookmark.
-(defstruct (dvc-bookmark-partner
+(cl-defstruct (dvc-bookmark-partner
             (:type list))
   url
   nickname)
 
 (defun dvc-assq-all (key alist)
   "Return an alist containing all associations from ALIST matching KEY."
-  (delete nil (mapcar '(lambda (e)
+  (delete nil (mapcar #'(lambda (e)
                          (when (and (listp e) (eq (car e) key))
                            e))
                       alist)))
@@ -293,9 +293,8 @@ is the `dvc-bookmark-partner' itself."
   "Get nickname at point even when urls are masked"
   (save-excursion
     (let ((nickname))
-      ;;(goto-char (line-beginning-position))
       (end-of-line)
-      (when (looking-back "\\[.+\\]")
+      (when (looking-back "\\[.+\\]" (line-beginning-position))
         (setq nickname (replace-regexp-in-string "\\]" ""
                                                  (replace-regexp-in-string
                                                   "\\["
@@ -595,7 +594,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
     (set-dvc-bookmarks-cache))
   (dvc-switch-to-buffer (get-buffer-create "*dvc-bookmarks*"))
   (let ((cur-pos (point)))
-    (toggle-read-only 0)
+    (setq buffer-read-only nil)
     (erase-buffer)
     (set (make-local-variable 'dvc-bookmarks-cookie)
          (ewoc-create (dvc-ewoc-create-api-select
@@ -617,7 +616,7 @@ With prefix argument ARG, reload the bookmarks file from disk."
   (use-local-map dvc-bookmarks-mode-map)
   (setq major-mode 'dvc-bookmarks-mode)
   (setq mode-name "dvc-bookmarks")
-  (toggle-read-only 1)
+  (setq buffer-read-only t)
   (run-hooks 'dvc-bookmarks-mode-hook))
 
 (defun dvc-bookmarks-quit ()
@@ -803,12 +802,11 @@ of dvc-bookmark-alist
   (interactive)
   (let ((local-tree (dvc-bookmarks-current-value 'local-tree)))
     (if local-tree
-        (let ((partner (dvc-bookmark-get-hidden-url-at-point)))
-          (message "Running dvc missing for %s, against %s"
-                   (dvc-bookmark-name (dvc-bookmarks-current-bookmark))
-                   partner)
+	(progn
+	  (message "Running dvc missing for %s"
+                   (dvc-bookmark-name (dvc-bookmarks-current-bookmark)))
           (sit-for 1)
-          (dvc-missing partner local-tree))
+          (dvc-missing local-tree))
       (message "No local-tree defined for this bookmark entry."))))
 
 (defun dvc-bookmarks-pull ()
@@ -1195,7 +1193,7 @@ or in the same sublist"
         (dvc-bookmarks-show-or-hide-subtree)
         (end-of-line)))
     (forward-line 1)))
-    
+
 
 (defvar dvc-bookmarks-tmp-yank-item '("hg" (local-tree "~/work/hg/hg")))
 

@@ -1,6 +1,6 @@
 ;;; xgit.el --- git interface for dvc
 
-;; Copyright (C) 2006-2009 by all contributors
+;; Copyright (C) 2006-2009, 2013 - 2015 by all contributors
 
 ;; Author: Stefan Reichoer <stefan@xsteve.at>
 ;; Contributions from:
@@ -32,13 +32,14 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+(require 'cus-edit)
 (require 'dvc-core)
 (require 'dvc-diff)
+(require 'dvc-status)
+(require 'xgit-annotate)
 (require 'xgit-core)
 (require 'xgit-log)
-(eval-when-compile (require 'cl))
-(require 'xgit-annotate)
-(require 'cus-edit)
 
 ;;;###autoload
 (defun xgit-init (&optional dir)
@@ -48,10 +49,12 @@
                                                     (or default-directory
                                                         (getenv "HOME"))))))
   (let ((default-directory (or dir default-directory)))
-    (dvc-run-dvc-sync 'xgit (list "init-db")
-                      :finished (dvc-capturing-lambda
-                                    (output error status arguments)
-                                  (message "git init finished")))))
+    (dvc-run-dvc-sync
+     'xgit
+     (list "init-db")
+     :finished
+     (lambda (output error status arguments)
+       (message "git init finished")))))
 
 ;;;###autoload
 (defun xgit-clone (src &optional dest)
@@ -93,18 +96,12 @@ If FILES is nil, just run 'git add --patch'"
 
 ;;;###autoload
 (defun xgit-dvc-add-files (&rest files)
-  "Run git add.
-
-When called with a prefix argument, use `xgit-add-patch'."
-  (dvc-trace "xgit-add-files: %s" files)
-  (if current-prefix-arg
-      (xgit-add-patch files)
-    (let ((default-directory (xgit-tree-root)))
-      (dvc-run-dvc-sync 'xgit (append '("add")
-                                      (mapcar #'file-relative-name files))
-                        :finished (dvc-capturing-lambda
-                                      (output error status arguments)
-                                    (message "git add finished"))))))
+  "For `dvc-add-files'."
+  (dvc-run-dvc-sync
+   'xgit
+   (append '("add")
+	   (mapcar #'file-relative-name files))
+   :finished #'ignore))
 
 ;;;###autoload
 (defun xgit-remove (file &optional force)
@@ -116,19 +113,21 @@ uncommitted changes."
   (let ((default-directory (xgit-tree-root)))
     (dvc-run-dvc-sync
      'xgit (list "rm" (when force "-f") "--" (file-relative-name file))
-     :finished (dvc-capturing-lambda
-                   (output error status arguments)
-                 (message "git remove finished")))))
+     :finished
+     (lambda (output error status arguments)
+       (message "git remove finished")))))
 
 ;;;###autoload
 (defun xgit-dvc-remove-files (&rest files)
   "Run git rm."
   (dvc-trace "xgit-remove-files: %s" files)
-  (dvc-run-dvc-sync 'xgit (nconc (list "rm" "--")
-                                 (mapcar #'file-relative-name files))
-                    :finished (dvc-capturing-lambda
-                                  (output error status arguments)
-                                (message "git rm finished"))))
+  (dvc-run-dvc-sync
+   'xgit
+   (nconc (list "rm" "--")
+	  (mapcar #'file-relative-name files))
+   :finished
+   (lambda (output error status arguments)
+     (message "git rm finished"))))
 
 (defun xgit-command-version ()
   "Run git version."
@@ -148,7 +147,9 @@ which files will be added.
 
 Only when called with a prefix argument, add the files."
   (interactive "P")
-  (dvc-run-dvc-sync 'xgit (list "add" (unless arg "-n") ".")))
+  (dvc-run-dvc-sync 'xgit (list "add" (unless arg "-n") "."))
+  ;; default finish shows process buffer
+  )
 
 ;;;###autoload
 (defun xgit-addremove ()
@@ -159,12 +160,13 @@ This is done only for files in the current directory tree."
   (interactive)
   (dvc-run-dvc-sync
    'xgit (list "add" ".")
-   :finished (lambda (output error status arguments)
-               (dvc-run-dvc-sync
-                'xgit (list "add" "-u" ".")
-                :finished
-                (lambda (output error status args)
-                  (message "Finished adding and removing files to index"))))))
+   :finished
+   (lambda (output error status arguments)
+     (dvc-run-dvc-sync
+      'xgit (list "add" "-u" ".")
+      :finished
+      (lambda (output error status args)
+	(message "Finished adding and removing files to index"))))))
 
 ;;;###autoload
 (defun xgit-reset-hard (&rest extra-param)
@@ -173,154 +175,467 @@ This is done only for files in the current directory tree."
   (when (interactive-p)
     (setq extra-param (list (ido-completing-read "git reset --hard " '("HEAD" "ORIG_HEAD")
                                                  nil nil nil nil '("HEAD" "ORIG_HEAD")))))
-  (dvc-run-dvc-sync 'xgit (append '("reset" "--hard") extra-param)))
+  (dvc-run-dvc-sync 'xgit (append '("reset" "--hard") extra-param))
+  ;; default finish shows process buffer
+  )
 
-(defvar xgit-status-line-regexp
+(defconst xgit-status-line-regexp
   "^#[ \t]+\\([[:alpha:]][[:alpha:][:blank:]]+\\):\\(?:[ \t]+\\(.+\\)\\)?$"
-  "Regexp that matches a line of status output.
-The first match string is the status type, and the optional
-second match is the file.")
-
-(defvar xgit-status-untracked-regexp "^#\t\\(.+\\)$"
-  "Regexp that matches a line of status output indicating an
-untracked file.
-
-The first match is the file.")
+  "Regexp that matches a line of status output and extracts fields.
+The first match string is either a group label ('Unmerged paths',
+'Untracked files', etc) or a file status type ('modified', 'both
+modified', etc). The optional second match is the file path."  )
 
 (defvar xgit-status-renamed-regexp "^\\(.+\\) -> \\(.+\\)$"
   "Regexp that divides a filename string.
 The first match is the original file, and the second match is the
 new file.")
 
-(defun xgit-parse-status-sort (status-list)
-  "Sort STATUS-LIST according to :status in the order
-conflict, added, modified, renamed, copied, deleted, unknown."
-  (let ((order '((conflict . 0)
-                 (added . 1) (modified . 2)
-                 (rename-source . 3) (rename-target . 3)
-                 (copy-source . 4) (copy-target . 4)
-                 (deleted . 5) (unknown . 6)))
-        (get (lambda (item)
-               (catch 'status
-                 (while item
-                   (if (eq (car item) :status)
-                       (throw 'status (cadr item))
-                     (setq item (cddr item))))))))
-    (sort status-list
-          (dvc-capturing-lambda (a b)
-            (let ((ao (cdr (assq (funcall (capture get) a) order)))
-                  (bo (cdr (assq (funcall (capture get) b) order))))
-              (and (integerp ao) (integerp bo)
-                   (< ao bo)))))))
+;; these confict markers appear in this order in the file
+(defconst xgit-conflict-begin-re "^<<<<<<< \\(.*\\)\n")
+(defconst xgit-conflict-other-re "^=======\\( .*\\)?\n")
+(defconst xgit-conflict-end-re   "^>>>>>>>\\( .*\\)?\n")
 
-(defun xgit-parse-status  (changes-buffer)
-  (dvc-trace "xgit-parse-status (dolist)")
-  (let ((output (current-buffer)))
-    (with-current-buffer changes-buffer
+(defun xgit-conflicts-p (file)
+  "Return non-nil if FILE contains git conflict markers."
+  (with-temp-buffer
+    (insert-file-contents-literally file)
+    (search-forward-regexp xgit-conflict-begin-re nil t)
+    ))
+
+(defun xgit-file-staged-p (file)
+  "Return non-nil if FILE is identical to staged version."
+  ;; 'git diff <file>' diffs the workspace file with the index file.
+  (dvc-run-dvc-sync
+   'xgit (list "diff" file)
+   :finished
+   (lambda (output error status arguments)
+     (with-current-buffer output
+       (= (point-min) (point-max))))
+   ))
+
+(defun xgit-parse-status-1 ()
+  "Parse output of 'git status --porcelain' in current buffer.
+Return '(DVC-RESULT . STATUS-LIST);
+DVC-RESULT is a list of one or more of 'ok, 'need-stash-save, 'need-stash-pop, 'need-commit, 'need-post-process
+STATUS-LIST is a list of propertly lists, containing
+:file         filename
+:dir          directory name
+:status       dvc-fileinfo status
+:indexed      nil/t
+:more-status  dvc-fileinfo more status"
+  ;; example status output:
+  ;;
+  ;; MM packages/ada-mode/gpr-mode.el
+  ;;
+  ;; first letter is the index status, second is the workspace status
+
+  (goto-char (point-min))
+
+  (let (dvc-result
+	index-status work-status
+	file dir indexed status
+	status-list)
+    (while (not (eobp))
+      (setq index-status (char-after (point)))
+      (setq work-status (char-after (1+ (point))))
+      (setq file (buffer-substring-no-properties (+ 3 (point)) (line-end-position)))
+
+      (cl-case index-status
+	(? ;; unmodified
+	 (cl-case work-status
+	   (?D
+	    (setq status 'deleted
+		  indexed nil)
+	    (add-to-list 'dvc-result 'need-stash-save)
+	    (add-to-list 'dvc-result 'need-commit);; for remove
+	    )
+
+	   (?M
+	    (if (xgit-conflicts-p file)
+		(setq status 'conflict
+		      indexed nil)
+	      (setq status 'modified
+		    indexed nil))
+	    (add-to-list 'dvc-result 'need-stash-save)
+	    (add-to-list 'dvc-result 'need-commit);; for add
+	    )
+
+	   (t
+	    (error "unknown status %s" (buffer-substring-no-properties (point) (line-end-position))))
+	   ))
+
+	(??
+	 (setq status 'unknown
+	       indexed nil)
+	 (add-to-list 'dvc-result 'need-stash-save)
+	 (add-to-list 'dvc-result 'need-commit);; for add
+	 )
+
+	(?!
+	 (setq status 'ignored
+	       indexed nil))
+
+	(?A ;; added
+	 ;; work-status irrelevant
+	 ;; FIXME: Need more conflict info in fileinfo struct
+	 (setq status 'added-staged
+	       indexed t)
+	 (add-to-list 'dvc-result 'need-commit))
+
+	(?C ;; copied
+	 (add-to-list 'dvc-result 'need-commit)
+	 (when (not (eq work-status ? ))
+	   (add-to-list 'dvc-result 'need-stash-save))
+
+	 ;; FIXME: how can the file be copied without rename? Maybe just a directory change?
+	 (string-match xgit-status-renamed-regexp file)
+	 (let ((orig (match-string 1 file))
+	       (new (match-string 2 file)))
+	   (setq status-list
+		 (cons
+		  (list :file new :dir nil
+			:status 'copy-target
+			:indexed nil
+			:more-status orig)
+		  status-list))
+	   (setq status-list
+		 (cons
+		  (list :file orig :dir nil
+			:status 'copy-source
+			:indexed nil
+			:more-status new)
+		  status-list))
+	   (setq status nil)))
+
+	(?D ;; deleted
+	 (add-to-list 'dvc-result 'need-commit)
+	 (cl-case work-status
+	   (? ;; unmodified
+	    (setq status 'deleted-staged
+		  indexed t))
+	   (t
+	    (add-to-list 'dvc-result 'need-stash-save)
+	    ;; FIXME: Need more conflict info in fileinfo struct
+	    (setq status 'deleted
+		  indexed t))
+	   ))
+
+	(?M ;; modified
+	 (add-to-list 'dvc-result 'need-commit)
+
+	 (cl-case work-status
+	   (? ;; unmodified (during rebase)
+	    (if (xgit-conflicts-p file)
+		(setq status 'conflict-staged
+		      indexed t)
+	      (setq status 'modified-staged
+		    indexed t)
+	      ))
+
+	   (?D
+	    (setq status 'conflict
+		  indexed t)
+	    (add-to-list 'dvc-result 'need-stash-save))
+
+	   (?M
+	    (if (xgit-conflicts-p file)
+		(progn
+		  (setq status 'conflict
+			indexed nil) ;; there are unstaged changes
+		  (add-to-list 'dvc-result 'need-stash-save))
+
+	      ;; Either there was a merge conflict, which was now
+	      ;; resolved (perhaps only in the workspace), or there
+	      ;; are newly staged changes from the workspace (after a
+	      ;; dvc refresh). If the files are identical there is no
+	      ;; way to distinguish the cases, and the file is fully
+	      ;; staged. If not, it must still be staged. We'd like to
+	      ;; run xgit-file-staged-p here, but that's a nested
+	      ;; dvc-run-dvc-sync. So we mark this for post-processing
+	      (add-to-list 'dvc-result 'need-post-process)
+	      (setq status 'modified-modified-post-process)
+	      ))
+
+	   (t
+	    (error "unknown status %s" (buffer-substring-no-properties (point) (line-end-position))))
+	   ))
+
+	(?R
+	 (add-to-list 'dvc-result 'need-commit)
+	 (when (not (eq work-status ? ))
+	   (add-to-list 'dvc-result 'need-stash-save))
+
+	 (string-match xgit-status-renamed-regexp file)
+	 (let ((orig (match-string 1 file))
+	       (new (match-string 2 file)))
+	   (setq status-list
+		 (cons
+		  (list :file new :dir nil
+			:status 'rename-target
+			:indexed nil
+			:more-status orig)
+		  status-list))
+	   (setq status-list
+		 (cons
+		  (list :file orig :dir nil
+			:status 'rename-source
+			:indexed nil
+			:more-status new)
+		  status-list))
+	   (setq status nil)))
+
+
+	(?U
+	 ;; "updated" during rebase
+	 (add-to-list 'dvc-result 'need-commit)
+
+	 (cl-case work-status
+	   (?U
+	    ;; also updated during rebase
+	    (if (xgit-conflicts-p file)
+		(setq status 'conflict
+		      indexed nil) ;; there are unstaged changes
+	      (setq status 'conflict-resolved
+		    indexed nil)))
+
+	   (t
+	    (error "unknown work status %s" (buffer-substring-no-properties (point) (line-end-position))))
+	   ))
+
+	(t
+	 (error "unknown index status %s" (buffer-substring-no-properties (point) (line-end-position))))
+	)
+
+      (when status
+	(setq status-list
+	      (cons (list :file file :dir nil :indexed indexed :status status)
+		    status-list)))
+
+      (forward-line 1))
+
+    (cons (if dvc-result
+	      dvc-result
+	    (list 'ok))
+	  status-list)
+    ))
+
+(defun xgit-append-stash-status (result)
+  (dvc-run-dvc-sync
+   'xgit '("stash" "list")
+   :finished
+   (lambda (output error process-status arguments)
+     ;; empty buffer means there is no stash
+     (with-current-buffer output
+       (if (= (point-min) (point-max))
+	   result
+	 (if (eq 'ok (car result))
+	     '(need-stash-pop)
+	   (append result '(need-stash-pop))))))
+   ))
+
+(defun xgit-parse-status-2  (temp status-buffer)
+  "Parse output of `xgit-parse-status-1' in TEMP, display nicely in STATUS-BUFFER.
+Return status for `dvc-status'."
+  (let* ((dvc-result (car temp))
+	 (status-list (cdr temp))
+	 status-list-2
+	 (unstaged-done nil))
+
+    (with-current-buffer status-buffer
+      (when (memq 'need-post-process dvc-result)
+	(dolist (elem status-list)
+	  (when (eq 'modified-modified-post-process (plist-get elem ':status))
+	    (if (xgit-file-staged-p (plist-get elem ':file))
+		;; the staged and workspace files are the same
+		(progn
+		  (plist-put elem ':status 'modified-staged)
+		  (plist-put elem ':indexed t)
+		  (add-to-list 'dvc-result 'need-commit))
+
+	      ;; The files differ; more changes have been made since
+	      ;; it was staged. The user may want to commit the
+	      ;; current state (saving the new changes for a later
+	      ;; commit), or update the staged file.
+	      ;;
+	      ;; Set :indexed nil, so this file is listed with other
+	      ;; unstaged files; it needs attention.
+	      (plist-put elem ':status 'modified2-staged)
+	      (plist-put elem ':indexed nil)
+	      (add-to-list 'dvc-result 'need-stash-save)
+	      (add-to-list 'dvc-result 'need-commit))
+	    )
+	  (setq status-list-2 (cons elem status-list-2))
+	  )
+
+	(setq status-list status-list-2
+	      status-list-2 nil)
+
+	(setq dvc-result (delq 'need-post-process dvc-result)))
+
       (setq dvc-header (format "git status for %s\n" default-directory))
-      (with-current-buffer output
-        (save-excursion
-          (goto-char (point-min))
-          (let ((buffer-read-only)
-                (grouping "")
-                status-string
-                file status dir
-                status-list
-                indexed)
-            (while (re-search-forward xgit-status-line-regexp nil t)
-              (setq status-string (match-string 1)
-                    file (match-string 2)
-                    indexed t)
-              (cond ((or (null file) (string= "" file))
-                     (when (string= status-string "Untracked files")
-                       (let ((end
-                              (save-excursion
-                                (re-search-forward xgit-status-line-regexp
-                                                   nil 'end)
-                                (point))))
-                         (forward-line 2)
-                         (while (re-search-forward xgit-status-untracked-regexp
-                                                   end t)
-                           (when (match-beginning 1)
-                             (setq status-list
-                                   (cons (list :file (match-string 1)
-                                               :status 'unknown
-                                               :indexed t)
-                                         status-list))))
-                         (forward-line -1)))
-                     (setq grouping status-string
-                           status nil))
-                    ((string= status-string "modified")
-                     (setq status 'modified)
-                     (when (string= grouping "Changed but not updated")
-                       (setq indexed nil)))
-                    ((string= status-string "new file")
-                     (setq status 'added))
-                    ((string= status-string "deleted")
-                     (setq status 'deleted)
-                     (when (string= grouping "Changed but not updated")
-                       (setq indexed nil)))
-                    ((string= status-string "renamed")
-                     (setq status nil)
-                     (when (string-match xgit-status-renamed-regexp file)
-                       (let ((orig (match-string 1 file))
-                             (new (match-string 2 file)))
-                         (setq status-list
-                               (cons
-                                (list :file new :dir nil
-                                      :status 'rename-target :indexed t)
-                                (cons (list :file orig :dir nil
-                                            :status 'rename-source :indexed t)
-                                      status-list))))))
-                    ((string= status-string "copied")
-                     (setq status nil)
-                     (when (string-match xgit-status-renamed-regexp file)
-                       (let ((orig (match-string 1 file))
-                             (new (match-string 2 file)))
-                         (setq status-list
-                               (cons
-                                (list :file new :dir nil
-                                      :status 'copy-target :indexed t)
-                                (cons (list :file orig :dir nil
-                                            :status 'copy-source :indexed t)
-                                      status-list))))))
-                    ((string= status-string "unmerged")
-                     (setq status 'conflict))
-                    (t
-                     (setq status nil)))
-              (when status
-                (setq status-list
-                      (cons (list :file file :dir nil
-                                  :status status :indexed indexed)
-                            status-list))))
-            (with-current-buffer changes-buffer
-              (dolist (elem (xgit-parse-status-sort (nreverse status-list)))
-                (ewoc-enter-last dvc-fileinfo-ewoc
-                                 (apply #'make-dvc-fileinfo-file elem))))))))))
 
-(defun xgit-dvc-status (&optional verbose)
-  "Run git status."
+      ;; sort on indexed, then dir/file
+      (setq
+       status-list
+       (sort
+	status-list
+	(lambda (a b)
+	  (if (eq (plist-get a ':indexed)
+		  (plist-get b ':indexed))
+	      (string-lessp (concat (plist-get a ':dir) "/" (plist-get a ':file))
+			    (concat (plist-get b ':dir) "/" (plist-get b ':file)))
+	    (plist-get b ':indexed)))))
+
+
+      ;; first unstaged files
+      (ewoc-enter-last dvc-fileinfo-ewoc
+		       (make-dvc-fileinfo-message :text "unstaged"))
+
+      (dolist (elem status-list)
+	(when (and (not unstaged-done) (plist-get elem ':indexed))
+	  (ewoc-enter-last dvc-fileinfo-ewoc
+			   (make-dvc-fileinfo-message :text "staged"))
+	  (setq unstaged-done t))
+
+	(ewoc-enter-last dvc-fileinfo-ewoc
+			 (apply #'make-dvc-fileinfo-file elem)))
+      )
+
+    (xgit-append-stash-status dvc-result))
+  )
+
+(defun xgit-dvc-status (no-switch)
+  "For `dvc-status'."
   (let* ((root default-directory)
-         (buffer (dvc-prepare-changes-buffer
-                  `(xgit (last-revision ,root 1))
-                  `(git (local-tree ,root))
-                  'status root 'xgit)))
-    (dvc-switch-to-buffer-maybe buffer)
-    (setq dvc-buffer-refresh-function 'xgit-dvc-status)
+	 (dvc-switch-to-buffer-first (not no-switch))
+         (status-buffer (dvc-status-prepare-buffer
+                  'xgit
+		  root
+		  (xgit-dvc-base-revision)
+		  "" ;; FIXME: branch
+		  nil ;; header-more
+		  (lambda () (xgit-dvc-status t));; refresh
+		  ))
+	 temp
+	 result-status)
     (dvc-save-some-buffers root)
-    (let ((show-changes-buffer
-           (dvc-capturing-lambda (output error status arguments)
-             (with-current-buffer (capture buffer)
-               (if (> (point-max) (point-min))
-                   (dvc-show-changes-buffer output 'xgit-parse-status
-                                            (capture buffer))
-                 (dvc-diff-no-changes (capture buffer)
-                                      "No changes in %s"
-                                      (capture root)))))))
-      (dvc-run-dvc-sync
-       'xgit `("status" ,(when verbose "-v"))
-       :finished show-changes-buffer
-       :error show-changes-buffer))))
+
+    (dvc-run-dvc-sync
+     'xgit `("status" "--porcelain")
+     :finished (lambda (output error status arguments)
+		 (with-current-buffer output
+		   (setq temp (xgit-parse-status-1)))
+		 )
+     :error (lambda (output error status arguments)
+	      (pop-to-buffer error)
+	      (error "xgit status returned error"))
+     )
+
+    (dvc-status-inventory-done status-buffer)
+
+    ;; can't run this in :finished; nested dvc-run-dvc-sync
+    (setq result-status (xgit-parse-status-2 temp status-buffer))
+
+    (with-current-buffer status-buffer
+      (when (not (ewoc-locate dvc-fileinfo-ewoc))
+	(ewoc-enter-last dvc-fileinfo-ewoc
+			 (make-dvc-fileinfo-message
+			  :text (concat " no changes in workspace")))
+	(ewoc-refresh dvc-fileinfo-ewoc)))
+
+    (list status-buffer result-status)
+    ))
+
+(defun xgit-dvc-status-dtrt (key-prefix status)
+  "For `dvc-status-dtrt'."
+  (ecase status
+    (added-staged
+     (dvc-fileinfo-add-log-entry key-prefix))
+
+    (conflict
+     ;; ediff to resolve conflict
+     ;;
+     ;; git uses some different conflict markers than the smerge
+     ;; defaults; we let-bind them all here just for clarity.
+     (let ((smerge-begin-re xgit-conflict-begin-re)
+	   (smerge-end-re xgit-conflict-end-re)
+	   (smerge-other-re xgit-conflict-other-re))
+       (dvc-status-resolve-conflicts)))
+
+    (conflict-resolved
+     (dvc-fileinfo-stage-files))
+
+    (deleted
+     (dvc-offer-choices
+      nil
+      '((dvc-fileinfo-revert-files "revert")
+	(dvc-fileinfo-stage-files "stage"))))
+
+    (deleted-staged
+     (dvc-offer-choices
+      nil
+      '((dvc-fileinfo-revert-files "revert")
+	(dvc-fileinfo-unstage-files "unstage"))))
+
+    ((rename-source rename-target)
+     (dvc-status-ediff))
+
+    (missing
+     ;; File is in database, but not in workspace
+     (ding)
+     (dvc-offer-choices
+      (concat (dvc-fileinfo-current-file) " does not exist in working directory")
+      '((dvc-fileinfo-revert-files "revert")
+	(dvc-fileinfo-remove-files "remove")
+	(dvc-fileinfo-rename "rename"))))
+
+    (modified
+     (ding)
+     (dvc-offer-choices
+      nil
+      '((dvc-status-ediff-work-base "ediff")
+	(dvc-fileinfo-stage-files "stage")
+	(dvc-fileinfo-revert-files "revert")
+	)))
+
+    (modified-staged
+     (ding)
+     (dvc-offer-choices
+      nil
+      '((dvc-status-ediff "ediff")
+	(dvc-fileinfo-unstage-files "unstage")
+	(dvc-fileinfo-revert-files "revert")
+	)))
+
+    (modified2-staged
+     (ding)
+     (dvc-offer-choices
+      nil
+      '((dvc-status-ediff-work-staged "ediff work staged")
+	(dvc-status-ediff-work-base "ediff work base")
+	(dvc-status-ediff-staged-base "ediff staged base")
+	(dvc-fileinfo-unstage-files "unstage")
+	(dvc-fileinfo-revert-files "revert")
+	)))
+
+    (unknown
+     (dvc-offer-choices nil
+			'((dvc-fileinfo-add-files "add")
+			  (dvc-fileinfo-ignore-files "ignore")
+			  (dvc-fileinfo-remove-files "remove")
+			  (dvc-fileinfo-rename "rename"))))
+    ))
+
+(defun xgit-resolve-conflicts ()
+  "Resolve conflicts in current file."
+  (interactive)
+  ;; git uses some different conflict markers than the smerge
+  ;; defaults; we let-bind them all here just for clarity.
+  (let ((smerge-begin-re xgit-conflict-begin-re)
+	(smerge-end-re xgit-conflict-end-re)
+	(smerge-other-re xgit-conflict-other-re))
+    (smerge-ediff)))
 
 (defun xgit-status-verbose ()
   (interactive)
@@ -330,6 +645,19 @@ conflict, added, modified, renamed, copied, deleted, unknown."
   "Run `xgit-add-patch' on selected files."
   (interactive)
   (xgit-add-patch (dvc-current-file-list)))
+
+(defun xgit-status-add-current ()
+  "Run \"git add <files>\" on current/selected files and refresh current buffer."
+  (interactive)
+  (let ((args (mapcar (lambda (f)
+			(file-relative-name (dvc-uniquify-file-name
+					     f)
+					    default-directory))
+		      (dvc-current-file-list)))
+	)
+
+    (dvc-run-dvc-sync 'xgit `("add" ,@args)  :finished #'ignore)
+    (dvc-generic-refresh)))
 
 (defun xgit-status-add-u ()
   "Run \"git add -u\" and refresh current buffer."
@@ -370,11 +698,14 @@ This reset the index to HEAD, but doesn't touch files."
 (easy-menu-define xgit-diff-mode-menu xgit-diff-mode-map
   "`Git specific changes' menu."
   `("GIT-Diff"
-    ["Re-add modified files (add -u)" xgit-status-add-u t]
-    ["Reset index (reset --mixed)" xgit-status-reset-mixed t]
+    ["Stage current/selected files" xgit-status-add-current t]
+    ["Stage all modified files (add -u)" xgit-status-add-u t]
+    ["Revert current/selected files" xgit-status-revert-current t]
+    ["Clear stage (reset index (reset --mixed))" xgit-status-reset-mixed t]
     "---"
     ["View staged changes" xgit-diff-cached t]
     ["View unstaged changes" xgit-diff-index t]
+    "---"
     ["View all local changes" xgit-diff-head t]
     ))
 
@@ -385,40 +716,35 @@ This reset the index to HEAD, but doesn't touch files."
 (dvc-add-uniquify-directory-mode 'xgit-diff-mode)
 
 (defun xgit-parse-diff (changes-buffer)
-  (save-excursion
-    (while (re-search-forward
-            "^diff --git [^ ]+ b/\\(.*\\)$" nil t)
-      (let* ((name (match-string-no-properties 1))
-             ;; added, removed are not yet working
-             (added (progn (forward-line 1)
-                           (looking-at "^new file")))
-             (removed (looking-at "^deleted file")))
-        (with-current-buffer changes-buffer
-          (ewoc-enter-last
-           dvc-fileinfo-ewoc
-           (make-dvc-fileinfo-legacy
-            :data (list 'file
-                        name
-                        (cond (added   "A")
-                              (removed "D")
-                              (t " "))
-                        (cond ((or added removed) " ")
-                              (t "M"))
-                        " "             ; dir. directories are not
-                                        ; tracked in git
-                        nil))))))))
+  (while (re-search-forward
+	  "^diff --git [^ ]+ b/\\(.*\\)$" nil t)
+    (let* ((name (match-string-no-properties 1))
+	   ;; added, removed are not yet working
+	   (added (progn (forward-line 1)
+			 (looking-at "new file")))
+	   (removed (looking-at "deleted file"))
+	   (indexed (looking-at "index")))
+      (with-current-buffer changes-buffer
+	(ewoc-enter-last
+	 dvc-fileinfo-ewoc
+	 (make-dvc-fileinfo-file
+	  :dir (file-name-directory name)
+	  :file (file-name-nondirectory name)
+	  :status (cond (added   'added-staged)
+			(removed 'deleted)
+			(t 'modified))
+	  :indexed indexed)))
+      )))
 
-(defun xgit-diff-1 (against-rev path dont-switch base-rev)
+(defun xgit-diff-1 (modified-rev path dont-switch base-rev)
   (let* ((cur-dir (or path default-directory))
          (orig-buffer (current-buffer))
          (root (xgit-tree-root cur-dir))
-         (against (if against-rev
-                      (dvc-revision-to-string against-rev
+         (modified (if modified-rev
+                      (dvc-revision-to-string modified-rev
                                               xgit-prev-format-string "HEAD")
                     "HEAD"))
-         (against-rev (or against-rev (if (xgit-use-index-p)
-                                          '(xgit (index))
-                                        `(xgit (last-revision ,root 1)))))
+         (modified-rev (or modified-rev `(xgit (last-revision ,root 1))))
          (base (if base-rev
                    (dvc-revision-to-string base-rev xgit-prev-format-string
                                            "HEAD")
@@ -426,33 +752,33 @@ This reset the index to HEAD, but doesn't touch files."
          (local-tree `(xgit (local-tree ,root)))
          (base-rev (or base-rev local-tree))
          (buffer (dvc-prepare-changes-buffer
-                  against-rev base-rev
+                  base-rev modified-rev
                   'diff root 'xgit))
-         (command-list (if (equal against-rev '(xgit (index)))
+         (command-list (if (equal modified-rev '(xgit (index)))
                            (if (equal base-rev local-tree)
                                '("diff" "-M")
                              (message "%S != %S" base-rev local-tree)
-                             `("diff" "-M" "--cached" ,against))
-                         `("diff" "-M" ,base ,against))))
+                             `("diff" "-M" "--staged" ,modified))
+                         `("diff" "-M" ,base ,modified))))
     (dvc-switch-to-buffer-maybe buffer)
     (when dont-switch (pop-to-buffer orig-buffer))
     (dvc-save-some-buffers root)
-    (dvc-run-dvc-sync 'xgit command-list
-                      :finished
-                      (dvc-capturing-lambda (output error status arguments)
-                        (dvc-show-changes-buffer output
-                                                 'xgit-parse-diff
-                                                 (capture buffer)
-                                                 nil nil
-                                                 (mapconcat
-                                                  (lambda (x) x)
-                                                  (cons "git" command-list)
-                                                  " "))))))
+    (dvc-run-dvc-sync
+     'xgit command-list
+     :finished
+     (lambda (output error status arguments)
+       (dvc-show-changes-buffer
+	output
+	'xgit-parse-diff
+	buffer
+	nil nil
+	(mapconcat
+	 (lambda (x) x)
+	 (cons "git" command-list)
+	 " "))))))
 
 (defun xgit-last-revision (path)
-  (if (xgit-use-index-p)
-      '(xgit (index))
-    `(xgit (last-revision ,path 1))))
+  `(xgit (last-revision ,path 1)))
 
 ;; TODO offer completion here, e.g. xgit-tag-list
 (defun xgit-read-revision-name (prompt)
@@ -462,13 +788,6 @@ This reset the index to HEAD, but doesn't touch files."
 (defun xgit-dvc-diff (&optional against-rev path dont-switch)
   (interactive (list nil nil current-prefix-arg))
   (xgit-diff-1 against-rev path dont-switch nil))
-
-;;;###autoload
-(defun xgit-diff-cached (&optional against-rev path dont-switch)
-  "Call \"git diff --cached\"."
-  (interactive (list nil nil current-prefix-arg))
-  (let ((xgit-use-index 'always))
-    (xgit-diff-1 against-rev path dont-switch '(xgit (index)))))
 
 ;;;###autoload
 (defun xgit-diff-index (&optional against-rev path dont-switch)
@@ -506,14 +825,15 @@ when encountering a (previous ...) component of a revision indicator.
 The first argument is a commit ID, and the second specifies how
 many generations back we want to go from the given commit ID.")
 
-(defun xgit-delta (base-rev against &optional dont-switch)
+(defun xgit-delta (base-rev modified &optional dont-switch)
+  "For `dvc-delta'."
   (interactive (list nil nil current-prefix-arg))
   (let* ((root (xgit-tree-root))
          (buffer (dvc-prepare-changes-buffer
-                  `(xgit (last-revision ,root 1))
-                  `(xgit (local-tree ,root))
+                  base-rev
+                  modified
                   'diff root 'xgit)))
-    (xgit-diff-1 against root dont-switch base-rev)
+    (xgit-diff-1 modified root dont-switch base-rev)
     (with-current-buffer buffer (goto-char (point-min)))
     buffer))
 
@@ -527,7 +847,18 @@ When called with a prefix argument, ask for the fetch source."
       (setq repository (read-string "Git fetch from: "))))
   (dvc-run-dvc-async 'xgit (list "fetch" repository)))
 
-(defun* xgit-push (url &optional (branch "master"))
+(defun xgit-push-default ()
+    "Run 'git push'."
+  (interactive)
+  (dvc-run-dvc-sync
+   'xgit (list "push")
+   :finished
+   (lambda (output error status arguments)
+     (if (eq status 0)
+	 (message "xgit-push finished")
+       (dvc-switch-to-buffer error)))))
+
+(cl-defun xgit-push (url &optional (branch "master"))
     "Run 'git push url'.
 with prefix arg ask for branch, default to master."
   (interactive "sGit push to: ")
@@ -542,42 +873,6 @@ with prefix arg ask for branch, default to master."
                              (message "xgit-push <%s> to <%s> finished" branch-name to)
                              (dvc-switch-to-buffer error))))))
 
-;;;###autoload
-(defun xgit-pull (&optional repository)
-  "Call git pull.
-When called with a prefix argument, ask for the pull source."
-  (interactive "P")
-  (when (interactive-p)
-    (when current-prefix-arg
-      (setq repository (read-string "Git pull from: "))))
-  (dvc-run-dvc-async 'xgit (list "pull" repository)
-                     :finished
-                     (dvc-capturing-lambda (output error status arguments)
-                       (with-current-buffer output
-                         (xgit-parse-pull-result t))
-                       (when xgit-pull-result
-                         (dvc-switch-to-buffer output)
-                         (when (y-or-n-p "Run xgit-whats-new? ")
-                           (xgit-whats-new))))))
-
-(defvar xgit-pull-result nil)
-(defun xgit-parse-pull-result (reset-parameters)
-  "Parse the output of git pull."
-  (when reset-parameters
-    (setq xgit-pull-result nil))
-  (goto-char (point-min))
-  (cond ((looking-at "Updating \\([0-9a-z]+\\)\.\.\\([0-9a-z]+\\)")
-         (setq xgit-pull-result (list (match-string 1) (match-string 2)))
-         (message "Execute M-x xgit-whats-new to see the arrived changes."))
-        ((looking-at "Already up-to-date.")
-         (message "Already up-to-date."))))
-
-(defun xgit-whats-new ()
-  "Show the changes since the last git pull."
-  (interactive)
-  (when xgit-pull-result
-    (xgit-changelog (car xgit-pull-result) (cadr xgit-pull-result) t)))
-
 (defun xgit-split-out-added-files (files)
   "Remove any files that have been newly added to git from FILES.
 This returns a two-element list.
@@ -591,6 +886,7 @@ The second element is the remainder of FILES."
          (not-added nil))
     ;; get list of files that have been added
     (with-temp-buffer
+      ;; FIXME: delete or use porcelain
       (dvc-run-dvc-sync 'xgit (list "status")
                         :output-buffer (current-buffer)
                         :finished #'ignore :error #'ignore)
@@ -609,7 +905,7 @@ The second element is the remainder of FILES."
 (defun xgit-revert-file (file)
   "Revert uncommitted changes made to FILE in the current branch."
   (interactive "fRevert file: ")
-  (xgit-revert-files file))
+  (xgit-dvc-revert-files file))
 
 ;;;###autoload
 (defun xgit-dvc-revert-files (&rest files)
@@ -618,20 +914,22 @@ The second element is the remainder of FILES."
     (setq files (mapcar #'file-relative-name files))
     (destructuring-bind (added not-added)
         (xgit-split-out-added-files files)
+
       ;; remove added files from the index
       (when added
         (let ((args (nconc (list "update-index" "--force-remove" "--")
                            added)))
           (dvc-run-dvc-sync 'xgit args
                             :finished #'ignore)))
+
       ;; revert other files using "git checkout HEAD ..."
       (when not-added
         (let ((args (nconc (list "checkout" "HEAD")
                            not-added)))
           (dvc-run-dvc-sync 'xgit args
                             :finished #'ignore)))
-      (if (or added not-added)
-          (message "git revert finished")
+
+      (unless (or added not-added)
         (message "Nothing to do")))))
 
 (defcustom xgit-show-filter-filename-func nil
@@ -647,7 +945,7 @@ git-show or nil for all files."
 
 (defun xgit-show-filter-filename-not-quilt (files)
   "Function to filter-out quilt managed files under .pc/ and patches/."
-  (loop for f in files
+  (cl-loop for f in files
         when (not (string-match "\.pc/\\|patches/" f))
         collect f))
 
@@ -689,20 +987,20 @@ files changed in the revision is passed to
         (setq args (nconc args (if (stringp files) (list files) files))))
     (dvc-switch-to-buffer-maybe buffer)
     (with-current-buffer buffer
-      (dvc-run-dvc-sync 'xgit args
-                        :finished
-                        (dvc-capturing-lambda (output error status arguments)
-                          (progn
-                            (with-current-buffer (capture buffer)
-                              (let ((inhibit-read-only t))
-                                (erase-buffer)
-                                (insert-buffer-substring output)
-                                (goto-char (point-min))
-                                (insert (format "git %s\n\n"
-                                                (mapconcat #'identity
-                                                           args " ")))
-                                (dvc-diff-mode)
-                                (toggle-read-only 1)))))))))
+      (dvc-run-dvc-sync
+       'xgit args
+       :finished
+       (lambda (output error status arguments)
+	 (with-current-buffer buffer
+	   (let ((inhibit-read-only t))
+	     (erase-buffer)
+	     (insert-buffer-substring output)
+	     (goto-char (point-min))
+	     (insert (format "git %s\n\n"
+			     (mapconcat #'identity
+					args " ")))
+	     (dvc-diff-mode)
+	     (setq buffer-read-only 1))))))))
 
 (defvar xgit-describe-regexp "^\\(.*?\\)-\\([0-9]+\\)-g[[:xdigit:]]\\{7\\}")
 
@@ -741,33 +1039,25 @@ FILE is filename in the repository at DIR."
                                     (xgit-tree-root dir)))
          (args (list repo cmd "--" fname)))
     (dvc-switch-to-buffer-maybe buffer)
-    (dvc-run-dvc-sync 'xgit args
-                      :finished
-                      (dvc-capturing-lambda (output error status arguments)
-                        (progn
-                          (with-current-buffer (capture buffer)
-                            (let ((inhibit-read-only t))
-                              (buffer-disable-undo)
-                              (erase-buffer)
-                              (insert-buffer-substring output)
-                              (goto-char (point-min))
-                              (xgit-annotate-mode))))))))
+    (dvc-run-dvc-sync
+     'xgit args
+     :finished
+     (lambda (output error status arguments)
+       (with-current-buffer buffer
+	 (let ((inhibit-read-only t))
+	   (buffer-disable-undo)
+	   (erase-buffer)
+	   (insert-buffer-substring output)
+	   (goto-char (point-min))
+	   (xgit-annotate-mode)))))))
 
 (defun xgit-annotate ()
   "Run git annotate"
   (interactive)
-  (let* ((line (dvc-line-number-at-pos))
-         (filename (dvc-confirm-read-file-name "Filename to annotate: "))
-         (default-directory (xgit-tree-root filename)))
-    (xgit-do-annotate default-directory filename)
-    (goto-line line)))
-
-(defun xgit-stash-save (message)
-  "Run git-stash."
-  (interactive "sComment: ")
-  (if (equal message "")
-      (dvc-run-dvc-sync 'xgit (list "stash"))
-      (dvc-run-dvc-sync 'xgit (list "stash" "save" message))))
+  (save-excursion
+    (let* ((filename (dvc-confirm-read-file-name "Filename to annotate: "))
+	   (default-directory (xgit-tree-root filename)))
+      (xgit-do-annotate default-directory filename))))
 
 (defun xgit-stash-list (&optional only-list)
   "Run git-stash list."
@@ -776,7 +1066,7 @@ FILE is filename in the repository at DIR."
   (when only-list
     (with-current-buffer "*xgit-info*"
       (let ((stash-list (split-string (buffer-string) "\n")))
-        (loop for i in stash-list
+        (cl-loop for i in stash-list
            with s = nil
            collect (car (split-string i ":")) into s
            finally (return s))))))
@@ -906,7 +1196,24 @@ the current git repository."
 
 ;;; DVC revision support
 
-;;;###autoload
+(defun xgit-revision-get-file-revision (file rev)
+  "Insert the content of FILE in REV, in current buffer."
+  (insert
+   (dvc-run-dvc-sync
+    'xgit
+    (list "cat-file" "blob"
+	  (format "%s:%s" (car rev) file))
+    :finished 'dvc-output-buffer-handler-withnewline)))
+
+(defun xgit-revision-get-staged-revision (file)
+  "Insert the staged content of FILE (in the index), in current buffer."
+  (insert
+   (dvc-run-dvc-sync
+    'xgit
+    (list "cat-file" "blob"
+	  (format ":%s" file))
+    :finished 'dvc-output-buffer-handler-withnewline)))
+
 (defun xgit-revision-get-last-revision (file last-revision)
   "Insert the content of FILE in LAST-REVISION, in current buffer.
 
@@ -924,75 +1231,14 @@ LAST-REVISION looks like
                          (format "HEAD~%s:%s" xgit-rev fname))
              :finished 'dvc-output-buffer-handler-withnewline))))
 
-(defcustom xgit-use-index 'ask
-  "Whether xgit should use the index (aka staging area).
-
-\"Use the index\" means commit the content of the index, not the
-content of the working tree. In practice, this means commit with
-\"git commit\" (without -a), and diff with \"git diff\".
-
-\"Not use the index\" means commit the content of the working tree,
-like most version control systems do. In practice, this means commit
-with \"git commit -a\", and diff with \"git diff HEAD\".
-
-This option can be set to
-
- 'ask : ask whenever xgit needs the value,
- 'always : always use the index,
- 'never : never use the index.
-"
-  :type '(choice (const ask)
-                 (const always)
-                 (const never))
-  :group 'dvc-xgit)
-
-(defun xgit-use-index-p ()
-  "Whether xgit should use the index this time.
-
-The value is determined based on `xgit-use-index'."
-  (case xgit-use-index
-    (always t)
-    (never nil)
-    (ask (message "Use git index (y/n/a/e/c/?)? ")
-         (let ((answer 'undecided))
-           (while (eq answer 'undecided)
-             (case (progn
-                     (let* ((tem (downcase (let ((cursor-in-echo-area t))
-                                             (read-char-exclusive)))))
-                       (if (= tem help-char)
-                           'help
-                         (cdr (assoc tem '((?y . yes)
-                                           (?n . no)
-                                           (?a . always)
-                                           (?e . never)
-                                           (?c . customize)
-                                           (?? . help)))))))
-               (yes (setq answer t))
-               (no (setq answer nil))
-               (always
-                (setq xgit-use-index 'always)
-                (setq answer t))
-               (never
-                (setq xgit-use-index 'never)
-                (setq answer nil))
-               (customize
-                (customize-variable 'xgit-use-index)
-                (message "Use git index (y/n/a/e/c/?)? "))
-               (help (message
-                      "\"Use the index\" (aka staging area) means add file content
-explicitly before commiting. Concretely, this means run commit
-without -a, and run diff without options.
-
-Use git index?
- y (Yes): yes, use the index this time
- n (No) : no, not this time
- a (Always) : always use the index from now
- e (nEver) : never use the index from now
- c (Customize) : customize the option so that you can save it for next
-    Emacs sessions. You'll still have to answer the question after.
-
-\(y/n/a/e/c/?)? "))))
-           answer))))
+(defun xgit-revision-get-previous-revision (file prev-rev)
+  "Insert the content of FILE in REV, in current buffer."
+  (insert
+   (dvc-run-dvc-sync
+    'xgit
+    (list "cat-file" "blob"
+	  (format "%s~1:%s" (cadadr prev-rev) file))
+    :finished 'dvc-output-buffer-handler-withnewline)))
 
 (defun xgit-get-root-exclude-file (&optional root)
   "returns exclude file for ROOT"

@@ -1,6 +1,6 @@
 ;;; xmtn-base.el --- Basic definitions for accessing monotone
 
-;; Copyright (C) 2009, 2010 Stephen Leake
+;; Copyright (C) 2009, 2010, 2013 Stephen Leake
 ;; Copyright (C) 2006, 2007, 2009 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2 of the License, or
+;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This file is distributed in the hope that it will be useful,
@@ -31,8 +31,7 @@
 ;;; There are some notes on the design of xmtn and its related
 ;;; files in docs/xmtn-readme.txt.
 
-(eval-and-compile
-  (require 'cl))
+(eval-when-compile (require 'cl-macs))
 
 (defvar xmtn-executable "mtn"
   "*The monotone executable command.")
@@ -45,7 +44,7 @@ A list of strings.")
 (defvar xmtn-confirm-operation t
   "May be let-bound to nil to bypass confirmations.")
 
-(deftype xmtn--hash-id ()
+(cl-deftype xmtn--hash-id ()
   `(and string
         (satisfies xmtn--hash-id-p)))
 

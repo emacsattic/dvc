@@ -1,6 +1,6 @@
 ;;; xmtn-ids.el --- Resolver routines for xmtn revision ids
 
-;; Copyright (C) 2008 - 2011 Stephen Leake
+;; Copyright (C) 2008 - 2014 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2 of the License, or
+;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This file is distributed in the hope that it will be useful,
@@ -73,10 +73,9 @@
 ;;; There are some notes on the design of xmtn in
 ;;; docs/xmtn-readme.txt.
 
-(eval-and-compile
-  (require 'cl)
-  (require 'xmtn-automate)
-  (require 'xmtn-match))
+(eval-when-compile (require 'cl-macs))
+(require 'xmtn-automate)
+(require 'xmtn-match)
 
 (defun xmtn--revision-hash-id (revision-id)
   "Return the hash-id from a REVISION-ID"
@@ -162,7 +161,7 @@ See file commentary for details."
 
 (defun xmtn--resolve--previous-revision (root backend-id num)
   (check-type num (integer 0 *))
-  (let ((local-branch (xmtn--tree-default-branch root))
+  (let ((local-branch (xmtn-dvc-branch))
         (resolved-id (xmtn--resolve-backend-id root backend-id)))
     (if (zerop num)
         resolved-id
@@ -177,7 +176,7 @@ See file commentary for details."
         (revision
          (let ((hash-id (second resolved-id)))
            (check-type hash-id xmtn--hash-id)
-           (loop repeat num
+           (cl-loop repeat num
                  ;; If two parents of this rev, use parent on same branch as rev.
                  do (setq hash-id (xmtn--get-parent-revision-hash-id root hash-id local-branch)))
            `(revision ,hash-id)))))))

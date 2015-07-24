@@ -47,7 +47,7 @@ Commands are:
   (setq dvc-buffer-current-active-dvc (dvc-current-active-dvc))
 
   (dvc-install-buffer-menu)
-  (toggle-read-only 1))
+  (setq buffer-read-only 1))
 
 (dvc-add-uniquify-directory-mode 'dvc-revlog-mode)
 

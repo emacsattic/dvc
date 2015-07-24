@@ -176,7 +176,7 @@ Will be saved in state.el")
 
 Commands:
 \\{dvc-tips-mode-map}"
-  (toggle-read-only 1))
+  (setq buffer-read-only 1))
 
 
 (defun dvc-tips-popup-number (number &optional noswitch)

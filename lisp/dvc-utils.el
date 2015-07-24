@@ -1,6 +1,6 @@
 ;;; dvc-utils.el --- Utility functions for DVC
 
-;; Copyright (C) 2005 - 2010 by all contributors
+;; Copyright (C) 2005 - 2010, 2012 - 2015 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 
@@ -477,16 +477,6 @@ It's a macro so that it remains available after (unload-feature ...)."
            xhg-dvc
            xhg-gnus
            xhg
-           ;; tla
-           tla-dvc
-           tla-bconfig
-           tla-browse
-           tla-tests
-           tla
-           tla-core
-           tla-autoconf
-           tla-defs
-           tla-gnus
            ;; baz
            baz-dvc
            baz
@@ -616,51 +606,19 @@ it is a valid project tree."
           (funcall dvc-buffer-refresh-function))
       (message "I don't know how to refresh this buffer"))))
 
-(defmacro dvc-make-move-fn (ewoc-direction function cookie
-                                           &optional only-unmerged)
-  "Create function to move up or down in `dvc-revlist-cookie'.
-
-EWOC-DIRECTION is either `ewoc-next' or `ewoc-prev'.
-FUNCTION is the name of the function to declare.
-COOKIE is the ewoc to navigate in.
-if ONLY-UNMERGED is non-nil, then, navigate only through revisions not
-merged by another revision in the same list."
-  (declare (indent 2) (debug (&define functionp name symbolp booleanp)))
-  `(defun ,function ()
-     (interactive)
-     (let* ((elem (ewoc-locate ,cookie))
-            (next (or (,ewoc-direction ,cookie elem) elem)))
-       (while (and next
-                   (if ,only-unmerged
-                       (not (and (eq (car (ewoc-data next))
-                                     'entry-patch)
-                                 (eq (nth 4 (ewoc-data next))
-                                     'nobody)))
-                     (eq (car (ewoc-data next)) 'separator))
-                   (,ewoc-direction ,cookie next))
-         (setq next (,ewoc-direction ,cookie next)))
-       (while (and next
-                   (if ,only-unmerged
-                       (not (and (eq (car (ewoc-data next))
-                                     'entry-patch)
-                                 (eq (nth 4 (ewoc-data next))
-                                     'nobody)))
-                     (eq (car (ewoc-data next)) 'separator)))
-         (setq next (,(if (eq ewoc-direction 'ewoc-next)
-                          'ewoc-prev
-                        'ewoc-next) ,cookie next)))
-       (when next (goto-char (ewoc-location next))))))
-
 (defun dvc-ewoc-maybe-scroll (ewoc node)
   "If display of NODE goes off the bottom of the window, recenter."
-  (let* ((next-node (ewoc-next ewoc node))
-         (next-loc (if next-node
-                       (ewoc-location next-node)
-                     (ewoc-location (ewoc--footer ewoc)))))
-    (if (> next-loc (window-end))
-        ;; we tried scroll-up here, but it screws up sometimes
-        (recenter))
-  ))
+  (when (eq (current-buffer) (window-buffer (selected-window)))
+    ;; do nothing if current buffer is not displayed in selected window
+
+    (let* ((next-node (ewoc-next ewoc node))
+	   (next-loc (if next-node
+			 (ewoc-location next-node)
+		       (ewoc-location (ewoc--footer ewoc)))))
+      (if (> next-loc (window-end))
+	  ;; we tried scroll-up here, but it screws up sometimes
+	  (recenter))
+      )))
 
 (defmacro dvc-make-ewoc-next (function-name ewoc)
   "Declare a function FUNCTION-NAME to move to the next EWOC entry."
@@ -799,7 +757,10 @@ according to `string-match'."
     (not (null matched))))
 
 (defun dvc-edit-exclude ()
-  "Edit the file \".dvc-exclude\" in `default-directory'."
+  "Edit the file \".dvc-exclude\" in `default-directory'.
+Syntax of \".dvc-exclude\" is shell wildcards. Files matching
+them are automatically marked 'excluded'; they will not be
+committed unless the user unmarks them."
   (interactive)
   (find-file ".dvc-exclude"))
 
@@ -821,6 +782,41 @@ even if NEW-VALUE is empty."
           (message-position-on-field header after)
         (message-position-on-field header))
       (insert new-value))))
+
+(defun dvc-safe-kill-buffer (buffer)
+  (when (buffer-live-p buffer)
+    (kill-buffer buffer)))
+
+(defun dvc-safe-save-buffer (buffer)
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer (save-buffer))))
+
+(defun dvc-save-kill-buffer (buffer)
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer (save-buffer))
+    (kill-buffer buffer)))
+
+(defun dvc-remove-optional-args (spec &rest args)
+  "Process ARGS, removing those that come after the &optional keyword
+in SPEC if they are nil, returning the result."
+  (let ((orig args)
+        new)
+    (if (not (catch 'found
+               (while (and spec args)
+                 (if (eq (car spec) '&optional)
+                     (throw 'found t)
+                   (setq new (cons (car args) new)
+                         args (cdr args)
+                         spec (cdr spec))))
+               nil))
+        orig
+      ;; an &optional keyword was found: process it
+      (let ((acc (reverse args)))
+        (while (and acc (null (car acc)))
+          (setq acc (cdr acc)))
+        (when acc
+          (setq new (nconc acc new)))
+        (nreverse new)))))
 
 (provide 'dvc-utils)
 ;;; dvc-utils.el ends here

@@ -1,6 +1,6 @@
 ;;; dvc-about.el --- "About DVC" message
 
-;; Copyright (C) 2006 by all contributors
+;; Copyright (C) 2006, 2013 by all contributors
 
 ;; This file is part of DVC.
 ;;
@@ -25,7 +25,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-macs))
 (require 'dvc-buffers)
 (require 'dvc-version)
 
@@ -56,7 +56,7 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
 (defvar dvc-about-message-long-border-interval 1.0
   "Animation step interval when bouncing in `dvc-about-message-with-bouncing'.")
 
-(defun* dvc-about-message-with-bouncing (&rest msg)
+(cl-defun dvc-about-message-with-bouncing (&rest msg)
   "Similar to `message' but display the message in bouncing animation to show long line."
   (setq msg (apply 'format msg))
   (let* ((width (- (window-width (minibuffer-window))
@@ -87,7 +87,7 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
             (return-from dvc-about-message-with-bouncing)))
         (garbage-collect)))))
 
-(defun* dvc-about-message-with-rolling (&rest msg)
+(cl-defun dvc-about-message-with-rolling (&rest msg)
   "Similar to `message' but display the message in rolling animation to show long line."
   (setq msg (concat "  <MESSAGE>: "
                     (apply 'format msg)
@@ -132,7 +132,7 @@ Used in `dvc-about-message-with-bouncing' and `dvc-about-message-with-rolling'")
        "[" (dvc-about-insert-button "About" 'dvc-about)
        "]"
        "\n")
-      (toggle-read-only t)
+      (setq buffer-read-only t)
       (local-set-key [?q] (lambda () (interactive)
                             (kill-buffer (current-buffer)))))
     ;; TODO: Use CONTRIBUTORS file.

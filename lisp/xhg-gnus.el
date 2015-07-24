@@ -1,6 +1,6 @@
 ;;; xhg-gnus.el --- dvc integration to gnus
 
-;; Copyright (C) 2003-2012 by all contributors
+;; Copyright (C) 2003-2007, 2013, 2014 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -22,8 +22,6 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-
-(require 'tla-core)
 
 ;; gnus is optional. Load it at compile-time to avoid warnings.
 (eval-when-compile
@@ -106,7 +104,7 @@ outstanding uncommitted changes."
                 (xhg-log "tip" "-10")
                 (delete-other-windows)))
         ('xgit (when (and import-dir (y-or-n-p "Run xgit-status?"))
-                 (xgit-status)))))))
+                 (xgit-dvc-status nil)))))))
 
 
 (defvar xhg-gnus-status-window-configuration nil)

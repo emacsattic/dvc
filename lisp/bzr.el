@@ -1,6 +1,6 @@
 ;;; bzr.el --- Support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2012 by all contributors
+;; Copyright (C) 2005-2009, 2013, 2014 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -34,8 +34,6 @@
 (require 'dvc-revlist)
 (require 'dvc-annotate)
 (eval-and-compile (require 'dvc-lisp))
-
-(eval-when-compile (require 'cl))
 
 (defvar bzr-default-init-repository-directory "~/"
   "The default directory that is suggested when calling `bzr-init-repository'.
@@ -338,7 +336,7 @@ Same as `bzr-dvc-diff', but the interactive prompt is different."
             root)
            root
            current-prefix-arg)))
-  (bzr-diff against path dont-switch))
+  (bzr-dvc-diff against path dont-switch))
 
 ;;;###autoload
 (defun bzr-dvc-diff (&optional against path dont-switch)
@@ -440,7 +438,7 @@ This is done by looking at the 'You are missing ... revision(s):' string in the 
 
 (defun bzr-get-revision-at-point ()
   (int-to-string
-   (nth 2 (dvc-revlist-get-revision-at-point))))
+   (nth 2 (dvc-revlist-current-rev))))
 
 ;; FIXME: Does not attempt to find the right entry in
 ;; bzr-mail-notification-destination according to branch nick, and it
@@ -457,7 +455,7 @@ of the commit. Additionally the destination email address can be specified."
          ;;tla-mail-notification-destination))
          (rev (bzr-get-revision-at-point))
          (branch-location (nth 2 dest-specs))
-         (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
+         (log-message (bzr-revision-st-message (dvc-revlist-entry-struct (ewoc-data (ewoc-locate dvc-revlist-ewoc)))))
          (summary (car (split-string log-message "\n"))))
     (if (not (bzr-revision-at-point-localp))
         (message "Not a local revision: %s - no commit notification prepared." rev)
@@ -579,33 +577,33 @@ of the commit. Additionally the destination email address can be specified."
             (t (error "unrecognized context in bzr-parse-status")))
       (forward-line 1))))
 
-(defun bzr-dvc-status ()
-  "Run \"bzr status\" in `default-directory', which must be a tree root."
-  (let* ((window-conf (current-window-configuration))
-         (root default-directory)
+(defun bzr-dvc-status (no-switch)
+  "For `dvc-status'."
+  (let* ((root default-directory)
          (buffer (dvc-prepare-changes-buffer
                   `(bzr (last-revision ,root 1))
                   `(bzr (local-tree ,root))
-                  'status root 'bzr)))
+                  'status root 'bzr))
+	 status)
     (dvc-switch-to-buffer-maybe buffer)
-    (dvc-buffer-push-previous-window-config window-conf)
     (setq dvc-buffer-refresh-function 'bzr-dvc-status)
-    (dvc-run-dvc-async
+    (dvc-run-dvc-sync
      'bzr '("status")
      :finished
-     (dvc-capturing-lambda (output error status arguments)
-       (with-current-buffer (capture buffer)
+     (lambda (output error status arguments)
+       (with-current-buffer output
          (if (> (point-max) (point-min))
-             (dvc-show-changes-buffer output 'bzr-parse-status
-                                      (capture buffer))
-           (dvc-diff-no-changes (capture buffer)
-                                "No changes in %s"
-                                (capture root))))
-       :error
-       (dvc-capturing-lambda (output error status arguments)
-         (dvc-diff-error-in-process (capture buffer)
-                                    "Error in diff process"
-                                    output error))))))
+	     (progn
+	       (dvc-show-changes-buffer output 'bzr-parse-status buffer)
+	       (setq status (cons buffer 'need-commit)))
+
+	   (dvc-diff-no-changes buffer "No changes in %s" root)
+	   (setq status (cons buffer 'ok))
+	   )))
+     :error
+     (lambda (output error status arguments)
+       (dvc-diff-error-in-process buffer "Error in diff process" output error))
+     )))
 
 (defun bzr-parse-inventory (changes-buffer)
   ;;(dvc-trace "bzr-parse-inventory (while)")
@@ -1225,10 +1223,8 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
 (defun bzr-annotate ()
   "Run bzr annotate"
   (interactive)
-  (let* ((line (dvc-line-number-at-pos))
-         (filename (dvc-confirm-read-file-name "Filename to annotate: ")))
-    (bzr-do-annotate filename)
-    (goto-line line)))
+  (save-excursion
+    (bzr-do-annotate (dvc-confirm-read-file-name "Filename to annotate: "))))
 
 (defconst bzr-annon-parse-re
   "^\\(\\S-*\\)\\s-+\\(\\S-*\\)\\s-+\\([0-9]\\{4\\}\\)\\([0-9]\\{2\\}\\)\\([0-9]\\{2\\}\\)\\s-+|")
@@ -1250,7 +1246,7 @@ File can be, i.e. bazaar.conf, ignore, locations.conf, ..."
   (dvc-annotate-display-autoscale t)
   (dvc-annotate-lines (point-max))
   ;;(xgit-annotate-hide-revinfo)
-  (toggle-read-only 1))
+  (setq buffer-read-only t))
 
 (defun bzr-switch-checkout (target)
   "Switch the checkout to the branch TARGET"
@@ -1306,7 +1302,7 @@ this function."
   (require 'mml)
 
   (let* ((rev (bzr-get-revision-at-point))
-         (log-message (bzr-revision-st-message (dvc-revlist-current-patch-struct)))
+         (log-message (bzr-revision-st-message (ewoc-data (ewoc-locate dvc-revlist-ewoc))))
          (base-file-name nil)
          (summary (car (split-string log-message "\n")))
          (file-name nil)

@@ -1,6 +1,6 @@
 ;;; dvc-defs.el --- Common definitions for DVC
 
-;; Copyright (C) 2005-2009 by all contributors
+;; Copyright (C) 2005-2009, 2013 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributors: Matthieu Moy, <Matthieu.Moy@imag.fr>
@@ -464,7 +464,8 @@ and 'single-window"
   :type '(choice (const pop-to-buffer)
                  (const single-window)
                  (const dedicated-frame)
-                 (const show-in-other-window))
+                 (const show-in-other-window)
+		 (const reuse-window))
   :group 'dvc)
 
 (defgroup dvc-file-actions nil

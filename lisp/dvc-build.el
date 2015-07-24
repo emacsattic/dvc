@@ -1,6 +1,6 @@
 ;;; dvc-build.el --- compile-time helper.
 
-;; Copyright (C) 2004-2008 by all contributors
+;; Copyright (C) 2004-2008, 2012, 2013 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;;      Thien-Thi Nguyen <ttn@gnuvola.org>
@@ -54,12 +54,12 @@
   (when (file-exists-p filename)
     (delete-file filename)))
 
-(require 'cl)
+(require 'cl-lib) ;; runtime
 (require 'loadhist)
 (require 'bytecomp)
 
-(defun f-set-difference (a b) (set-difference a b :test 'string=))
-(defun f-intersection   (a b) (intersection   a b :test 'string=))
+(defun f-set-difference (a b) (cl-set-difference a b :test 'string=))
+(defun f-intersection   (a b) (cl-intersection   a b :test 'string=))
 
 (defun srcdir/ (filename)
   (expand-file-name filename srcdir))
@@ -132,12 +132,10 @@
   (autoload 'line-beginning-position  "dvc-xemacs.el")
   (autoload 'line-end-position        "dvc-xemacs.el")
   (autoload 'match-string-no-properties "dvc-xemacs.el")
-  (autoload 'tla--run-tla-sync        "tla-core.el")
   (autoload 'dvc-switch-to-buffer     "dvc-buffers.el")
   (autoload 'dvc-trace                "dvc-utils.el")
   (autoload 'dvc-flash-line           "tla")
   (autoload 'tla-tree-root            "tla")
-  (autoload 'tla--name-construct      "tla-core")
   (defalias 'dvc-cmenu-mouse-avoidance-point-position
     'mouse-avoidance-point-position)
   ;; External things
@@ -266,7 +264,7 @@ fixed in Emacs after 21.3."
 
 (defun missing-or-old-elc ()
   "Return the list of .el files newer than their .elc."
-  (remove-if-not (lambda (file)
+  (cl-remove-if-not (lambda (file)
                    (let ((source (srcdir/ file))
                          (elc (byte-compile-dest-file file)))
                      (or (not (file-exists-p elc))
@@ -296,12 +294,21 @@ fixed in Emacs after 21.3."
       ad-do-it))
   (put 'define-derived-mode 'doc-string-elt 3))
 
+(defun dvc-update-autoloads ()
+  ;; for working with uncompiled sources
+  (let ((generated-autoload-file  (expand-file-name --autoloads-filename)))
+    (batch-update-autoloads)
+    ))
+
 ;; Update custom-autoloads and autoloads (merging them for GNU Emacs),
 ;; and compile everything that needs compiling.
 (defun dvc-build-all ()
-  ;; The default warnings don't look so bad to me!
-  ;;(unless command-line-args-left
-  ;;  (setq byte-compile-warnings --warnings))
+  ;; interactive-p is obsolete in 23.2, and we get warnings about it
+  ;; in 24.2, but we are still supporting 23.1, which doesn't define
+  ;; the replacement called-interactively-p. So suppress that warning
+  ;; unless verbose. Also suppress warning about cl package runtime
+  (unless command-line-args-left
+    (setq byte-compile-warnings '(not obsolete cl-functions)))
   (setq command-line-args-left nil)
 
   (let ((fake-c-l-a-l (list srcdir))

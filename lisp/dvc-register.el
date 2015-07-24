@@ -1,13 +1,13 @@
 ;;; dvc-register.el --- Registration of DVC back-ends
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2008, 2012-2013, 2015 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from: Matthieu Moy <Matthieu.Moy@imag.fr>
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
+;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 
 ;; This file is distributed in the hope that it will be useful,
@@ -44,52 +44,16 @@ It's a macro, so it can be called without loading dvc-unified. The
 build system inserts a (eval-when-compile (require 'dvc-unified))
 at the beginning of the autoload file, so, the macro is available in
 the autoloads."
-  ;; make sure dvc-back-end-wrappers is defined.
-  (require 'dvc-unified)
-  (let ((wrappers-defs
-         (mapcar (lambda (wrapper)
-                   (let* ((dvc-noquote (cadr dvc))
-                          (name (nth 0 wrapper))
-                          (symb (intern (concat (symbol-name
-                                                 dvc-noquote)
-                                                "-"
-                                                name)))
-                          (symb-dvc (intern (concat "dvc-"
-                                                    name)))
-                          (args (nth 1 wrapper))
-                          (call-args (remove '&rest (remove '&optional args)))
-                          (docstring (concat "Wrapper for dvc-" name
-                                             ", for back-end "
-                                             (symbol-name dvc-noquote)
-                                             ".")))
-                     `(defun ,symb ,args
-                        ,docstring
-                        (interactive)
-                        (let ((dvc-temp-current-active-dvc ,dvc))
-                          ,(if call-args
-                               `(if (interactive-p)
-                                    (call-interactively (quote ,symb-dvc))
-                                  (funcall (quote ,symb-dvc) ,@call-args))
-                             `(call-interactively (quote ,symb-dvc)))))))
-                 dvc-back-end-wrappers
-                 )))
-    `(progn
-       (defvar dvc-registered-backends nil)
-       (add-to-list 'dvc-registered-backends ,dvc)
-       (defvar ,(intern (concat (symbol-name (cadr dvc))
-                                "-backend-name"))
-         ,name
-         ,(concat "Human friendly name used for the dvc backend '"
-                  (symbol-name (cadr dvc))
-                  ".\nThis variable was created by `dvc-register-dvc'"))
-       ;; the hard thing is to make sure all back-ends define all
-       ;; functions.
-       ;; some dvc-register-dvc will be called before processing DVC
-       ;; core's autoloads (_b_az, _b_zr, ...), some after (_x_hg,
-       ;; _x_git, ...), since it's done in alphabetical order. here,
-       ;; we make sure all functions are declared, and since
-       ;; dvc-register-dvc is called for each back-end, we've got it.
-       ,@wrappers-defs)))
+  `(progn
+     (defvar dvc-registered-backends nil)
+     (add-to-list 'dvc-registered-backends ,dvc)
+     (defvar ,(intern (concat (symbol-name (cadr dvc))
+			      "-backend-name"))
+       ,name
+       ,(concat "Human friendly name used for the dvc backend '"
+		(symbol-name (cadr dvc))
+		".\nThis variable was created by `dvc-register-dvc'"))
+     ))
 
 (defvar dvc-backend-name "Unknown")
 
@@ -102,13 +66,16 @@ instead.
 
 POSTFIX is a string."
   (let ((res (dvc-intern-symbol-name dvc postfix)))
-    (if (or nodefault (fboundp res)) res
-      (let ((dvc-register-sym (intern (concat (symbol-name dvc) "-dvc"))))
-        (unless (featurep dvc-register-sym)
-          (dvc-trace "require %S" dvc-register-sym)
+    (if (or nodefault (fboundp res))
+	res
+      ;; maybe it's not loaded yet
+      (let ((feature-sym (intern (concat (symbol-name dvc) "-dvc"))))
+        (unless (featurep feature-sym)
+          (dvc-trace "require %S" feature-sym)
           (if (featurep 'xemacs)
-              (require dvc-register-sym nil)
-            (require dvc-register-sym nil t))))
+              (require feature-sym nil)
+            (require feature-sym nil t))))
+
       (let ((second-try (dvc-function dvc postfix t)))
         (if (fboundp second-try) second-try
           (let ((fall-back (dvc-intern-symbol-name 'dvc postfix)))
@@ -124,13 +91,15 @@ POSTFIX is a string."
 If NODEFAULT is nil and no variable is available for this
 backend, use dvc-<prefix> instead."
   (let ((res (dvc-intern-symbol-name dvc postfix)))
-    (if (or nodefault (boundp res)) (eval res)
-      (let ((dvc-register-sym (intern (concat (symbol-name dvc) "-dvc"))))
-        (unless (featurep dvc-register-sym)
-          (dvc-trace "require %S" dvc-register-sym)
+    (if (or nodefault (boundp res))
+	(eval res)
+      ;; maybe it's not loaded yet
+      (let ((feature-sym (intern (concat (symbol-name dvc) "-dvc"))))
+        (unless (featurep feature-sym)
+          (dvc-trace "require %S" feature-sym)
           (if (featurep 'xemacs)
-              (require dvc-register-sym nil)
-            (require dvc-register-sym nil t))))
+              (require feature-sym nil)
+            (require feature-sym nil t))))
       (let ((second-try (dvc-variable dvc postfix t)))
         second-try))))
 

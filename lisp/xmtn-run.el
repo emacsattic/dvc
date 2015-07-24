@@ -1,6 +1,6 @@
 ;;; xmtn-run.el --- Functions for runnning monotone commands
 
-;; Copyright (C) 2008 - 2011 Stephen Leake
+;; Copyright (C) 2008 - 2014 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2 of the License, or
+;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This file is distributed in the hope that it will be useful,
@@ -32,14 +32,9 @@
 ;;; There are some notes on the design of xmtn in
 ;;; docs/xmtn-readme.txt.
 
-(eval-and-compile
-  (require 'cl)
-  (require 'dvc-unified)
-  (when (featurep 'xemacs)
-    (condition-case nil
-        (require 'un-define)
-      (error nil)))
-  (require 'xmtn-base))
+(require 'cl-lib)
+(require 'dvc-unified)
+(require 'xmtn-base)
 
 (define-coding-system-alias 'xmtn--monotone-normal-form 'utf-8-unix)
 
@@ -48,7 +43,7 @@
   ;; DVC expects monotone messages in the C locale
   (cons "LC_MESSAGES=C" env))
 
-(defun* xmtn--run-command-sync (root arguments)
+(cl-defun xmtn--run-command-sync (root arguments)
   (xmtn--check-cached-command-version)
   (let ((default-directory (file-truename (or root default-directory))))
     (dvc-run-dvc-sync
@@ -60,7 +55,7 @@
        ;; non-Cygwin Emacs.
        ,@arguments))))
 
-(defun* xmtn--run-command-async (root arguments &rest dvc-run-keys &key)
+(cl-defun xmtn--run-command-async (root arguments &rest dvc-run-keys &key)
   (xmtn--check-cached-command-version)
   (let ((default-directory (or root default-directory)))
     (apply #'dvc-run-dvc-async
@@ -130,8 +125,8 @@ id."
       (error (concat "Version output from monotone version"
 		     " did not match expected pattern: %S")
 	     version-string))
-    (let ((major (parse-integer version-string (match-beginning 1) (match-end 1)))
-	  (minor (parse-integer version-string (match-beginning 2) (match-end 2)))
+    (let ((major (cl-parse-integer version-string :start (match-beginning 1) :end (match-end 1)))
+	  (minor (cl-parse-integer version-string :start (match-beginning 2) :end (match-end 2)))
 	  (revision (match-string 4 version-string)))
       (list major minor revision version-string))))
 

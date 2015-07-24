@@ -1,6 +1,6 @@
 ;;; dvc-buffers.el --- Buffer management for DVC
 
-;; Copyright (C) 2005-2011 by all contributors
+;; Copyright (C) 2005-2014 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -25,7 +25,6 @@
 
 ;;
 
-(eval-when-compile (require 'cl))
 (eval-and-compile (require 'dvc-utils))
 (require 'dvc-ui)
 (require 'dvc-defs)
@@ -379,7 +378,7 @@ being deleted."
   "Major mode for process buffers. Mainly defines \\[bury-buffer]
 to quit the buffer"
   (dvc-install-buffer-menu)
-  (toggle-read-only 1))
+  (setq buffer-read-only t))
 
 
 (defvar dvc-switched-buffer nil)
@@ -389,19 +388,39 @@ to quit the buffer"
   "Switch to BUFFER using the user's preferred method.
 See `dvc-switch-to-buffer-mode' for possible settings."
   (setq dvc-switched-from-buffer (current-buffer))
-  (cond
-   (other-frame
-    (let ((display-reuse-frames t)
-          (pop-up-frames t)
-          (pop-up-frame-alist `((width . ,dvc-other-frame-width)
-                                (height . ,dvc-other-frame-height)
-                                (minibuffer . nil))))
-      (pop-to-buffer buffer)))
-   ((eq dvc-switch-to-buffer-mode 'pop-to-buffer)
+  (case dvc-switch-to-buffer-mode
+    (reuse-window
+     (let ((functions '(display-buffer-reuse-window))  ;; reuse window showing buffer in any frame
+	   (params
+	    `((inhibit-same-window . t)
+	      (reusable-frames . visible)
+	      (pop-up-frame-parameters
+	       ((width . ,dvc-other-frame-width)
+		(height . ,dvc-other-frame-height)
+		(minibuffer . nil)))))
+	   )
+       (if (or (eq other-frame 't)
+	       (and (not (null other-frame))
+		    (listp other-frame)
+		    (= (car other-frame) 16)));; C-u C-u
+	   ;; other frame
+	   (progn
+	     (when (functionp 'display-buffer-reuse-frame)
+	       (add-to-list 'functions 'display-buffer-reuse-frame t)) ;; reuse a window in other frame
+	     (add-to-list 'functions 'display-buffer-pop-up-frame t))
+
+	 ;; else other window
+	 (add-to-list 'functions 'display-buffer-use-some-window t))
+
+       (let ((display-buffer-overriding-action (cons functions params)))
+	 (pop-to-buffer buffer))
+      ))
+
+   (pop-to-buffer
     (pop-to-buffer buffer))
-   ((eq dvc-switch-to-buffer-mode 'single-window)
+   (single-window
     (switch-to-buffer buffer))
-   ((eq dvc-switch-to-buffer-mode 'show-in-other-window)
+   (show-in-other-window
     (pop-to-buffer buffer)
     (setq dvc-switched-buffer (current-buffer))
     (pop-to-buffer dvc-switched-from-buffer))
@@ -495,7 +514,7 @@ New buffer has type TYPE (default 'errors), mode MODE (default
         (submenu (make-sparse-keymap "Queue"))
         (i dvc-number-of-dead-process-buffer))
     ;; Debug QUEUE
-    (mapcar
+    (mapc
      (lambda (buffer)
        (when (buffer-live-p buffer)
          (define-key submenu (vector (make-symbol (buffer-name buffer)))
@@ -511,19 +530,19 @@ New buffer has type TYPE (default 'errors), mode MODE (default
       `(menu-item "Queue(DEBUG)"
                   ,submenu
                   :enable dvc-show-internal-buffers-on-menu))
-    (mapcar
+    (mapc
      (lambda (item)
        (let* ((dvc (car item))
               (type-list (cdr item))
               (dvc-label (capitalize (symbol-name dvc)))
               (submenu (make-sparse-keymap dvc-label)))
-         (mapcar
+         (mapc
           (lambda (type-list)
             (let* ((type-label
                     (concat dvc-label "-"
                             (capitalize (symbol-name (car type-list)))))
                    (type-submenu (make-sparse-keymap type-label)))
-              (mapcar
+              (mapc
                (lambda (subitem)
                  (let ((path (car subitem))
                        (buffer (cadr subitem)))
@@ -640,8 +659,9 @@ just bury it."
              (if (> number 1) "s" "")))
   (setq dvc-buffers-tree nil))
 
-(defun dvc-kill-all-type (type)
-  "Kill all buffers of type TYPE."
+(defun dvc-kill-all-type (type &optional no-message)
+  "Kill all buffers of type TYPE.
+Return number killed."
   (let ((number 0))
     (dolist (dvc-kind dvc-buffers-tree)
       (dolist (type-cons (cdr dvc-kind))
@@ -649,14 +669,20 @@ just bury it."
             (dolist (path-buffer (cdr type-cons))
               (setq number (1+ number))
               (kill-buffer (cadr path-buffer))))))
-    (message "Killed %d buffer%s" number
-             (if (> number 1) "s" ""))))
+    (when (not no-message)
+      (message "Killed %d buffer%s" number
+	       (if (> number 1) "s" "")))
+    number))
 
 (defun dvc-kill-all-review ()
-  "Kill all buffers used in reviews; showing previous revisions."
+  "Kill all buffers used in reviews (buffers showing previous revisions)."
   (interactive)
-  (dvc-kill-all-type 'revision)
-  (dvc-kill-all-type 'last-revision))
+  (let ((number (+ (dvc-kill-all-type 'previous-revision t)
+		   (dvc-kill-all-type 'last-revision t)
+		   (dvc-kill-all-type 'revision t))))
+    (message "Killed %d buffer%s" number
+	     (if (> number 1) "s" ""))
+  ))
 
 (defun dvc-kill-all-workspace (workspace)
   "Kill all buffers whose files are in the WORKSPACE tree."

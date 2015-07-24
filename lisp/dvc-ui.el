@@ -1,6 +1,6 @@
 ;;; dvc-ui.el --- User interface (keybinding, menus) for DVC
 
-;; Copyright (C) 2005-2009 by all contributors
+;; Copyright (C) 2005-2009, 2014 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -114,7 +114,7 @@
 (defvar dvc-key-show-bookmark ?b)       ; show bookmark
 (defvar dvc-key-diff-prefix ?d)
 ;;;###autoload
-(defvar dvc-key-file-diff ?d)
+(defvar dvc-key-file-diff ?=)
 ;;;###autoload
 (defvar dvc-key-tree-lint ?l)
 ;;;###autoload

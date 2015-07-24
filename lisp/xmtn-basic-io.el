@@ -1,6 +1,6 @@
 ;;; xmtn-basic-io.el --- A parser for monotone's basic_io output format
 
-;; Copyright (C) 2008, 2010 Stephen Leake
+;; Copyright (C) 2008, 2010, 2013, 2014 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -9,7 +9,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2 of the License, or
+;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This file is distributed in the hope that it will be useful,
@@ -56,10 +56,8 @@
 ;;; would have to be a bare symbol, while `id' and `string' would be
 ;;; cons cells; with lists, the representation is more uniform.
 
-(eval-and-compile
-  (require 'cl)
-  (require 'xmtn-base)                  ; for xmtn--hash-id
-  )
+(eval-when-compile (require 'cl-macs))
+(eval-and-compile (require 'xmtn-base)) ;; for xmtn--hash-id
 
 (defvar xmtn-basic-io--*syntax-table*
   (let ((table (make-syntax-table)))
@@ -71,7 +69,7 @@
     table))
 
 (defsubst xmtn-basic-io--unescape-field (string)
-  (loop with start = 0
+  (cl-loop with start = 0
         while (string-match "\\\\" string start)
         do (setq string (replace-match "" t t string))
         do (setq start (1+ (match-end 0))))
@@ -141,7 +139,7 @@ Possible classes are `string', `null-id', `id', `symbol'."
   (xmtn-basic-io--skip-white-space)
   (prog1
       (list* (xmtn-basic-io--read-key)
-             (loop while (progn
+             (cl-loop while (progn
                       (xmtn-basic-io--skip-white-space)
                       (not (eq (char-after) ?\n)))
                    collect (xmtn-basic-io--read-field)))
@@ -166,7 +164,7 @@ Possible classes are `string', `null-id', `id', `symbol'."
 (defun xmtn-basic-io--next-stanza ()
   (let ((stanza (let ((accu nil)
                       (line nil))
-                  (loop do (setq line (xmtn-basic-io--next-parsed-line))
+                  (cl-loop do (setq line (xmtn-basic-io--next-parsed-line))
                         do (xmtn--assert-optional (not (and (null accu)
                                                             (eq line 'empty))))
                         until (memq line '(empty eof))
@@ -185,7 +183,7 @@ Possible classes are `string', `null-id', `id', `symbol'."
   (defun xmtn-basic-io--generate-body-for-with-parser-form (parser-fn
                                                             parser-var
                                                             buffer-form body)
-    (let ((buffer (gensym)))
+    (let ((buffer (cl-gensym)))
       `(let ((,buffer ,buffer-form))
          (with-current-buffer ,buffer
            (set-syntax-table xmtn-basic-io--*syntax-table*)
@@ -225,7 +223,9 @@ again, and return nil."
          (let ((value (cdr line)))
            ,body-present
 	   t)
-       (beginning-of-line 0) ;; returns nil
+       (if (eq line 'eof)
+	   nil
+	 (beginning-of-line 0)) ;; returns nil
        )))
 
 (defmacro xmtn-basic-io-optional-line-2 (expected body-present)
@@ -272,7 +272,9 @@ return nil."
     (if (and (not (member line '(empty eof)))
 	     (string= (car line) expected-key))
 	t
-      (beginning-of-line 0) ;; returns nil
+      (if (eq line 'eof)
+	  nil
+	(beginning-of-line 0)) ;; returns nil
       )))
 
 (defun xmtn-basic-io-check-empty ()
@@ -281,7 +283,7 @@ return nil."
     (if (not (member line '(empty eof)))
         (error "expecting an empty line, found %s" line))))
 
-(defmacro* xmtn-basic-io-with-line-parser ((line-parser buffer-form) &body body)
+(cl-defmacro xmtn-basic-io-with-line-parser ((line-parser buffer-form) &body body)
   "Run BODY with LINE-PARSER bound to a parser that parses BUFFER-FORM.
 
 BUFFER-FORM should evaluate to a buffer that contains, between
@@ -321,8 +323,8 @@ and must not be called any more."
    'xmtn-basic-io--next-parsed-line
    line-parser buffer-form body))
 
-(defmacro* xmtn-basic-io-with-stanza-parser ((stanza-parser buffer-form)
-                                             &body body)
+(cl-defmacro xmtn-basic-io-with-stanza-parser ((stanza-parser buffer-form)
+					       &body body)
   "Run BODY with STANZA-PARSER bound to a parser that parses BUFFER-FORM.
 
 BUFFER-FORM should evaluate to a buffer that contains,

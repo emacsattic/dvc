@@ -1,5 +1,6 @@
 ;;; xmtn-match.el --- A macro for pattern-matching
 
+;; Copyright (C) 2013-2015 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -7,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2 of the License, or
+;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This file is distributed in the hope that it will be useful,
@@ -44,6 +45,7 @@
 ;;; There are some notes on the design of xmtn in
 ;;; docs/xmtn-readme.txt.
 
+;; FIXME: converting this to cl-macs gives lots of errors
 (eval-and-compile
   (require 'cl))
 
@@ -72,14 +74,14 @@
        (eql (aref (symbol-name thing) 0) var-name-prefix-char)))
 
 (defun xmtn-match--contains-match-variable-p (thing var-name-prefix-char)
-  (labels ((walk (thing)
+  (cl-labels ((walk (thing)
             (or
              (xmtn-match--match-variable-p thing var-name-prefix-char)
              (etypecase thing
                (cons (or (walk (car thing))
                          (walk (cdr thing))))
                ((and array (not string) (not xmtn-match--bool-vector))
-                (some #'walk thing))
+                (cl-some #'walk thing))
                (xmtn-match--atom nil)))))
     (walk thing)))
 
@@ -88,10 +90,10 @@
 (defun xmtn-match--generate-branch (var-name-prefix-char
                                     match-block object pattern body)
   (let ((var-accu (list))
-        (pattern-block (gensym "pattern-test-")))
+        (pattern-block (cl-gensym "pattern-test-")))
     (let ((test
            `(and
-             ,@(labels
+             ,@(cl-labels
                    ;; The 'contains variable' check, the way it is
                    ;; implemented here, is grossly inefficient at
                    ;; compile-time.
@@ -110,7 +112,7 @@
                             (array nil)
                             (t t)))
                          (walk subsubobject-form subsubpattern)
-                       (let ((subsubobject (gensym)))
+                       (let ((subsubobject (cl-gensym)))
                          `((let ((,subsubobject ,subsubobject-form))
                              (and
                               ,@(walk subsubobject subsubpattern)))))))
@@ -120,7 +122,7 @@
                      (cond
                       ((xmtn-match--match-variable-p subpattern
                                                      var-name-prefix-char)
-                       (let ((var (intern (subseq (symbol-name subpattern) 1))))
+                       (let ((var (intern (cl-subseq (symbol-name subpattern) 1))))
                          (cond ((member var var-accu)
                                 `((equal ,subobject ,var)))
                                (t
@@ -162,16 +164,6 @@
              ,test
            (return-from ,match-block (progn ,@body)))))))
 
-;; Make sure the function is compiled to avoid stack overflows.
-;; Without this, DVC fails to build (in my configuration), since it
-;; initially loads the elisp file as source.
-(byte-compile 'xmtn-match--generate-branch)
-;; I think the same may hold for this function (see message from Sam
-;; Steingold on the dvc-dev list, 2007-07-09), although I haven't
-;; tried very hard to reproduce it.
-(byte-compile 'xmtn-match--contains-match-variable-p)
-
-
 ;; Factored out for profiling.
 ;;;###autoload
 (defun xmtn-match--test (xmtn--thunk)
@@ -207,8 +199,8 @@ bool-vectors.
   ;; clause subsumes a subsequent one and issuing a warning.
   (let ((macro-name 'xmtn-match)
         (var-name-prefix-char ?$)
-        (object (gensym "object-"))
-        (match-block (gensym "match-form-")))
+        (object (cl-gensym "object-"))
+        (match-block (cl-gensym "match-form-")))
     `(let ((,object ,object-form))
        (block ,match-block
          ,@(loop

@@ -1,6 +1,6 @@
 ;;; bzr-gnus.el --- bzr dvc integration to gnus
 
-;; Copyright (C) 2008 by all contributors
+;; Copyright (C) 2008, 2013 by all contributors
 
 ;; Author: Stefan Reichoer <stefan@xsteve.at>
 
@@ -83,9 +83,8 @@ with the branch location."
                            `(bzr (revision (local "" ,(string-to-number revnr))))
                            nil
                            archive-location))
-          (save-excursion
-            (set-buffer diff-buffer)
-            (dvc-buffer-push-previous-window-config window-conf)))
+          (with-current-buffer diff-buffer
+	    (dvc-buffer-push-previous-window-config window-conf)))
       (message "No external bzr patch found in this article.")
       (set-window-configuration window-conf))))
 
@@ -130,7 +129,7 @@ Example setting: '((\"dvc-dev@gna.org\" \"~/work/bzr/dvc\"))"
     (set-window-configuration window-conf)
     (when (and import-dir (y-or-n-p "Run bzr status in merged tree? "))
       (let ((default-directory import-dir))
-        (bzr-status)
+        (bzr-dvc-status nil)
         (delete-other-windows)))))
 
 (defun bzr-gnus-article-pull-bundle-in-branch (n)
@@ -154,5 +153,3 @@ Example setting: '((\"dvc-dev@gna.org\" \"~/work/bzr/dvc\"))"
 
 (provide 'bzr-gnus)
 ;;; bzr-gnus.el ends here
-
-

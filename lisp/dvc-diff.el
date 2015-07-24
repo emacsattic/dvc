@@ -1,6 +1,6 @@
 ;;; dvc-diff.el --- A generic diff mode for DVC
 
-;; Copyright (C) 2005-2010 by all contributors
+;; Copyright (C) 2005-2015 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -33,8 +33,6 @@
 (require 'dvc-defs)
 (require 'dvc-core)
 (require 'dvc-fileinfo)
-(eval-when-compile
-  (require 'cl))
 
 (defvar dvc-diff-base nil
   "BASE revision-id for the changes currently displayed.")
@@ -195,7 +193,7 @@ Pretty-print ELEM."
     ;; the merge group
     (define-key map (dvc-prefix-merge ?u)                     'dvc-update)
     (define-key map (dvc-prefix-merge ?f)                     'dvc-pull) ;; hint: fetch, p is reserved for push
-    (define-key map (dvc-prefix-merge ?m)  '(lambda () (interactive) (dvc-missing nil default-directory)))
+    (define-key map (dvc-prefix-merge ?m)  '(lambda () (interactive) (dvc-missing default-directory)))
     (define-key map (dvc-prefix-merge ?M)                     'dvc-merge)
     map)
   "Keymap used in `dvc-diff-mode'.")
@@ -229,7 +227,7 @@ Pretty-print ELEM."
     ("Merge"
      ["Update" dvc-update t]
      ["Pull" dvc-pull t]
-     ["Show missing" (lambda () (interactive) (dvc-missing nil default-directory)) t]
+     ["Show missing" (lambda () (interactive) (dvc-missing default-directory)) t]
      ["Merge" dvc-merge t]
      )
     ("Mark"
@@ -394,7 +392,7 @@ If on a message, mark the group to the next message."
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo
       (dvc-fileinfo-file
-       (dvc-fileinfo-mark-file))
+       (dvc-fileinfo-mark-file nil))
 
       (dvc-fileinfo-message
        (dvc-diff-mark-group))
@@ -432,8 +430,8 @@ a 'file."
         (dvc-trace "mark/unmark %S" file)
         (if (dvc-fileinfo-file-p fileinfo)
             (if unmark
-                (dvc-fileinfo-unmark-file)
-              (dvc-fileinfo-mark-file))
+                (dvc-fileinfo-unmark-file nil)
+              (dvc-fileinfo-mark-file nil))
           ;; legacy
           (if unmark
               (setq dvc-buffer-marked-file-list
@@ -478,9 +476,12 @@ file after."
   (interactive)
   (dvc-diff-unmark-file t))
 
-(defun dvc-diff-diff ()
+(defun dvc-diff-diff (&optional file-choice)
   "Show diff for file at point."
   (interactive)
+  (when file-choice
+    (error "dvc-diff-diff: `file-choice' not implemented yet"))
+
   (let ((on-modified-file (dvc-get-file-info-at-point)))
     (if on-modified-file
         (let ((buf (current-buffer)))
@@ -588,18 +589,20 @@ This is just a lint trap.")
 (defun dvc-show-changes-buffer (buffer parser &optional
                                        output-buffer no-switch
                                        header-end-regexp cmd)
-  "Show the *{dvc}-diff* buffer built from the *{dvc}-process* BUFFER.
+  "Show the OUTPUT-BUFFER built from the *{dvc}-process* BUFFER.
 default-directory of process buffer must be a tree root.
 
-PARSER is a function to parse the diff and fill in the
+PARSER is a function to parse the back-end output and fill in a
 dvc-fileinfo-ewoc list; it will be called with one arg,
 OUTPUT-BUFFER. Data to be parsed will be in current buffer.
-dvc-header will have been set as described below. After PARSER is
-called, dvc-header is set as the dvc-fileinfo-ewoc header, and
-OUTPUT-BUFFER contents are set as the dvc-fileinfo-ewoc footer.
+dvc-header will have been set as described below.
 
-Display changes in OUTPUT-BUFFER (must be non-nil; create with
-dvc-prepare-changes-buffer).
+After PARSER is called, dvc-header is set as the
+dvc-fileinfo-ewoc header, and OUTPUT-BUFFER from point to end of
+buffer contents are set as the dvc-fileinfo-ewoc footer.
+
+OUTPUT-BUFFER must be non-nil; create with
+dvc-prepare-changes-buffer.
 
 If NO-SWITCH is nil, don't switch to the created buffer.
 
@@ -638,7 +641,7 @@ CMD, if non-nil, is prepended to dvc-header."
                                 (point))))))
         (beginning-of-line)
         (funcall parser changes-buffer)
-        ;; Footer is back-end output from point to end-of-buffer; should be the diff output.
+        ;; Footer is back-end output from point to end-of-buffer
         (let ((footer (concat
                        (dvc-face-add (make-string  72 ?\ ) 'dvc-separator)
                        "\n\n"
@@ -648,16 +651,7 @@ CMD, if non-nil, is prepended to dvc-header."
             (ewoc-set-hf dvc-fileinfo-ewoc dvc-header footer)
             (if root (cd root)))))))
   (setq buffer-read-only t)
-  (if (progn (goto-char (point-min))
-             (re-search-forward "^---" nil t))
-      (when (or global-font-lock-mode font-lock-mode)
-        (let ((font-lock-verbose nil))
-          (font-lock-fontify-buffer)))
-    ;; Disabling font-lock mode (it's useless and it removes other
-    ;; faces with Emacs 21)
-    (setq font-lock-keywords nil)
-    (font-lock-mode -1)
-    (ewoc-refresh dvc-fileinfo-ewoc))
+
   (if (ewoc-nth dvc-fileinfo-ewoc 0)
       (goto-char (ewoc-location (ewoc-nth dvc-fileinfo-ewoc 0)))))
 
@@ -757,7 +751,7 @@ Useful to clear diff buffers after a commit."
                               (dvc-fileinfo-remove-files "remove")
                               (dvc-fileinfo-rename "rename"))))))
 
-      (modified
+      ((modified copy-target rename-target)
        ;; Don't offer undo here; not a common action
        (if (dvc-diff-in-ewoc-p)
            (if (< 1 length-marked-elems)
@@ -767,10 +761,9 @@ Useful to clear diff buffers after a commit."
              (error "cannot add a log entry for more than one file")
            (dvc-diff-add-log-entry))))
 
-      ((copy-source copy-target rename-source rename-target)
+      ((copy-source rename-source)
        ;; typically nothing to do; just need commit
-       (ding)
-       (dvc-fileinfo-next))
+       (message "try again on target"))
 
       (unknown
        (cond
@@ -787,9 +780,14 @@ Useful to clear diff buffers after a commit."
       )))
 
 ;;;###autoload
-(defun dvc-file-ediff (file)
-  "Run ediff of FILE (default current buffer file) against last revision."
+(defun dvc-file-ediff (file &optional file-choice)
+  "Run ediff between FILE (default current buffer file) workspace, staged, or base revisions.
+FILE-CHOICE is one of 'work-staged 'work-base 'staged-base (default 'work-base)."
   (interactive (list (buffer-file-name)))
+  (unless file-choice (setq file-choice 'work-base))
+  ;; FIXME: need interface to check if backend thinks files are not
+  ;; suitable for ediff (ie mtn manual_merge attribute)
+  ;;
   ;; Setting `enable-local-variables' nil here is something of a
   ;; trade-off. In some buffers (Makefiles), the local variables may
   ;; include expressions that parse project files, which can take a
@@ -798,14 +796,51 @@ Useful to clear diff buffers after a commit."
   ;; want in ediff. The only general solution is to define a subset of
   ;; local variables that are desireable for ediff; we can't do that
   ;; just in DVC.
-  (let ((enable-local-variables nil))
+  (let ((enable-local-variables nil)
+	a-buffer b-buffer)
+
+    (cl-ecase file-choice
+      (work-base
+       (setq b-buffer (find-file-noselect file))
+       (setq a-buffer
+	     (dvc-revision-get-file-in-buffer
+	      file
+	      (list (dvc-current-active-dvc)
+		    (list 'last-revision (dvc-tree-root file t) 1)))))
+
+      (work-staged
+       (setq b-buffer (find-file-noselect file))
+       (setq a-buffer
+	     (dvc-revision-get-file-in-buffer
+	      file
+	      (list (dvc-current-active-dvc)
+		    (list 'staged-revision (dvc-tree-root file t))))))
+
+      (staged-base
+       (setq b-buffer
+	     (dvc-revision-get-file-in-buffer
+	      file
+	      (list (dvc-current-active-dvc)
+		    (list 'staged-revision (dvc-tree-root file t)))))
+       (setq a-buffer
+	     (dvc-revision-get-file-in-buffer
+	      file
+	      (list (dvc-current-active-dvc)
+		    (list 'last-revision (dvc-tree-root file t) 1)))))
+
+      )
+    (dvc-ediff-buffers a-buffer b-buffer)))
+
+(defun dvc-file-ediff-rev (rev)
+  "Run ediff current buffer file against REV (a back end revision string)."
+  (interactive "Mbackend revision string: ")
+  ;; see dvc-file-ediff for comment on 'enable-local-variables'
+  (let ((enable-local-variables nil)
+	(file (buffer-file-name)))
     (let ((file-buffer (find-file-noselect file))
           (pristine-buffer
            (dvc-revision-get-file-in-buffer
-            file `(,(dvc-current-active-dvc)
-                   (last-revision
-                    ,(dvc-tree-root file t)
-                    1)))))
+            file (list (dvc-current-active-dvc) (list 'revision rev)))))
       (with-current-buffer pristine-buffer
         (set-buffer-modified-p nil)
         (setq buffer-read-only t)

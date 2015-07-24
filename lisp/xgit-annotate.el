@@ -1,6 +1,6 @@
 ;;; xgit-annotate.el --- Git interface for dvc: mode for git-annotate style output
 
-;; Copyright (C) 2007-2009 by all contributors
+;; Copyright (C) 2007-2009, 2013 by all contributors
 
 ;; Author: Takuzo O'hara, <takuzo.ohara@gmail.com>
 
@@ -103,7 +103,7 @@ Commands:
             (forward-line 1))
           ;; point is at new revision so move back a line,
           (unless (= (point) (point-max))
-            (previous-line 1))
+            (forward-line -1))
           ;; match again to get position of right-bottom corner,
           (xgit-annotate-get-rev)
           ;; rectangular replace by white space, from start to end.

@@ -1,6 +1,6 @@
 ;;; xgit-log.el --- git interface for dvc: mode for git log style output
 
-;; Copyright (C) 2006-2009 by all contributors
+;; Copyright (C) 2006-2009, 2013 - 2015 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -29,11 +29,11 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-macs))
 
 (require 'dvc-revlist)
 
-(defstruct (xgit-revision-st)
+(cl-defstruct (xgit-revision-st)
   hash
   message
   author
@@ -43,115 +43,152 @@
   merge
   )
 
-;; copied and adapted from bzr-log-parse
-(defun xgit-log-parse (log-buffer location &optional remote missing)
-  "Parse the output of git log."
-  (dvc-trace "xgit-log-parse. location=%S" location)
-  (goto-char (point-min))
-  (let ((root location)
-        (intro-string)) ;; not used currently, but who knows
-    (when missing       ;; skip the first status output
-      (re-search-forward (concat "^commit " xgit-hash-regexp "\n"))
-      (beginning-of-line)
-      (setq intro-string (buffer-substring-no-properties (point-min) (point)))
-      (with-current-buffer log-buffer
-        (let ((buffer-read-only nil))
-          (insert intro-string))))
-    (dvc-trace-current-line)
-    (while (> (point-max) (point))
-      (dvc-trace "while")
-      (dvc-trace-current-line)
-      (let ((elem (make-xgit-revision-st)))
-        ;; As comments, with ";; |" as prefix is an example of output
-        ;; of git log --pretty=fuller, with the corresponding parser
-        ;; code below.
-        ;; |commit c576304d512df18fa30b91bb3ac15478d5d4dfb1
-        (re-search-forward (concat "^commit \\(" xgit-hash-regexp
-                                   "\\)\n"))
-        (setf (xgit-revision-st-hash elem) (match-string 1))
-        (dvc-trace "commit %S" (xgit-revision-st-hash elem))
-        ;; |Merge: f34f2b0... b13ef49...
-        ;; |Author:     Junio C Hamano <gitster@pobox.com>
-        ;; |AuthorDate: Wed Aug 15 21:38:38 2007 -0700
-        ;; |Commit:     Junio C Hamano <gitster@pobox.com>
-        ;; |CommitDate: Wed Aug 15 21:38:38 2007 -0700
-        (while (looking-at "^\\([^ \t\n]+\\): +\\([^ ].*\\)$")
-          (cond ((string= (match-string 1) "Author")
-                 (setf (xgit-revision-st-author elem)
-                       (match-string-no-properties 2)))
-                ((string= (match-string 1) "Commit")
-                 (setf (xgit-revision-st-commit elem)
-                       (match-string-no-properties 2)))
-                ((string= (match-string 1) "AuthorDate")
-                 (setf (xgit-revision-st-author-date elem)
-                       (match-string-no-properties 2)))
-                ((string= (match-string 1) "CommitDate")
-                 (setf (xgit-revision-st-commit-date elem)
-                       (match-string-no-properties 2)))
-                ((string= (match-string 1) "Merge")
-                 (setf (xgit-revision-st-merge elem)
-                       (match-string-no-properties 2))))
-          (forward-line 1))
-        ;; |
-        ;; |    Merge branch 'maint' to sync with 1.5.2.5
-        ;; |
-        ;; |    * maint:
-        ;; |      GIT 1.5.2.5
-        ;; |      git-add -u paths... now works from subdirectory
-        ;; |      Fix "git add -u" data corruption.
-        ;; |
-        ;; |
-        (forward-line 1)
-        (let ((start-point (point)))
-          (re-search-forward "^$")
-          ;; final blank line, or end of buffer.
-          (beginning-of-line)
-          (setf (xgit-revision-st-message elem)
-                (buffer-substring-no-properties
-                 start-point (point))))
-        (forward-line 1)
-        ;; elem now contains the revision structure.
-        (with-current-buffer log-buffer
-          (ewoc-enter-last
-           dvc-revlist-cookie
-           `(entry-patch
-             ,(make-dvc-revlist-entry-patch
-               :dvc 'xgit
-               :struct elem
-               :rev-id `(xgit (revision ,(xgit-revision-st-hash
-                                          elem))))))
-          (goto-char (point-min))
-          (dvc-revision-prev))))))
+(defun xgit-log-gen (log-args)
+  "For `dvc-revlist-generator'.
+Run 'git log --pretty=oneline LOG-ARGS, return list (header footer revs)."
+  (let ((done nil)
+	revs)
+    (dvc-run-dvc-sync
+     'xgit (cons "log" (cons "--pretty=oneline" log-args))
+     :finished
+     (lambda (output error status arguments)
+       (with-current-buffer output
+	 (goto-char (point-max))
+	 (forward-line -1)
+	 (while (not done)
+	   (setq revs (cons (buffer-substring-no-properties (point) (+ 40 (point))) revs))
+	   (if (bobp)
+	       (setq done t)
+	     (forward-line -1))
+	   )
+	 )))
+    (list
+     (list (format "Log for branch %s" (xgit-dvc-branch)));; header
+     nil ;; footer
+     revs)
+    ))
 
-(defun xgit-revision-list-entry-patch-printer (elem)
-  (insert (if (dvc-revlist-entry-patch-marked elem)
+;; FIXME: use dvc-revlist-setup, xgit-log-gen
+(defun xgit-log-parse (log-buffer &optional junk1)
+  ;; junk arg for dvc-build-revision-list location = root = default-directory
+  "Parse the output of git log, in current buffer. Enter into ewoc in LOG-BUFFER"
+  (goto-char (point-min))
+  (while (> (point-max) (point))
+    (let ((elem (xgit-log-parse-1)))
+      (with-current-buffer log-buffer
+	(ewoc-enter-last
+	 dvc-revlist-ewoc
+	 (make-dvc-revlist-entry
+	  :struct elem
+	  :rev-id `(xgit (revision ,(xgit-revision-st-hash elem)))))))))
+
+(defun xgit-revision-list-entry-patch-printer (data)
+  (insert (if (dvc-revlist-entry-marked data)
               (concat " " dvc-mark " ") "   "))
-  (let* ((struct (dvc-revlist-entry-patch-struct elem))
+  (let* ((struct (dvc-revlist-entry-struct data))
          (hash       (xgit-revision-st-hash struct))
-         (commit (or (xgit-revision-st-commit struct) "?"))
-         (author (or (xgit-revision-st-author struct) "?"))
-         (commit-date (or (xgit-revision-st-commit-date struct) "?"))
-         (author-date (or (xgit-revision-st-author-date struct) "?")))
+         (commit (xgit-revision-st-commit struct))
+         (author (xgit-revision-st-author struct))
+         (commit-date (xgit-revision-st-commit-date struct))
+         (author-date (xgit-revision-st-author-date struct)))
     (insert (dvc-face-add "commit" 'dvc-header) " " hash "\n")
-    (when dvc-revisions-shows-creator
-      (insert "   " (dvc-face-add "Commit:" 'dvc-header) " " commit "\n")
-      (unless (string= commit author)
-        (insert "   " (dvc-face-add "Author:" 'dvc-header) " " author "\n")))
-    (when dvc-revisions-shows-date
-      (insert "   " (dvc-face-add "CommitDate:" 'dvc-header) " "
-              commit-date "\n")
-      (unless (string= commit-date author-date)
-        (insert "   " (dvc-face-add "AuthorDate:" 'dvc-header) " "
-                author-date "\n")))
-    (when dvc-revisions-shows-summary
-      (newline)
-      (insert (replace-regexp-in-string
-               "^" "  " ;; indent by 4 already in git output, plus 3
-               ;; to leave room for mark.
-               (or (xgit-revision-st-message struct) "?")))
-      (newline)
-      ))
-  )
+    (if (string= commit author)
+	;; we don't compare the dates, because they are often different for some reason
+	(progn
+	  (insert "   " (dvc-face-add "Committer :" 'dvc-header) " " commit "\n")
+	  (insert "   " (dvc-face-add "CommitDate:" 'dvc-header) " " commit-date "\n"))
+
+      (when commit      (insert "   " (dvc-face-add "Committer :" 'dvc-header) " " commit "\n"))
+      (when commit-date (insert "   " (dvc-face-add "CommitDate:" 'dvc-header) " " commit-date "\n"))
+      (when author      (insert "   " (dvc-face-add "Author    :" 'dvc-header) " " author "\n"))
+      (when author-date (insert "   " (dvc-face-add "AuthorDate:" 'dvc-header) " " author-date "\n"))
+      )
+    (newline)
+    (insert (replace-regexp-in-string
+	     "^" "  " ;; indent by 4 already in git output, plus 3
+	     ;; to leave room for mark.
+	     (or (xgit-revision-st-message struct) "<no commit message>")))
+    (newline)
+    ))
+
+(defun xgit-log-parse-1 ()
+  "Parse one rev in 'git log --pretty=fuller' output, return an `xgit-revision-st' for it."
+  (let ((elem (make-xgit-revision-st)))
+    ;; |commit c576304d512df18fa30b91bb3ac15478d5d4dfb1
+    ;; |Merge: f34f2b0... b13ef49...
+    ;; |Author:     Junio C Hamano <gitster@pobox.com>
+    ;; |AuthorDate: Wed Aug 15 21:38:38 2007 -0700
+    ;; |Commit:     Junio C Hamano <gitster@pobox.com>
+    ;; |CommitDate: Wed Aug 15 21:38:38 2007 -0700
+    ;; |
+    ;; |    Merge branch 'maint' to sync with 1.5.2.5
+    ;; |
+    ;; |    * maint:
+    ;; |      GIT 1.5.2.5
+    ;; |      git-add -u paths... now works from subdirectory
+    ;; |      Fix "git add -u" data corruption.
+    ;; |
+    ;; |
+    ;;
+    ;; commit 9d0566c8f43f5bec96eb87069a58dd172a35e4ef
+    ;; Author: Joey Holliday <joeyholliday77@gmail.com>
+    ;; Date:   Tue Mar 11 12:37:53 2014 -0500
+    ;;
+    ;;     Implement Electric Solenoid
+    ;;
+    ;; next commit stanza
+    (re-search-forward (concat "^commit \\(" xgit-hash-regexp "\\)\n"))
+    (setf (xgit-revision-st-hash elem) (match-string 1))
+
+    ;; author, commitor, dates
+    (while (looking-at "^\\([^ \t\n]+\\): +\\([^ ].*\\)$")
+      (cond
+       ((string= (match-string 1) "Author")
+	(setf (xgit-revision-st-author elem) (match-string-no-properties 2)))
+
+       ((or
+	 (string= (match-string 1) "Date")
+	 (string= (match-string 1) "CommitDate"))
+	(setf (xgit-revision-st-commit-date elem) (match-string-no-properties 2)))
+
+       ((string= (match-string 1) "Commit")
+	(setf (xgit-revision-st-commit elem) (match-string-no-properties 2)))
+
+       ((string= (match-string 1) "AuthorDate")
+	(setf (xgit-revision-st-author-date elem) (match-string-no-properties 2)))
+
+       ((string= (match-string 1) "Merge")
+	(setf (xgit-revision-st-merge elem) (match-string-no-properties 2)))
+
+       );; cond
+      (forward-line 1)) ;; while
+
+    ;; message
+    (forward-line 1)
+    (let ((start-point (point)))
+      (re-search-forward "^$")
+      ;; final blank line, or end of buffer.
+      (beginning-of-line)
+      (setf (xgit-revision-st-message elem)
+	    (buffer-substring-no-properties
+	     start-point (point))))
+    (forward-line 1)
+    ;; elem now contains the revision structure.
+    elem))
+
+(defun xgit-dvc-revlist-entry (rev)
+  "For `dvc-revlist-entry'."
+  (dvc-run-dvc-sync
+   'xgit
+   (list "log" "--pretty=fuller" "--max-count=1" rev)
+   :finished
+   (dvc-capturing-lambda (output error status arguments)
+     (with-current-buffer output
+       (goto-char (point-min))
+       (make-dvc-revlist-entry
+	:rev-id (list 'xgit (list 'revision rev))
+	:struct (xgit-log-parse-1))))
+   ))
 
 (defun xgit-revlog-get-revision (rev-id)
   (let ((rev (car (dvc-revision-get-data rev-id))))
@@ -209,9 +246,12 @@ See also `xgit-log-max-count'."
   (xgit-log default-directory 1 :rev rev))
 
 
-;; copied and adapted from bzr-log
 ;;;###autoload
-(defun* xgit-log (dir &optional cnt &key log-regexp diff-match rev file since)
+(defun xgit-dvc-log (&optional path last-n)
+  "For `dvc-log'."
+  (xgit-log default-directory last-n :file path))
+
+(cl-defun xgit-log (dir &optional cnt &key log-regexp diff-match rev file since)
   "Run git log for DIR.
 DIR is a directory controlled by Git.
 CNT is max number of log to print.  If not specified, uses xgit-log-max-count.
@@ -228,16 +268,23 @@ FILE is filename in repostory to filter logs by matching filename."
          (fname (when file (file-relative-name file (xgit-tree-root dir))))
          (args  (list "log" "--pretty=fuller" count
                       since grep diff rev "--" fname)))
-    (dvc-build-revision-list 'xgit 'log (or dir default-directory) args
-                             'xgit-log-parse t nil nil
-                             (dvc-capturing-lambda ()
-                               (xgit-log (capture dir)
-                                         (capture cnt)
-                                         :log-regexp (capture log-regexp)
-                                         :diff-match (capture diff-match)
-                                         :rev (capture rev)
-                                         :file (capture file)
-                                         :since (capture since))))
+    (dvc-build-revision-list
+     'xgit  ; back-end
+     'log ; type
+     (or dir default-directory) ; location
+     args ; arglist
+     'xgit-log-parse ; parser
+     t ; brief
+     (or cnt xgit-log-max-count) ; last-n
+     nil ; path
+     (dvc-capturing-lambda (); refresh-fn
+       (xgit-log (capture dir)
+		 dvc-revlist-last-n
+		 :log-regexp (capture log-regexp)
+		 :diff-match (capture diff-match)
+		 :rev (capture rev)
+		 :file (capture file)
+		 :since (capture since))))
     (goto-char (point-min))))
 
 
@@ -258,7 +305,7 @@ FILE is filename in repostory to filter logs by matching filename."
 
     ;; the merge group
     (define-key map (dvc-prefix-merge ?f) 'dvc-pull) ;; hint: fetch, p is reserved for push
-    (define-key map (dvc-prefix-merge ?m) '(lambda () (interactive) (dvc-missing nil default-directory)))
+    (define-key map (dvc-prefix-merge ?m) '(lambda () (interactive) (dvc-missing default-directory)))
     map)
   "Keymap used in `xgit-changelog-mode'.")
 
@@ -345,7 +392,7 @@ negative : Don't show patches, limit to n revisions."
                               (insert-buffer-substring output)
                               (goto-char (point-min))
                               (insert (format "xgit log for %s\n\n" default-directory))
-                              (toggle-read-only 1))))))))
+                              (setq buffer-read-only t))))))))
 
 (defconst xgit-changelog-start-regexp "^commit \\([0-9a-f]+\\)$")
 (defun xgit-changelog-next (n)

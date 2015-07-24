@@ -1,6 +1,6 @@
 ;;; bzr-core.el --- Core of support for Bazaar 2 in DVC
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2008, 2014 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -47,6 +47,10 @@ bzr-managed tree (but return nil)."
                                              (interactive-p))
                         "%S is not a bzr-managed tree"
                         location no-error))
+
+;;;###autoload
+(defun bzr-dvc-workspace-p (dir)
+  (file-directory-p (concat dir "/.bzr/checkout")))
 
 ;;;###autoload
 (defun bzr-branch-root (&optional location no-error interactive)

@@ -1,6 +1,6 @@
 ;;; dvc-log.el --- Manipulation of the log before committing
 
-;; Copyright (C) 2005-2008, 2010 by all contributors
+;; Copyright (C) 2005-2008, 2010, 2012, 2014-2015 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -27,6 +27,7 @@
 
 ;;; Code:
 
+(require 'add-log)
 (require 'dvc-unified)
 (require 'ediff)
 (require 'vc)
@@ -40,7 +41,11 @@
 ;; Log edit mode
 ;;
 (defvar dvc-log-edit-font-lock-keywords
-  `(("^\t?\\* \\([^ ,:([\n]+\\)"
+  ;; * lisp/jde-ant.el: add missing requires, declares. use cl- names
+  ;; * lisp/jde-bug.el, lisp/jde-class.el: add missing requires, declares. use cl- names
+  ;; * lisp/jde-ant.el (jde-ant-compile-internal, jde-ant-compile-internal): some comment
+  ;;   (jde-ant-compile-internal, foo): delete obsolete compilation-parse-errors-function
+  `(("^\\* \\([^ ,:([\n]+\\)"
      (1 'change-log-file-face)
      ("\\=, \\([^ ,:([\n]+\\)" nil nil
       (1 'change-log-file-face))
@@ -48,8 +53,11 @@
       (1 'change-log-list-face))
      ("\\=, *\\([^) ,:\n]+\\)" nil nil
       (1 'change-log-list-face)))
-    ;;    (,(concat "^" (regexp-quote dvc-log-edit-file-list-marker) "$")
-    ;;     . 'dvc-header)
+
+    ("^  (\\([^) ,:\n]+\\)"
+     (1 'change-log-list-face)
+     ("\\=, *\\([^) ,:\n]+\\)" nil nil
+      (1 'change-log-list-face)))
     )
   "Keywords in dvc-log-edit mode.")
 
@@ -133,7 +141,7 @@ is reused."
       (let ((buffer-name (buffer-name))
             (file-name (dvc-log-edit-file-name)))
         (set-visited-file-name file-name t t)
-        ;; `set-visited-file-name' modifies default-directory
+        ;; `set-visited-file-name' modifies default-directory and buffer name
         (setq default-directory root)
         ;; Read in the current log file, unless the user has already
         ;; edited the buffer.
@@ -151,14 +159,14 @@ is reused."
   (set-window-configuration dvc-pre-commit-window-configuration))
 
 (defun dvc-log-close (buffer)
-  "Close the log buffer, and delete the file."
+  "Close BUFFER (should be a log buffer), and delete `dvc-log-edit-file-name'."
   (if vc-delete-logbuf-window
       (kill-buffer buffer)
     (quit-window))
   (delete-file (dvc-log-edit-file-name)))
 
 (defun dvc-log-flush-commit-file-list ()
-  "Remove the list of the files to commit.
+  "Remove the list of the files to commit from the current buffer.
 All lines starting with `dvc-log-edit-flush-prefix' are deleted."
   (interactive)
   (save-excursion
@@ -242,13 +250,13 @@ For use as add-log-file-name-function."
       (substring buffer-file (match-end 0))
     (file-name-nondirectory buffer-file)))
 
-(defun dvc-ediff-add-log-entry (&optional other-frame)
+(defun dvc-ediff-add-log-entry ()
   "Add new DVC log ChangeLog style entry; intended to be invoked
 from the ediff control buffer."
-  (interactive "P")
+  (interactive)
   (let ((dvc-temp-current-active-dvc dvc-buffer-current-active-dvc))
     (set-buffer ediff-buffer-B)         ; DVC puts workspace version here
-    (dvc-add-log-entry-internal other-frame)))
+    (dvc-add-log-entry-internal t)))
 
 (defun dvc-ediff-setup ()
   (define-key 'ediff-mode-map "t" 'dvc-ediff-add-log-entry)) ; matches dvc-diff-mode-map
@@ -264,26 +272,30 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
   ;; This is mostly copied from add-log.el.  Perhaps it would be better to
   ;; split add-change-log-entry into several functions and then use them, but
   ;; that wouldn't work with older versions of Emacs.
-  ;;
-  ;; We don't set add-log-file-name-function globally because
-  ;; dvc-diff-mode needs a different one.
   (if (not (featurep 'add-log)) (require 'add-log))
   (let* ((dvc-temp-current-active-dvc (dvc-current-active-dvc))
-         (add-log-file-name-function 'dvc-add-log-file-name)
-         (defun (add-log-current-defun))
+         (entry-defun (add-log-current-defun));; function point is in
          (buf-file-name (if (and (boundp 'add-log-buffer-file-name-function)
                                  add-log-buffer-file-name-function)
                             (funcall add-log-buffer-file-name-function)
                           buffer-file-name))
          (buffer-file (if buf-file-name (expand-file-name buf-file-name)))
-         (file-name (dvc-log-edit-file-name))
-         ;; Set ENTRY to the file name to use in the new entry.
-         (entry (add-log-file-name buffer-file file-name))
-         beg
+
+	 ;; We don't set add-log-file-name-function globally because
+	 ;; dvc-diff-mode needs a different one.
+         (add-log-file-name-function 'dvc-add-log-file-name)
+
+	 ;; Since we've bound add-log-file-name-function,
+	 ;; add-log-file-name just checks that buffer-file !=
+	 ;; (dvc-log-edit-log-file-name) to avoid creating a Changelog
+	 ;; entry for Changelog, then calls dvc-add-log-file-name.
+         (entry-file (add-log-file-name buffer-file (dvc-log-edit-file-name)))
+
+	 beg
          bound
          narrowing)
 
-    (dvc-log-edit other-frame t)
+    (dvc-log-edit other-frame t); create or select log-edit buffer
 
     (undo-boundary)
     (goto-char (point-min))
@@ -314,11 +326,11 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
     ;; Now insert the new line for this entry.
     (cond ((re-search-forward "^\\s *\\*\\s *$" bound t)
            ;; Put this file name into the existing empty entry.
-           (if entry
-               (insert entry)))
+           (if entry-file
+               (insert entry-file)))
           ((let (case-fold-search)
              (re-search-forward
-              (concat (regexp-quote (concat "* " entry))
+              (concat (regexp-quote (concat "* " entry-file))
                       ;; Don't accept `foo.bar' when
                       ;; looking for `foo':
                       "\\(\\s \\|[(),:]\\)")
@@ -340,8 +352,15 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
                (progn
                  (goto-char (point-max))
                  (re-search-backward "^." nil t)
-                 (end-of-line)
-                 (insert "\n\n* ")
+                 (forward-line 1)
+		 (if (< 0 (current-column))
+		     (insert "\n"))
+		 ;; Now on blank line after last entry. Delete any
+		 ;; whitespace between here and eob.
+		 (delete-region (point) (point-max))
+		 (if (bobp)
+		     (insert "\n\n* ")
+		   (insert "\n* "))
                  )
              (forward-line 1)
              (while (looking-at "\\sW")
@@ -352,12 +371,12 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
              (forward-line -2)
              (indent-to left-margin)
              (insert "* "))
-           (if entry (insert entry))))
+           (if entry-file (insert entry-file))))
     (if narrowing (widen))
     ;; Now insert the function name, if we have one.
     ;; Point is at the entry for this file,
     ;; either at the end of the line or at the first blank line.
-    (if defun
+    (if entry-defun
         (progn
           ;; Make it easy to get rid of the function name.
           (undo-boundary)
@@ -372,7 +391,7 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
                      (skip-chars-backward "):")
                      (looking-at "):")
                      (progn (delete-region (+ 1 (point)) (+ 2 (point))) t)
-                     (> fill-column (+ (current-column) (length defun) 3)))
+                     (> fill-column (+ (current-column) (length entry-defun) 3)))
                 (progn (delete-region (point) pos)
                        (insert ", "))
               (goto-char pos)
@@ -383,9 +402,9 @@ Inserts the entry in the dvc log-edit buffer instead of the ChangeLog."
           ;; implemented in all variants of (X)Emacs.  We could create
           ;; a compatibility function for it, but nobody else seems to
           ;; use it yet, so there is no point.
-          (when (re-search-backward (concat (regexp-quote defun) ",\\s *\\=") nil t)
+          (when (re-search-backward (concat (regexp-quote entry-defun) ",\\s *\\=") nil t)
             (replace-match ""))
-          (insert defun "): "))
+          (insert entry-defun "): "))
       ;; No function name, so put in a colon unless we have just a star.
       (unless (save-excursion
                 (beginning-of-line 1)

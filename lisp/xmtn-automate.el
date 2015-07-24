@@ -1,6 +1,6 @@
 ;;; xmtn-automate.el --- Interface to monotone's "automate" functionality
 
-;; Copyright (C) 2008 - 2011 Stephen Leake
+;; Copyright (C) 2008 - 2015 Stephen Leake
 ;; Copyright (C) 2006, 2007 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2 of the License, or
+;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This file is distributed in the hope that it will be useful,
@@ -67,12 +67,10 @@
 
 ;;; Code:
 
-(eval-and-compile
-  (require 'cl)
-  (require 'parse-time)                 ;for parse-integer
-  (require 'xmtn-base)
-  (require 'xmtn-run)
-  (require 'xmtn-compat))
+(require 'cl-lib)
+(require 'xmtn-base)
+(require 'xmtn-run)
+(require 'xmtn-compat)
 
 (defconst xmtn-automate-arguments nil
   "Arguments and options for 'mtn automate stdio' sessions.")
@@ -200,7 +198,7 @@ Signals an error if output contains zero lines or more than one line."
 (defun xmtn-automate--process-session (process)
   (process-get process 'xmtn-automate--session))
 
-(defstruct (xmtn-automate--decoder-state
+(cl-defstruct (xmtn-automate--decoder-state
             (:constructor xmtn-automate--%make-raw-decoder-state))
   ;; State for decoding stdio output packets.
   (read-marker)
@@ -212,7 +210,7 @@ Signals an error if output contains zero lines or more than one line."
   (stream 0); determines output buffer
   )
 
-(defstruct (xmtn-automate--session
+(cl-defstruct (xmtn-automate--session
             (:constructor xmtn-automate--%make-raw-session)
             (:copier xmtn-automate--copy-session))
   (root)
@@ -226,14 +224,14 @@ Signals an error if output contains zero lines or more than one line."
   (sent-kill-p)
   (closed-p nil))
 
-(defstruct (xmtn-automate--command-handle
+(cl-defstruct (xmtn-automate--command-handle
             (:constructor xmtn-automate--%make-raw-command-handle))
   (command)
   (mtn-command-number)
   (session-command-number)
   (session)
-  (buffer)
-  (write-marker)
+  (buffer) ; main stream
+  (write-marker) ; in main stream buffer
   (finished-p nil)
   (error-code nil)
   (warnings nil)
@@ -242,7 +240,7 @@ Signals an error if output contains zero lines or more than one line."
   (display-buffer nil) ; buffer in which to display tickers
   )
 
-(defun* xmtn-automate--initialize-session (session &key root name)
+(cl-defun xmtn-automate--initialize-session (session &key root name)
   (xmtn--assert-optional (equal root (file-name-as-directory root)) t)
   (setf (xmtn-automate--session-root session) root
         (xmtn-automate--session-name session) name
@@ -311,6 +309,10 @@ Signals an error if output contains zero lines or more than one line."
       (xmtn-automate--close-session (cdr session))
       (setq xmtn-automate--*sessions*
 	    (delete session xmtn-automate--*sessions*)))))
+
+(defun xmtn-dvc-kill-session ()
+  "For `dvc-kill-session'."
+  (xmtn-automate-kill-session default-directory))
 
 (defun xmtn-kill-all-sessions ()
   "Kill all xmtn-automate sessions."
@@ -516,7 +518,7 @@ DISPLAY-TICKERS is a list of strings; names of tickers to display."
   (unless xmtn-automate--*preserve-buffers-for-debugging*
     (kill-buffer (xmtn-automate--command-handle-buffer handle))))
 
-(defstruct (xmtn-automate--ticker)
+(cl-defstruct (xmtn-automate--ticker)
   (long-name)
   (display nil)
   (current 0)
@@ -562,7 +564,7 @@ Return updated value of TICKERS."
   "Display TICKERS alist in BUFFER mode-line-process"
   (with-current-buffer buffer
     (setq mode-line-process nil)
-    (loop for item in tickers do
+    (cl-loop for item in tickers do
 	  (let ((ticker (cadr item)))
 	    (if (xmtn-automate--ticker-display ticker)
 		(progn
@@ -633,7 +635,7 @@ Return non-nil if some text copied."
 		 ;; not a whole packet; no text copied
 		 nil))
 
-	      ((?m ?e ?w ?p)
+	      (?m
 	       (with-current-buffer output-buffer
 		 (save-excursion
 		   (goto-char write-marker)
@@ -646,7 +648,20 @@ Return non-nil if some text copied."
 	       (setf (xmtn-automate--decoder-state-read-marker state) end)
 	       (decf (xmtn-automate--decoder-state-remaining-chars state)
 		     chars-to-read)
-	       t)))
+	       t)
+	      ((?e ?w ?p)
+	       (with-current-buffer output-buffer
+		 (save-excursion
+		   (let ((inhibit-read-only t)
+			 deactivate-mark)
+		     (insert-buffer-substring-no-properties session-buffer
+							    (xmtn-automate--decoder-state-read-marker state)
+							    end))))
+	       (setf (xmtn-automate--decoder-state-read-marker state) end)
+	       (decf (xmtn-automate--decoder-state-remaining-chars state)
+		     chars-to-read)
+	       t)
+	      ))
           ))))))
 
 (defun xmtn--debug-mark-text-processed (buffer start end bold-p)
@@ -669,7 +684,7 @@ Return non-nil if some text copied."
          (write-marker (process-mark (xmtn-automate--session-process session)))
          (tag 'check-for-more))
     (with-current-buffer (xmtn-automate--session-buffer session)
-      (loop
+      (cl-loop
        for command = (first (xmtn-automate--session-remaining-command-handles
                              session))
        do
@@ -704,7 +719,7 @@ Return non-nil if some text copied."
             (cond
              ((looking-at "\\([0-9]+\\):\\([mewptl]\\):\\([0-9]+\\):")
               (let ((stream (aref (match-string 2) 0))
-                    (size (parse-integer (match-string 3))))
+                    (size (cl-parse-integer (match-string 3))))
 		(setf (xmtn-automate--decoder-state-remaining-chars state) size)
 		(setf (xmtn-automate--decoder-state-stream state) stream)
                 (ecase stream
@@ -718,7 +733,7 @@ Return non-nil if some text copied."
 		       (setq tag 'exit-loop)
 		     (setf (xmtn-automate--decoder-state-read-marker state) (+ size (match-end 0)))
 		     (setf (xmtn-automate--command-handle-error-code command)
-			   (parse-integer
+			   (cl-parse-integer
 			    (buffer-substring-no-properties
 			     (match-end 0) (xmtn-automate--decoder-state-read-marker state)) ))
 		     (setf (xmtn-automate--command-handle-finished-p command) t)
@@ -751,13 +766,14 @@ Return non-nil if some text copied."
 
 (defvar xmtn-automate--*preserve-buffers-for-debugging* nil)
 
-(defun xmtn--map-parsed-certs (xmtn--root xmtn--revision-hash-id xmtn--thunk)
+(defun xmtn--map-parsed-certs (xmtn--root hash-id xmtn--thunk)
+  "Get certs for HASH-ID. For each cert, extract key, signature, name, value, trust; pass to XMTN--THUNK."
   (lexical-let ((root xmtn--root)
-                (revision-hash-id xmtn--revision-hash-id)
+                (revision-hash-id hash-id)
                 (thunk xmtn--thunk))
     (xmtn--with-automate-command-output-basic-io-parser
         (xmtn--next-stanza root `("certs" ,revision-hash-id))
-      (loop
+      (cl-loop
        for xmtn--stanza = (funcall xmtn--next-stanza)
        while xmtn--stanza
        do (xmtn-match xmtn--stanza
@@ -802,11 +818,15 @@ Each element of the list is a list; key, signature, name, value, trust."
     accu))
 
 (defun xmtn--heads (root branch)
-  (xmtn-automate-command-output-lines
-   root
-    (list "heads"
-	  (or branch
-	      (xmtn--tree-default-branch root)))))
+  (let ((heads (xmtn-automate-command-output-lines
+		root
+		(list "heads"
+		      (or branch
+			  (xmtn-dvc-branch))))))
+    ;; sort to put heads to merge first at start
+    (setq heads (xmtn-automate-command-output-lines
+		root (append '("toposort") heads)))
+    (reverse heads)))
 
 (defun xmtn--rev-author (root rev)
   "Return first author of REV"
@@ -833,8 +853,9 @@ Each element of the list is a list; key, signature, name, value, trust."
 	(xmtn-basic-io-check-empty)))
     result))
 
-(defun xmtn--tree-default-branch (root)
-  (xmtn-automate-command-output-line root `("get_option" "branch")))
+(defun xmtn-dvc-branch ()
+  "For `dvc-branch'."
+  (xmtn-automate-command-output-line default-directory `("get_option" "branch")))
 
 (defun xmtn--get-corresponding-path-raw (root normalized-file-name
 					      source-revision-hash-id

@@ -82,17 +82,21 @@ REVISION-ID :: (<dvc> BACK-END-ID)
   ;; <dvc> is one of 'tla, 'bzr, 'xhg, ...
 
 BACK-END-ID :: (revision BACK-END-REVISION)
-  ;; An already commited revision
+  ;; A workspace, commited, or staged revision
   ;; The way to specify it depends on the back-end.
-             | (local-tree PATH)
+
+  | (local-tree PATH)
   ;; Uncommited revision in the local tree PATH
-             | (last-revision PATH NUM)
+
+  | (last-revision PATH NUM)
   ;; Last commited  revision in tree PATH if NUM = 1
   ;; Last but NUM-1 revision in tree PATH if NUM > 1
-             | (previous-revision BACK-END-REVISION NUM)
+
+  | (previous-revision BACK-END-REVISION NUM)
   ;; Nth Ancestor of BACK-END-ID.
 
-(probably we'll need a (head REMOTE-BRANCH) too)
+  | (staged-revision PATH)
+  ;; staged revision of PATH
 
 PATH :: string
   ;; must be a tree root directory

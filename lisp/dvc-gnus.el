@@ -1,6 +1,6 @@
 ;;; dvc-gnus.el --- dvc integration to gnus
 
-;; Copyright (C) 2003-2009 by all contributors
+;; Copyright (C) 2003-2009, 2013 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -22,8 +22,6 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-
-(require 'tla-core)
 
 ;; gnus is optional. Load it at compile-time to avoid warnings.
 (eval-when-compile
@@ -113,16 +111,13 @@ Save it to `dvc-memorized-log-header', `dvc-memorized-patch-sender',
   "A list of functions that can be used to determine the patch type in a given mail.
 The function is called when the article buffer is active. It should return nil if
 the patch type could not be determined, otherwise one of the following:
-'tla, 'xhg, 'bzr-merge-or-pull-url, 'bzr-merge-bundle, 'xgit")
+'xhg, 'bzr-merge-or-pull-url, 'bzr-merge-bundle, 'xgit")
 (defvar dvc-gnus-override-window-config nil)
 (defun dvc-gnus-article-apply-patch (n)
   "Apply MIME part N, as patchset.
 When called with no prefix arg, set N := 2.
 
 DVC will try to figure out which VCS to use when applying the patch.
-
-First we check to see if it is a tla changeset created with DVC.
-If that is the case, `tla-gnus-apply-patch' is called.
 
 The next check is whether it is a patch suitable for xhg.  In that case
 `xhg-gnus-article-import-patch' is called.
@@ -144,11 +139,7 @@ Otherwise `dvc-gnus-apply-patch' is called."
         (setq patch-type (funcall (car patch-decider-list)))
         (setq patch-decider-list (cdr patch-decider-list)))
       (unless patch-type
-        (cond ((re-search-forward (concat "\\[VERSION\\] "
-                                          (tla-make-name-regexp 4 t t))
-                                  nil t)
-               (setq patch-type 'tla))
-              ((progn (goto-char (point-min))
+        (cond ((progn (goto-char (point-min))
                       (re-search-forward "^# Bazaar merge directive format" nil t))
                (setq patch-type 'bzr-merge-bundle))
               ((progn (goto-char (point-min))
@@ -167,9 +158,7 @@ Otherwise `dvc-gnus-apply-patch' is called."
                (setq patch-type 'xgit))
               (t (setq patch-type 'dvc)))))
     (message "patch-type: %S" patch-type)
-    (cond ((eq patch-type 'tla)
-           (tla-gnus-article-apply-patch n))
-          ((eq patch-type 'xhg)
+    (cond ((eq patch-type 'xhg)
            (xhg-gnus-article-import-patch n))
           ((eq patch-type 'xgit)
            (xgit-gnus-article-apply-patch n))
@@ -208,9 +197,7 @@ Allow to select the target directory from one of
 (defun dvc-gnus-article-view-missing ()
   "Apply MIME part N, as patchset.
 When called with no prefix arg, set N := 2.
-First is checked, if it is a tla changeset created with DVC.
-If that is the case, `tla-gnus-apply-patch' is called.
-The next check is whether it is a patch suitable for xhg. In that case
+First check is whether it is a patch suitable for xhg. In that case
 `xhg-gnus-article-import-patch' is called.
 Otherwise `dvc-gnus-apply-patch' is called."
   (interactive)
@@ -218,27 +205,25 @@ Otherwise `dvc-gnus-apply-patch' is called."
     (gnus-summary-select-article-buffer)
     (goto-char (point-min))
     (goto-char (point-min))
-    (if (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
+    (when (or (re-search-forward "^New revision in \\(.+\\)$" nil t)
             (re-search-forward "^Committed revision [0-9]+ to \\(.+\\)$" nil t))
-        (let* ((bzr-missing-url (match-string-no-properties 1))
-               (dest (cdr (assoc bzr-missing-url bzr-merge-or-pull-from-url-rules)))
-               (path (cadr dest))
-               (doit t))
-          (when path
-            (setq doit (y-or-n-p (format "Run missing from %s in %s? " bzr-missing-url path))))
-          (when doit
-            (unless path
-              (setq path (dvc-read-directory-name (format "Run missing from %s in: " bzr-missing-url))))
-            (let ((default-directory path))
-              (message "Running bzr missing from %s in %s" bzr-missing-url path)
-              (bzr-missing bzr-missing-url)))))))
+      (let* ((bzr-missing-url (match-string-no-properties 1))
+	     (dest (cdr (assoc bzr-missing-url bzr-merge-or-pull-from-url-rules)))
+	     (path (cadr dest))
+	     (doit t))
+	(when path
+	  (setq doit (y-or-n-p (format "Run missing in %s? " path))))
+	(when doit
+	  (unless path
+	    (setq path (dvc-read-directory-name "Run missing in: ")))
+	  (let ((default-directory path))
+	    (message "Running bzr missing in %s" path)
+	    (bzr-dvc-missing)))))))
 
 (defun dvc-gnus-article-view-patch (n)
   "View MIME part N, as patchset.
 When called with no prefix arg, set N := 2.
-First is checked, if it is a tla changeset created with DVC.
-If that is the case, `tla-gnus-article-view-patch' is called.
-The next check looks at commit notification mails for bzr, when
+First check looks at commit notification mails for bzr, when
 such a message is detected, `bzr-gnus-article-view-patch' is called.
 Otherwise `dvc-gnus-view-patch' is called."
   (interactive "p")
@@ -248,19 +233,11 @@ Otherwise `dvc-gnus-view-patch' is called."
     (save-window-excursion
       (gnus-summary-select-article-buffer)
       (goto-char (point-min))
-      (if (or (re-search-forward (concat "\\[VERSION\\] " (tla-make-name-regexp 4 t t)) nil t)
-              (progn (goto-char (point-min))
-                     (and (search-forward "Revision: " nil t)
-                          (search-forward "Archive: " nil t))))
-          (setq patch-type 'tla)
-        (goto-char (point-min))
-        ;; Committed revision 129 to http://my-arch.org/branch1
-        (if (re-search-forward "^Committed revision [0-9]+ to " nil t)
-            (setq patch-type 'bzr)
-          (setq patch-type 'dvc))))
-    (cond ((eq patch-type 'tla)
-           (tla-gnus-article-view-patch n))
-          ((eq patch-type 'bzr)
+      ;; Committed revision 129 to http://my-arch.org/branch1
+      (if (re-search-forward "^Committed revision [0-9]+ to " nil t)
+	  (setq patch-type 'bzr)
+	(setq patch-type 'dvc)))
+    (cond ((eq patch-type 'bzr)
            (bzr-gnus-article-view-patch n))
           (t
            (let ((dvc-gnus-override-window-config))
@@ -302,12 +279,12 @@ the patch sould be applied."
     (mm-save-part-to-file handle dvc-patch-name)
     (find-file dvc-patch-name)
     (diff-mode)
-    (toggle-read-only 1)
+    (setq buffer-read-only 1)
     (setq patch-buff (current-buffer))
     (delete-other-windows)
     (setq default-directory (dvc-gnus-suggest-apply-patch-directory))
     ;; 07.07.2008: applying with ediff only works well when only one file is given.
-    ;; (flet ((ediff-get-default-file-name (&optional default) (if default default default-directory)))
+    ;; (cl-flet ((ediff-get-default-file-name (&optional default) (if default default default-directory)))
     ;;   (ediff-patch-file 2 patch-buff))
     (diff-hunk-next)
     (message "You can apply the patch hunks now by using C-c C-a.")
@@ -326,7 +303,7 @@ the patch sould be applied."
     (diff-mode)
     (setq dvc-gnus-override-window-config (current-window-configuration))
     (dvc-buffer-push-previous-window-config window-conf)
-    (toggle-read-only 1)
+    (setq buffer-read-only 1)
     (other-window -1)
     (gnus-article-show-summary)))
 

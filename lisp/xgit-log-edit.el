@@ -1,5 +1,6 @@
 ;;; xgit-log-edit.el --- Major mode to edit commit messages for git
 
+;; Copyright (C) 2015  Stephen Leake
 ;; Copyright (C) 2009  Matthieu Moy
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
@@ -24,8 +25,15 @@
 
 ;;; Code:
 
+(defun xgit-dvc-log-edit-file-name ()
+  (concat (file-name-as-directory (xgit-git-dir))
+	  xgit-log-edit-file-name))
+
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("/COMMIT_EDITMSG$" . xgit-log-edit-mode))
+(defvar xgit-log-edit-file-name
+  "DVC_EDITMSG"
+  "The filename used to store the log message before commiting.
+Usually that file is placed in the .git directory of the working tree.")
 
 (defvar xgit-log-edit-mode-map
   (let ((map (make-sparse-keymap)))
@@ -39,11 +47,6 @@
     ["Insert Signed-off-by:"     xgit-log-edit-insert-sob t]
     ))
 
-(defvar xgit-log-edit-font-lock-keywords
-  `(("^Signed-off-by: " . 'dvc-header)
-    ("^#.*$" . 'dvc-comment))
-  "Keywords in xgit-log-edit mode.")
-
 (defun xgit-log-edit-insert-sob ()
   (interactive)
   (goto-char (point-max))
@@ -54,19 +57,13 @@
 
 ;;;###autoload
 (define-derived-mode xgit-log-edit-mode dvc-log-edit-mode "xgit-log-edit"
-  "Major Mode to edit xgit log messages.
-Commands:
-\\{xgit-log-edit-mode-map}
-"
-  (use-local-map xgit-log-edit-mode-map)
-  (easy-menu-add xgit-log-edit-mode-menu)
-  (dvc-install-buffer-menu)
-  (set (make-local-variable 'font-lock-defaults)
-       '(xgit-log-edit-font-lock-keywords t))
+  "Major Mode to edit xgit log messages."
   (set (make-local-variable 'comment-start) "#")
   (set (make-local-variable 'comment-end) "")
-  (setq fill-column 73)
-  (run-hooks 'xgit-log-edit-mode-hook))
+  (setq fill-column 73))
+
+;;;###autoload
+(add-to-list 'auto-mode-alist (cons (concat "/" xgit-log-edit-file-name "$") 'xgit-log-edit-mode))
 
 (provide 'xgit-log-edit)
 ;;; xgit-log-edit.el ends here

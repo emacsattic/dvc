@@ -1,6 +1,6 @@
 ;;; bzr-dvc.el --- Support for Bazaar 2 in DVC's unification layer
 
-;; Copyright (C) 2005-2008 by all contributors
+;; Copyright (C) 2005-2008, 2014 by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -50,6 +50,24 @@
 
 ;;;###autoload
 (defalias 'bzr-dvc-log-edit-done 'bzr-log-edit-done)
+
+(defun bzr-dvc-base-revision ()
+  "For `dvc-base-revision'."
+  (bzr-dvc-heads))
+
+(defun bzr-dvc-branch ()
+  "For `dvc-branch'."
+  ;; bzr doesn't have branch names, just locations. So we use the directory name.
+  (file-name-nondirectory default-directory))
+
+(defun bzr-dvc-heads ()
+  "For `dvc-heads'."
+  ;; bzr apparently doesn't support more than one head in a repository
+  (with-temp-buffer
+    (insert-file-contents-literally ".bzr/branch/last-revision")
+    (goto-char (point-min))
+    (looking-at "[0-9]+ ")
+    (match-string 1)))
 
 ;;;###autoload
 (defun bzr-dvc-search-file-in-diff (file)

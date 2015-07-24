@@ -1,6 +1,6 @@
 ;;; bzr-revision.el --- Management of revision lists in bzr
 
-;; Copyright (C) 2006 - 2008  by all contributors
+;; Copyright (C) 2006 - 2008, 2013, 2014  by all contributors
 
 ;; Author: Matthieu Moy <Matthieu.Moy@imag.fr>
 ;; Contributions from:
@@ -30,9 +30,9 @@
 
 (require 'dvc-revlist)
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-macs))
 
-(defstruct (bzr-revision-st)
+(cl-defstruct (bzr-revision-st)
   revno
   message
   creator
@@ -43,26 +43,23 @@
 
 ;; bzr revision list
 
-(defun bzr-revision-list-entry-patch-printer (elem)
+(defun bzr-revision-list-entry-patch-printer (data)
   "TODO"
-  (insert (if (dvc-revlist-entry-patch-marked elem)
+  (insert (if (dvc-revlist-entry-marked data)
               (concat " " dvc-mark " ") "   "))
-  (let ((struct (dvc-revlist-entry-patch-struct elem)))
+  (let ((struct (dvc-revlist-entry-struct data)))
     (insert (dvc-face-add "revno: " 'dvc-header)
             (dvc-face-add (int-to-string (or (bzr-revision-st-revno struct) -99))
                           'dvc-revision-name)
             "\n")
-    (when dvc-revisions-shows-creator
-      (insert "   " (dvc-face-add "committer: " 'dvc-header)
-              (or (bzr-revision-st-creator struct) "?") "\n"))
-    (when dvc-revisions-shows-date
-      (insert "   " (dvc-face-add "timestamp: " 'dvc-header)
-              (or (bzr-revision-st-date struct) "?") "\n"))
+    (insert "   " (dvc-face-add "committer: " 'dvc-header)
+              (or (bzr-revision-st-creator struct) "?") "\n")
+    (insert "   " (dvc-face-add "timestamp: " 'dvc-header)
+	    (or (bzr-revision-st-date struct) "?") "\n")
     (insert "   " (dvc-face-add "branch nick: " 'dvc-header)
             (or (bzr-revision-st-branch-nick struct) "?") "\n")
-    (when dvc-revisions-shows-summary
-      (insert "   " (dvc-face-add "message: " 'dvc-header)
-              (or (bzr-revision-st-message struct) "?") "\n"))
+    (insert "   " (dvc-face-add "message: " 'dvc-header)
+              (or (bzr-revision-st-message struct) "?") "\n")
     ))
 
 ;;; bzr log
@@ -142,17 +139,14 @@
         (forward-line 1)
         (with-current-buffer log-buffer
           (ewoc-enter-last
-           dvc-revlist-cookie
-           `(entry-patch
-             ,(make-dvc-revlist-entry-patch
-               :dvc 'bzr
-               :struct elem
-               :rev-id `(bzr (revision
-                              ,(list (if remote 'remote 'local)
-                                     root (bzr-revision-st-revno
-                                           elem)))))))
-          (goto-char (point-min))
-          (dvc-revision-prev))))))
+           dvc-revlist-ewoc
+	   (make-dvc-revlist-entry
+	    :struct elem
+	    :rev-id `(bzr (revision
+			   ,(list (if remote 'remote 'local)
+				  root (bzr-revision-st-revno
+					elem)))))))
+	))))
 
 (defun bzr-log-refresh ()
   "Refresh a log buffer."
@@ -203,18 +197,14 @@ specified, fewer than LAST-N revisions may be shown."
     (goto-char (point-min))))
 
 ;;;###autoload
-(defun bzr-dvc-missing (&optional other)
-  "Run bzr missing."
-  (interactive "sBzr missing against other: ")
-  (when (string= other "")
-    (setq other nil))
-  ;;(message "bzr-dvc-missing %S" other)
+(defun bzr-dvc-missing ()
+  "For `dvc-missing'."
+  (interactive)
   (dvc-build-revision-list 'bzr 'missing (bzr-tree-root)
-                           `("missing" ,other)
+                           '("missing")
                            'bzr-missing-parse
                            nil nil nil
-                           (dvc-capturing-lambda ()
-                             (bzr-dvc-missing (capture other))))
+                           'bzr-dvc-missing)
   (goto-char (point-min)))
 
 (provide 'bzr-revision)

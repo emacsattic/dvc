@@ -1,6 +1,6 @@
 ;;; xmtn-dvc.el --- DVC backend for monotone
 
-;; Copyright (C) 2008 - 2011 Stephen Leake
+;; Copyright (C) 2008 - 2015 Stephen Leake
 ;; Copyright (C) 2006, 2007, 2008 Christian M. Ohler
 
 ;; Author: Christian M. Ohler
@@ -8,7 +8,7 @@
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2 of the License, or
+;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This file is distributed in the hope that it will be useful,
@@ -32,52 +32,36 @@
 ;;; There are some notes on the design of xmtn in
 ;;; docs/xmtn-readme.txt.
 
-(eval-and-compile
-  (require 'cl) ;; yes, we are using cl at runtime; we're working towards eliminating that.
-  (require 'dvc-unified)
-  (require 'xmtn-basic-io)
-  (require 'xmtn-base)
-  (require 'xmtn-run)
-  (require 'xmtn-automate)
-  (require 'xmtn-conflicts)
-  (require 'xmtn-ids)
-  (require 'xmtn-match)
-  (require 'xmtn-minimal)
-  (require 'dvc-log)
-  (require 'dvc-diff)
-  (require 'dvc-status)
-  (require 'dvc-core)
-  (require 'ewoc))
-
-;; For debugging.
-(defun xmtn--load ()
-  (require 'dvc-unified)
-  (save-some-buffers)
-  (mapc (lambda (file)
-          (byte-compile-file file t))
-        '("xmtn-minimal.el"
-          "xmtn-compat.el"
-          "xmtn-match.el"
-          "xmtn-base.el"
-          "xmtn-run.el"
-          "xmtn-automate.el"
-          "xmtn-basic-io.el"
-          "xmtn-ids.el"
-          "xmtn-dvc.el"
-          "xmtn-revlist.el")))
-;;; (xmtn--load)
+(eval-when-compile (require 'cl-macs))
+(require 'dvc-unified)
+(require 'xmtn-basic-io)
+(require 'xmtn-base)
+(require 'xmtn-run)
+(require 'xmtn-automate)
+(require 'xmtn-conflicts)
+(require 'xmtn-ids)
+(require 'xmtn-match)
+(require 'xmtn-minimal)
+(require 'dvc-log)
+(require 'dvc-diff)
+(require 'dvc-status)
+(require 'dvc-core)
+(require 'ewoc)
 
 ;;;###autoload
 (dvc-register-dvc 'xmtn "monotone")
 
-(defmacro* xmtn--with-automate-command-output-basic-io-parser
+(defun xmtn-dvc-stashp ()
+  nil)
+
+(cl-defmacro xmtn--with-automate-command-output-basic-io-parser
     ((parser root-form command-form)
      &body body)
   (declare (indent 1) (debug (sexp body)))
-  (let ((root (gensym))
-        (command (gensym))
-        (session (gensym))
-        (handle (gensym)))
+  (let ((root (cl-gensym))
+        (command (cl-gensym))
+        (session (cl-gensym))
+        (handle (cl-gensym)))
     `(let ((,root ,root-form)
            (,command ,command-form))
        (let* ((,session (xmtn-automate-cache-session ,root))
@@ -90,14 +74,15 @@
            (xmtn-automate--cleanup-command ,handle))))))
 
 ;;;###autoload
-(defun xmtn-dvc-log-edit-file-name-func (&optional root)
-  (concat (file-name-as-directory (or root (dvc-tree-root)))
+(defun xmtn-dvc-log-edit-file-name ()
+  "For `dvc-log-edit-file-name'."
+  (concat (file-name-as-directory (dvc-tree-root))
           "_MTN/log"))
 
 (defun xmtn--toposort (root revision-hash-ids)
   (xmtn-automate-command-output-lines root
-                                             `("toposort"
-                                               ,@revision-hash-ids)))
+				      `("toposort"
+					,@revision-hash-ids)))
 
 ;;;###autoload
 (defun xmtn-dvc-log-edit (root other-frame no-init)
@@ -116,9 +101,11 @@
 
 ;;;###autoload
 (defun xmtn-dvc-log-edit-done (&optional prompt-branch)
+  ;; can only be invoked in the log-edit buffer
   (let* ((root default-directory)
-         (files (or (with-current-buffer dvc-partner-buffer
-                      (dvc-current-file-list 'nil-if-none-marked))
+         (files (or (when (buffer-live-p dvc-partner-buffer)
+		      (with-current-buffer dvc-partner-buffer
+			(dvc-current-file-list 'nil-if-none-marked)))
                     'all))
          (normalized-files
           (case files
@@ -138,8 +125,8 @@
                        ;; options, and will not use the new branch.
                        (let ((session (xmtn-automate-get-cached-session (dvc-uniquify-file-name root))))
                          (if session (xmtn-automate--close-session session)))
-                       (read-from-minibuffer "branch: " (xmtn--tree-default-branch root)))
-                   (xmtn--tree-default-branch root))))
+                       (read-from-minibuffer "branch: " (xmtn-dvc-branch)))
+                   (xmtn-dvc-branch))))
     (save-buffer)
     (dvc-save-some-buffers root)
 
@@ -193,10 +180,7 @@
                    ;; that.  (Calling `dvc-log-close' would.)
 
                    ;; we'd like to delete log-edit-buffer here, but we
-                   ;; can't do that from a process sentinel. And we'd
-                   ;; have to find it; it may not be current buffer,
-                   ;; if log-edit-done was invoked from the ediff
-                   ;; window.
+                   ;; can't do that from a process sentinel.
 
                    (dvc-diff-clear-buffers 'xmtn
                                            default-directory
@@ -236,7 +220,6 @@
 	  (mapconcat (lambda (file) (concat "--exclude=" file)) excluded-files " "))))
     (pop-to-buffer "*Messages*")))
 
-;; Add xmtn-show-commit to dvc-log-edit menu
 (defvar xmtn-log-edit-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [(control ?c) (control ?s)] 'xmtn-show-commit)
@@ -248,8 +231,9 @@
     ["Show commit command" xmtn-show-commit t]
     ))
 
+;; Add xmtn-show-commit to dvc-log-edit menu
 (define-derived-mode xmtn-log-edit-mode dvc-log-edit-mode "xmtn-log-edit"
-  "Add back-end-specific commands for dvc-log-edit.")
+  "For `dvc-dvc-log-edit'.")
 
 (dvc-add-uniquify-directory-mode 'xmtn-log-edit-mode)
 
@@ -265,6 +249,7 @@
   (mapcar (lambda (file-name) (xmtn--normalize-file-name root file-name))
           file-names))
 
+;; FIXME: compare to dvc-switch-to-buffer-maybe
 (defun xmtn--display-buffer-maybe (buffer dont-switch)
   (let ((orig-buffer (current-buffer)))
     (if dvc-switch-to-buffer-first
@@ -274,23 +259,14 @@
   nil)
 
 (defun xmtn--status-header (root base-revision)
-  (let* ((branch (xmtn--tree-default-branch root))
-         (head-revisions (xmtn--heads root branch))
-         (head-count (length head-revisions)))
+  (let* ((branch (xmtn-dvc-branch)))
 
     (concat
       (format "Status for %s:\n" root)
       (if base-revision
           (format "  base revision %s\n" base-revision)
         "  tree has no base revision\n")
-      (format "  branch %s\n" branch)
-      (case head-count
-        (0 "  branch is empty\n")
-        (1 "  branch is merged\n")
-        (t (dvc-face-add (format "  branch has %s heads; need merge\n" head-count) 'dvc-conflict)))
-      (if (member base-revision head-revisions)
-          "  base revision is a head revision\n"
-        (dvc-face-add "  base revision is not a head revision; need update\n" 'dvc-conflict)))))
+      (format "  branch %s\n" branch))))
 
 (defun xmtn--refresh-status-header (status-buffer)
   (with-current-buffer status-buffer
@@ -305,7 +281,7 @@
 (defun xmtn--parse-diff-for-dvc (changes-buffer)
   (let ((excluded-files (dvc-default-excluded-files))
         matched)
-    (flet ((add-entry
+    (cl-flet ((add-entry
             (path status dir &optional orig-path)
             (with-current-buffer changes-buffer
               (ewoc-enter-last
@@ -340,23 +316,23 @@
                (xmtn-basic-io-with-stanza-parser
                    (parser (current-buffer))
                  (xmtn--parse-partial-revision parser)))))
-        (loop
+        (cl-loop
          for (path) in (xmtn--revision-delete revision)
          do (add-entry path 'deleted (likely-dir-p path)))
-        (loop
+        (cl-loop
          for (from to) in (xmtn--revision-rename revision)
          do (assert (eql (not (likely-dir-p from))
                          (not (likely-dir-p to))))
          do (add-entry to 'rename-target (likely-dir-p to) from)
          do (add-entry from 'rename-source (likely-dir-p from) to))
-        (loop
+        (cl-loop
          for (path) in (xmtn--revision-add-dir revision)
          do (add-entry path 'added t))
-        (loop
+        (cl-loop
          for (path contents)
          in (xmtn--revision-add-file revision)
          do (add-entry path 'added nil))
-        (loop
+        (cl-loop
          for (path from-contents to-contents)
          in (xmtn--revision-patch-file revision)
          do (add-entry path 'modified nil))
@@ -418,7 +394,8 @@ otherwise newer."
 
 ;;;###autoload
 (defun xmtn-dvc-delta (from-revision-id to-revision-id &optional dont-switch)
-  ;; See dvc-unified.el dvc-delta for doc string. If strings, they must be mtn selectors.
+  "For `dvc-delta'."
+  ;; If strings, they must be mtn selectors.
   (let* ((root (dvc-tree-root))
          (from-resolved (xmtn--resolve-revision-id root from-revision-id))
          (to-resolved (xmtn--resolve-revision-id root to-revision-id)))
@@ -580,12 +557,12 @@ otherwise newer."
           ))))
 
 (defun xmtn--parse-inventory (stanza-parser fn)
-  (loop for stanza = (funcall stanza-parser)
+  (cl-loop for stanza = (funcall stanza-parser)
         while stanza do
         (xmtn-match stanza
           ((("path" (string $path))
             . $rest)
-           (let* ((status (loop for entry in (cdr (assoc "status" rest))
+           (let* ((status (cl-loop for entry in (cdr (assoc "status" rest))
                                 collect
                                 (xmtn-match entry
                                   ((string "added") 'added)
@@ -609,7 +586,7 @@ otherwise newer."
                               (((string "file")) 'file)
                               (((string "directory")) 'directory)
                               (nil 'none)))
-                  (changes (loop for entry in (cdr (assoc "changes" rest))
+                  (changes (cl-loop for entry in (cdr (assoc "changes" rest))
                                  collect
                                  (xmtn-match entry
                                    ((string "content") 'content)
@@ -637,7 +614,7 @@ otherwise newer."
   ;; command execution yet.
   (let*
       ((base-revision (xmtn--get-base-revision-hash-id-or-null root))
-       (branch (xmtn--tree-default-branch root))
+       (branch (xmtn-dvc-branch))
        (head-revisions (xmtn--heads root branch))
        (head-count (length head-revisions))
        (status-buffer
@@ -649,15 +626,7 @@ otherwise newer."
          ;; branch
          (format "%s" branch)
          ;; header-more
-         (lambda ()
-           (concat
-            (case head-count
-              (0 "  branch is empty\n")
-              (1 "  branch is merged\n")
-              (t (dvc-face-add (format "  branch has %s heads; need merge\n" head-count) 'dvc-conflict)))
-            (if (member base-revision head-revisions)
-                "  base revision is a head revision\n"
-              (dvc-face-add "  base revision is not a head revision; need update\n" 'dvc-conflict))))
+	 nil
          ;; refresh
          'xmtn-dvc-status)))
     (dvc-save-some-buffers root)
@@ -701,39 +670,32 @@ otherwise newer."
                             arguments)
                     (current-buffer) error)))))))
 
-(defun xmtn--status-inventory-sync (root)
+(defun xmtn--status-inventory (root no-switch)
   "Create or reuse a status buffer for ROOT; return `(buffer status)',
-where `status' is 'ok or 'need-commit."
+where `status' is '(ok) or '(need-commit)."
   (let*
-      ((orig-buffer (current-buffer))
+      ((default-directory root)
+       (orig-buffer (current-buffer))
        (msg (concat "running inventory for " root " ..."))
        (base-revision (xmtn--get-base-revision-hash-id-or-null root))
-       (branch (xmtn--tree-default-branch root))
+       (branch (xmtn-dvc-branch))
        (head-revisions (xmtn--heads root branch))
        (head-count (length head-revisions))
        (output-buffer (generate-new-buffer " *xmtn-inventory*"))
        status
-       (dvc-switch-to-buffer-first nil)
+       (dvc-switch-to-buffer-first (not no-switch))
        (status-buffer
         (dvc-status-prepare-buffer
          'xmtn
          root
-         ;; base-revision
+         ;; base-revision FIXME: don't need 'format' here?
          (if base-revision (format "%s" base-revision) "none")
          ;; branch
          (format "%s" branch)
          ;; header-more
-         (lambda ()
-           (concat
-            (case head-count
-              (0 "  branch is empty\n")
-              (1 "  branch is merged\n")
-              (t (dvc-face-add (format "  branch has %s heads; need merge\n" head-count) 'dvc-conflict)))
-            (if (member base-revision head-revisions)
-                "  base revision is a head revision\n"
-              (dvc-face-add "  base revision is not a head revision; need update\n" 'dvc-conflict))))
+	 nil
          ;; refresh
-         'xmtn-dvc-status)))
+         (lambda () (xmtn-dvc-status t)))))
     (dvc-save-some-buffers root)
     (message msg)
     (xmtn-automate-command-output-buffer
@@ -743,8 +705,8 @@ where `status' is 'ok or 'need-commit."
     (with-current-buffer output-buffer
       (setq status
 	    (if (> (point-max) (point-min))
-		'need-commit
-	      'ok)))
+		'(need-commit)
+	      '(ok))))
     (dvc-status-inventory-done status-buffer)
     (with-current-buffer status-buffer
       (let ((excluded-files (dvc-default-excluded-files)))
@@ -772,9 +734,42 @@ where `status' is 'ok or 'need-commit."
     (list status-buffer status)))
 
 ;;;###autoload
-(defun xmtn-dvc-status ()
-  "Display status of monotone tree at `default-directory'."
-  (xmtn--status-using-inventory default-directory))
+(defun xmtn-dvc-status (no-switch)
+  "For `dvc-status'."
+  (xmtn--status-inventory default-directory no-switch))
+
+(defun xmtn-dvc-status-dtrt (key-prefix status)
+  "For `dvc-status-dtrt'."
+  (ecase status
+    (added
+     (dvc-fileinfo-add-log-entry key-prefix))
+
+    (deleted
+     (dvc-offer-choices nil
+			'((dvc-fileinfo-revert-files "revert")
+			  (dvc-fileinfo-remove-files "stage"))))
+
+    ((rename-source rename-target)
+     (dvc-status-ediff))
+
+    (missing
+     ;; File is in database, but not in workspace
+     (ding)
+     (dvc-offer-choices (concat (dvc-fileinfo-current-file) " does not exist in working directory")
+			'((dvc-fileinfo-revert-files "revert")
+			  (dvc-fileinfo-remove-files "remove")
+			  (dvc-fileinfo-rename "rename"))))
+
+    (modified
+     (dvc-status-ediff))
+
+    (unknown
+     (dvc-offer-choices nil
+			'((dvc-fileinfo-add-files "add")
+			  (dvc-fileinfo-ignore-files "ignore")
+			  (dvc-fileinfo-remove-files "remove")
+			  (dvc-fileinfo-rename "rename"))))
+    ))
 
 ;;;###autoload
 (defun xmtn-dvc-revision-direct-ancestor (revision-id)
@@ -811,7 +806,7 @@ where `status' is 'ok or 'need-commit."
   ;; this syntax.  This implementation is based on that description.
   (let ((special-chars ".[{()\*+?|^$"))
     (with-output-to-string
-      (loop for char across string
+      (cl-loop for char across string
             do
             (when (position char special-chars) (write-char ?\\))
             (write-char char)))))
@@ -840,7 +835,7 @@ where `status' is 'ok or 'need-commit."
       (find-file-other-window (xmtn--mtnignore-file-name root))
       (save-excursion
         (let ((modified-p nil))
-          (loop for pattern in patterns
+          (cl-loop for pattern in patterns
                 do
                 (goto-char (point-min))
                 (unless (re-search-forward (concat "^" (regexp-quote pattern)
@@ -912,6 +907,18 @@ where `status' is 'ok or 'need-commit."
 ;;;###autoload
 (defun xmtn-dvc-add (file)
   (xmtn--add-files (dvc-tree-root) (list file)))
+
+;;;###autoload
+(defun xmtn-dvc-base-revision ()
+  (xmtn--get-base-revision-hash-id default-directory))
+
+;;;###autoload
+(defun xmtn-dvc-heads ()
+  "For `dvc-heads'."
+  (xmtn--heads default-directory nil))
+
+(defun xmtn-dvc-ignore-local-changesp ()
+  t)
 
 (defun xmtn--do-remove (root file-names do-not-execute)
   (xmtn--run-command-sync
@@ -1000,7 +1007,7 @@ To be used in an xmtn process buffer.  Useful when monotone
 spawns an external merger and asks you to hit enter when
 finished."
   (interactive)
-  (let ((process (loop for (process nil) in dvc-process-running
+  (let ((process (cl-loop for (process nil) in dvc-process-running
                        when (eql (current-buffer) (process-buffer process))
                        return process)))
     (unless process
@@ -1055,13 +1062,25 @@ finished."
     (dvc-save-some-buffers root)
     (xmtn--do-update root target-revision-hash-id check-id-p)))
 
+(defun xmtn-dvc-lca (left to)
+  "For dvc-lca."
+  (let ((all-common-ancestors
+	 (xmtn-automate-command-output-lines
+	  default-directory
+	  (list "common_ancestors" left to))))
+    (car (reverse
+	  (xmtn-automate-command-output-lines
+	  default-directory
+	  (cons "toposort" all-common-ancestors))))))
+
 ;;;###autoload
 (defun xmtn-dvc-update (&optional revision-id no-ding)
+  "For `dvc-update."
   (let ((root (dvc-tree-root)))
     (if revision-id
-        (xmtn--update root (xmtn--revision-hash-id revision-id) t no-ding)
+        (xmtn--update root revision-id t no-ding)
 
-      (let* ((branch (xmtn--tree-default-branch root))
+      (let* ((branch (xmtn-dvc-branch))
              (heads (xmtn--heads root branch)))
         (case (length heads)
           (0
@@ -1074,97 +1093,62 @@ finished."
            ;; User can choose one head from a revlist, or merge them.
            (error (substitute-command-keys
                    (concat "Branch %s is unmerged (%s heads)."
-                           "  Try \\[xmtn-view-heads-revlist] and \\[dvc-merge] or \\[dvc-revlist-update]"))
+                           "  Try \\[dvc-heads-revlist] and \\[dvc-merge] or \\[dvc-revlist-update]"))
                   branch (length heads)))))))
   nil)
 
-(defun xmtn-propagate-from (other &optional cached-branch)
-  "Propagate from OTHER branch to CACHED-BRANCH (default local tree branch).
-Conflict resolution taken from `default-directory', which must be
-a workspace for CACHED-BRANCH."
-  (interactive "MPropagate from branch: ")
+(defun xmtn-dvc-propagate (from from-rev to)
+  "For `dvc-propagate'."
   (let*
-      ((root (dvc-tree-root))
-       (local-branch (or cached-branch
-                         (xmtn--tree-default-branch root)))
+      ((root default-directory)
+
        (resolve-conflicts
-        (if (file-exists-p (concat root "/_MTN/conflicts"))
-            (progn
-              "--resolve-conflicts-file=_MTN/conflicts")))
-       (cmd (list "propagate" other local-branch resolve-conflicts
+        (when (file-exists-p (concat root "/_MTN/conflicts"))
+	  "--resolve-conflicts-file=_MTN/conflicts"))
+
+       (cmd (list "propagate" from to resolve-conflicts
 		  ;; may be resurrecting a suspended branch; doesn't hurt otherwise.
 		  "--ignore-suspend-certs"
-                  (xmtn-dvc-log-message)))
-       (prompt
-        (if resolve-conflicts
-            (concat "Propagate from " other " to " local-branch " resolving conflicts? ")
-          (concat "Propagate from " other " to " local-branch "? "))))
+                  (xmtn-dvc-log-message))))
 
     (save-some-buffers t); conflicts file may be open.
 
-    (if xmtn-confirm-operation
-        (if (not (yes-or-no-p prompt))
-            (error "user abort")))
-
-    (lexical-let
-        ((display-buffer (current-buffer))
-         (msg (mapconcat (lambda (item) item) cmd " ")))
+    (let ((msg (mapconcat (lambda (item) item) cmd " ")))
       (message "%s..." msg)
-      (if xmtn-confirm-operation
-          (xmtn--run-command-that-might-invoke-merger
-           root cmd
-           (lambda ()
-             (xmtn--refresh-status-header display-buffer)
-             (message "%s... done" msg)))
-        (xmtn--run-command-sync root cmd)
-        (xmtn--refresh-status-header display-buffer)
-        (message "%s... done" msg)))))
+      (xmtn--run-command-sync root cmd)
+      (message "%s... done" msg))
+    ))
 
 (defun xmtn-dvc-merge-1 (root refresh-status)
-  (xmtn--run-command-sync
-   root
-   (list
-    "merge"
-    (if (file-exists-p (concat root "/_MTN/conflicts"))
-        "--resolve-conflicts-file=_MTN/conflicts")
-    (xmtn-dvc-log-message)))
+  (if (file-exists-p (concat root "/_MTN/conflicts"))
+      (let ((revs (xmtn-conflicts-get-revs)))
+	(xmtn--run-command-sync
+	 root
+	 (list
+	  "explicit_merge"
+	  "--resolve-conflicts-file=_MTN/conflicts"
+	  (xmtn-dvc-log-message)
+	  (car revs)
+	  (cadr revs)
+	  (xmtn-dvc-branch))
+	))
+    ;; no conflicts to resolve
+    (xmtn--run-command-sync
+     root
+     (list
+      "merge"
+      (xmtn-dvc-log-message)))
+    )
   (if refresh-status
       (xmtn--refresh-status-header (current-buffer))))
 
 ;;;###autoload
 (defun xmtn-dvc-merge (&optional other)
-  (if other
-      (xmtn-propagate-from other)
-    ;; else merge heads
-    (let* ((root (dvc-tree-root))
-           (branch (xmtn--tree-default-branch root))
-           (heads (xmtn--heads root branch)))
-      (case (length heads)
-        (0 (assert nil))
-        (1
-         (message "already merged"))
-        (t
-         (xmtn-dvc-merge-1 root t)))))
-  nil)
+  (when other
+    (error "xmtn-dvc-merge other not implemented"))
 
-;;;###autoload
-(defun xmtn-dvc-pull (&optional other)
-  "Implement `dvc-pull' for xmtn."
-  (lexical-let*
-      ((root (dvc-tree-root))
-       (name (concat "mtn pull " root)))
-    (message "%s..." name)
-    ;; mtn progress messages are put to stderr, and there is typically
-    ;; nothing written to stdout from this command, so put both in the
-    ;; same buffer.
-    ;; This output is not useful; xmtn-sync, xmtn-sync-review is much better
-    (xmtn--run-command-async root `("pull" ,other)
-                             :output-buffer name
-                             :error-buffer name
-                             :finished
-                             (lambda (output error status arguments)
-                               (pop-to-buffer output)
-                               (message "%s... done" name)))))
+  (xmtn-dvc-merge-1 (dvc-tree-root) t)
+  nil)
 
 ;;;###autoload
 (defun xmtn-dvc-revert-files (&rest file-names)
@@ -1337,7 +1321,7 @@ a workspace for CACHED-BRANCH."
   (xmtn-automate-command-output-string
    root `("get_file" ,content-hash-id)))
 
-(defstruct (xmtn--revision (:constructor xmtn--make-revision))
+(cl-defstruct (xmtn--revision (:constructor xmtn--make-revision))
   ;; matches data output by 'mtn diff'
   new-manifest-hash-id
   old-revision-hash-ids
@@ -1360,9 +1344,9 @@ a workspace for CACHED-BRANCH."
         (patch-file (list))
         (clear-attr (list))
         (set-attr (list)))
-    (flet ((decode-path (path)
+    (cl-flet ((decode-path (path)
              (decode-coding-string path 'xmtn--monotone-normal-form)))
-      (loop for stanza = (funcall parser)
+      (cl-loop for stanza = (funcall parser)
             while stanza
             do
             (xmtn-match stanza
@@ -1376,6 +1360,9 @@ a workspace for CACHED-BRANCH."
                ;; Why doesn't mtn just skip this stanza?
                )
               ((("old_revision" (id $hash-id)))
+               (push hash-id old-revision-hash-ids))
+              ((("old_revision" (id $hash-id))
+		("new_revision" (id $new-hash-id)))
                (push hash-id old-revision-hash-ids))
               ((("delete" (string $path)))
                (push `(,(decode-path path)) delete))
@@ -1426,8 +1413,6 @@ a workspace for CACHED-BRANCH."
   ;; can't do any better than linear-time anyway, since we have to
   ;; chase the ancestry links (and check the uniqueness at each step).
   (apply #'dvc-dvc-revision-nth-ancestor args))
-
-(defalias 'xmtn-dvc-revlist 'xmtn-view-heads-revlist)
 
 (provide 'xmtn-dvc)
 

@@ -1,6 +1,6 @@
 ;;; xhg-revision.el --- Management of revision lists in xhg
 
-;; Copyright (C) 2006, 2007 by all contributors
+;; Copyright (C) 2006, 2007, 2013, 2014 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Keywords:
@@ -28,9 +28,9 @@
 
 (require 'dvc-revlist)
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-macs))
 
-(defstruct (xhg-revision-st)
+(cl-defstruct (xhg-revision-st)
   changeset
   message
   creator
@@ -40,24 +40,22 @@
 ;; xhg dvc revision list
 
 (defun xhg-revision-list-entry-patch-printer (elem)
-  (insert (if (dvc-revlist-entry-patch-marked elem)
+  (insert (if (dvc-revlist-entry-marked elem)
               (concat " " dvc-mark " ") "   "))
-  (let ((struct (dvc-revlist-entry-patch-struct elem)))
+  (let ((struct (dvc-revlist-entry-struct elem)))
     (insert (dvc-face-add "changeset: " 'dvc-header)
             (dvc-face-add (xhg-revision-st-changeset struct) 'dvc-revision-name)
             "\n")
-    (when dvc-revisions-shows-creator
-      (insert "   " (dvc-face-add "user:      " 'dvc-header)
-              (or (xhg-revision-st-creator struct) "?") "\n"))
-    (when dvc-revisions-shows-date
-      (insert "   " (dvc-face-add "timestamp: " 'dvc-header)
-              (or (xhg-revision-st-date struct) "?") "\n"))
+    (insert "   " (dvc-face-add "user:      " 'dvc-header)
+	    (or (xhg-revision-st-creator struct) "?") "\n")
+    (insert "   " (dvc-face-add "timestamp: " 'dvc-header)
+	    (or (xhg-revision-st-date struct) "?") "\n")
     (when (xhg-revision-st-tag struct)
       (insert "   " (dvc-face-add "tag:       " 'dvc-header)
               (xhg-revision-st-tag struct) "\n"))
-    (when dvc-revisions-shows-summary
-      (insert "   " (dvc-face-add "summary:   " 'dvc-header)
-              (or (xhg-revision-st-message struct) "?") "\n"))))
+    (insert "   " (dvc-face-add "summary:   " 'dvc-header)
+	    (or (xhg-revision-st-message struct) "?") "\n")
+    ))
 
 ;;; xhg dvc log
 
@@ -86,15 +84,12 @@
               (t (dvc-trace "xhg-dvc-log-parse: unmanaged field %S" field)))
         (forward-line 1))
       (when (looking-at "^$")
-        ;; (dvc-trace "empty line")
         (with-current-buffer log-buffer
           (ewoc-enter-last
-           dvc-revlist-cookie
-           `(entry-patch
-             ,(make-dvc-revlist-entry-patch
-               :dvc 'xhg
-               :struct elem
-               :rev-id `(xhg (revision (local ,root ,(xhg-revision-st-changeset elem))))))))
+           dvc-revlist-ewoc
+	   (make-dvc-revlist-entry
+	    :struct elem
+	    :rev-id `(xhg (revision (local ,root ,(xhg-revision-st-changeset elem)))))))
         (setq elem (make-xhg-revision-st))
         (forward-line 1))))
   (with-current-buffer log-buffer

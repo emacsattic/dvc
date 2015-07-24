@@ -1,6 +1,6 @@
 ;;; xgit-core.el --- Common definitions for git support in DVC
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2007, 2014-2015 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions from:
@@ -53,11 +53,6 @@ git metadata directory."
                        (directory :tag "Git dir")))
   :group 'dvc-xgit)
 
-(defvar xgit-log-edit-file-name
-  "DVC_EDITMSG"
-  "The filename used to store the log message before commiting.
-Usually that file is placed in the .git directory of the working tree.")
-
 (defun xgit-lookup-external-git-dir (&optional location root)
   "Check to see whether the user has specified a custom git metadata
 directory in `xgit-git-dir-mapping'.
@@ -90,6 +85,9 @@ git managed tree (but return nil)."
       (dvc-tree-root-helper ".git/" (or interactive (interactive-p))
                             "%S is not in a git tree!"
                             location no-error)))
+
+(defun xgit-dvc-workspace-p (dir)
+  (file-directory-p (concat dir "/.git")))
 
 ;; Stefan: 17.05.2007: not sure, if xgit-tree-has-head is still needed/valid
 (defun xgit-tree-has-head ()

@@ -1,6 +1,6 @@
 ;;; xhg-annotate.el ---
 
-;; Copyright (C) 2009 Thierry Volpiatto.
+;; Copyright (C) 2009, 2013 Thierry Volpiatto.
 ;; Author: Thierry Volpiatto <thierry.volpiatto@gmail.com>
 ;; Maintainer: Thierry Volpiatto
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -60,7 +60,6 @@
 ;;; Code:
 
 (require 'derived)
-(eval-when-compile (require 'cl))
 
 ;;;###autoload
 (defvar xhg-annotate-mode-map
@@ -122,7 +121,7 @@ corresponding xhg-log output."
   (let ((line-num (line-number-at-pos)))
     (dvc-run-dvc-display-as-info 'xhg (append '("annotate") (dvc-current-file-list)))
     (switch-to-buffer "*xhg-info*")
-    (goto-line line-num)
+    (goto-char (point-min)) (forward-line (1- line-num))
     (xhg-annotate-mode)
     (xhg-annotate-show-rev-number-log)))
 

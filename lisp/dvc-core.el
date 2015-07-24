@@ -1,6 +1,6 @@
 ;;; dvc-core.el --- Core functions for distributed version control
 
-;; Copyright (C) 2005-2010 by all contributors
+;; Copyright (C) 2005-2010, 2012 - 2015 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Contributions From:
@@ -37,7 +37,7 @@
 (require 'dvc-register)
 (eval-and-compile (require 'dvc-utils))
 (require 'dvc-buffers)
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-macs))
 (eval-when-compile (require 'dired))
 (eval-and-compile (require 'dvc-lisp))
 
@@ -196,9 +196,12 @@ Otherwise return the buffer file name."
 ;;;###autoload
 (defun dvc-current-file-list (&optional selection-mode)
   "Return a list of currently active files.
+
 When in dired mode, return the marked files or the file under point.
+
 In a legacy DVC mode, return `dvc-buffer-marked-file-list' if non-nil.
-In a fileinfo DVC mode, return `dvc-fileinfo-marked-files'.
+
+In a fileinfo DVC mode, return `dvc-fileinfo-marked-files' if non-nil;
 otherwise the result depends on SELECTION-MODE:
 * When 'nil-if-none-marked, return nil.
 * When 'all-if-none-marked, return all files.
@@ -360,7 +363,7 @@ These function bypasses the used revision control system."
   (let ((multiprompt (format "Are you sure to purge %%d files? "))
         (singleprompt (format "Purge file: ")))
     (when (dvc-confirm-read-file-name-list multiprompt files singleprompt nil)
-      (mapcar #'delete-file files)
+      (mapc #'delete-file files)
       (message "Purged %S" files))))
 
 (defun dvc-current-executable ()
@@ -395,7 +398,7 @@ Local to each buffer, not killed by kill-all-local-variables.")
 Each keyword listed in KEYWORDS is bound to its value from PLIST, then
 BODY is evaluated."
   (declare (indent 1) (debug (sexp form body)))
-  (flet ((keyword-to-symbol (keyword)
+  (cl-flet ((keyword-to-symbol (keyword)
                             (intern (substring (symbol-name keyword) 1))))
     (let ((keyword (make-symbol "keyword"))
           (default (make-symbol "default")))
@@ -841,7 +844,7 @@ When INFO-STRING is given, insert it at the buffer beginning."
                      (insert-buffer-substring output)
                      (when (capture show-error-buffer)
                        (insert-buffer-substring error))
-                     (toggle-read-only 1)))
+                     (setq buffer-read-only t)))
                  (dvc-switch-to-buffer (capture buffer)))))))
 
 (defvar dvc-info-buffer-mode-map
@@ -855,12 +858,12 @@ When INFO-STRING is given, insert it at the buffer beginning."
   "DVC info mode"
   "Major mode for dvc info buffers"
   (dvc-install-buffer-menu)
-  (toggle-read-only 1))
+  (setq buffer-read-only t))
 
 
 (defvar dvc-log-cookie nil)
 
-(defstruct (dvc-event) output-buffer error-buffer related-buffer
+(cl-defstruct (dvc-event) output-buffer error-buffer related-buffer
   command tree event time)
 
 (defsubst dvc-log-printer-print-buffer (buffer function)
@@ -1032,7 +1035,7 @@ Returns that event."
 (define-derived-mode dvc-log-buffer-mode fundamental-mode "DVC Log"
   "Major mode for DVC's internal log buffer. You can open this buffer
 with `dvc-open-internal-log-buffer'."
-  (toggle-read-only 1))
+  (setq buffer-read-only 1))
 
 (defun dvc-open-internal-log-buffer ()
   "Switch to the DVC's internal log buffer.
@@ -1064,7 +1067,6 @@ Strips the final newline if there is one."
   (dvc-buffer-content dvc-last-error-buffer))
 
 
-;; TODO: per backend cound.
 (add-to-list 'minor-mode-alist
              '(dvc-process-running
                (:eval (if (equal (length dvc-process-running) 1)
@@ -1072,16 +1074,6 @@ Strips the final newline if there is one."
                         (concat " DVC running("
                                 (int-to-string (length dvc-process-running))
                                 ")")))))
-
-(defun dvc-log-edit-file-name ()
-  "Return a suitable file name to edit the commit message"
-  ;; FIXME: replace this with define-dvc-unified-command
-  (dvc-call "dvc-log-edit-file-name-func"))
-
-(defun dvc-dvc-log-edit-file-name-func ()
-  (concat (file-name-as-directory (dvc-tree-root))
-          (dvc-variable (dvc-current-active-dvc)
-                        "log-edit-file-name")))
 
 ;;
 ;; Revision manipulation
@@ -1139,7 +1131,10 @@ REVISION-ID may have the values described in docs/DVC-API."
     (let ((buffer (generate-new-buffer name)))
       (with-current-buffer buffer
         (let ((buffer-file-name file))
-          (set-auto-mode t)))
+          (set-auto-mode t)
+	  ;; set-auto-mode may insert a template; erase it
+	  (delete-region (point-min) (point-max))
+	  ))
       (dvc-buffers-tree-add (dvc-revision-get-dvc revision-id) type file buffer)
       buffer)))
 
@@ -1150,11 +1145,13 @@ REVISION-ID may have the values described in docs/DVC-API."
 REVISION-ID is as specified in docs/DVC-API."
   (dvc-trace "dvc-revision-get-file-in-buffer. revision-id=%S" revision-id)
   (let* ((type (dvc-revision-get-type revision-id))
-         (inhibit-read-only t)
-         ;; find-file-noselect will call dvc-current-active-dvc in a
+         (inhibit-read-only t);; allow overwriting reused buffer
+
+         ;; find-file-noselect may call dvc-current-active-dvc in a
          ;; hook; specify dvc for dvc-call
          (dvc-temp-current-active-dvc (dvc-revision-get-dvc revision-id))
          (buffer (unless (eq type 'local-tree) (dvc-revision-get-buffer file revision-id))))
+
     (case type
       (local-tree (find-file-noselect file))
 
@@ -1162,9 +1159,7 @@ REVISION-ID is as specified in docs/DVC-API."
        (with-current-buffer buffer
          (dvc-call "revision-get-file-revision"
                    file (dvc-revision-get-data revision-id))
-         (set-buffer-modified-p nil)
-         (toggle-read-only 1)
-         buffer))
+	 ))
 
       (previous-revision
        (with-current-buffer buffer
@@ -1172,19 +1167,25 @@ REVISION-ID is as specified in docs/DVC-API."
                 (data (nth 0 (dvc-revision-get-data revision-id)))
                 (rev-id (list dvc data)))
            (dvc-call "revision-get-previous-revision" file rev-id))
-         (set-buffer-modified-p nil)
-         (toggle-read-only 1)
-         buffer))
+         ))
 
       (last-revision
        (with-current-buffer buffer
          (dvc-call "revision-get-last-revision"
                    file (dvc-revision-get-data revision-id))
-         (set-buffer-modified-p nil)
-         (toggle-read-only 1)
-         buffer))
+         ))
 
-      (t (error "TODO: dvc-revision-get-file-in-buffer type %S" type)))))
+      (staged-revision
+       (with-current-buffer buffer
+         (dvc-call "revision-get-staged-revision" file)
+         ))
+
+      (t (error "dvc-revision-get-file-in-buffer: unimplemented type %S" type)))
+
+    (with-current-buffer buffer
+      (set-buffer-modified-p nil)
+      (setq buffer-read-only t))
+    buffer))
 
 (defun dvc-dvc-revision-nth-ancestor (revision n)
   "Default function to get the n-th ancestor of REVISION."

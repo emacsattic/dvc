@@ -1,6 +1,6 @@
 ;;; xhg-mq.el --- dvc integration for hg's mq
 
-;; Copyright (C) 2006-2009 by all contributors
+;; Copyright (C) 2006-2009, 2013 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 
@@ -109,6 +109,8 @@
 ;; X qunapplied    print the patches not yet applied
 
 ;;; Code:
+
+(eval-when-compile (require 'cl-macs))
 
 (defvar xhg-mq-submenu
   '("mq"
@@ -454,8 +456,7 @@ Called with prefix-arg, do not prompt for confirmation"
 (defun xhg-mq-patch-file-name (patch)
   (concat (xhg-tree-root) "/.hg/patches/" patch))
 
-;;;###autoload
-(defun* xhg-qsingle (file &optional (start-from "qbase"))
+(cl-defun xhg-qsingle (file &optional (start-from "qbase"))
   "Merge applied patches in a single patch starting from \"qbase\".
 If prefix arg, merge applied patches starting from revision number or patch-name."
   (interactive "FPatchName: ")
@@ -607,7 +608,7 @@ that is used in the generated email."
         (top-pos))
     (with-current-buffer (dvc-get-buffer 'xhg 'patch-queue)
       (let ((buffer-read-only nil)
-            (old-applied-patches (progn (goto-char (point-min)) (next-line 1)
+            (old-applied-patches (progn (goto-char (point-min)) (forward-line 1)
                                         (split-string (buffer-substring-no-properties (point) (- (point-max) 1)))))
             (act-patches (append applied unapplied)))
         (dolist (u unapplied)
@@ -639,7 +640,7 @@ that is used in the generated email."
   (let ((patch-name (or patch (xhg-mq-patch-name-at-point)))
         (cur-buf (current-buffer)))
     (find-file-other-window (xhg-mq-patch-file-name patch-name))
-    (toggle-read-only 1)
+    (setq buffer-read-only t)
     (diff-mode)
     (pop-to-buffer cur-buf)))
 
@@ -674,7 +675,7 @@ that is used in the generated email."
   "xhg mq mode"
   "Major mode for xhg mq interaction."
   (dvc-install-buffer-menu)
-  (toggle-read-only 1))
+  (setq buffer-read-only t))
 
 (defun xhg-mq-ewoc-data-at-point ()
   (if (or (= (dvc-line-number-at-pos) 1)

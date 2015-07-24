@@ -58,6 +58,7 @@ symbol name."
     (eval `(defvar ,symbol nil "lint trap"))
     symbol))
 
+(defvar captured-values)
 (defun dvc-capturing-lambda-helper (l)
   "Traverse list L, replacing captured symbols with newly generated
 symbols.

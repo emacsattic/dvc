@@ -1,6 +1,6 @@
 ;;; xgit-revision.el --- Management of revision lists for git
 
-;; Copyright (C) 2006-2007 by all contributors
+;; Copyright (C) 2006-2007, 2013, 2014 by all contributors
 
 ;; Author: Stefan Reichoer, <stefan@xsteve.at>
 ;; Keywords:
@@ -27,9 +27,9 @@
 ;;; Code:
 
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-macs))
 
-(defstruct (xgit-revision-st)
+(cl-defstruct (xgit-revision-st)
   commit
   tree
   parent
@@ -41,9 +41,9 @@
 ;; cg dvc revision list
 
 (defun xgit-revision-list-entry-patch-printer (elem)
-  (insert (if (dvc-revlist-entry-patch-marked elem)
+  (insert (if (dvc-revlist-entry-marked elem)
               (concat " " dvc-mark " ") "   "))
-  (let ((struct (dvc-revlist-entry-patch-struct elem)))
+  (let ((struct (dvc-revlist-entry-struct elem)))
     (insert (dvc-face-add "commit:    " 'dvc-header)
             (dvc-face-add (xgit-revision-st-commit struct) 'dvc-revision-name)
             "\n")
@@ -55,17 +55,15 @@
       (insert "   " (dvc-face-add "parent:    " 'dvc-header)
               (dvc-face-add (xgit-revision-st-parent struct) 'dvc-revision-name)
               "\n"))
-    (when dvc-revisions-shows-creator
-      (insert "   " (dvc-face-add "author:    " 'dvc-header)
-              (or (xgit-revision-st-author struct) "?") "\n")
-      (insert "   " (dvc-face-add "committer: " 'dvc-header)
-              (or (xgit-revision-st-committer struct) "?") "\n"))
-    (when dvc-revisions-shows-date
-      (insert "   " (dvc-face-add "timestamp: " 'dvc-header)
-              (or (xgit-revision-st-date struct) "?") "\n"))
-    (when dvc-revisions-shows-summary
-      (insert "   " (dvc-face-add "summary:   " 'dvc-header)
-              (or (xgit-revision-st-message struct) "?") "\n"))))
+    (insert "   " (dvc-face-add "author:    " 'dvc-header)
+	    (or (xgit-revision-st-author struct) "?") "\n")
+    (insert "   " (dvc-face-add "committer: " 'dvc-header)
+	    (or (xgit-revision-st-committer struct) "?") "\n")
+    (insert "   " (dvc-face-add "timestamp: " 'dvc-header)
+	    (or (xgit-revision-st-date struct) "?") "\n")
+    (insert "   " (dvc-face-add "summary:   " 'dvc-header)
+	    (or (xgit-revision-st-message struct) "?")
+	    "\n")))
 
 ;;; cg dvc log
 
@@ -99,10 +97,9 @@
           (goto-char (point-max)))
         (with-current-buffer log-buffer
           (ewoc-enter-last
-           dvc-revlist-cookie
+           dvc-revlist-ewoc
            `(entry-patch
-             ,(make-dvc-revlist-entry-patch
-               :dvc 'xgit
+             ,(make-dvc-revlist-entry
                :struct elem
                :rev-id `(xgit (revision
                                (local ,root ,

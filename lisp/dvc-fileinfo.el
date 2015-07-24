@@ -1,7 +1,7 @@
 ;;; dvc-fileinfo.el --- An ewoc structure for displaying file information
 ;;; for DVC
 
-;; Copyright (C) 2007 - 2011 by all contributors
+;; Copyright (C) 2007 - 2015 by all contributors
 
 ;; Author: Stephen Leake, <stephen_leake@stephe-leake.org>
 
@@ -26,12 +26,13 @@
 
 ;;; Code:
 
+(require 'dired)
 (require 'dvc-defs)
 (require 'dvc-core)
 (require 'ewoc)
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-macs))
 
-(defstruct (dvc-fileinfo-root
+(cl-defstruct (dvc-fileinfo-root
             (:constructor nil)
             (:copier nil))
   ;; no slots; root of class for ewoc entries.
@@ -51,7 +52,7 @@ The elements must all be of class dvc-fileinfo-root.")
 ;; given buffer.
 (make-variable-buffer-local 'dvc-fileinfo-ewoc)
 
-(defstruct (dvc-fileinfo-file
+(cl-defstruct (dvc-fileinfo-file
             (:include dvc-fileinfo-root)
             (:copier nil))
   mark          ;; t/nil.
@@ -62,7 +63,7 @@ The elements must all be of class dvc-fileinfo-root.")
   status        ;; Symbol; see dvc-fileinfo-status-image-full for list
   (indexed t)   ;; Whether changes made to the file have been recorded
                 ;; in the index.  Use t if the back-end does not
-                ;; support an index.
+                ;; support an index. FIXME: change to 'staged'
   more-status   ;; String. If status is rename-*, this is the other name.
                 ;; Otherwise whatever else the backend has to say
   )
@@ -70,72 +71,89 @@ The elements must all be of class dvc-fileinfo-root.")
 (defun dvc-fileinfo-status-image-full (status)
   "String image of STATUS.
 This is used by `dvc-fileinfo-printer-full'."
+  ;; *-staged duplicates :indexed, but it is simpler to check for
+  ;; :indexed than for a list of *-staged
   (ecase status
-    (added          "added        ")
-    (conflict       "conflict     ")
-    (deleted        "deleted      ")
-    (ignored        "ignored      ")
-    (invalid        "invalid      ")
-    (known          "known        ")
-    (missing        "missing      ")
-    (modified       "modified     ")
-    (copy-source    "copy         ")
-    (copy-target    "         ==> ")
-    (rename-source  "rename-source")
-    (rename-target  "rename-target")
-    (unknown        "unknown      ")))
+    (added             "added            ")
+    (added-staged      "added     staged ")
+    (conflict          "conflict         ")
+    (conflict-resolved "conflict resolved")
+    (copy-source       "copy             ")
+    (copy-target       "             ==> ")
+    (deleted           "deleted          ")
+    (deleted-staged    "deleted   staged ")
+    (ignored           "ignored          ")
+    (invalid           "invalid          ")
+    (known             "known            ")
+    (missing           "missing          ")
+    (modified          "modified         ")
+    (modified-staged   "modified  staged "); workspace and staged files are identical
+    (modified2-staged  "modified2 staged "); workspace and staged files differ
+    (rename-source     "rename-source    "); implies staged in git
+    (rename-target     "rename-target    "); "
+    (unknown           "unknown          ")
+    ))
 
 (defun dvc-fileinfo-status-image-terse (status)
   "String image of STATUS.
 This is used by `dvc-fileinfo-printer-terse'."
   (ecase status
-    (added          "A")
-    (conflict       "X")
-    (deleted        "D")
-    (ignored        "G")
-    (invalid        "I")
-    (known          "-")
-    (missing        "D")
-    (modified       "M")
-    (copy-source    "C")
-    (copy-target    'target)
-    (rename-source  "R")
-    (rename-target  'target)
-    (unknown        "?")))
+    (added             "A ")
+    (conflict          "X ")
+    (conflict-resolved "Xr")
+    (deleted           "D ")
+    (deleted-staged    "DS ")
+    (ignored           "G ")
+    (invalid           "I ")
+    (known             "- ")
+    (missing           "mi")
+    (modified          "M ")
+    (modified-staged   "MS")
+    (modified2-staged  "MMS")
+    (copy-source       "C")
+    (copy-target       'target)
+    (rename-source     "R")
+    (rename-target   'target)
+    (unknown         "?")))
 
 (defun dvc-fileinfo-choose-face-full (status)
   "Return a face appropriate for STATUS.
 This is used by `dvc-fileinfo-printer-full'."
   (ecase status
-    (added         'dvc-added)
-    (conflict      'dvc-conflict)
-    (deleted       'dvc-deleted)
-    (ignored       'dvc-ignored)
-    (invalid       'dvc-unrecognized)
-    (known         'dvc-source)
-    (missing       'dvc-move)
-    (modified      'dvc-modified)
-    (copy-source   'dvc-copy)
-    (copy-target   'dvc-copy)
-    (rename-source 'dvc-move)
-    (rename-target 'dvc-move)
-    (unknown       'dvc-unknown)))
+    (added             'dvc-added)
+    (added-staged      'dvc-added)
+    (conflict          'dvc-conflict)
+    (conflict-resolved 'dvc-modified)
+    (deleted           'dvc-deleted)
+    (deleted-staged    'dvc-deleted)
+    (ignored           'dvc-ignored)
+    (invalid           'dvc-unrecognized)
+    (known             'dvc-source)
+    (missing           'dvc-move)
+    (modified          'dvc-modified)
+    (modified-staged   'dvc-modified)
+    (modified2-staged  'dvc-modified)
+    (copy-source       'dvc-copy) ;; FIXME: what backend supports this?
+    (copy-target       'dvc-copy)
+    (rename-source     'dvc-move)
+    (rename-target     'dvc-move)
+    (unknown           'dvc-unknown)))
 
 (defalias 'dvc-fileinfo-choose-face-terse 'dvc-fileinfo-choose-face-full)
 
-(defstruct (dvc-fileinfo-dir
+(cl-defstruct (dvc-fileinfo-dir
             (:include dvc-fileinfo-file)
             (:copier nil))
   ;; no extra slots
   )
 
-(defstruct (dvc-fileinfo-message
+(cl-defstruct (dvc-fileinfo-message
             (:include dvc-fileinfo-root)
             (:copier nil))
   text ;; String
   )
 
-(defstruct (dvc-fileinfo-legacy
+(cl-defstruct (dvc-fileinfo-legacy
             (:include dvc-fileinfo-root)
             (:copier nil))
   ;; This type has the same form as the old dvc-diff-cookie ewoc
@@ -191,7 +209,7 @@ indicate statuses."
            (progn
              (newline)
              (insert "      ")
-             (case (dvc-fileinfo-file-status fileinfo)
+             (ecase (dvc-fileinfo-file-status fileinfo)
                (rename-source
                 (insert "to "))
                (rename-target
@@ -301,7 +319,7 @@ point is not on a file element line. If file status is
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo
       (dvc-fileinfo-file                ; also matches dvc-fileinfo-dir
-       (case (dvc-fileinfo-file-status fileinfo)
+       (ecase (dvc-fileinfo-file-status fileinfo)
          (rename-source
           ;; target name is in more-status
           (dvc-fileinfo-file-more-status fileinfo))
@@ -319,7 +337,7 @@ dvc-fileinfo-current-file only for renamed files."
   (let ((fileinfo (dvc-fileinfo-current-fileinfo)))
     (etypecase fileinfo                ; also matches dvc-fileinfo-dir
       (dvc-fileinfo-file
-       (case (dvc-fileinfo-file-status fileinfo)
+       (ecase (dvc-fileinfo-file-status fileinfo)
          (rename-target
           ;; source name is in more-status, and it includes the path
           (dvc-fileinfo-file-more-status fileinfo))
@@ -374,9 +392,9 @@ marked legacy fileinfos."
       ;; no marked files
       (progn
         ;; binding inhibit-read-only doesn't seem to work here
-        (toggle-read-only 0)
+        (setq buffer-read-only nil)
         (dvc-ewoc-delete dvc-fileinfo-ewoc (ewoc-locate dvc-fileinfo-ewoc))
-        (toggle-read-only 1))
+        (setq buffer-read-only t))
     ;; marked files
     (if (= 0 (length dvc-buffer-marked-file-list))
         ;; non-legacy files
@@ -424,9 +442,9 @@ marked legacy fileinfos."
 	    dvc-fileinfo-ewoc
 	    (file-name-as-directory dir)))
 
-(defun dvc-fileinfo-mark-file-1 (mark)
-  "Set the mark for file under point to MARK. If a directory, mark all files
-in that directory."
+(defun dvc-fileinfo-mark-file-1 (mark &optional not-recursive)
+  "Set the mark for file under point to MARK. If a directory and
+NOT-RECURSIVE is nil, mark all files in that directory."
   (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
          (fileinfo (ewoc-data current)))
     (etypecase fileinfo
@@ -443,7 +461,8 @@ in that directory."
            ;; not excluded
            (setf (dvc-fileinfo-file-mark fileinfo) mark)
            (ewoc-invalidate dvc-fileinfo-ewoc current)
-           (dvc-fileinfo-mark-dir file mark))))
+	   (if (not not-recursive)
+	       (dvc-fileinfo-mark-dir file mark)))))
 
       (dvc-fileinfo-file
        (let ((file (dvc-fileinfo-path fileinfo)))
@@ -465,28 +484,21 @@ in that directory."
       (dvc-fileinfo-message
        (error "not on a file or directory")))))
 
-(defun dvc-fileinfo-mark-file ()
+(defun dvc-fileinfo-mark-file (not-recursive)
   "Mark the file under point. If a directory, mark all files in
-that directory. Then move to next ewoc entry."
-  (interactive)
-  (dvc-fileinfo-mark-file-1 t)
+that directory (unless NOT-RECURSIVE (defaults to prefix)).
+Then move to next ewoc entry."
+  (interactive "P")
+  (dvc-fileinfo-mark-file-1 t not-recursive)
   (dvc-fileinfo-next))
 
-(defun dvc-fileinfo-unmark-file (&optional prev)
+(defun dvc-fileinfo-unmark-file (not-recursive)
   "Unmark the file under point. If a directory, unmark all files
-in that directory. If PREV non-nil, move to previous ewoc entry;
-otherwise move to next."
-  (interactive)
-  (dvc-fileinfo-mark-file-1 nil)
-  (if prev
-      (dvc-fileinfo-prev)
-    (dvc-fileinfo-next)))
-
-(defun dvc-fileinfo-unmark-file-up ()
-  "Unmark the file under point. If a directory, unmark all files
-in that directory. Then move to previous ewoc entry."
-  (interactive)
-  (dvc-fileinfo-unmark-file t))
+in that directory (unless NOT-RECURSIVE (defaults to prefix)).
+Then move to next ewoc entry."
+  (interactive "P")
+  (dvc-fileinfo-mark-file-1 nil not-recursive)
+  (dvc-fileinfo-next))
 
 (defun dvc-fileinfo-mark-all ()
   "Mark all files and directories."
@@ -530,7 +542,8 @@ in that directory. Then move to previous ewoc entry."
             dvc-fileinfo-ewoc))
 
 (defun dvc-fileinfo-toggle-exclude ()
-  "Toggle exclude for file under point. Does not edit default exclude file."
+  "Toggle exclude for file under point. Does not edit default exclude file.
+If a file is marked for exclude, it will not be committed."
   (interactive)
   (let* ((current (ewoc-locate dvc-fileinfo-ewoc))
          (fileinfo (ewoc-data current)))
@@ -596,7 +609,7 @@ in that directory. Then move to previous ewoc entry."
     result))
 
 (defun dvc-fileinfo-excluded-files ()
-  "Return list of filenames that are excluded files."
+  "Return list of filepaths that are excluded."
   ;; This does _not_ include legacy fileinfo structs; they do not
   ;; contain an excluded field.
   (let ((elem (ewoc-nth dvc-fileinfo-ewoc 0))
@@ -672,15 +685,26 @@ non-nil, show log-edit buffer in other frame."
   (dvc-log-edit other-frame t)
   (undo-boundary)
   (goto-char (point-max))
-  (newline 2)
-  (insert "* ")
+  (re-search-backward "^." nil t)
+  (forward-line 1)
+  (if (< 0 (current-column))
+      (insert "\n"))
+  ;; Now on blank line after last entry. Delete any
+  ;; whitespace between here and eob.
+  (delete-region (point) (point-max))
+  ;; insert entry
+  (if (bobp)
+      (insert "\n\n* ")
+    (insert "\n* "))
   (insert (dvc-fileinfo-path fileinfo))
   (insert ": ")
 
   (if (typep fileinfo 'dvc-fileinfo-file)
       (ecase (dvc-fileinfo-file-status fileinfo)
-        (added
-         (insert "New file.")
+        ((added added-staged)
+	 (if (file-directory-p (dvc-fileinfo-path fileinfo))
+	     (insert "New directory.")
+	   (insert "New file."))
          (newline))
 
         ((copy-source copy-target)
@@ -689,15 +713,22 @@ non-nil, show log-edit buffer in other frame."
 
         ((rename-source rename-target)
          (insert "renamed")
+	 (when (dvc-fileinfo-file-more-status fileinfo)
+	   (insert " from " (dvc-fileinfo-file-more-status fileinfo)))
+         (newline))
+
+        ((deleted deleted-staged)
+         (insert "deleted")
          (newline))
 
         ((conflict
-          deleted
+	  conflict-resolved
           ignored
           invalid
           known
           missing
           modified
+	  modified-staged
           unknown)
          nil))))
 
@@ -726,7 +757,7 @@ fileinfos, just call `dvc-remove-files'."
     (let ((elems (or (dvc-fileinfo-marked-elems)
                      (list (ewoc-locate dvc-fileinfo-ewoc))))
           (inhibit-read-only t)
-          known-files unknown-files)
+          known-files)
 
       (while elems
         (let ((fileinfo (ewoc-data (car elems))))
@@ -734,7 +765,13 @@ fileinfos, just call `dvc-remove-files'."
             (dvc-fileinfo-file
              (if (equal 'unknown (dvc-fileinfo-file-status fileinfo))
                  (progn
-                   (push (car elems) unknown-files))
+		   (condition-case err
+		       (dired-delete-file (dvc-fileinfo-path fileinfo) t)
+		     (file-error
+		      ;; probably from Cygwin-created NUL file; use Cygwin shell to delete it
+		      (when (string= "permission denied" (nth 2 err))
+			(shell-command (concat "rm " (dvc-fileinfo-path fileinfo))))))
+                   (dvc-ewoc-delete dvc-fileinfo-ewoc (car elems)))
                ;; `add-to-list' gets a stack overflow here
                (setq known-files (cons (car elems) known-files))))
 
@@ -764,13 +801,7 @@ fileinfos, just call `dvc-remove-files'."
                    (dvc-fileinfo-legacy
                     ;; Don't have enough info to update this
                     nil))))
-             known-files)))
-      (when unknown-files
-        (let ((names (mapcar (lambda (x) (dvc-fileinfo-path (ewoc-data x)))
-                              unknown-files)))
-          (when (dvc-confirm-file-op "remove unknown" names t)
-            (mapcar 'delete-file names)
-            (apply 'ewoc-delete dvc-fileinfo-ewoc unknown-files)))))))
+             known-files))))))
 
 (defun dvc-fileinfo-revert-files ()
   "Revert current files."
@@ -826,6 +857,51 @@ MARKED-ELEMS, non-nil otherwise."
 
       (and (eq 'missing (nth 1 stati))
            (eq 'unknown (nth 0 stati)))))))
+
+(defun dvc-fileinfo-stage-files ()
+  "Stage current files."
+  (interactive)
+  (save-some-buffers t);; might be editing a file that needs staging
+  (dvc-stage-files (dvc-current-file-list))
+
+  ;; change status from * to *-staged
+  (let ((elems (or (dvc-fileinfo-marked-elems)
+		   (list (ewoc-locate dvc-fileinfo-ewoc)))))
+    (mapc
+     (lambda (elem)
+       (let ((fi (ewoc-data elem)))
+	 (ecase (dvc-fileinfo-file-status fi)
+	   (conflict-resolved (setf (dvc-fileinfo-file-status fi) 'modified-staged))
+	   (deleted (setf (dvc-fileinfo-file-status fi) 'deleted-staged))
+	   ((modified modified2-staged) (setf (dvc-fileinfo-file-status fi) 'modified-staged))
+	   (modified-staged nil) ;; re-staging
+	   )
+	 (ewoc-invalidate dvc-fileinfo-ewoc elem)
+	 ))
+     elems)
+    )
+  (dvc-fileinfo-next))
+
+(defun dvc-fileinfo-unstage-files ()
+  "Revert current files."
+  (interactive)
+  (dvc-unstage-files (dvc-current-file-list))
+
+  ;; change status from *-staged to *
+  (let ((elems (or (dvc-fileinfo-marked-elems)
+		   (list (ewoc-locate dvc-fileinfo-ewoc)))))
+    (mapc
+     (lambda (elem)
+       (let ((fi (ewoc-data elem)))
+	 (ecase (dvc-fileinfo-file-status fi)
+	   (deleted-staged (setf (dvc-fileinfo-file-status fi) 'deleted))
+	   (modified-staged (setf (dvc-fileinfo-file-status fi) 'modified))
+	   (t (error "%s is not staged" (dvc-fileinfo-file-file fi)))
+	   )
+	 (ewoc-invalidate dvc-fileinfo-ewoc elem)
+	 ))
+     elems)
+    ))
 
 (provide 'dvc-fileinfo)
 ;;; end of file

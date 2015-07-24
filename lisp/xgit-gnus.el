@@ -1,6 +1,6 @@
 ;;; xgit-gnus.el --- dvc integration to gnus
 
-;; Copyright (C) 2003-2007 by all contributors
+;; Copyright (C) 2003-2007, 2014-2015 by all contributors
 
 ;; Author: Michael Olson <mwolson@gnu.org>,
 ;;         Stefan Reichoer <stefan@xsteve.at>
@@ -183,7 +183,7 @@ guess the repository path via `xgit-apply-patch-mapping'."
     (when working-dir
       (setq working-dir (file-name-as-directory working-dir)))
     (let ((default-directory working-dir))
-      (xgit-dvc-status)
+      (xgit-dvc-status nil)
       (delete-other-windows)
       (setq xgit-gnus-status-window-configuration
             (current-window-configuration))
@@ -242,7 +242,7 @@ argument (C-u) is given, then prompt for this value."
           (when (string= default-directory (file-name-as-directory (car m)))
             (setq dest-specs (cdr m))
             (throw 'found t)))))
-    (let* ((rev (dvc-revlist-get-revision-at-point))
+    (let* ((rev (dvc-revlist-current-rev))
            (repo-location (nth 2 dest-specs)))
       (destructuring-bind (from subject body)
           (dvc-run-dvc-sync

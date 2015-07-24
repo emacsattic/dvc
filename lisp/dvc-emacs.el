@@ -1,10 +1,6 @@
 ;;; dvc-emacs.el --- Compatibility stuff for old versions of GNU Emacs
-;;; and for XEmacs.
-;;;
-;;; This file should be loaded when using Gnu Emacs; load
-;;; dvc-xemacs.el when using XEmacs.
 
-;; Copyright (C) 2004, 2007 - 2008 by all contributors
+;; Copyright (C) 2004, 2007-2008, 2014-2015 by all contributors
 
 ;; This file is part of DVC.
 ;;
@@ -27,48 +23,22 @@
 ;;
 ;; The DVC baseline environment is the current release of Gnu Emacs.
 ;; However, we also support at least one previous release of Gnu
-;; Emacs, and the current release of XEmacs.
+;; Emacs.
 ;;
 ;; There is current Gnu Emacs code used in DVC that is not present in
-;; XEmacs or previous releases of Gnu Emacs.
+;; previous releases of Gnu Emacs.
 ;;
 ;; This file provides versions of that code that work with previous
-;; versions of Gnu Emacs. dvc-xemacs.el provides versions of that code
-;; that work with XEmacs.
+;; versions of Gnu Emacs.
 ;;
-;; There are also functions in Gnu Emacs code used in DVC that have
-;; different names in XEmacs. This file and dvc-xemacs.el provide
-;; common names for those functions.
-;;
-;; There may also be functions in Gnu Emacs that have the same name as
-;; functions in XEmacs, in which case this file provides a common name
-;; to sort things out.
-;;
-;; In all cases, the code provided here should use names prefixed with
-;; `dvc-'. This is to allow for the possibility that other packages
-;; also provide the same function, but the code is broken in some way.
-;; Our version will work with DVC; theirs will work with their
-;; package. DVC code must use the dvc- prefixed name.
+;; In most cases, the code provided here should use names prefixed
+;; with `dvc-'. This is to allow for the possibility that other
+;; packages also provide the same function, but the code is broken in
+;; some way.  Our version will work with DVC; theirs will work with
+;; their package. DVC code must use the dvc- prefixed name.
 ;;
 ;; It might be that some code is truly _not_ broken, but it's much
 ;; easier to just use the dvc- prefix than to prove that.
-;;
-;; Some implementations will be duplicated here and in dvc-xemacs.el.
-;; That is ok; they may need to diverge if bugs are discovered, and
-;; they will most likely be reduced to aliases at different times.
-
-;; DVC developers should normally use Gnu Emacs 22 or XEmacs. In
-;; addition, they should occasionally compile with Gnu Emacs 21, or
-;; earlier versions of XEmacs, to verify compatibility.
-;;
-;; As the current release of Gnu Emacs ages, it may be that there are
-;; features in the development head of Emacs that would be useful in
-;; DVC. Such features can also be provided here.
-
-;; In the future, when we drop support for Gnu Emacs 21, some of the
-;; functions provided here can be deleted, and the DVC code that uses
-;; it changed to use the Gnu Emacs release name. That will make that
-;; code somewhat clearer.
 
 ;;; Code:
 
@@ -78,7 +48,9 @@
     (equal (selected-window)
            (active-minibuffer-window))))
 
-;; These have different names in Gnu Emacs and XEmacs; see dvc-xemacs.el
+;; These have different names in Gnu Emacs and XEmacs; kept for
+;; historical reasons (we haven't gotten around to cleaning out the
+;; XEmacs stuff).
 (defalias 'dvc-make-overlay 'make-overlay)
 (defalias 'dvc-delete-overlay 'delete-overlay)
 (defalias 'dvc-overlay-put 'overlay-put)
@@ -95,82 +67,82 @@
 (defalias 'dvc-put-text-property 'put-text-property)
 (defconst dvc-mouse-face-prop 'mouse-face)
 
-;; Provide features from Emacs 22 for Emacs 21
+;; Provide features from Emacs 22 that were not in Emacs 21 (we no
+;; longer support 21, but we have not gotten around to deleting these
+;; yet).
+;;
 ;; alphabetical by symbol name
 
-(if (fboundp 'derived-mode-p)
-    (defalias 'dvc-derived-mode-p 'derived-mode-p)
-  (defun dvc-derived-mode-p (&rest modes)
-    "Non-nil if the current major mode is derived from one of MODES.
-Uses the `derived-mode-parent' property of the symbol to trace backwards."
-    (let ((parent major-mode))
-      (while (and (not (memq parent modes))
-                  (setq parent (get parent 'derived-mode-parent))))
-      parent)))
+(defalias 'dvc-derived-mode-p 'derived-mode-p)
+(defalias 'dvc-ewoc-delete 'ewoc-delete)
+(defalias 'dvc-expand-file-name 'expand-file-name)
+(defalias 'dvc-line-number-at-pos 'line-number-at-pos)
+(defalias 'dvc-redisplay 'redisplay)
+(defalias 'dvc-window-body-height 'window-body-height)
 
-(if (fboundp 'ewoc-delete)
-    (defalias 'dvc-ewoc-delete 'ewoc-delete)
-  (defun dvc-ewoc-delete (ewoc &rest nodes)
-    "Delete NODES from EWOC."
-    (ewoc--set-buffer-bind-dll-let* ewoc
-        ((L nil) (R nil) (last (ewoc--last-node ewoc)))
-      (dolist (node nodes)
-        ;; If we are about to delete the node pointed at by last-node,
-        ;; set last-node to nil.
-        (when (eq last node)
-          (setf last nil (ewoc--last-node ewoc) nil))
-        (delete-region (ewoc--node-start-marker node)
-                       (ewoc--node-start-marker (ewoc--node-next dll node)))
-        (set-marker (ewoc--node-start-marker node) nil)
-        (setf L (ewoc--node-left  node)
-              R (ewoc--node-right node)
-              ;; Link neighbors to each other.
-              (ewoc--node-right L) R
-              (ewoc--node-left  R) L
-              ;; Forget neighbors.
-              (ewoc--node-left  node) nil
-              (ewoc--node-right node) nil)))))
+;; Compatibility with Emacs 25
 
-;; In Emacs 22, (expand-file-name "c:/..") returns "c:/". But in Emacs
-;; 21, it returns "c:/..". So fix that here. We don't use
-;; dvc-expand-file-name everywhere in DVC, to simplify deleting it
-;; later. We only use it when this case is likely to be encountered.
-(if (and (memq system-type '(ms-dos windows-nt))
-         (< emacs-major-version 22))
-    (defun dvc-expand-file-name (name &optional default-directory)
-      (let ((result (expand-file-name name default-directory)))
-        (if (equal (substring result -2 (length result)) "..")
-            (setq result (substring result 0 -2)))
-        result))
-  (defalias 'dvc-expand-file-name 'expand-file-name))
+;; parse-integer provided by parse-time.el in emacs 24; replaced by
+;; incompatible cl-parse-integer in 25
+(require 'cl-lib)
+(unless (fboundp 'cl-parse-integer)
+  (defconst cl-digit-char-table
+    (let* ((digits (make-vector 256 nil))
+	   (populate (lambda (start end base)
+		       (mapc (lambda (i)
+			       (aset digits i (+ base (- i start))))
+			     (number-sequence start end)))))
+      (funcall populate ?0 ?9 0)
+      (funcall populate ?A ?Z 10)
+      (funcall populate ?a ?z 10)
+      digits))
+  (defun cl-digit-char-p (char &optional radix)
+    "Test if CHAR is a digit in the specified RADIX (default 10).
+If true return the decimal value of digit CHAR in RADIX."
+    (or (and radix
+	     (<= 2 radix)
+	     (>= 36 radix))
+	(signal 'args-out-of-range (list 'radix radix '(2 36))))
+    (let ((n (aref cl-digit-char-table char)))
+      (and n (< n (or radix 10)) n)))
 
-(if (fboundp 'line-number-at-pos)
-    (defalias 'dvc-line-number-at-pos 'line-number-at-pos)
-  (defun dvc-line-number-at-pos (&optional pos)
-    "Return (narrowed) buffer line number at position POS.
-If POS is nil, use current buffer location."
-    (let ((opoint (or pos (point))) start)
-      (save-excursion
-        (goto-char (point-min))
-        (setq start (point))
-        (goto-char opoint)
-        (forward-line 0)
-        (1+ (count-lines start (point)))))))
+  (cl-defun cl-parse-integer (string &key start end radix junk-allowed)
+    "Parse integer from the substring of STRING from START to END.
+STRING may be surrounded by whitespace chars (chars with syntax ` ').
+Other non-digit chars are considered junk.
+RADIX is an integer between 2 and 36, the default is 10.  Signal
+an error if the substring between START and END cannot be parsed
+as an integer unless JUNK-ALLOWED is non-nil."
+    (cl-check-type string string)
+    (let* ((start (or start 0))
+	   (len	(length string))
+	   (end   (or end len))
+	   (radix (or radix 10)))
+      (or (and (<= start len)
+	       (>= end len))
+	  (error "Bad interval: [%d, %d)" start end))
+      (cl-flet ((skip-whitespace ()
+				 (while (and (< start end)
+					     (= 32 (char-syntax (aref string start))))
+				   (setq start (1+ start)))))
+	(skip-whitespace)
+	(let ((sign (cl-case (and (< start end) (aref string start))
+		      (?+ (cl-incf start) +1)
+		      (?- (cl-incf start) -1)
+		      (t  +1)))
+	      digit sum)
+	  (while (and (< start end)
+		      (setq digit (cl-digit-char-p (aref string start) radix)))
+	    (setq sum (+ (* (or sum 0) radix) digit)
+		  start (1+ start)))
+	  (skip-whitespace)
+	  (cond ((and junk-allowed (null sum)) sum)
+		(junk-allowed (* sign sum))
+		((or (/= start end) (null sum))
+		 (error "Not an integer string: `%s'" string))
+		(t (* sign sum)))))))
+  ) ;; parse-integer
 
-(if (fboundp 'redisplay)
-    (defalias 'dvc-redisplay 'redisplay)
-  (defun dvc-redisplay (&optional force)
-    (if force
-        (let ((redisplay-dont-pause t))
-          (sit-for 0))
-      (sit-for 0))))
-
-(if (fboundp 'window-body-height)
-    (defalias 'dvc-window-body-height 'window-body-height)
-  (defalias 'dvc-window-body-height 'window-height))
-
-
-;; FIXME: move to dvc-utils?
 (defun dvc-emacs-make-temp-dir (prefix)
   "Make a temporary directory using PREFIX.
 Return the name of the directory."
@@ -183,4 +155,3 @@ Return the name of the directory."
 
 (provide 'dvc-emacs)
 ;;; dvc-emacs.el ends here
-
