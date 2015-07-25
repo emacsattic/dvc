@@ -661,10 +661,9 @@ specified by the VCS backend."
   (interactive (list current-prefix-arg)))
 
 ;;;###autoload
-(defun dvc-status (&optional path no-switch)
+(defun dvc-status (&optional path)
   "Display the status of all files in optional PATH tree,
 default current workspace.
-If NO-SWITCH is non-nil, don't show status buffer, just prepare it.
 Return '(buffer status), where `status' is a list of:
 'ok               no local changes or stashes
 'need-commit      local changes can be committed
@@ -677,7 +676,7 @@ Return '(buffer status), where `status' is a list of:
     ;; Since we have bound default-directory, we don't need to pass
     ;; `path' to the back-end.
     (dvc-save-some-buffers default-directory)
-    (dvc-call "dvc-status" no-switch)))
+    (dvc-call "dvc-status")))
 
 ;;;###autoload
 (define-dvc-unified-command dvc-submit-patch ()

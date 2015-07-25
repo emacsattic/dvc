@@ -577,7 +577,7 @@ of the commit. Additionally the destination email address can be specified."
             (t (error "unrecognized context in bzr-parse-status")))
       (forward-line 1))))
 
-(defun bzr-dvc-status (no-switch)
+(defun bzr-dvc-status ()
   "For `dvc-status'."
   (let* ((root default-directory)
          (buffer (dvc-prepare-changes-buffer
